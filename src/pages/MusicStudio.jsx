@@ -305,6 +305,17 @@ Make it legally sound, fair, and industry-standard.`;
   const totalStreams = myTracks?.reduce((sum, track) => sum + (track.stream_count || 0), 0) || 0;
   const totalRevenue = myTracks?.reduce((sum, track) => sum + (track.revenue_generated || 0), 0) || 0;
 
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950">
+        <div className="text-center">
+          <Music className="w-16 h-16 text-purple-400 mx-auto mb-4 animate-pulse" />
+          <p className="text-white text-lg">Loading Artist Studio...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 pb-20">
       <div className="max-w-7xl mx-auto">
