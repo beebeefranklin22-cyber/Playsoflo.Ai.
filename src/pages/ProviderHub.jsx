@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, X, Shield, CheckCircle, Clock, AlertCircle,
   Award, FileText, Calendar, TrendingUp, Plus, User, List,
-  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox
+  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox, Sparkles
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -20,6 +20,7 @@ import BookingRequestsSection from "../components/provider/BookingRequestsSectio
 import EarningsSection from "../components/provider/EarningsSection";
 import PerformanceDashboard from "../components/provider/PerformanceDashboard";
 import ProviderChatSection from "../components/provider/ProviderChatSection";
+import PortfolioSection from "../components/profile/PortfolioSection";
 
 const categories = [
   "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
