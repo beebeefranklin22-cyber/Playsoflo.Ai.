@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -6,11 +5,14 @@ import {
   Star, Clock, ChevronLeft, Sparkles, ShoppingBag,
   Scissors, Home, Package, ChefHat, Car, Building,
   Briefcase, Hammer, Heart, Camera, TrendingUp,
-  Calculator, Users, Truck, PawPrint, BookOpen, Monitor, Check, Music, Palette, Video,
+  Calculator, Users, Truck, PawPrint, BookOpen,
+  Dumbbell, Monitor, Check, Music, Palette, Video,
   Shield, Leaf, Droplet, Bug, Sofa, ShoppingCart,
-  Utensils, Baby, Zap, Droplets, Paintbrush, Wind,
+  Utensils, Baby, Heart as HeartIcon, Wrench,
+  Smartphone, Zap, Droplets, Paintbrush, Wind,
   Eye, Waves, Trash2, Key, FileText, DollarSign,
-  FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon, Dumbbell as DumbbellIcon, Search, ShieldCheck
+  FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon,
+  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -176,6 +178,15 @@ export default function Marketplace() {
     "home_healthcare", "mobility_assistance", "medical_equipment_rental",
     "shelter_services", "medical_health"
   ];
+
+  // Group items by service/title to show multiple providers
+  const groupedByService = filteredItems.reduce((acc, item) => {
+    if (!acc[item.title]) {
+      acc[item.title] = [];
+    }
+    acc[item.title].push(item);
+    return acc;
+  }, {});
 
   const filteredItems = items.filter(item => {
     // Exclude wellness categories
@@ -377,9 +388,18 @@ export default function Marketplace() {
                         {item.title}
                       </h3>
 
-                      <p className="text-gray-300 text-sm mb-3">
+                      <p className="text-gray-300 text-sm mb-2">
                         by {item.provider_name}
                       </p>
+
+                      {/* Multiple Providers Indicator */}
+                      {groupedByService[item.title]?.length > 1 && (
+                        <div className="mb-2">
+                          <span className="text-orange-400 text-xs font-semibold">
+                            +{groupedByService[item.title].length - 1} more provider{groupedByService[item.title].length > 2 ? 's' : ''} available
+                          </span>
+                        </div>
+                      )}
 
                       {item.response_time && (
                         <div className="flex items-center gap-2 text-gray-400 text-xs mb-3">
@@ -402,16 +422,29 @@ export default function Marketplace() {
                         </div>
 
                         {!isFood ? (
-                          <button
-                            className="px-6 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedService(item);
-                              setShowBookingModal(true);
-                            }}
-                          >
-                            Book Now
-                          </button>
+                          groupedByService[item.title]?.length > 1 ? (
+                            <button
+                              className="px-6 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(createPageUrl("ServiceProviders") + `?service=${encodeURIComponent(item.title)}`);
+                              }}
+                            >
+                              <Users className="w-4 h-4" />
+                              Compare
+                            </button>
+                          ) : (
+                            <button
+                              className="px-6 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedService(item);
+                                setShowBookingModal(true);
+                              }}
+                            >
+                              Book Now
+                            </button>
+                          )
                         ) : (
                           <button
                             className="px-6 py-3 bg-green-600 rounded-full text-white font-semibold hover:bg-green-700 transition"
