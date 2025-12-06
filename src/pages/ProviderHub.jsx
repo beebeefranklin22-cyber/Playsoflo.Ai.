@@ -10,12 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, X, Shield, CheckCircle, Clock, AlertCircle,
-  Award, FileText, Calendar, Plus, User, List,
-  DollarSign, Star, BarChart3, Users, CreditCard, Loader2
+  Award, FileText, Calendar, TrendingUp, Plus, User, List,
+  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import BookingRequestsSection from "../components/provider/BookingRequestsSection";
+import EarningsSection from "../components/provider/EarningsSection";
+import PerformanceDashboard from "../components/provider/PerformanceDashboard";
 
 const categories = [
   "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
@@ -461,8 +464,10 @@ export default function ProviderHub() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-7 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="requests">Requests</TabsTrigger>
+            <TabsTrigger value="earnings">Earnings</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="availability">Availability</TabsTrigger>
             <TabsTrigger value="verification">Verification</TabsTrigger>
@@ -471,6 +476,21 @@ export default function ProviderHub() {
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
+            <PerformanceDashboard currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Booking Requests Tab */}
+          <TabsContent value="requests" className="space-y-6">
+            <BookingRequestsSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Earnings Tab */}
+          <TabsContent value="earnings" className="space-y-6">
+            <EarningsSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Old Dashboard Content for reference */}
+          <TabsContent value="dashboard-old" className="space-y-6">
             {/* Key Metrics */}
             <div className="grid md:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border-blue-500/30">
