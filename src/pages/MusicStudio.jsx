@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Music, Upload, Play, DollarSign, TrendingUp, Users, Download,
   ChevronLeft, Sparkles, Briefcase, FileText, BarChart3, Award,
-  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle
+  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -298,8 +298,8 @@ Make it legally sound, fair, and industry-standard.`;
     }
   };
 
-  const totalStreams = myTracks.reduce((sum, track) => sum + (track.stream_count || 0), 0);
-  const totalRevenue = myTracks.reduce((sum, track) => sum + (track.revenue_generated || 0), 0);
+  const totalStreams = myTracks?.reduce((sum, track) => sum + (track.stream_count || 0), 0) || 0;
+  const totalRevenue = myTracks?.reduce((sum, track) => sum + (track.revenue_generated || 0), 0) || 0;
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 pb-20">
@@ -377,9 +377,19 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsList>
 
           <TabsContent value="tracks" className="mt-6">
-            {/* Track upload form in modal - content managed by showUploadModal */}
-            <div className="grid md:grid-cols-3 gap-6">
-              {myTracks.map((track) => (
+            {myTracks.length === 0 ? (
+              <div className="text-center py-20">
+                <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No tracks yet</h3>
+                <p className="text-gray-400 mb-6">Upload your first track to start sharing your music</p>
+                <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600">
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Track
+                </Button>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-6">
+                {myTracks.map((track) => (
                 <Card key={track.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-4">
                     <h3 className="text-white font-bold mb-2">{track.title}</h3>
@@ -404,8 +414,19 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsContent>
 
           <TabsContent value="pools" className="mt-6">
-            <div className="space-y-4">
-              {myPools.map((pool) => (
+            {myPools.length === 0 ? (
+              <div className="text-center py-20">
+                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No fan pools yet</h3>
+                <p className="text-gray-400 mb-6">Create a fan pool to crowdfund concerts and projects</p>
+                <Button onClick={() => setShowPoolModal(true)} className="bg-blue-600">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Fan Pool
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myPools.map((pool) => (
                 <Card key={pool.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-6">
                     <h3 className="text-white font-bold text-xl mb-2">{pool.title}</h3>
@@ -427,7 +448,8 @@ Make it legally sound, fair, and industry-standard.`;
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="contracts" className="mt-6">
@@ -488,8 +510,19 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsContent>
 
           <TabsContent value="deals" className="mt-6">
-            <div className="space-y-4">
-              {myDealApplications.map((deal) => (
+            {myDealApplications.length === 0 ? (
+              <div className="text-center py-20">
+                <Briefcase className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No deal applications yet</h3>
+                <p className="text-gray-400 mb-6">Apply for record labels, distribution, or sponsorships</p>
+                <Button onClick={() => setShowDealModal(true)} className="bg-yellow-600">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Apply for Deals
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myDealApplications.map((deal) => (
                 <Card key={deal.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
@@ -537,6 +570,24 @@ Make it legally sound, fair, and industry-standard.`;
                     className="bg-white/10 border-white/20 text-white"
                   />
 
+                  <Select value={trackForm.genre} onValueChange={(v) => setTrackForm({...trackForm, genre: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue placeholder="Select genre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hip_hop">Hip Hop</SelectItem>
+                      <SelectItem value="rap">Rap</SelectItem>
+                      <SelectItem value="r&b">R&B</SelectItem>
+                      <SelectItem value="pop">Pop</SelectItem>
+                      <SelectItem value="rock">Rock</SelectItem>
+                      <SelectItem value="electronic">Electronic</SelectItem>
+                      <SelectItem value="latin">Latin</SelectItem>
+                      <SelectItem value="country">Country</SelectItem>
+                      <SelectItem value="jazz">Jazz</SelectItem>
+                      <SelectItem value="reggae">Reggae</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Select value={trackForm.pricing_model} onValueChange={(v) => setTrackForm({...trackForm, pricing_model: v})}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue />
@@ -569,10 +620,22 @@ Make it legally sound, fair, and industry-standard.`;
                   )}
 
                   <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Audio File</label>
                     {trackForm.audio_file_url ? (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-400" />
-                        <span className="text-green-400">Audio uploaded</span>
+                      <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                          <span className="text-green-400">Audio uploaded</span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setTrackForm({...trackForm, audio_file_url: ""})}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          Remove
+                        </Button>
                       </div>
                     ) : (
                       <>
@@ -591,6 +654,42 @@ Make it legally sound, fair, and industry-standard.`;
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           Upload Audio File
+                        </Button>
+                      </>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Cover Art (Optional)</label>
+                    {trackForm.cover_art_url ? (
+                      <div className="relative inline-block">
+                        <img src={trackForm.cover_art_url} alt="Cover" className="w-32 h-32 rounded-lg object-cover" />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setTrackForm({...trackForm, cover_art_url: ""})}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full p-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          id="cover-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e.target.files?.[0], 'cover')}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('cover-upload').click()}
+                          className="w-full"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Cover Art
                         </Button>
                       </>
                     )}
@@ -648,6 +747,19 @@ Make it legally sound, fair, and industry-standard.`;
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
                   />
 
+                  <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm({...poolForm, pool_type: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concert_show">Concert/Show</SelectItem>
+                      <SelectItem value="music_video">Music Video</SelectItem>
+                      <SelectItem value="album_release">Album Release</SelectItem>
+                      <SelectItem value="tour">Tour</SelectItem>
+                      <SelectItem value="merchandise">Merchandise</SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <Input
                       type="number"
@@ -660,6 +772,23 @@ Make it legally sound, fair, and industry-standard.`;
                       type="date"
                       value={poolForm.deadline}
                       onChange={(e) => setPoolForm({...poolForm, deadline: e.target.value})}
+                      placeholder="Campaign deadline"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      type="date"
+                      value={poolForm.event_date}
+                      onChange={(e) => setPoolForm({...poolForm, event_date: e.target.value})}
+                      placeholder="Event date"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <Input
+                      value={poolForm.location}
+                      onChange={(e) => setPoolForm({...poolForm, location: e.target.value})}
+                      placeholder="Event location"
                       className="bg-white/10 border-white/20 text-white"
                     />
                   </div>
