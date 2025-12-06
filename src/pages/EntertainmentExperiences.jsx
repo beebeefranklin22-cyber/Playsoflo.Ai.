@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { 
   Anchor, Wine, Music, Car, PartyPopper, Camera, 
   Sparkles, Search, Filter, Plus, Loader2, TrendingUp,
-  Gift, Calendar, Sun, Snowflake, Heart
+  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import MessageProviderButton from "../components/provider/MessageProviderButton";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
@@ -355,12 +356,20 @@ Return as JSON array with this structure:
                             </Badge>
                           </div>
                           <p className="text-gray-400 text-sm mb-4 line-clamp-2">{exp.description}</p>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-3">
                             <div className="text-green-400 font-bold text-xl">${exp.price}</div>
                             <Button className="bg-purple-600 hover:bg-purple-700">
                               Book Now
                             </Button>
                           </div>
+                          {currentUser && exp.provider_email && (
+                            <MessageProviderButton
+                              providerEmail={exp.provider_email}
+                              providerName={exp.title}
+                              currentUser={currentUser}
+                              context={`Inquiry about: ${exp.title}`}
+                            />
+                          )}
                         </div>
                       </CardContent>
                     </Card>

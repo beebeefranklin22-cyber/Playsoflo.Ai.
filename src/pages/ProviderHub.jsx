@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import BookingRequestsSection from "../components/provider/BookingRequestsSection";
 import EarningsSection from "../components/provider/EarningsSection";
 import PerformanceDashboard from "../components/provider/PerformanceDashboard";
+import ProviderChatSection from "../components/provider/ProviderChatSection";
 
 const categories = [
   "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
@@ -48,7 +49,22 @@ export default function ProviderHub() {
       });
     },
     enabled: !!currentUser,
+    refetchInterval: 10000, // Refetch every 10 seconds
     initialData: []
+  });
+
+  // Count unread messages for badge
+  const { data: unreadMessages = 0 } = useQuery({
+    queryKey: ['provider-unread-messages', currentUser?.email],
+    queryFn: async () => {
+      const messages = await base44.entities.DirectMessage.filter({
+        recipient_email: currentUser.email,
+        read: false
+      });
+      return messages.length;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 5000 // Check every 5 seconds
   });
 
   const { data: availability = [] } = useQuery({
@@ -538,9 +554,17 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-8 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="requests">Requests</TabsTrigger>
+            <TabsTrigger value="messages" className="relative">
+              Messages
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="availability">Availability</TabsTrigger>
@@ -556,6 +580,11 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           {/* Booking Requests Tab */}
           <TabsContent value="requests" className="space-y-6">
             <BookingRequestsSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-6">
+            <ProviderChatSection currentUser={currentUser} />
           </TabsContent>
 
           {/* Earnings Tab */}

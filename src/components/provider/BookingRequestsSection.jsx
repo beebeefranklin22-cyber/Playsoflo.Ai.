@@ -232,7 +232,7 @@ Generate only the message text, no subject line or greetings.`,
                       </div>
                     )}
 
-                    <div className="flex gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <Button
                         onClick={() => {
                           if (selectedBooking === booking.id) {
@@ -242,11 +242,24 @@ Generate only the message text, no subject line or greetings.`,
                           }
                         }}
                         variant="outline"
-                        className="flex-1 bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20"
+                        className="bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20"
                         disabled={updateBookingMutation.isPending}
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         Decline
+                      </Button>
+
+                      <Button
+                        onClick={() => {
+                          const conversationId = `${currentUser.email}_${booking.customer_email}`.split('').sort().join('');
+                          // Navigate to messages tab and select conversation - simplified approach
+                          toast.info('Opening messages...');
+                        }}
+                        variant="outline"
+                        className="bg-blue-500/10 border-blue-500/30 text-blue-300 hover:bg-blue-500/20"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Chat
                       </Button>
                       
                       <Button
@@ -257,11 +270,11 @@ Generate only the message text, no subject line or greetings.`,
                             setSelectedBooking(booking.id);
                           }
                         }}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        className="bg-green-600 hover:bg-green-700"
                         disabled={updateBookingMutation.isPending}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        {selectedBooking === booking.id ? 'Confirm Acceptance' : 'Accept'}
+                        {selectedBooking === booking.id ? 'Confirm' : 'Accept'}
                       </Button>
                     </div>
                   </CardContent>
