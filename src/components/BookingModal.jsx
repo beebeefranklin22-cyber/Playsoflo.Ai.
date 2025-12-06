@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   X, Calendar, Clock, MapPin, DollarSign, Check,
-  AlertCircle, Loader2, User, Phone, Mail, Users, Bell
+  AlertCircle, Loader2, User, Phone, Mail, Users, Bell, Sparkles, Send
 } from "lucide-react";
 
 export default function BookingModal({ service, onClose }) {
@@ -31,6 +31,10 @@ export default function BookingModal({ service, onClose }) {
     phone: "",
     email: ""
   });
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -280,6 +284,82 @@ export default function BookingModal({ service, onClose }) {
     }
   };
 
+  // AI Assistant - Answer questions and suggest bookings
+  const handleAIQuery = async () => {
+    if (!aiInput.trim()) return;
+    
+    const userMessage = { role: 'user', content: aiInput };
+    setAiMessages(prev => [...prev, userMessage]);
+    setAiInput("");
+    setAiLoading(true);
+
+    try {
+      // Prepare context for AI
+      const availabilityContext = availability.length > 0 
+        ? availability.map(a => `${a.day_of_week}: ${a.is_available ? `${a.start_time}-${a.end_time}` : 'unavailable'}`).join(', ')
+        : 'No availability data';
+
+      const upcomingSlotsContext = selectedDate && availableSlots.length > 0
+        ? `Available slots on ${selectedDate}: ${availableSlots.join(', ')}`
+        : selectedDate ? `No slots available on ${selectedDate}` : '';
+
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are Ronron AI, a friendly booking assistant. Help the customer with their inquiry about this service.
+
+Service Details:
+- Name: ${service.title}
+- Price: $${service.price} per ${service.price_type}
+- Description: ${service.description || 'Professional service'}
+- Provider: ${service.provider_name || 'Professional'}
+
+Provider Availability:
+${availabilityContext}
+
+${upcomingSlotsContext}
+
+Customer Selected: ${selectedDate ? `Date: ${selectedDate}${selectedTime ? `, Time: ${selectedTime}` : ''}` : 'Nothing yet'}
+
+Customer Question: ${userMessage.content}
+
+Provide a helpful, friendly response. If they're asking about:
+1. Availability - Suggest the best available times based on their preferences
+2. Service details - Answer based on the service information
+3. Booking help - Guide them through the process
+4. Alternative times - Recommend nearby slots if their preferred time is unavailable
+
+Be conversational, concise (2-3 sentences), and helpful. If suggesting times, format them clearly.`,
+        add_context_from_internet: false
+      });
+
+      const aiMessage = { role: 'assistant', content: response };
+      setAiMessages(prev => [...prev, aiMessage]);
+
+      // Check if AI suggested a time and auto-fill if possible
+      const timeMatch = response.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch && !selectedTime) {
+        const suggestedTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
+        if (availableSlots.includes(suggestedTime)) {
+          setSelectedTime(suggestedTime);
+        }
+      }
+    } catch (error) {
+      const errorMessage = { role: 'assistant', content: "I'm having trouble right now. Please try again or proceed with your booking manually." };
+      setAiMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Initialize AI with welcome message
+  React.useEffect(() => {
+    if (showAIAssistant && aiMessages.length === 0) {
+      setAiMessages([{
+        role: 'assistant',
+        content: `Hi! I'm Ronron, your booking assistant. I can help you find the perfect time for ${service.title}, answer questions about the service, or suggest alternatives if your preferred slot isn't available. How can I help you today?`
+      }]);
+    }
+  }, [showAIAssistant]);
+
   if (!service) return null;
 
   return (
@@ -335,6 +415,68 @@ export default function BookingModal({ service, onClose }) {
           </div>
 
           <div className="p-6">
+            {/* AI Assistant Toggle Button */}
+            <div className="mb-4">
+              <Button
+                onClick={() => setShowAIAssistant(!showAIAssistant)}
+                variant="outline"
+                className="w-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 hover:from-purple-600/30 hover:to-pink-600/30"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                {showAIAssistant ? 'Hide' : 'Ask'} Ronron AI Assistant
+              </Button>
+            </div>
+
+            {/* AI Assistant Chat */}
+            {showAIAssistant && (
+              <Card className="bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30 mb-6">
+                <CardContent className="p-4">
+                  <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
+                    {aiMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                            msg.role === 'user'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white/10 text-gray-200'
+                          }`}
+                        >
+                          <p className="text-sm">{msg.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {aiLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white/10 rounded-2xl px-4 py-2">
+                          <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={aiInput}
+                      onChange={(e) => setAiInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAIQuery()}
+                      placeholder="Ask about availability, service details, or get suggestions..."
+                      className="bg-white/10 border-white/20 text-white"
+                      disabled={aiLoading}
+                    />
+                    <Button
+                      onClick={handleAIQuery}
+                      disabled={aiLoading || !aiInput.trim()}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Step 1: Date & Time Selection */}
             {step === 1 && (
               <motion.div
