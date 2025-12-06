@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -7,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, ShoppingBag, Tv, Wand2, Wallet
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -54,42 +53,7 @@ export default function Home() {
     fetchUser();
   }, []);
 
-  // Check onboarding status - but only once per session
-  const { data: onboardingProgress } = useQuery({
-    queryKey: ["onboarding-check"],
-    queryFn: async () => {
-      if (!currentUser) return null;
-      try {
-        const progress = await base44.entities.OnboardingProgress.filter({
-          user_email: currentUser.email
-        });
-        return progress[0] || null;
-      } catch (error) {
-        console.error("Error fetching onboarding progress:", error);
-        return null;
-      }
-    },
-    enabled: !!currentUser && !hasCheckedOnboarding
-  });
-
-  // Redirect to onboarding only once and only if truly not completed
-  useEffect(() => {
-    if (!currentUser || hasCheckedOnboarding) return;
-    
-    // If we have the onboarding data (i.e., it's not 'undefined' initial state)
-    if (onboardingProgress !== undefined) {
-      setHasCheckedOnboarding(true);
-      
-      // Only redirect if onboarding was never started OR explicitly incomplete
-      if (onboardingProgress === null || (onboardingProgress && !onboardingProgress.completed)) {
-        // Check if user has explicitly skipped onboarding (stored in sessionStorage)
-        const hasSkippedOnboarding = sessionStorage.getItem('onboarding_skipped');
-        if (!hasSkippedOnboarding) {
-          navigate(createPageUrl("OnboardingFlow"));
-        }
-      }
-    }
-  }, [currentUser, onboardingProgress, hasCheckedOnboarding, navigate]);
+  // Onboarding check removed - users can access freely
 
   // Track interactions for AI
   const trackInteractionMutation = useMutation({
