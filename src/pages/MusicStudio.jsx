@@ -3,15 +3,16 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, Users,
-  ChevronLeft, Sparkles, Briefcase,
-  CheckCircle, Plus, Mic2, FileSignature, AlertCircle
+import {
+  Music, Upload, Play, DollarSign, TrendingUp, Users, Download,
+  ChevronLeft, Sparkles, Briefcase, FileText, BarChart3, Award,
+  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -22,6 +23,15 @@ export default function MusicStudio() {
   const [activeTab, setActiveTab] = useState("tracks");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDealModal, setShowDealModal] = useState(false);
+  const [dealForm, setDealForm] = useState({
+    deal_type: "record_label",
+    artist_name: "",
+    instagram_handle: "",
+    youtube_channel: "",
+    monthly_listeners: 0,
+    career_goals: "",
+    additional_info: ""
+  });
   const [showPoolModal, setShowPoolModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
 
@@ -103,6 +113,7 @@ export default function MusicStudio() {
       return await base44.entities.MusicTrack.create({
         ...trackData,
         artist_email: currentUser.email,
+        artist: currentUser.full_name || currentUser.email,
         status: "published"
       });
     },
@@ -110,6 +121,17 @@ export default function MusicStudio() {
       queryClient.invalidateQueries(['my-music-tracks']);
       setShowUploadModal(false);
       alert('🎵 Track published successfully!');
+      setTrackForm({
+        title: "",
+        genre: "hip_hop",
+        pricing_model: "free",
+        price_usd: 0,
+        price_soflo: 0,
+        audio_file_url: "",
+        cover_art_url: "",
+        explicit: false,
+        allow_downloads: false
+      });
     }
   });
 
@@ -118,13 +140,70 @@ export default function MusicStudio() {
       return await base44.entities.FanPool.create({
         ...poolData,
         artist_email: currentUser.email,
-        artist_name: currentUser.full_name || currentUser.email
+        artist_name: currentUser.full_name || currentUser.email,
+        raised_amount: 0,
+        status: "active"
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['my-fan-pools']);
       setShowPoolModal(false);
       alert('✅ Fan pool created! Fans can now contribute.');
+      setPoolForm({
+        pool_type: "concert_show",
+        title: "",
+        description: "",
+        goal_amount: 0,
+        deadline: "",
+        event_date: "",
+        location: "",
+        tier_rewards: []
+      });
+    }
+  });
+
+  const applyForDealMutation = useMutation({
+    mutationFn: async (dealData) => {
+      const application = await base44.entities.MusicDealApplication.create({
+        ...dealData,
+        artist_email: currentUser.email,
+        artist_name: currentUser.full_name || currentUser.email,
+        status: "pending_review"
+      });
+
+      // Notify all admins
+      const allUsers = await base44.entities.User.list();
+      const admins = allUsers.filter(u => u.role === 'admin');
+      
+      for (const admin of admins) {
+        await base44.entities.Notification.create({
+          recipient_email: admin.email,
+          type: "system_alert",
+          title: "🎵 New Music Deal Application",
+          message: `${currentUser.full_name} applied for a ${dealData.deal_type.replace('_', ' ')} deal. ${dealData.monthly_listeners} monthly listeners.`,
+          reference_type: "user",
+          reference_id: application.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        });
+      }
+
+      return application;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-deal-applications']);
+      setShowDealModal(false);
+      alert('✅ Deal application submitted! Admins will review it shortly.');
+      setDealForm({
+        deal_type: "record_label",
+        artist_name: "",
+        instagram_handle: "",
+        youtube_channel: "",
+        monthly_listeners: 0,
+        career_goals: "",
+        additional_info: ""
+      });
     }
   });
 
@@ -182,15 +261,23 @@ Make it legally sound, fair, and industry-standard.`;
         status: "pending_admin_review"
       });
 
-      // Notify admin for review
-      await base44.entities.Notification.create({
-        recipient_email: "admin@playsoflo.com",
-        type: "system_alert",
-        title: "🤖 New AI Contract Needs Review",
-        message: `${currentUser.full_name} generated a ${contractData.contract_type.replace('_', ' ')} contract.`,
-        reference_type: "user",
-        reference_id: contract.id
-      });
+      // Notify all admins
+      const allUsers = await base44.entities.User.list();
+      const admins = allUsers.filter(u => u.role === 'admin');
+      
+      for (const admin of admins) {
+        await base44.entities.Notification.create({
+          recipient_email: admin.email,
+          type: "system_alert",
+          title: "🤖 New AI Contract Needs Review",
+          message: `${currentUser.full_name} generated a ${contractData.contract_type.replace('_', ' ')} contract.`,
+          reference_type: "user",
+          reference_id: contract.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        });
+      }
 
       return contract;
     },
@@ -610,6 +697,111 @@ Make it legally sound, fair, and industry-standard.`;
                       className="flex-1 bg-blue-600"
                     >
                       Create Pool
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Deal Application Modal */}
+        <AnimatePresence>
+          {showDealModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+              onClick={() => setShowDealModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+              >
+                <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                  <Briefcase className="w-8 h-8 text-yellow-400" />
+                  Apply for Music Deals
+                </h2>
+                <div className="space-y-4">
+                  <Select value={dealForm.deal_type} onValueChange={(v) => setDealForm({...dealForm, deal_type: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="record_label">Record Label Deal</SelectItem>
+                      <SelectItem value="distribution">Distribution Deal</SelectItem>
+                      <SelectItem value="management">Management Contract</SelectItem>
+                      <SelectItem value="publishing">Publishing Deal</SelectItem>
+                      <SelectItem value="sponsorship">Brand Sponsorship</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Input
+                    value={dealForm.artist_name}
+                    onChange={(e) => setDealForm({...dealForm, artist_name: e.target.value})}
+                    placeholder="Artist/Band Name"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      value={dealForm.instagram_handle}
+                      onChange={(e) => setDealForm({...dealForm, instagram_handle: e.target.value})}
+                      placeholder="Instagram handle"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <Input
+                      value={dealForm.youtube_channel}
+                      onChange={(e) => setDealForm({...dealForm, youtube_channel: e.target.value})}
+                      placeholder="YouTube channel"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  <Input
+                    type="number"
+                    value={dealForm.monthly_listeners}
+                    onChange={(e) => setDealForm({...dealForm, monthly_listeners: Number(e.target.value)})}
+                    placeholder="Monthly listeners (Spotify/Apple Music)"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+
+                  <textarea
+                    value={dealForm.career_goals}
+                    onChange={(e) => setDealForm({...dealForm, career_goals: e.target.value})}
+                    rows={3}
+                    placeholder="What are your career goals?"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
+                  />
+
+                  <textarea
+                    value={dealForm.additional_info}
+                    onChange={(e) => setDealForm({...dealForm, additional_info: e.target.value})}
+                    rows={4}
+                    placeholder="Additional information (notable achievements, previous releases, etc.)"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
+                  />
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                    <p className="text-blue-300 text-sm">
+                      <strong>Tip:</strong> Provide complete info about your music career, social media presence, and goals. Admins will review your application and may contact you with opportunities.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setShowDealModal(false)} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => applyForDealMutation.mutate(dealForm)}
+                      disabled={!dealForm.artist_name || !dealForm.monthly_listeners || applyForDealMutation.isLoading}
+                      className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                    >
+                      {applyForDealMutation.isLoading ? 'Submitting...' : 'Submit Application'}
                     </Button>
                   </div>
                 </div>
