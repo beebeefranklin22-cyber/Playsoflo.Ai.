@@ -5,10 +5,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, DollarSign, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Download, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import SignatureCanvas from "react-signature-canvas";
 
 export default function LeaseDetails() {
   const navigate = useNavigate();
@@ -16,7 +15,8 @@ export default function LeaseDetails() {
   const queryClient = useQueryClient();
   const leaseId = new URLSearchParams(location.search).get('id');
   const [showSignature, setShowSignature] = useState(false);
-  const signaturePad = useRef(null);
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -34,7 +34,13 @@ export default function LeaseDetails() {
 
   const signLeaseMutation = useMutation({
     mutationFn: async () => {
-      const signature = signaturePad.current.toDataURL();
+      const canvas = canvasRef.current;
+      const signature = canvas ? canvas.toDataURL() : null;
+      
+      if (!signature) {
+        throw new Error('Please add your signature');
+      }
+      
       const isLandlord = currentUser.email === lease.landlord_email;
       
       return base44.entities.Lease.update(leaseId, {
@@ -48,8 +54,66 @@ export default function LeaseDetails() {
       queryClient.invalidateQueries(['lease', leaseId]);
       setShowSignature(false);
       toast.success('Lease signed successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to sign lease');
     }
   });
+
+  const clearSignature = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+  };
+
+  const handleTouchStart = (e) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    const touch = e.touches[0];
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext('2d');
+    const touch = e.touches[0];
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+  };
+
+  const handleTouchEnd = () => {
+    setIsDrawing(false);
+  };
 
   if (isLoading) {
     return <div className="p-6 text-white text-center">Loading lease...</div>;
@@ -163,22 +227,30 @@ export default function LeaseDetails() {
           >
             <h3 className="text-lg font-bold text-white mb-4">Sign Lease</h3>
             <div className="bg-white rounded-xl p-4 mb-4">
-              <SignatureCanvas
-                ref={signaturePad}
-                canvasProps={{
-                  className: 'w-full h-48 border-2 border-gray-300 rounded'
-                }}
+              <canvas
+                ref={canvasRef}
+                width={600}
+                height={200}
+                className="w-full h-48 border-2 border-gray-300 rounded cursor-crosshair touch-none"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               />
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={() => signaturePad.current.clear()}
+                onClick={clearSignature}
                 variant="outline"
               >
                 Clear
               </Button>
               <Button
                 onClick={() => signLeaseMutation.mutate()}
+                disabled={signLeaseMutation.isPending}
                 className="flex-1 bg-green-600 hover:bg-green-700"
               >
                 <Pencil className="w-4 h-4 mr-2" />
