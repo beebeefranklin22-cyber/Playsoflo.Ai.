@@ -13,6 +13,7 @@ export default function BookingRequestsSection({ currentUser }) {
   const queryClient = useQueryClient();
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [providerNotes, setProviderNotes] = useState("");
+  const [generatingResponse, setGeneratingResponse] = useState(false);
 
   const { data: bookingRequests = [] } = useQuery({
     queryKey: ['provider-booking-requests', currentUser?.email],
@@ -69,6 +70,39 @@ export default function BookingRequestsSection({ currentUser }) {
       status: 'cancelled',
       notes: providerNotes
     });
+  };
+
+  const generateResponse = async (booking, type) => {
+    setGeneratingResponse(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a professional service provider drafting a ${type === 'accept' ? 'acceptance' : 'decline'} message to a customer.
+
+Service: ${booking.service_title}
+Customer: ${booking.customer_email}
+Date: ${new Date(booking.booking_date).toLocaleDateString()}
+Time: ${booking.booking_time}
+Customer Notes: ${booking.customer_notes || 'None'}
+
+Draft a ${type === 'accept' ? 'warm, professional acceptance message confirming the booking' : 'polite, professional decline message'}.
+
+The message should:
+- Be 2-3 sentences
+- ${type === 'accept' ? 'Confirm the details and express enthusiasm' : 'Be apologetic and suggest the customer reach out for future availability'}
+- Be friendly and professional
+- Sound human, not robotic
+
+Generate only the message text, no subject line or greetings.`,
+        add_context_from_internet: false
+      });
+      
+      setProviderNotes(response);
+      toast.success('Response drafted!');
+    } catch (error) {
+      toast.error('Failed to generate response');
+    } finally {
+      setGeneratingResponse(false);
+    }
   };
 
   return (
@@ -149,14 +183,51 @@ export default function BookingRequestsSection({ currentUser }) {
                     </div>
 
                     {selectedBooking === booking.id && (
-                      <div className="mb-4">
-                        <label className="text-gray-400 text-sm mb-2 block">Add Notes (Optional)</label>
+                      <div className="mb-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-gray-400 text-sm">Message to Customer (Optional)</label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => generateResponse(booking, 'accept')}
+                              disabled={generatingResponse}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              {generatingResponse ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <MessageSquare className="w-3 h-3 mr-1" />
+                                  AI Accept
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => generateResponse(booking, 'decline')}
+                              disabled={generatingResponse}
+                              variant="outline"
+                              className="bg-white/5 border-white/10"
+                            >
+                              {generatingResponse ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <MessageSquare className="w-3 h-3 mr-1" />
+                                  AI Decline
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
                         <Textarea
                           value={providerNotes}
                           onChange={(e) => setProviderNotes(e.target.value)}
                           placeholder="Add any notes for the customer..."
                           className="bg-white/10 border-white/20 text-white"
-                          rows={2}
+                          rows={3}
                         />
                       </div>
                     )}

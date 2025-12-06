@@ -249,6 +249,80 @@ export default function ProviderHub() {
     portfolio_images: []
   });
 
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingPricing, setGeneratingPricing] = useState(false);
+
+  const generateDescription = async () => {
+    if (!form.title || !form.category) {
+      toast.error('Please enter a title and category first');
+      return;
+    }
+    
+    setGeneratingDescription(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an expert service provider copywriter. Create a compelling, professional service description for the following:
+
+Service Title: ${form.title}
+Category: ${form.category}
+
+The description should:
+- Be 2-3 sentences long
+- Highlight the key benefits to customers
+- Sound professional yet approachable
+- Include relevant details about what's included
+- End with a call to action
+
+Generate only the description text, nothing else.`,
+        add_context_from_internet: false
+      });
+      
+      setForm({ ...form, description: response });
+      toast.success('Description generated!');
+    } catch (error) {
+      toast.error('Failed to generate description');
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const suggestPricing = async () => {
+    if (!form.title || !form.category) {
+      toast.error('Please enter a title and category first');
+      return;
+    }
+    
+    setGeneratingPricing(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a pricing expert for service marketplaces. Based on market trends and industry standards, suggest an optimal price for:
+
+Service: ${form.title}
+Category: ${form.category}
+Current Price Type: ${form.price_type}
+
+Provide a competitive price that balances profitability and market demand. Consider:
+- Industry standard rates
+- Skill level required
+- Time/effort involved
+- Local market conditions
+
+Respond with ONLY a single number (the suggested price in USD). No explanation, just the number.`,
+        add_context_from_internet: true
+      });
+      
+      const suggestedPrice = parseFloat(response.trim());
+      if (!isNaN(suggestedPrice)) {
+        setForm({ ...form, price: suggestedPrice });
+        toast.success(`Suggested price: $${suggestedPrice}`);
+      }
+    } catch (error) {
+      toast.error('Failed to generate pricing suggestion');
+    } finally {
+      setGeneratingPricing(false);
+    }
+  };
+
   const handleUploadCoverImage = async (file) => {
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -685,20 +759,68 @@ export default function ProviderHub() {
                   </Select>
                 </div>
 
-                <Input
-                  type="number"
-                  placeholder="Price (USD)"
-                  value={form.price}
-                  onChange={(e) => setForm({...form, price: Number(e.target.value)})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-gray-400 text-sm">Price (USD)</label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={suggestPricing}
+                      disabled={generatingPricing || !form.title}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {generatingPricing ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          AI Suggest
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Input
+                    type="number"
+                    placeholder="Price (USD)"
+                    value={form.price}
+                    onChange={(e) => setForm({...form, price: Number(e.target.value)})}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
-                <Input
-                  placeholder="Description"
-                  value={form.description}
-                  onChange={(e) => setForm({...form, description: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-gray-400 text-sm">Description</label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={generateDescription}
+                      disabled={generatingDescription || !form.title}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {generatingDescription ? (
+                        <>
+                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Star className="w-3 h-3 mr-1" />
+                          AI Generate
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Service description"
+                    value={form.description}
+                    onChange={(e) => setForm({...form, description: e.target.value})}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
                 <div className="space-y-3">
                   <label className="text-white font-medium block">Cover Image</label>
