@@ -48,6 +48,7 @@ import StripeSetup from './pages/StripeSetup';
 import Payouts from './pages/Payouts';
 import StripeOnboarding from './pages/StripeOnboarding';
 import ServiceProviders from './pages/ServiceProviders';
+import EntertainmentExperiences from './pages/EntertainmentExperiences';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +103,7 @@ export const PAGES = {
     "Payouts": Payouts,
     "StripeOnboarding": StripeOnboarding,
     "ServiceProviders": ServiceProviders,
+    "EntertainmentExperiences": EntertainmentExperiences,
 }
 
 export const pagesConfig = {
