@@ -557,7 +557,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-9 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="requests">Requests</TabsTrigger>
             <TabsTrigger value="messages" className="relative">
@@ -569,6 +569,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               )}
             </TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="availability">Availability</TabsTrigger>
             <TabsTrigger value="verification">Verification</TabsTrigger>
@@ -593,6 +594,29 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           {/* Earnings Tab */}
           <TabsContent value="earnings" className="space-y-6">
             <EarningsSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Portfolio Tab */}
+          <TabsContent value="portfolio" className="space-y-6">
+            <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30 mb-6">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <Award className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-white font-bold text-lg mb-2">Showcase Your Work</h3>
+                    <p className="text-blue-200 text-sm">
+                      Build trust and attract more customers by showcasing your best work. Upload images, videos, or detailed case studies of your completed projects.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <PortfolioSection 
+              userEmail={currentUser?.email} 
+              isOwnProfile={true} 
+              currentUser={currentUser} 
+            />
           </TabsContent>
 
           {/* Old Dashboard Content for reference */}
