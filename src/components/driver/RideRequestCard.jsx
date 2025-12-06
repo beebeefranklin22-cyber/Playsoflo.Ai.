@@ -169,49 +169,60 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
             </div>
           )}
 
-          {/* Customer Preferences */}
-          {customerData?.ride_preferences && (
-            <div className="mb-4">
-              <button
-                onClick={() => setShowPreferences(!showPreferences)}
-                className="text-purple-400 text-sm font-medium mb-2 hover:text-purple-300"
-              >
-                {showPreferences ? "Hide" : "View"} Customer Preferences
-              </button>
-              
-              {showPreferences && (
-                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 space-y-2">
-                  {customerData.ride_preferences.quiet_ride && (
-                    <div className="flex items-center gap-2 text-sm text-purple-300">
-                      <Volume2 className="w-4 h-4" />
-                      <span>Prefers quiet ride</span>
-                    </div>
-                  )}
-                  {customerData.ride_preferences.ac_preference !== "medium" && (
-                    <div className="flex items-center gap-2 text-sm text-blue-300">
-                      <Wind className="w-4 h-4" />
-                      <span>AC: {customerData.ride_preferences.ac_preference}</span>
-                    </div>
-                  )}
-                  {customerData.ride_preferences.no_perfume && (
-                    <div className="flex items-center gap-2 text-sm text-pink-300">
-                      <Droplets className="w-4 h-4" />
-                      <span>Sensitive to strong scents</span>
-                    </div>
-                  )}
-                  {customerData.ride_preferences.music_genre !== "none" && (
-                    <div className="flex items-center gap-2 text-sm text-green-300">
-                      <Music className="w-4 h-4" />
-                      <span>Music: {customerData.ride_preferences.music_genre}</span>
-                    </div>
-                  )}
-                  {customerData.ride_preferences.conversation && (
-                    <div className="flex items-center gap-2 text-sm text-cyan-300">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Conversation: {customerData.ride_preferences.conversation}</span>
-                    </div>
-                  )}
+          {/* Customer Preferences & Rating */}
+          {customerData && (
+            <div className="mb-4 space-y-3">
+              {customerData.driver_rating && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-yellow-400 font-bold">⭐ {customerData.driver_rating.toFixed(1)}</span>
+                  <span className="text-gray-400">({customerData.driver_total_ratings || 0} ratings)</span>
                 </div>
+              )}
+              
+              {customerData.ride_preferences && (
+                <>
+                  <button
+                    onClick={() => setShowPreferences(!showPreferences)}
+                    className="text-purple-400 text-sm font-medium hover:text-purple-300"
+                  >
+                    {showPreferences ? "Hide" : "View"} Customer Preferences
+                  </button>
+                  
+                  {showPreferences && (
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 space-y-2">
+                      {customerData.ride_preferences.quiet_ride && (
+                        <div className="flex items-center gap-2 text-sm text-purple-300">
+                          <Volume2 className="w-4 h-4" />
+                          <span>Prefers quiet ride</span>
+                        </div>
+                      )}
+                      {customerData.ride_preferences.ac_preference !== "medium" && (
+                        <div className="flex items-center gap-2 text-sm text-blue-300">
+                          <Wind className="w-4 h-4" />
+                          <span>AC: {customerData.ride_preferences.ac_preference}</span>
+                        </div>
+                      )}
+                      {customerData.ride_preferences.no_perfume && (
+                        <div className="flex items-center gap-2 text-sm text-pink-300">
+                          <Droplets className="w-4 h-4" />
+                          <span>Sensitive to strong scents</span>
+                        </div>
+                      )}
+                      {customerData.ride_preferences.music_genre !== "none" && (
+                        <div className="flex items-center gap-2 text-sm text-green-300">
+                          <Music className="w-4 h-4" />
+                          <span>Music: {customerData.ride_preferences.music_genre}</span>
+                        </div>
+                      )}
+                      {customerData.ride_preferences.conversation && (
+                        <div className="flex items-center gap-2 text-sm text-cyan-300">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Conversation: {customerData.ride_preferences.conversation}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
+import { Star, Sparkles } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 
@@ -11,11 +11,12 @@ export default function RatingModal({ open, onClose, ride, raterType }) {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [review, setReview] = useState("");
   const [categories, setCategories] = useState({
-    communication: 0,
+    driving: 0,
     cleanliness: 0,
-    professionalism: 0,
-    punctuality: 0
+    communication: 0,
+    professionalism: 0
   });
+  const [wouldRideAgain, setWouldRideAgain] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -29,15 +30,45 @@ export default function RatingModal({ open, onClose, ride, raterType }) {
       const currentUser = await base44.auth.me();
       const ratedEmail = raterType === "customer" ? ride.driver_email : ride.created_by;
 
-      await base44.entities.Rating.create({
-        ride_id: ride.id,
-        rater_email: currentUser.email,
-        rated_email: ratedEmail,
-        rater_type: raterType,
-        rating,
-        review,
-        categories
-      });
+      // Create driver rating if rating a driver
+      if (raterType === "customer" && ride.driver_email) {
+        await base44.entities.DriverRating.create({
+          driver_email: ride.driver_email,
+          passenger_email: currentUser.email,
+          passenger_name: currentUser.full_name,
+          passenger_photo: currentUser.profile_photo,
+          ride_id: ride.id,
+          rating,
+          review_text: review,
+          categories,
+          would_ride_again: wouldRideAgain
+        });
+
+        // Update driver's average rating
+        const driverRatings = await base44.entities.DriverRating.filter({ driver_email: ride.driver_email });
+        const totalRatings = driverRatings.length;
+        const avgRating = driverRatings.reduce((sum, r) => sum + r.rating, 0) / totalRatings;
+        
+        const drivers = await base44.entities.User.list();
+        const driver = drivers.find(u => u.email === ride.driver_email);
+        if (driver) {
+          await base44.auth.updateMe({
+            driver_rating: parseFloat(avgRating.toFixed(2)),
+            driver_total_ratings: totalRatings
+          });
+        }
+      } else {
+        // Create general rating for passengers rating drivers (fallback)
+        await base44.entities.Rating.create({
+          ride_id: ride.id,
+          rater_email: currentUser.email,
+          rated_email: ratedEmail,
+          rater_type: raterType,
+          rating,
+          review,
+          categories
+        });
+      }
 
       // Notify the rated person
       await base44.entities.Notification.create({
@@ -59,9 +90,14 @@ export default function RatingModal({ open, onClose, ride, raterType }) {
     }
   };
 
-  const categoryLabels = {
-    communication: raterType === "customer" ? "Communication" : "Friendliness",
-    cleanliness: raterType === "customer" ? "Vehicle Cleanliness" : "Respectfulness",
+  const categoryLabels = raterType === "customer" ? {
+    driving: "Driving Safety",
+    cleanliness: "Vehicle Cleanliness",
+    communication: "Communication",
+    professionalism: "Professionalism"
+  } : {
+    communication: "Friendliness",
+    cleanliness: "Respectfulness",
     professionalism: "Professionalism",
     punctuality: "Punctuality"
   };
@@ -136,6 +172,23 @@ export default function RatingModal({ open, onClose, ride, raterType }) {
               </div>
             ))}
           </div>
+
+          {/* Would Ride Again (for customers rating drivers) */}
+          {raterType === "customer" && (
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+              <span className="text-white">Would ride with this driver again?</span>
+              <button
+                onClick={() => setWouldRideAgain(!wouldRideAgain)}
+                className={`w-12 h-6 rounded-full transition ${
+                  wouldRideAgain ? 'bg-green-600' : 'bg-gray-600'
+                }`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                  wouldRideAgain ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          )}
 
           {/* Review Text */}
           <div>
