@@ -540,7 +540,8 @@ Make it legally sound, fair, and industry-standard.`;
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
