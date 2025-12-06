@@ -2,9 +2,11 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Users, ArrowRight, X, CheckCircle, Navigation } from "lucide-react";
+import { MapPin, DollarSign, Clock, Users, ArrowRight, X, CheckCircle, Navigation, Volume2, Wind, Droplets, Music, MessageCircle } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import RatingModal from "../ride/RatingModal";
 import CancellationModal from "../ride/CancellationModal";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,6 +16,17 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
   const [showRating, setShowRating] = React.useState(false);
   const [showMap, setShowMap] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
+  const [showPreferences, setShowPreferences] = React.useState(false);
+
+  // Fetch customer preferences
+  const { data: customerData } = useQuery({
+    queryKey: ['customer-preferences', ride.created_by],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return users.find(u => u.email === ride.created_by);
+    },
+    enabled: !!ride.created_by
+  });
 
   const handleAccept = async () => {
     setLoading(true);
@@ -153,6 +166,53 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           {ride.notes && (
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
               <p className="text-blue-300 text-sm">{ride.notes}</p>
+            </div>
+          )}
+
+          {/* Customer Preferences */}
+          {customerData?.ride_preferences && (
+            <div className="mb-4">
+              <button
+                onClick={() => setShowPreferences(!showPreferences)}
+                className="text-purple-400 text-sm font-medium mb-2 hover:text-purple-300"
+              >
+                {showPreferences ? "Hide" : "View"} Customer Preferences
+              </button>
+              
+              {showPreferences && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 space-y-2">
+                  {customerData.ride_preferences.quiet_ride && (
+                    <div className="flex items-center gap-2 text-sm text-purple-300">
+                      <Volume2 className="w-4 h-4" />
+                      <span>Prefers quiet ride</span>
+                    </div>
+                  )}
+                  {customerData.ride_preferences.ac_preference !== "medium" && (
+                    <div className="flex items-center gap-2 text-sm text-blue-300">
+                      <Wind className="w-4 h-4" />
+                      <span>AC: {customerData.ride_preferences.ac_preference}</span>
+                    </div>
+                  )}
+                  {customerData.ride_preferences.no_perfume && (
+                    <div className="flex items-center gap-2 text-sm text-pink-300">
+                      <Droplets className="w-4 h-4" />
+                      <span>Sensitive to strong scents</span>
+                    </div>
+                  )}
+                  {customerData.ride_preferences.music_genre !== "none" && (
+                    <div className="flex items-center gap-2 text-sm text-green-300">
+                      <Music className="w-4 h-4" />
+                      <span>Music: {customerData.ride_preferences.music_genre}</span>
+                    </div>
+                  )}
+                  {customerData.ride_preferences.conversation && (
+                    <div className="flex items-center gap-2 text-sm text-cyan-300">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Conversation: {customerData.ride_preferences.conversation}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
