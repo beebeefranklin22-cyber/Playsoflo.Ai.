@@ -49,6 +49,7 @@ import Payouts from './pages/Payouts';
 import StripeOnboarding from './pages/StripeOnboarding';
 import ServiceProviders from './pages/ServiceProviders';
 import EntertainmentExperiences from './pages/EntertainmentExperiences';
+import UniversalSearch from './pages/UniversalSearch';
 import __Layout from './Layout.jsx';
 
 
@@ -104,6 +105,7 @@ export const PAGES = {
     "StripeOnboarding": StripeOnboarding,
     "ServiceProviders": ServiceProviders,
     "EntertainmentExperiences": EntertainmentExperiences,
+    "UniversalSearch": UniversalSearch,
 }
 
 export const pagesConfig = {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -49,7 +49,7 @@ export default function Layout({ children, currentPageName }) {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(createPageUrl("explore") + `?search=${encodeURIComponent(searchQuery)}`);
+      navigate(createPageUrl("UniversalSearch") + `?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
