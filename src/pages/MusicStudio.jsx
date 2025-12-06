@@ -411,10 +411,10 @@ Make it legally sound, fair, and industry-standard.`;
                 </Card>
               ))}
               </div>
-              )}
-              </TabsContent>
+            )}
+          </TabsContent>
 
-              <TabsContent value="pools" className="mt-6">
+          <TabsContent value="pools" className="mt-6">
             {myPools.length === 0 ? (
               <div className="text-center py-20">
                 <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
