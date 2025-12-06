@@ -5,7 +5,8 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, // Added ChevronLeft icon
+  Home, // Added Home icon
+  ChevronLeft, // Added ChevronLeft icon
   Building, // Added Building icon for Real Estate
   Car, // Added Car icon for Car Rentals
   Music // Added Music icon
@@ -22,7 +23,7 @@ const pillars = [
     gradient: "from-purple-600 via-pink-600 to-purple-600",
     image: "https://images.unsplash.com/photo-1566024287286-457247b70310?w=1200",
     features: ["Exotic Cars", "Yachts", "Wine Tastings", "Nightlife"],
-    action: "explore"
+    action: "EntertainmentExperiences"
   },
   {
     id: "social",
