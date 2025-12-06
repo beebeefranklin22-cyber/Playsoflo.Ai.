@@ -1,0 +1,698 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Upload, Users,
+  ChevronLeft, Sparkles, Briefcase,
+  CheckCircle, Plus, Mic2, FileSignature, AlertCircle
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+export default function MusicStudio() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("tracks");
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showDealModal, setShowDealModal] = useState(false);
+  const [showPoolModal, setShowPoolModal] = useState(false);
+  const [showContractModal, setShowContractModal] = useState(false);
+
+  const [trackForm, setTrackForm] = useState({
+    title: "",
+    genre: "hip_hop",
+    pricing_model: "free",
+    price_usd: 0,
+    price_soflo: 0,
+    audio_file_url: "",
+    cover_art_url: "",
+    explicit: false,
+    allow_downloads: false
+  });
+
+  const [poolForm, setPoolForm] = useState({
+    pool_type: "concert_show",
+    title: "",
+    description: "",
+    goal_amount: 0,
+    deadline: "",
+    event_date: "",
+    location: "",
+    tier_rewards: []
+  });
+
+  const [contractForm, setContractForm] = useState({
+    contract_type: "collaboration_agreement",
+    parties: [],
+    description: ""
+  });
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const { data: myTracks = [] } = useQuery({
+    queryKey: ['my-music-tracks', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.MusicTrack.filter({ artist_email: currentUser.email });
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  const { data: myPools = [] } = useQuery({
+    queryKey: ['my-fan-pools', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.FanPool.filter({ artist_email: currentUser.email });
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  const { data: myContracts = [] } = useQuery({
+    queryKey: ['my-contracts', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.MusicContract.filter({});
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  const { data: myDealApplications = [] } = useQuery({
+    queryKey: ['my-deal-applications', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.MusicDealApplication.filter({ artist_email: currentUser.email });
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  const uploadTrackMutation = useMutation({
+    mutationFn: async (trackData) => {
+      return await base44.entities.MusicTrack.create({
+        ...trackData,
+        artist_email: currentUser.email,
+        status: "published"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-music-tracks']);
+      setShowUploadModal(false);
+      alert('🎵 Track published successfully!');
+    }
+  });
+
+  const createPoolMutation = useMutation({
+    mutationFn: async (poolData) => {
+      return await base44.entities.FanPool.create({
+        ...poolData,
+        artist_email: currentUser.email,
+        artist_name: currentUser.full_name || currentUser.email
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-fan-pools']);
+      setShowPoolModal(false);
+      alert('✅ Fan pool created! Fans can now contribute.');
+    }
+  });
+
+  const generateContractMutation = useMutation({
+    mutationFn: async (contractData) => {
+      // AI generates smart contract
+      const prompt = `You are an expert music industry attorney. Generate a professional ${contractData.contract_type.replace('_', ' ')} contract.
+
+PARTIES:
+${contractData.parties.map(p => `- ${p.role}: ${p.name} (${p.email})`).join('\n')}
+
+CONTRACT PURPOSE:
+${contractData.description}
+
+Generate a comprehensive legal contract including:
+1. Parties and definitions
+2. Term and territory
+3. Financial terms and royalty splits
+4. Rights and obligations
+5. Intellectual property
+6. Termination clauses
+7. Dispute resolution
+8. Signatures section
+
+Make it legally sound, fair, and industry-standard.`;
+
+      const aiContract = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            contract_text: { type: "string" },
+            ai_generated_terms: {
+              type: "object",
+              properties: {
+                payment_terms: { type: "string" },
+                royalty_split: { type: "object" },
+                duration: { type: "string" },
+                territory: { type: "string" }
+              }
+            },
+            key_points: {
+              type: "array",
+              items: { type: "string" }
+            }
+          }
+        }
+      });
+
+      const contract = await base44.entities.MusicContract.create({
+        contract_type: contractData.contract_type,
+        parties: contractData.parties,
+        contract_text: aiContract.contract_text,
+        ai_generated_terms: aiContract.ai_generated_terms,
+        status: "pending_admin_review"
+      });
+
+      // Notify admin for review
+      await base44.entities.Notification.create({
+        recipient_email: "admin@playsoflo.com",
+        type: "system_alert",
+        title: "🤖 New AI Contract Needs Review",
+        message: `${currentUser.full_name} generated a ${contractData.contract_type.replace('_', ' ')} contract.`,
+        reference_type: "user",
+        reference_id: contract.id
+      });
+
+      return contract;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-contracts']);
+      setShowContractModal(false);
+      alert('✅ AI contract generated! Awaiting admin review.');
+    }
+  });
+
+  const handleFileUpload = async (file, type) => {
+    if (!file) return;
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    if (type === 'audio') {
+      setTrackForm(prev => ({ ...prev, audio_file_url: file_url }));
+    } else if (type === 'cover') {
+      setTrackForm(prev => ({ ...prev, cover_art_url: file_url }));
+    }
+  };
+
+  const totalStreams = myTracks.reduce((sum, track) => sum + (track.stream_count || 0), 0);
+  const totalRevenue = myTracks.reduce((sum, track) => sum + (track.revenue_generated || 0), 0);
+
+  return (
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 pb-20">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => navigate(createPageUrl("Vibe"))}
+            className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition"
+          >
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+              <Mic2 className="w-10 h-10 text-purple-400" />
+              Artist Studio
+            </h1>
+            <p className="text-gray-300">Upload, Monetize & Grow</p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <p className="text-3xl font-bold text-white">{totalStreams.toLocaleString()}</p>
+              <p className="text-gray-400 text-sm">Total Streams</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <p className="text-3xl font-bold text-white">${totalRevenue.toFixed(2)}</p>
+              <p className="text-gray-400 text-sm">Revenue</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <p className="text-3xl font-bold text-white">{myTracks.length}</p>
+              <p className="text-gray-400 text-sm">Tracks</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <p className="text-3xl font-bold text-white">{myPools.length}</p>
+              <p className="text-gray-400 text-sm">Fan Pools</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600 hover:bg-purple-700 py-6">
+            <Upload className="w-5 h-5 mr-2" />
+            Upload Music
+          </Button>
+          <Button onClick={() => setShowPoolModal(true)} className="bg-blue-600 hover:bg-blue-700 py-6">
+            <Users className="w-5 h-5 mr-2" />
+            Create Fan Pool
+          </Button>
+          <Button onClick={() => setShowContractModal(true)} className="bg-green-600 hover:bg-green-700 py-6">
+            <FileSignature className="w-5 h-5 mr-2" />
+            AI Contract
+          </Button>
+          <Button onClick={() => setShowDealModal(true)} className="bg-yellow-600 hover:bg-yellow-700 py-6">
+            <Briefcase className="w-5 h-5 mr-2" />
+            Apply for Deals
+          </Button>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4 bg-white/10 border border-white/20">
+            <TabsTrigger value="tracks">Tracks</TabsTrigger>
+            <TabsTrigger value="pools">Fan Pools</TabsTrigger>
+            <TabsTrigger value="contracts">Contracts</TabsTrigger>
+            <TabsTrigger value="deals">Deal Apps</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tracks" className="mt-6">
+            {/* Track upload form in modal - content managed by showUploadModal */}
+            <div className="grid md:grid-cols-3 gap-6">
+              {myTracks.map((track) => (
+                <Card key={track.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-4">
+                    <h3 className="text-white font-bold mb-2">{track.title}</h3>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="text-center">
+                        <p className="text-white font-bold">{track.stream_count || 0}</p>
+                        <p className="text-gray-400">Streams</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white font-bold">{track.download_count || 0}</p>
+                        <p className="text-gray-400">Downloads</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-green-400 font-bold">${(track.revenue_generated || 0).toFixed(0)}</p>
+                        <p className="text-gray-400">Revenue</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pools" className="mt-6">
+            <div className="space-y-4">
+              {myPools.map((pool) => (
+                <Card key={pool.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-6">
+                    <h3 className="text-white font-bold text-xl mb-2">{pool.title}</h3>
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm mb-2">
+                        <span className="text-gray-400">Progress</span>
+                        <span className="text-white font-bold">
+                          ${pool.raised_amount.toLocaleString()} / ${pool.goal_amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-white/10 rounded-full">
+                        <div
+                          className="h-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
+                          style={{ width: `${Math.min((pool.raised_amount / pool.goal_amount) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-sm">{pool.contributors?.length || 0} backers</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="contracts" className="mt-6">
+            <div className="space-y-4">
+              {myContracts.map((contract) => (
+                <Card key={contract.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-white font-bold text-xl mb-1 capitalize">
+                          {contract.contract_type.replace('_', ' ')}
+                        </h3>
+                        <p className="text-gray-400 text-sm">
+                          {contract.parties?.length || 0} parties involved
+                        </p>
+                      </div>
+                      <Badge className={
+                        contract.status === 'all_signed' ? 'bg-green-500/20 text-green-400' :
+                        contract.status === 'pending_admin_review' ? 'bg-yellow-500/20 text-yellow-400' :
+                        contract.status === 'under_negotiation' ? 'bg-blue-500/20 text-blue-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }>
+                        {contract.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+
+                    {contract.status === 'pending_admin_review' && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                        <p className="text-yellow-400 text-sm flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          AI contract awaiting admin review & approval
+                        </p>
+                      </div>
+                    )}
+
+                    {contract.negotiation_history && contract.negotiation_history.length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-gray-400 text-sm mb-2">Recent Activity:</p>
+                        <div className="bg-white/5 rounded-lg p-3">
+                          <p className="text-white text-sm">
+                            {contract.negotiation_history[contract.negotiation_history.length - 1].proposed_changes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {myContracts.length === 0 && (
+                <div className="text-center py-20">
+                  <FileSignature className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-white mb-2">No contracts yet</h3>
+                  <p className="text-gray-400">Generate AI-powered smart contracts for deals</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="deals" className="mt-6">
+            <div className="space-y-4">
+              {myDealApplications.map((deal) => (
+                <Card key={deal.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-white font-bold text-xl">{deal.artist_name}</h3>
+                        <p className="text-gray-400 capitalize">{deal.deal_type.replace('_', ' ')}</p>
+                      </div>
+                      <Badge className={
+                        deal.status === 'offer_made' ? 'bg-green-500/20 text-green-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }>
+                        {deal.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Upload Track Modal */}
+        <AnimatePresence>
+          {showUploadModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+              onClick={() => setShowUploadModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+              >
+                <h2 className="text-3xl font-bold text-white mb-6">Upload Track</h2>
+                <div className="space-y-4">
+                  <Input
+                    value={trackForm.title}
+                    onChange={(e) => setTrackForm({...trackForm, title: e.target.value})}
+                    placeholder="Track title"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+
+                  <Select value={trackForm.pricing_model} onValueChange={(v) => setTrackForm({...trackForm, pricing_model: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="hybrid">Hybrid (Free streams + Paid downloads)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {trackForm.pricing_model !== 'free' && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={trackForm.price_usd}
+                        onChange={(e) => setTrackForm({...trackForm, price_usd: Number(e.target.value)})}
+                        placeholder="Price USD"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                      <Input
+                        type="number"
+                        value={trackForm.price_soflo}
+                        onChange={(e) => setTrackForm({...trackForm, price_soflo: Number(e.target.value)})}
+                        placeholder="Price SFC"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    {trackForm.audio_file_url ? (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-green-400" />
+                        <span className="text-green-400">Audio uploaded</span>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          id="audio-upload"
+                          type="file"
+                          accept="audio/*"
+                          onChange={(e) => handleFileUpload(e.target.files?.[0], 'audio')}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => document.getElementById('audio-upload').click()}
+                          className="w-full"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Audio File
+                        </Button>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setShowUploadModal(false)} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => uploadTrackMutation.mutate(trackForm)}
+                      disabled={!trackForm.title || !trackForm.audio_file_url}
+                      className="flex-1 bg-purple-600"
+                    >
+                      Publish
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Create Fan Pool Modal */}
+        <AnimatePresence>
+          {showPoolModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+              onClick={() => setShowPoolModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+              >
+                <h2 className="text-3xl font-bold text-white mb-6">Create Fan Pool</h2>
+                <div className="space-y-4">
+                  <Input
+                    value={poolForm.title}
+                    onChange={(e) => setPoolForm({...poolForm, title: e.target.value})}
+                    placeholder="e.g., Live Concert in Miami"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+
+                  <textarea
+                    value={poolForm.description}
+                    onChange={(e) => setPoolForm({...poolForm, description: e.target.value})}
+                    rows={4}
+                    placeholder="Describe what fans are funding..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      type="number"
+                      value={poolForm.goal_amount}
+                      onChange={(e) => setPoolForm({...poolForm, goal_amount: Number(e.target.value)})}
+                      placeholder="Goal amount (USD)"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <Input
+                      type="date"
+                      value={poolForm.deadline}
+                      onChange={(e) => setPoolForm({...poolForm, deadline: e.target.value})}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  {/* Tier Setup */}
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <h3 className="text-white font-bold mb-3">Reward Tiers</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        const newTier = {
+                          tier_name: "VIP",
+                          minimum_contribution: 100,
+                          access_type: "vip",
+                          rewards: ["VIP Pass", "Meet & Greet"],
+                          limited_slots: 50
+                        };
+                        setPoolForm({...poolForm, tier_rewards: [...(poolForm.tier_rewards || []), newTier]});
+                      }}
+                      className="bg-purple-600"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Tier
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setShowPoolModal(false)} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => createPoolMutation.mutate(poolForm)}
+                      disabled={!poolForm.title || !poolForm.goal_amount}
+                      className="flex-1 bg-blue-600"
+                    >
+                      Create Pool
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* AI Contract Generator Modal */}
+        <AnimatePresence>
+          {showContractModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+              onClick={() => setShowContractModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8"
+              >
+                <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
+                  <Sparkles className="w-8 h-8 text-purple-400" />
+                  Generate AI Smart Contract
+                </h2>
+                <div className="space-y-4">
+                  <Select value={contractForm.contract_type} onValueChange={(v) => setContractForm({...contractForm, contract_type: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="collaboration_agreement">Collaboration Agreement</SelectItem>
+                      <SelectItem value="performance_contract">Performance Contract</SelectItem>
+                      <SelectItem value="production_agreement">Production Agreement</SelectItem>
+                      <SelectItem value="licensing_agreement">Licensing Agreement</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <textarea
+                    value={contractForm.description}
+                    onChange={(e) => setContractForm({...contractForm, description: e.target.value})}
+                    rows={4}
+                    placeholder="Describe the deal terms you want..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
+                  />
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                    <p className="text-blue-300 text-sm">
+                      <strong>How it works:</strong> AI generates a professional contract → Admin reviews & can revise → 
+                      All parties can negotiate terms → Everyone signs digitally
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => setShowContractModal(false)} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const parties = [
+                          { email: currentUser.email, role: "Artist", name: currentUser.full_name }
+                        ];
+                        generateContractMutation.mutate({
+                          ...contractForm,
+                          parties
+                        });
+                      }}
+                      disabled={!contractForm.description || generateContractMutation.isLoading}
+                      className="flex-1 bg-green-600"
+                    >
+                      {generateContractMutation.isLoading ? 'Generating...' : 'Generate Contract'}
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}

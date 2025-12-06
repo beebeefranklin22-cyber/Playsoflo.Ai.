@@ -1,0 +1,344 @@
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { base44 } from "@/api/base44Client";
+import { 
+  Heart, MessageCircle, Share2, Bookmark, MapPin,
+  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+
+export default function Social() {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [likedPosts, setLikedPosts] = useState(new Set());
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [postContent, setPostContent] = useState("");
+  const [generatingAI, setGeneratingAI] = useState(false);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.log("User not authenticated");
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ['social-posts'],
+    queryFn: () => base44.entities.SocialPost.list('-created_date'),
+    initialData: []
+  });
+
+  const toggleLike = (postId) => {
+    setLikedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+  };
+
+  const generateAIPost = async () => {
+    if (!postContent.trim()) {
+      toast.error("Enter a topic first");
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const prompt = `Write an engaging social media post about: "${postContent}". 
+      Make it catchy, authentic, include 3-5 relevant hashtags, and keep it concise (2-3 sentences max).
+      Be creative and make it shareable.`;
+
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        add_context_from_internet: true
+      });
+
+      setPostContent(result);
+      toast.success("AI content generated!");
+    } catch (error) {
+      toast.error("Failed to generate content");
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+
+  const vibeColors = {
+    energetic: "from-red-500 to-orange-500",
+    chill: "from-blue-500 to-cyan-500",
+    luxury: "from-yellow-500 to-amber-500",
+    adventure: "from-green-500 to-emerald-500",
+    romantic: "from-pink-500 to-rose-500",
+    party: "from-purple-500 to-pink-500"
+  };
+
+  return (
+    <div className="min-h-screen pb-20">
+      {/* Stories Bar */}
+      <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+          {/* Add Your Story */}
+          <button className="flex flex-col items-center gap-2 flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative">
+              <Plus className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white text-xs font-medium">Your Story</span>
+          </button>
+
+          {/* Stories from others */}
+          {[1, 2, 3, 4, 5].map((i) => (
+            <button key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 p-0.5">
+                <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">
+                  U{i}
+                </div>
+              </div>
+              <span className="text-gray-400 text-xs">User {i}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Feed */}
+      <div className="max-w-2xl mx-auto">
+        {posts.map((post, index) => (
+          <motion.div
+            key={post.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="mb-6"
+          >
+            {/* Post Header */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <button 
+                onClick={() => navigate(createPageUrl("UserProfile") + `?user=${encodeURIComponent(post.created_by)}`)}
+                className="flex items-center gap-3 hover:opacity-80 transition"
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                  {post.created_by?.[0]?.toUpperCase() || "U"}
+                </div>
+                <div>
+                  <p className="text-white font-semibold">{post.created_by || "User"}</p>
+                  {post.location && (
+                    <div className="flex items-center gap-1 text-gray-400 text-sm">
+                      <MapPin className="w-3 h-3" />
+                      {post.location}
+                    </div>
+                  )}
+                </div>
+              </button>
+              <button className="text-gray-400 hover:text-white">
+                <MoreHorizontal className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Post Image */}
+            <div className="relative">
+              <img 
+                src={post.image_url} 
+                alt={post.caption}
+                className="w-full aspect-square object-cover"
+              />
+              
+              {/* Vibe Overlay */}
+              {post.vibe && (
+                <div className={`absolute top-4 left-4 px-4 py-2 bg-gradient-to-r ${vibeColors[post.vibe]} rounded-full text-white text-sm font-bold backdrop-blur-sm`}>
+                  {post.vibe}
+                </div>
+              )}
+
+              {/* Experience Badge */}
+              {post.is_experience && (
+                <div className="absolute top-4 right-4 px-3 py-1.5 bg-white/20 backdrop-blur-xl rounded-full flex items-center gap-2 border border-white/30">
+                  <Sparkles className="w-4 h-4 text-yellow-400" />
+                  <span className="text-white text-sm font-bold capitalize">
+                    {post.experience_type?.replace(/_/g, ' ')}
+                  </span>
+                </div>
+              )}
+
+              {/* Music Playing */}
+              {post.music_playing && (
+                <div className="absolute bottom-4 left-4 right-4 glass-effect rounded-2xl px-4 py-3 flex items-center gap-3">
+                  <Music className="w-5 h-5 text-purple-400 animate-pulse" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">
+                      {post.music_playing}
+                    </p>
+                  </div>
+                  <button className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-xs">
+                    ▶
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => toggleLike(post.id)}
+                  className="transform active:scale-125 transition-transform"
+                >
+                  <Heart 
+                    className={`w-7 h-7 ${
+                      likedPosts.has(post.id) 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-white'
+                    }`} 
+                  />
+                </button>
+                <button>
+                  <MessageCircle className="w-7 h-7 text-white" />
+                </button>
+                <button>
+                  <Share2 className="w-7 h-7 text-white" />
+                </button>
+              </div>
+              <button>
+                <Bookmark className="w-7 h-7 text-white" />
+              </button>
+            </div>
+
+            {/* Likes Count */}
+            <div className="px-4 pb-2">
+              <p className="text-white font-semibold">
+                {post.likes_count + (likedPosts.has(post.id) ? 1 : 0)} likes
+              </p>
+            </div>
+
+            {/* Caption */}
+            <div className="px-4 pb-2">
+              <p className="text-white">
+                <button 
+                  onClick={() => navigate(createPageUrl("UserProfile") + `?user=${encodeURIComponent(post.created_by)}`)}
+                  className="font-semibold mr-2 hover:opacity-80 transition"
+                >
+                  {post.created_by || "User"}
+                </button>
+                {post.caption}
+              </p>
+            </div>
+
+            {/* Comments */}
+            {post.comments_count > 0 && (
+              <button className="px-4 pb-3 text-gray-400 text-sm">
+                View all {post.comments_count} comments
+              </button>
+            )}
+
+            {/* Time */}
+            <p className="px-4 pb-3 text-gray-500 text-xs uppercase">
+              {new Date(post.created_date).toLocaleDateString()}
+            </p>
+          </motion.div>
+        ))}
+
+        {posts.length === 0 && !isLoading && (
+          <div className="text-center py-20">
+            <div className="w-20 h-20 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Activity className="w-10 h-10 text-pink-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Welcome to Social</h3>
+            <p className="text-gray-400 mb-6">Share your lifestyle experiences with the community</p>
+            <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform">
+              Create Your First Post
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Create Button */}
+      <button 
+        onClick={() => setShowCreatePost(true)}
+        className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform glow-effect z-40"
+      >
+        <Plus className="w-8 h-8 text-white" />
+      </button>
+
+      {/* Create Post Modal */}
+      <AnimatePresence>
+        {showCreatePost && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+            onClick={() => setShowCreatePost(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-gray-900 rounded-3xl p-6"
+            >
+              <h3 className="text-2xl font-bold text-white mb-4">Create Post</h3>
+              
+              <div className="space-y-3 mb-4">
+                <Textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder="What's on your mind? (Type a topic for AI to help)"
+                  className="bg-white/10 border-white/20 text-white placeholder-gray-500 min-h-[120px]"
+                />
+                
+                <Button
+                  onClick={generateAIPost}
+                  disabled={generatingAI || !postContent.trim()}
+                  variant="outline"
+                  className="w-full bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30"
+                >
+                  {generatingAI ? (
+                    "Generating..."
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      AI Assist - Write Post
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowCreatePost(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                  disabled={!postContent.trim()}
+                >
+                  Post
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </div>
+  );
+}
