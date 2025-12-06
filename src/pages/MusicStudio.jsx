@@ -110,6 +110,7 @@ export default function MusicStudio() {
 
   const uploadTrackMutation = useMutation({
     mutationFn: async (trackData) => {
+      if (!currentUser) throw new Error('User not authenticated');
       return await base44.entities.MusicTrack.create({
         ...trackData,
         artist_email: currentUser.email,
@@ -137,6 +138,7 @@ export default function MusicStudio() {
 
   const createPoolMutation = useMutation({
     mutationFn: async (poolData) => {
+      if (!currentUser) throw new Error('User not authenticated');
       return await base44.entities.FanPool.create({
         ...poolData,
         artist_email: currentUser.email,
@@ -164,6 +166,7 @@ export default function MusicStudio() {
 
   const applyForDealMutation = useMutation({
     mutationFn: async (dealData) => {
+      if (!currentUser) throw new Error('User not authenticated');
       const application = await base44.entities.MusicDealApplication.create({
         ...dealData,
         artist_email: currentUser.email,
@@ -209,6 +212,7 @@ export default function MusicStudio() {
 
   const generateContractMutation = useMutation({
     mutationFn: async (contractData) => {
+      if (!currentUser) throw new Error('User not authenticated');
       // AI generates smart contract
       const prompt = `You are an expert music industry attorney. Generate a professional ${contractData.contract_type.replace('_', ' ')} contract.
 
@@ -703,7 +707,7 @@ Make it legally sound, fair, and industry-standard.`;
                     </Button>
                     <Button
                       onClick={() => uploadTrackMutation.mutate(trackForm)}
-                      disabled={!trackForm.title || !trackForm.audio_file_url}
+                      disabled={!currentUser || !trackForm.title || !trackForm.audio_file_url}
                       className="flex-1 bg-purple-600"
                     >
                       Publish
@@ -824,7 +828,7 @@ Make it legally sound, fair, and industry-standard.`;
                     </Button>
                     <Button
                       onClick={() => createPoolMutation.mutate(poolForm)}
-                      disabled={!poolForm.title || !poolForm.goal_amount}
+                      disabled={!currentUser || !poolForm.title || !poolForm.goal_amount}
                       className="flex-1 bg-blue-600"
                     >
                       Create Pool
@@ -929,7 +933,7 @@ Make it legally sound, fair, and industry-standard.`;
                     </Button>
                     <Button
                       onClick={() => applyForDealMutation.mutate(dealForm)}
-                      disabled={!dealForm.artist_name || !dealForm.monthly_listeners || applyForDealMutation.isLoading}
+                      disabled={!currentUser || !dealForm.artist_name || !dealForm.monthly_listeners || applyForDealMutation.isLoading}
                       className="flex-1 bg-yellow-600 hover:bg-yellow-700"
                     >
                       {applyForDealMutation.isLoading ? 'Submitting...' : 'Submit Application'}
@@ -996,6 +1000,7 @@ Make it legally sound, fair, and industry-standard.`;
                     </Button>
                     <Button
                       onClick={() => {
+                        if (!currentUser) return;
                         const parties = [
                           { email: currentUser.email, role: "Artist", name: currentUser.full_name }
                         ];
@@ -1004,7 +1009,7 @@ Make it legally sound, fair, and industry-standard.`;
                           parties
                         });
                       }}
-                      disabled={!contractForm.description || generateContractMutation.isLoading}
+                      disabled={!currentUser || !contractForm.description || generateContractMutation.isLoading}
                       className="flex-1 bg-green-600"
                     >
                       {generateContractMutation.isLoading ? 'Generating...' : 'Generate Contract'}
