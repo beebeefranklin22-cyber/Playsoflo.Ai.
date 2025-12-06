@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { 
   Shield, CheckCircle, Award, Star, MapPin, Phone, 
   Globe, Calendar, TrendingUp, ChevronLeft, ExternalLink,
-  Linkedin, Github, Twitter, Instagram, Edit, Camera, X
+  Linkedin, Github, Twitter, Instagram, Edit, Camera, Trophy, X, Upload
 } from "lucide-react";
+import ReviewsList from "../components/reviews/ReviewsList";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -385,6 +386,12 @@ export default function ProviderProfile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Customer Reviews */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Customer Reviews</h2>
+          <ReviewsList providerEmail={currentUser?.email} />
+        </div>
 
         {/* Services */}
         <Card className="bg-white/5 border-white/10">

@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { ChevronLeft, Star, Clock, Shield, Check, Users } from "lucide-react";
+import { ChevronLeft, Star, Clock, Shield, Check, Users, MessageSquare } from "lucide-react";
 import BookingModal from "../components/BookingModal";
+import MessageProviderButton from "../components/provider/MessageProviderButton";
 import { motion } from "framer-motion";
 
 export default function ServiceProviders() {
@@ -12,8 +13,13 @@ export default function ServiceProviders() {
   const navigate = useNavigate();
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const serviceName = new URLSearchParams(location.search).get('service');
+
+  React.useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const { data: providers = [], isLoading } = useQuery({
     queryKey: ['service-providers', serviceName],
@@ -142,12 +148,23 @@ export default function ServiceProviders() {
                       <div className="text-white font-bold text-xl">${provider.price}</div>
                       <div className="text-gray-400 text-xs">per {provider.price_type}</div>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    {currentUser && (
+                      <MessageProviderButton
+                        providerEmail={provider.created_by}
+                        providerName={provider.title}
+                        currentUser={currentUser}
+                        context={`Inquiry about ${serviceName} service`}
+                      />
+                    )}
                     <button
                       onClick={() => {
                         setSelectedProvider(provider);
                         setShowBookingModal(true);
                       }}
-                      className="px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-full text-white font-semibold transition"
+                      className={`px-6 py-2 bg-orange-500 hover:bg-orange-600 rounded-full text-white font-semibold transition ${!currentUser ? 'col-span-2' : ''}`}
                     >
                       Book
                     </button>
