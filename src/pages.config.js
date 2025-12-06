@@ -50,8 +50,8 @@ import StripeOnboarding from './pages/StripeOnboarding';
 import ServiceProviders from './pages/ServiceProviders';
 import EntertainmentExperiences from './pages/EntertainmentExperiences';
 import UniversalSearch from './pages/UniversalSearch';
-import MusicDiscover from './pages/MusicDiscover';
 import ArtistProfile from './pages/ArtistProfile';
+import MusicDiscover from './pages/MusicDiscover';
 import __Layout from './Layout.jsx';
 
 
@@ -108,8 +108,8 @@ export const PAGES = {
     "ServiceProviders": ServiceProviders,
     "EntertainmentExperiences": EntertainmentExperiences,
     "UniversalSearch": UniversalSearch,
-    "MusicDiscover": MusicDiscover,
     "ArtistProfile": ArtistProfile,
+    "MusicDiscover": MusicDiscover,
 }
 
 export const pagesConfig = {
