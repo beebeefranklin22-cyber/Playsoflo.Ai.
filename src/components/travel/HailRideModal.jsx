@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Car, Bike, Rocket, Users, Share2, Clock, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Car, Bike, Rocket, Users, Share2, Clock, Crown, Calendar, CheckCircle, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
@@ -18,6 +21,37 @@ export default function HailRideModal({ open, onClose }) {
   const [isGroupBooking, setIsGroupBooking] = useState(false);
   const [vehiclesNeeded, setVehiclesNeeded] = useState(2);
   const [groupBookingType, setGroupBookingType] = useState("event_pickup");
+  const [assignedDriver, setAssignedDriver] = useState(null);
+  const [requestSubmitted, setRequestSubmitted] = useState(false);
+
+  // Poll for assigned driver after ride request
+  const { data: activeRide } = useQuery({
+    queryKey: ['active-ride-lookup'],
+    queryFn: async () => {
+      const rides = await base44.entities.RideRequest.filter({ status: 'requested' }, '-created_date', 1);
+      return rides[0] || null;
+    },
+    enabled: requestSubmitted && !assignedDriver,
+    refetchInterval: 3000
+  });
+
+  // Fetch driver info when assigned
+  const { data: driverInfo } = useQuery({
+    queryKey: ['driver-info', activeRide?.driver_email],
+    queryFn: async () => {
+      if (!activeRide?.driver_email) return null;
+      const users = await base44.entities.User.list();
+      return users.find(u => u.email === activeRide.driver_email);
+    },
+    enabled: !!activeRide?.driver_email && !assignedDriver
+  });
+
+  useEffect(() => {
+    if (activeRide?.driver_status === 'accepted' && driverInfo) {
+      setAssignedDriver(driverInfo);
+      toast.success('Driver found!');
+    }
+  }, [activeRide, driverInfo]);
 
   const RideBtn = ({ type, Icon, label }) => (
     <button
@@ -34,33 +68,37 @@ export default function HailRideModal({ open, onClose }) {
   const requestRide = async () => {
     const baseFare = isGroupBooking ? estimatedFare * vehiclesNeeded : estimatedFare;
     
-    const ride = await base44.entities.RideRequest.create({
-      pickup_address: pickup,
-      dropoff_address: dropoff,
-      ride_type: rideType,
-      status: "requested",
-      first_ride_free_applied: !isGroupBooking,
-      is_shared: isShared && !isGroupBooking,
-      wait_for_shared: waitForShared,
-      max_passengers: isShared ? maxPassengers : 1,
-      shareable_link: isShared && !isGroupBooking ? `${window.location.origin}/share-ride/${Math.random().toString(36).substring(7)}` : null,
-      is_group_booking: isGroupBooking,
-      vehicles_needed: isGroupBooking ? vehiclesNeeded : 1,
-      group_booking_type: isGroupBooking ? groupBookingType : null,
-      fare_breakdown: {
-        total_fare: baseFare,
-        shared_discount: isShared && !isGroupBooking ? estimatedFare * 0.3 : 0,
-        per_passenger_fare: isShared && !isGroupBooking ? (estimatedFare * 0.7) / maxPassengers : estimatedFare
+    try {
+      const ride = await base44.entities.RideRequest.create({
+        pickup_address: pickup,
+        dropoff_address: dropoff,
+        ride_type: rideType,
+        status: "requested",
+        first_ride_free_applied: !isGroupBooking,
+        is_shared: isShared && !isGroupBooking,
+        wait_for_shared: waitForShared,
+        max_passengers: isShared ? maxPassengers : 1,
+        shareable_link: isShared && !isGroupBooking ? `${window.location.origin}/share-ride/${Math.random().toString(36).substring(7)}` : null,
+        is_group_booking: isGroupBooking,
+        vehicles_needed: isGroupBooking ? vehiclesNeeded : 1,
+        group_booking_type: isGroupBooking ? groupBookingType : null,
+        fare_breakdown: {
+          total_fare: baseFare,
+          shared_discount: isShared && !isGroupBooking ? estimatedFare * 0.3 : 0,
+          per_passenger_fare: isShared && !isGroupBooking ? (estimatedFare * 0.7) / maxPassengers : estimatedFare
+        }
+      });
+      
+      setRequestSubmitted(true);
+      toast.success('Ride requested! Finding a driver...');
+      
+      if (isShared && !isGroupBooking && ride.shareable_link) {
+        navigator.clipboard.writeText(ride.shareable_link);
+        toast.info('Share link copied to clipboard');
       }
-    });
-    
-    if (isShared && !isGroupBooking && ride.shareable_link) {
-      navigator.clipboard.writeText(ride.shareable_link);
-      alert("Ride requested! Share link copied to clipboard.");
-    } else if (isGroupBooking) {
-      alert(`Group booking for ${vehiclesNeeded} vehicles submitted! Drivers will be assigned shortly.`);
+    } catch (error) {
+      toast.error('Failed to request ride');
     }
-    onClose();
   };
 
   return (
@@ -230,13 +268,56 @@ export default function HailRideModal({ open, onClose }) {
           </div>
           )}
           
-          <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={requestRide} disabled={!pickup || !dropoff}>
-            {isGroupBooking 
-              ? `Book ${vehiclesNeeded} Vehicles` 
-              : isShared 
-              ? 'Create Shared Ride' 
-              : 'Request Ride'} {!isGroupBooking && '(First Ride Free)'}
-          </Button>
+          {/* Driver Info */}
+          {assignedDriver && assignedDriver.driver_vehicle_info && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <span className="text-green-300 font-semibold">Driver Assigned!</span>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold overflow-hidden">
+                  {assignedDriver.profile_photo ? (
+                    <img src={assignedDriver.profile_photo} className="w-full h-full object-cover" />
+                  ) : (
+                    assignedDriver.full_name?.[0] || "D"
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-medium">{assignedDriver.full_name}</p>
+                  <div className="flex gap-2 mt-1">
+                    <Badge className="bg-blue-500/20 text-blue-300 text-xs">
+                      {assignedDriver.driver_vehicle_info.color} {assignedDriver.driver_vehicle_info.make} {assignedDriver.driver_vehicle_info.model}
+                    </Badge>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {assignedDriver.driver_vehicle_info.license_plate}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {requestSubmitted && !assignedDriver ? (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
+              <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-2" />
+              <p className="text-blue-300 font-medium">Finding your driver...</p>
+              <p className="text-blue-200 text-sm mt-1">This usually takes 30-60 seconds</p>
+            </div>
+          ) : (
+            <Button 
+              className="w-full bg-purple-600 hover:bg-purple-700" 
+              onClick={requestRide} 
+              disabled={!pickup || !dropoff}
+            >
+              {isGroupBooking 
+                ? `Book ${vehiclesNeeded} Vehicles` 
+                : isShared 
+                ? 'Create Shared Ride' 
+                : 'Request Ride'} {!isGroupBooking && '(First Ride Free)'}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

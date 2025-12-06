@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import {
   Music, MapPin, Calendar, Settings, Edit2, Camera, Users,  
-  Lock, Loader2, Tag, Plus, X, Shield, Bell, Globe, Award, Trophy,
+  Lock, Eye, EyeOff, Upload, Loader2, Tag, Plus, X, Check,
+  Share2, Shield, Bell, Globe, Heart, Star, Award, Trophy,
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
-  DollarSign, ChevronRight, Palette
+  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +24,8 @@ import ReviewsSection from "../components/profile/ReviewsSection";
 import GallerySection from "../components/profile/GallerySection";
 import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
+import RidePreferencesModal from "../components/ride/RidePreferencesModal";
+import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -35,6 +38,8 @@ export default function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
+  const [showRidePreferences, setShowRidePreferences] = useState(false);
+  const [showVehicleInfo, setShowVehicleInfo] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
     full_name: "",
@@ -393,6 +398,34 @@ export default function Profile() {
             </Card>
 
             {/* My Hubs & Services */}
+            {/* Ride Settings */}
+            <Card className="glass-effect border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Navigation className="w-5 h-5" />
+                  Ride Settings
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  onClick={() => setShowRidePreferences(true)}
+                  variant="outline"
+                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Ride Preferences
+                </Button>
+                <Button
+                  onClick={() => setShowVehicleInfo(true)}
+                  variant="outline"
+                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <Car className="w-4 h-4 mr-2" />
+                  My Vehicle Info (Driver)
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -742,6 +775,28 @@ export default function Profile() {
       <ProfileCustomization
         isOpen={showCustomization}
         onClose={() => setShowCustomization(false)}
+        currentUser={currentUser}
+        onUpdate={async () => {
+          const user = await base44.auth.me();
+          setCurrentUser(user);
+        }}
+      />
+
+      {/* Ride Preferences Modal */}
+      <RidePreferencesModal
+        isOpen={showRidePreferences}
+        onClose={() => setShowRidePreferences(false)}
+        currentUser={currentUser}
+        onUpdate={async () => {
+          const user = await base44.auth.me();
+          setCurrentUser(user);
+        }}
+      />
+
+      {/* Vehicle Info Modal */}
+      <VehicleInfoModal
+        isOpen={showVehicleInfo}
+        onClose={() => setShowVehicleInfo(false)}
         currentUser={currentUser}
         onUpdate={async () => {
           const user = await base44.auth.me();
