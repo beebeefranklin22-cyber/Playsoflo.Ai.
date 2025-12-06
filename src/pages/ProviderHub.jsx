@@ -372,6 +372,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState(null);
+  const [generatingPackage, setGeneratingPackage] = useState(false);
+  const [generatedPackages, setGeneratedPackages] = useState([]);
+  const [showPackages, setShowPackages] = useState(false);
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.MarketplaceItem.update(id, data),
     onSuccess: () => {
@@ -721,8 +724,182 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             </Card>
           </TabsContent>
 
-          {/* Services Tab - Keep existing content */}
+          {/* Services Tab */}
           <TabsContent value="services" className="space-y-6">
+            {/* Ronron AI Smart Package Generator */}
+            <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  Ronron AI - Smart Package Creator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-purple-300 text-sm">
+                  Let AI analyze your services and create optimized bundles based on holidays, seasons, events, and demand trends
+                </p>
+
+                <div className="grid md:grid-cols-3 gap-3">
+                  {['Holiday Bundles', 'Seasonal Packages', 'Event Specials'].map((type) => (
+                    <Button
+                      key={type}
+                      onClick={async () => {
+                        setGeneratingPackage(true);
+                        try {
+                          const response = await base44.integrations.Core.InvokeLLM({
+                            prompt: `You are an expert package pricing strategist for service providers. 
+
+          Current Date: ${new Date().toLocaleDateString()}
+
+          Provider's Services:
+          ${myServices.map(s => `- ${s.title}: $${s.price} (${s.category})`).join('\n')}
+
+          Task: Create 3 smart service bundles for "${type}" considering:
+          - Current season and upcoming holidays
+          - Service compatibility and natural pairings
+          - Market demand trends
+          - Optimal pricing strategies (10-30% discount on combined value)
+          - Customer appeal and value proposition
+
+          For each bundle, provide:
+          1. Creative package name that appeals to customers
+          2. 2-4 services to include (use exact service titles from the list above)
+          3. Individual service values and total value
+          4. Suggested bundle price (with strategic discount)
+          5. Compelling description (2-3 sentences)
+          6. Best time period to promote this bundle
+          7. Target customer segment
+
+          Return as JSON array with this exact structure:
+          {
+          "packages": [
+          {
+          "name": "Package name",
+          "services": ["exact service title 1", "exact service title 2"],
+          "service_prices": [100, 200],
+          "total_value": 300,
+          "bundle_price": 240,
+          "discount_percent": 20,
+          "description": "Why customers love this",
+          "promotion_period": "December 2024 - January 2025",
+          "target_audience": "Who this is for"
+          }
+          ]
+          }`,
+                            add_context_from_internet: true,
+                            response_json_schema: {
+                              type: "object",
+                              properties: {
+                                packages: {
+                                  type: "array",
+                                  items: {
+                                    type: "object",
+                                    properties: {
+                                      name: { type: "string" },
+                                      services: { type: "array", items: { type: "string" } },
+                                      service_prices: { type: "array", items: { type: "number" } },
+                                      total_value: { type: "number" },
+                                      bundle_price: { type: "number" },
+                                      discount_percent: { type: "number" },
+                                      description: { type: "string" },
+                                      promotion_period: { type: "string" },
+                                      target_audience: { type: "string" }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          });
+
+                          setGeneratedPackages(response.packages || []);
+                          setShowPackages(true);
+                          toast.success('Smart packages generated!');
+                        } catch (error) {
+                          toast.error('Failed to generate packages');
+                        } finally {
+                          setGeneratingPackage(false);
+                        }
+                      }}
+                      disabled={generatingPackage || myServices.length < 2}
+                      className="bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/30"
+                    >
+                      {generatingPackage ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Star className="w-4 h-4 mr-2" />
+                      )}
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+
+                {myServices.length < 2 && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-yellow-300 text-sm">
+                      Add at least 2 services to generate smart packages
+                    </p>
+                  </div>
+                )}
+
+                {showPackages && generatedPackages.length > 0 && (
+                  <div className="grid md:grid-cols-3 gap-4 mt-6">
+                    {generatedPackages.map((pkg, idx) => (
+                      <div key={idx} className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="text-white font-bold">{pkg.name}</h4>
+                          <Badge className="bg-green-500/20 text-green-300">
+                            -{pkg.discount_percent}%
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2 mb-3">
+                          {pkg.services.map((service, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <span className="text-gray-300">{service}</span>
+                              <span className="text-gray-400">${pkg.service_prices[i]}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="border-t border-white/10 pt-3 mb-3">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-gray-400 text-sm">Total Value</span>
+                            <span className="text-gray-400 line-through">${pkg.total_value}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-white font-bold">Bundle Price</span>
+                            <span className="text-green-400 font-bold text-xl">${pkg.bundle_price}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-gray-400 text-xs mb-3">{pkg.description}</p>
+
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center gap-2 text-xs">
+                            <Calendar className="w-3 h-3 text-purple-400" />
+                            <span className="text-purple-300">{pkg.promotion_period}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <Users className="w-3 h-3 text-blue-400" />
+                            <span className="text-blue-300">{pkg.target_audience}</span>
+                          </div>
+                        </div>
+
+                        <Button 
+                          onClick={() => {
+                            // Save package logic here
+                            toast.success('Package saved! Implement save logic to create this as a service bundle.');
+                          }}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        >
+                          Create Package
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             <Card className="bg-white/5 border-white/10 mb-6">
               <CardHeader>
                 <CardTitle className="text-white">Brand Profile</CardTitle>
