@@ -1,549 +1,701 @@
-
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import {
-  Sparkles, Users, Briefcase, Car, Heart, ShoppingBag,
-  Music, Shield, CheckCircle, ArrowRight, X,
-  Zap, Gift, TrendingUp, Camera, Home
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  CheckCircle, Upload, FileText, Car, User, Shield, 
+  ChevronRight, ChevronLeft, Loader2, AlertCircle, Award
 } from "lucide-react";
-
-const roleOptions = [
-  {
-    id: "customer",
-    title: "Explorer",
-    description: "Discover experiences, book services, enjoy life",
-    icon: Heart,
-    gradient: "from-pink-500 to-rose-500",
-    features: ["Book experiences", "Order services", "Earn rewards", "Join community"]
-  },
-  {
-    id: "creator",
-    title: "Creator",
-    description: "Share content, build audience, monetize passion",
-    icon: Music,
-    gradient: "from-purple-500 to-pink-500",
-    features: ["Publish content", "Receive tips", "Collaborate", "Grow fans"]
-  },
-  {
-    id: "provider",
-    title: "Provider",
-    description: "Offer services, grow business, serve customers",
-    icon: Briefcase,
-    gradient: "from-blue-500 to-cyan-500",
-    features: ["List services", "Get verified", "Build trust", "Earn income"]
-  },
-  {
-    id: "driver",
-    title: "Driver",
-    description: "Drive on your terms, earn bonuses, get benefits",
-    icon: Car,
-    gradient: "from-green-500 to-emerald-500",
-    features: ["Flexible hours", "Fuel reimbursement", "Insurance", "Bonuses"]
-  }
-];
-
-const interestOptions = [
-  { id: "exotic_cars", label: "Exotic Cars", icon: "🏎️" },
-  { id: "yachts", label: "Yachts", icon: "🛥️" },
-  { id: "fine_dining", label: "Fine Dining", icon: "🍽️" },
-  { id: "nightlife", label: "Nightlife", icon: "🎉" },
-  { id: "wellness", label: "Wellness", icon: "🧘" },
-  { id: "travel", label: "Travel", icon: "✈️" },
-  { id: "real_estate", label: "Real Estate", icon: "🏠" },
-  { id: "technology", label: "Technology", icon: "💻" },
-  { id: "art_culture", label: "Art & Culture", icon: "🎨" },
-  { id: "fitness", label: "Fitness", icon: "💪" },
-  { id: "music", label: "Music", icon: "🎵" },
-  { id: "shopping", label: "Shopping", icon: "🛍️" }
-];
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 
 export default function OnboardingFlow() {
   const navigate = useNavigate();
-  const qc = useQueryClient();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const type = new URLSearchParams(location.search).get('type') || 'driver';
+  
+  const [currentStep, setCurrentStep] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
-  const [step, setStep] = useState(0);
-  const [selectedRole, setSelectedRole] = useState(null);
-  const [selectedInterests, setSelectedInterests] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  // Form data
   const [profileData, setProfileData] = useState({
     full_name: "",
-    bio: "",
-    status_message: ""
+    phone: "",
+    address: "",
+    bio: ""
+  });
+
+  const [documents, setDocuments] = useState({
+    drivers_license: null,
+    insurance: null,
+    vehicle_registration: null,
+    certifications: []
+  });
+
+  const [vehicleData, setVehicleData] = useState({
+    make: "",
+    model: "",
+    year: new Date().getFullYear(),
+    color: "",
+    license_plate: "",
+    vehicle_type: "sedan"
+  });
+
+  const [providerData, setProviderData] = useState({
+    service_category: "",
+    business_name: "",
+    years_experience: "",
+    certifications: []
   });
 
   useEffect(() => {
-    base44.auth.me().then(user => {
+    const fetchUser = async () => {
+      const user = await base44.auth.me();
       setCurrentUser(user);
+      
+      // Pre-fill data if exists
       setProfileData({
         full_name: user.full_name || "",
-        bio: user.bio || "",
-        status_message: user.status_message || ""
+        phone: user.phone || "",
+        address: user.address || "",
+        bio: user.bio || ""
       });
-    }).catch(() => {});
-  }, []);
 
-  const { data: onboardingProgress } = useQuery({
-    queryKey: ["onboarding-progress"],
-    queryFn: async () => {
-      if (!currentUser) return null;
-      const progress = await base44.entities.OnboardingProgress.filter({
-        user_email: currentUser.email
+      if (user.driver_vehicle_info) {
+        setVehicleData(user.driver_vehicle_info);
+      }
+
+      // Set current step from saved progress
+      const savedStep = type === 'driver' 
+        ? user.onboarding_status?.driver_onboarding_step || 0
+        : user.onboarding_status?.provider_onboarding_step || 0;
+      setCurrentStep(savedStep);
+    };
+    fetchUser();
+  }, [type]);
+
+  const uploadDocument = async (file, docType) => {
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setDocuments(prev => ({ ...prev, [docType]: file_url }));
+      toast.success(`${docType} uploaded successfully`);
+    } catch (error) {
+      toast.error('Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveProgressMutation = useMutation({
+    mutationFn: async (step) => {
+      const statusKey = type === 'driver' ? 'driver_onboarding_step' : 'provider_onboarding_step';
+      await base44.auth.updateMe({
+        onboarding_status: {
+          ...currentUser.onboarding_status,
+          [statusKey]: step
+        }
       });
-      return progress[0] || null;
-    },
-    enabled: !!currentUser
+    }
   });
 
-  const updateProgressMutation = useMutation({
-    mutationFn: async (data) => {
-      if (onboardingProgress) {
-        return await base44.entities.OnboardingProgress.update(onboardingProgress.id, data);
+  const completeOnboardingMutation = useMutation({
+    mutationFn: async () => {
+      // Save profile data
+      await base44.auth.updateMe({
+        ...profileData,
+        driver_vehicle_info: type === 'driver' ? vehicleData : currentUser.driver_vehicle_info,
+        onboarding_status: {
+          ...currentUser.onboarding_status,
+          [`${type}_onboarding_completed`]: true,
+          [`${type}_onboarding_step`]: 999
+        }
+      });
+
+      // Create verification records for documents
+      if (type === 'driver') {
+        if (documents.drivers_license) {
+          await base44.entities.ProviderVerification.create({
+            provider_email: currentUser.email,
+            verification_type: "drivers_license",
+            document_url: documents.drivers_license,
+            status: "pending"
+          });
+        }
+        if (documents.insurance) {
+          await base44.entities.ProviderVerification.create({
+            provider_email: currentUser.email,
+            verification_type: "insurance",
+            document_url: documents.insurance,
+            status: "pending"
+          });
+        }
+        if (documents.vehicle_registration) {
+          await base44.entities.ProviderVerification.create({
+            provider_email: currentUser.email,
+            verification_type: "vehicle_registration",
+            document_url: documents.vehicle_registration,
+            status: "pending"
+          });
+        }
       } else {
-        return await base44.entities.OnboardingProgress.create({
-          user_email: currentUser.email,
-          ...data
-        });
+        // Provider certifications
+        for (const cert of documents.certifications) {
+          await base44.entities.ProviderVerification.create({
+            provider_email: currentUser.email,
+            verification_type: "certification",
+            document_url: cert,
+            status: "pending"
+          });
+        }
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["onboarding-progress"] });
+      queryClient.invalidateQueries(['current-user']);
+      toast.success('Application submitted! We\'ll review and get back to you within 24-48 hours.');
+      navigate(createPageUrl('Profile'));
     }
   });
 
-  const handleRoleSelect = async (roleId) => {
-    setSelectedRole(roleId);
-    await updateProgressMutation.mutateAsync({
-      user_role: roleId,
-      current_step: 1,
-      completed_steps: ["role_selection"]
-    });
-
-    // Update user attributes based on role
-    const updates = {};
-    if (roleId === "creator") updates.is_creator = true;
-    if (roleId === "provider") updates.is_provider = true;
-    
-    if (Object.keys(updates).length > 0) {
-      await base44.auth.updateMe(updates);
-    }
-    
-    setStep(1);
+  const nextStep = async () => {
+    const newStep = currentStep + 1;
+    await saveProgressMutation.mutateAsync(newStep);
+    setCurrentStep(newStep);
   };
 
-  const handleInterestsNext = async () => {
-    await updateProgressMutation.mutateAsync({
-      interests: selectedInterests,
-      current_step: 2,
-      completed_steps: [...(onboardingProgress?.completed_steps || []), "interests"]
-    });
-    setStep(2);
+  const prevStep = () => {
+    if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  const handleProfileComplete = async () => {
-    await base44.auth.updateMe(profileData);
-    await updateProgressMutation.mutateAsync({
-      profile_completed: true,
-      current_step: 3,
-      completed_steps: [...(onboardingProgress?.completed_steps || []), "profile"]
-    });
-    setStep(3);
-  };
+  const driverSteps = [
+    { title: "Profile Setup", icon: User },
+    { title: "Documents", icon: FileText },
+    { title: "Vehicle Info", icon: Car },
+    { title: "Review & Submit", icon: CheckCircle }
+  ];
 
-  const handleComplete = async () => {
-    await updateProgressMutation.mutateAsync({
-      completed: true,
-      tour_completed: true
-    });
+  const providerSteps = [
+    { title: "Profile Setup", icon: User },
+    { title: "Service Details", icon: Briefcase },
+    { title: "Documents", icon: FileText },
+    { title: "Review & Submit", icon: CheckCircle }
+  ];
 
-    // Give welcome bonus - changed to 5 SoFloCoin
-    if (!currentUser.welcome_bonus_claimed) {
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + 5,
-        welcome_bonus_claimed: true
-      });
-    }
-
-    navigate(createPageUrl("Home"));
-  };
-
-  const handleSkip = () => {
-    // Store that user has skipped onboarding so they won't be redirected again this session
-    sessionStorage.setItem('onboarding_skipped', 'true');
-    navigate(createPageUrl("Home"));
-  };
-
-  const totalSteps = 4;
-  const progress = ((step + 1) / totalSteps) * 100;
-
-  const roleSpecificSteps = {
-    customer: [
-      {
-        title: "Explore Experiences",
-        description: "Browse exotic cars, yachts, and exclusive events",
-        icon: Heart,
-        action: "Browse Now",
-        page: "explore"
-      },
-      {
-        title: "Book Services",
-        description: "Access 60+ services from verified providers",
-        icon: ShoppingBag,
-        action: "View Services",
-        page: "Marketplace"
-      },
-      {
-        title: "Earn Rewards",
-        description: "Get SoFlo Coins for every experience",
-        icon: Gift,
-        action: "Learn More",
-        page: "Rewards"
-      }
-    ],
-    creator: [
-      {
-        title: "Create Your Hub",
-        description: "Set up your creator profile and start sharing",
-        icon: Music,
-        action: "Go to Creator Hub",
-        page: "CreatorHub"
-      },
-      {
-        title: "Collaborate",
-        description: "Connect with other creators for joint projects",
-        icon: Users,
-        action: "Find Collaborators",
-        page: "CollaborationHub"
-      },
-      {
-        title: "Monetize",
-        description: "Receive tips and sell products to your fans",
-        icon: TrendingUp,
-        action: "Start Earning",
-        page: "CreatorHub"
-      }
-    ],
-    provider: [
-      {
-        title: "List Your Service",
-        description: "Add your first service to the marketplace",
-        icon: Briefcase,
-        action: "Add Service",
-        page: "ProviderHub"
-      },
-      {
-        title: "Get Verified",
-        description: "Build trust with verified credentials",
-        icon: Shield,
-        action: "Start Verification",
-        page: "ProviderHub"
-      },
-      {
-        title: "Grow Your Business",
-        description: "Access escrow protection and premium features",
-        icon: TrendingUp,
-        action: "Learn More",
-        page: "ProviderHub"
-      }
-    ],
-    driver: [
-      {
-        title: "Start Driving",
-        description: "Log your first ride and earn fuel reimbursement",
-        icon: Car,
-        action: "Driver Hub",
-        page: "DriverHub"
-      },
-      {
-        title: "Track Earnings",
-        description: "Monitor miles, rides, and bonuses",
-        icon: TrendingUp,
-        action: "View Stats",
-        page: "DriverHub"
-      },
-      {
-        title: "Get Bonuses",
-        description: "$100 after 7 rides + $50 switch bonus",
-        icon: Gift,
-        action: "Learn More",
-        page: "DriverHub"
-      }
-    ]
-  };
+  const steps = type === 'driver' ? driverSteps : providerSteps;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 p-6 flex items-center justify-center">
-      <div className="w-full max-w-4xl">
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 p-6">
+      <div className="max-w-3xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text mb-2">
-              Welcome to PlaySoFlo
-            </h1>
-            <p className="text-gray-400">Let's personalize your experience</p>
-          </div>
-          <Button variant="ghost" onClick={handleSkip} className="text-gray-400 hover:text-white">
-            <X className="w-5 h-5 mr-2" />
-            Skip
-          </Button>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {type === 'driver' ? 'Driver' : 'Service Provider'} Onboarding
+          </h1>
+          <p className="text-gray-400">Complete all steps to get approved</p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-8">
-          <Progress value={progress} className="h-2" />
-          <p className="text-gray-400 text-sm mt-2">
-            Step {step + 1} of {totalSteps}
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            {steps.map((step, idx) => (
+              <React.Fragment key={idx}>
+                <div className="flex flex-col items-center">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition ${
+                    idx < currentStep 
+                      ? 'bg-green-500 border-green-500' 
+                      : idx === currentStep
+                      ? 'bg-purple-600 border-purple-600'
+                      : 'bg-gray-800 border-gray-700'
+                  }`}>
+                    {idx < currentStep ? (
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    ) : (
+                      <step.icon className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <span className={`text-xs mt-2 text-center ${
+                    idx <= currentStep ? 'text-white' : 'text-gray-500'
+                  }`}>
+                    {step.title}
+                  </span>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={`flex-1 h-1 mx-2 ${
+                    idx < currentStep ? 'bg-green-500' : 'bg-gray-700'
+                  }`} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
+        {/* Step Content */}
         <AnimatePresence mode="wait">
-          {/* Step 0: Role Selection */}
-          {step === 0 && (
-            <motion.div
-              key="role"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
-                    <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold text-white mb-2">Choose Your Path</h2>
-                    <p className="text-gray-400">Select your primary role to get started</p>
-                  </div>
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8"
+          >
+            {/* Step 0: Profile Setup */}
+            {currentStep === 0 && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-white mb-6">Profile Information</h2>
+                
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Full Name *</label>
+                  <Input
+                    value={profileData.full_name}
+                    onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {roleOptions.map((role) => (
-                      <motion.button
-                        key={role.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleRoleSelect(role.id)}
-                        className={`p-6 rounded-2xl border-2 transition text-left ${
-                          selectedRole === role.id
-                            ? "border-purple-500 bg-purple-500/20"
-                            : "border-white/10 bg-white/5 hover:border-white/20"
-                        }`}
-                      >
-                        <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${role.gradient} flex items-center justify-center mb-4`}>
-                          <role.icon className="w-8 h-8 text-white" />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2">{role.title}</h3>
-                        <p className="text-gray-400 text-sm mb-4">{role.description}</p>
-                        <div className="space-y-2">
-                          {role.features.map((feature, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-gray-300 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-400" />
-                              {feature}
-                            </div>
-                          ))}
-                        </div>
-                      </motion.button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Phone Number *</label>
+                  <Input
+                    type="tel"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
-          {/* Step 1: Interests */}
-          {step === 1 && (
-            <motion.div
-              key="interests"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
-                    <Heart className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold text-white mb-2">What Interests You?</h2>
-                    <p className="text-gray-400">Select at least 3 to personalize your feed</p>
-                  </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Address *</label>
+                  <Input
+                    value={profileData.address}
+                    onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-                    {interestOptions.map((interest) => {
-                      const isSelected = selectedInterests.includes(interest.id);
-                      return (
-                        <motion.button
-                          key={interest.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedInterests(selectedInterests.filter(i => i !== interest.id));
-                            } else {
-                              setSelectedInterests([...selectedInterests, interest.id]);
-                            }
-                          }}
-                          className={`p-4 rounded-xl border-2 transition ${
-                            isSelected
-                              ? "border-purple-500 bg-purple-500/20"
-                              : "border-white/10 bg-white/5 hover:border-white/20"
-                          }`}
-                        >
-                          <div className="text-4xl mb-2">{interest.icon}</div>
-                          <div className="text-white text-sm font-medium">{interest.label}</div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Bio</label>
+                  <Textarea
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                    placeholder="Tell us about yourself..."
+                    className="bg-white/10 border-white/20 text-white"
+                    rows={4}
+                  />
+                </div>
+              </div>
+            )}
 
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(0)}
-                      className="flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleInterestsNext}
-                      disabled={selectedInterests.length < 3}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
-                    >
-                      Continue
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Step 2: Profile Setup */}
-          {step === 2 && (
-            <motion.div
-              key="profile"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
-                    <Camera className="w-16 h-16 text-blue-400 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold text-white mb-2">Complete Your Profile</h2>
-                    <p className="text-gray-400">Let others know who you are</p>
-                  </div>
-
-                  <div className="space-y-4 mb-8">
+            {/* Step 1: Driver Documents / Provider Service Details */}
+            {currentStep === 1 && type === 'driver' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-white mb-6">Upload Documents</h2>
+                
+                {/* Driver's License */}
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Display Name</label>
+                      <h3 className="text-white font-medium">Driver's License *</h3>
+                      <p className="text-gray-400 text-sm">Upload a clear photo of your license</p>
+                    </div>
+                    <Shield className="w-6 h-6 text-purple-400" />
+                  </div>
+                  {documents.drivers_license ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Uploaded</span>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
                       <input
-                        type="text"
-                        value={profileData.full_name}
-                        onChange={(e) => setProfileData({...profileData, full_name: e.target.value})}
-                        placeholder="Enter your name"
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => uploadDocument(e.target.files[0], 'drivers_license')}
                       />
-                    </div>
+                      <div className="flex items-center gap-2 text-purple-400 hover:text-purple-300">
+                        <Upload className="w-5 h-5" />
+                        <span>Choose File</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
 
+                {/* Insurance */}
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Bio</label>
-                      <textarea
-                        value={profileData.bio}
-                        onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                        placeholder="Tell us about yourself..."
-                        rows={3}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                      />
+                      <h3 className="text-white font-medium">Car Insurance *</h3>
+                      <p className="text-gray-400 text-sm">Current insurance policy</p>
                     </div>
-
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Status Message</label>
+                    <Shield className="w-6 h-6 text-blue-400" />
+                  </div>
+                  {documents.insurance ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Uploaded</span>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
                       <input
-                        type="text"
-                        value={profileData.status_message}
-                        onChange={(e) => setProfileData({...profileData, status_message: e.target.value})}
-                        placeholder="What's your vibe?"
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => uploadDocument(e.target.files[0], 'insurance')}
                       />
+                      <div className="flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                        <Upload className="w-5 h-5" />
+                        <span>Choose File</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
+
+                {/* Vehicle Registration */}
+                <div className="bg-white/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="text-white font-medium">Vehicle Registration *</h3>
+                      <p className="text-gray-400 text-sm">Vehicle registration document</p>
                     </div>
+                    <Car className="w-6 h-6 text-green-400" />
                   </div>
+                  {documents.vehicle_registration ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Uploaded</span>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        className="hidden"
+                        onChange={(e) => uploadDocument(e.target.files[0], 'vehicle_registration')}
+                      />
+                      <div className="flex items-center gap-2 text-green-400 hover:text-green-300">
+                        <Upload className="w-5 h-5" />
+                        <span>Choose File</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
 
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      className="flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      onClick={handleProfileComplete}
-                      disabled={!profileData.full_name}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
-                    >
-                      Continue
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                {uploading && (
+                  <div className="flex items-center gap-2 text-purple-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Uploading...</span>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                )}
+              </div>
+            )}
 
-          {/* Step 3: Next Steps */}
-          {step === 3 && selectedRole && (
-            <motion.div
-              key="next-steps"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-            >
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8">
-                  <div className="text-center mb-8">
-                    <Zap className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-                    <h2 className="text-3xl font-bold text-white mb-2">You're All Set!</h2>
-                    <p className="text-gray-400 mb-4">Here's what you can do next</p>
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                      +5 SoFloCoin Welcome Bonus
-                    </Badge>
-                  </div>
-
-                  <div className="grid md:grid-cols-3 gap-4 mb-8">
-                    {roleSpecificSteps[selectedRole].map((action, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className="p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition cursor-pointer"
-                        onClick={() => navigate(createPageUrl(action.page))}
-                      >
-                        <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mb-4">
-                          <action.icon className="w-6 h-6 text-purple-400" />
-                        </div>
-                        <h3 className="text-white font-bold mb-2">{action.title}</h3>
-                        <p className="text-gray-400 text-sm mb-4">{action.description}</p>
-                        <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700">
-                          {action.action}
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  <Button
-                    onClick={handleComplete}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg"
+            {currentStep === 1 && type === 'provider' && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-white mb-6">Service Details</h2>
+                
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Service Category *</label>
+                  <Select 
+                    value={providerData.service_category}
+                    onValueChange={(v) => setProviderData({ ...providerData, service_category: v })}
                   >
-                    <Home className="w-5 h-5 mr-2" />
-                    Go to Home
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="plumbing">Plumbing</SelectItem>
+                      <SelectItem value="electrical">Electrical</SelectItem>
+                      <SelectItem value="cleaning">Cleaning</SelectItem>
+                      <SelectItem value="landscaping">Landscaping</SelectItem>
+                      <SelectItem value="photography">Photography</SelectItem>
+                      <SelectItem value="catering">Catering</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Business Name</label>
+                  <Input
+                    value={providerData.business_name}
+                    onChange={(e) => setProviderData({ ...providerData, business_name: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Years of Experience *</label>
+                  <Input
+                    type="number"
+                    value={providerData.years_experience}
+                    onChange={(e) => setProviderData({ ...providerData, years_experience: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Vehicle Info (Driver) / Documents (Provider) */}
+            {currentStep === 2 && type === 'driver' && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-white mb-6">Vehicle Information</h2>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Make *</label>
+                    <Input
+                      value={vehicleData.make}
+                      onChange={(e) => setVehicleData({ ...vehicleData, make: e.target.value })}
+                      placeholder="Toyota, Tesla, etc."
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Model *</label>
+                    <Input
+                      value={vehicleData.model}
+                      onChange={(e) => setVehicleData({ ...vehicleData, model: e.target.value })}
+                      placeholder="Camry, Model 3, etc."
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Year *</label>
+                    <Input
+                      type="number"
+                      value={vehicleData.year}
+                      onChange={(e) => setVehicleData({ ...vehicleData, year: parseInt(e.target.value) })}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Color *</label>
+                    <Input
+                      value={vehicleData.color}
+                      onChange={(e) => setVehicleData({ ...vehicleData, color: e.target.value })}
+                      placeholder="Black, White, etc."
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">License Plate *</label>
+                  <Input
+                    value={vehicleData.license_plate}
+                    onChange={(e) => setVehicleData({ ...vehicleData, license_plate: e.target.value.toUpperCase() })}
+                    placeholder="ABC1234"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Vehicle Type *</label>
+                  <Select 
+                    value={vehicleData.vehicle_type}
+                    onValueChange={(v) => setVehicleData({ ...vehicleData, vehicle_type: v })}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sedan">Sedan</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                      <SelectItem value="luxury">Luxury</SelectItem>
+                      <SelectItem value="electric">Electric</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 2 && type === 'provider' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-white mb-6">Professional Documents</h2>
+                
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-300">
+                      Upload any relevant certifications, licenses, or qualifications for your service category.
+                    </div>
+                  </div>
+                </div>
+
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files);
+                      for (const file of files) {
+                        setUploading(true);
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        setDocuments(prev => ({
+                          ...prev,
+                          certifications: [...prev.certifications, file_url]
+                        }));
+                        setUploading(false);
+                      }
+                      toast.success('Documents uploaded');
+                    }}
+                  />
+                  <div className="p-8 border-2 border-dashed border-white/20 rounded-xl hover:border-purple-500/50 transition text-center">
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-white mb-2">Upload Certifications</p>
+                    <p className="text-gray-400 text-sm">Click to select files or drag and drop</p>
+                  </div>
+                </label>
+
+                {documents.certifications.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-gray-400 text-sm">{documents.certifications.length} file(s) uploaded</p>
+                    {documents.certifications.map((url, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-green-400 text-sm">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Document {idx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Final Step: Review & Submit */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-white mb-6">Review & Submit</h2>
+                
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
+                  <Award className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                  <h3 className="text-white font-bold text-center mb-2">Almost There!</h3>
+                  <p className="text-gray-300 text-center text-sm">
+                    Review your information and submit for approval. Our team will review your application within 24-48 hours.
+                  </p>
+                </div>
+
+                {/* Summary */}
+                <div className="space-y-4">
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <h4 className="text-white font-medium mb-2">Profile Information</h4>
+                    <div className="text-gray-400 text-sm space-y-1">
+                      <p>Name: {profileData.full_name}</p>
+                      <p>Phone: {profileData.phone}</p>
+                      <p>Address: {profileData.address}</p>
+                    </div>
+                  </div>
+
+                  {type === 'driver' && (
+                    <div className="bg-white/5 rounded-xl p-4">
+                      <h4 className="text-white font-medium mb-2">Vehicle</h4>
+                      <div className="text-gray-400 text-sm space-y-1">
+                        <p>{vehicleData.year} {vehicleData.make} {vehicleData.model}</p>
+                        <p>Color: {vehicleData.color}</p>
+                        <p>License: {vehicleData.license_plate}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-white/5 rounded-xl p-4">
+                    <h4 className="text-white font-medium mb-2">Documents</h4>
+                    <div className="text-gray-400 text-sm space-y-2">
+                      {type === 'driver' ? (
+                        <>
+                          <div className="flex items-center gap-2">
+                            {documents.drivers_license ? (
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span>Driver's License</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {documents.insurance ? (
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span>Insurance</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {documents.vehicle_registration ? (
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-red-400" />
+                            )}
+                            <span>Vehicle Registration</span>
+                          </div>
+                        </>
+                      ) : (
+                        <p>{documents.certifications.length} certification(s) uploaded</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between mt-8">
+              <Button
+                onClick={prevStep}
+                disabled={currentStep === 0}
+                variant="outline"
+                className="bg-white/5 border-white/10 hover:bg-white/10"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+
+              {currentStep < steps.length - 1 ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={
+                    (currentStep === 0 && (!profileData.full_name || !profileData.phone || !profileData.address)) ||
+                    (currentStep === 1 && type === 'driver' && (!documents.drivers_license || !documents.insurance || !documents.vehicle_registration)) ||
+                    (currentStep === 1 && type === 'provider' && !providerData.service_category) ||
+                    (currentStep === 2 && type === 'driver' && (!vehicleData.make || !vehicleData.model || !vehicleData.license_plate))
+                  }
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => completeOnboardingMutation.mutate()}
+                  disabled={completeOnboardingMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {completeOnboardingMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Submit Application
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </motion.div>
         </AnimatePresence>
       </div>
     </div>
