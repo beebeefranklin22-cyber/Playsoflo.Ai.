@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   CheckCircle, Upload, FileText, Car, User, Shield, 
-  ChevronRight, ChevronLeft, Loader2, AlertCircle, Award
+  ChevronRight, ChevronLeft, Loader2, AlertCircle, Award,
+  Briefcase, Plus, Trash2, Sparkles, TrendingUp, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -54,6 +55,9 @@ export default function OnboardingFlow() {
     years_experience: "",
     certifications: []
   });
+
+  const [services, setServices] = useState([]);
+  const [generatingAI, setGeneratingAI] = useState({ description: false, pricing: false, index: null });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -106,18 +110,131 @@ export default function OnboardingFlow() {
     }
   });
 
+  const addService = () => {
+    if (services.length >= 3) {
+      toast.error('Maximum 3 services during onboarding');
+      return;
+    }
+    setServices([...services, {
+      title: "",
+      category: providerData.service_category || "plumbing",
+      price: 100,
+      description: "",
+      price_type: "fixed"
+    }]);
+  };
+
+  const removeService = (index) => {
+    setServices(services.filter((_, i) => i !== index));
+  };
+
+  const updateService = (index, field, value) => {
+    const updated = [...services];
+    updated[index][field] = value;
+    setServices(updated);
+  };
+
+  const generateDescription = async (index) => {
+    const service = services[index];
+    if (!service.title || !service.category) {
+      toast.error('Please enter a title and category first');
+      return;
+    }
+    
+    setGeneratingAI({ description: true, pricing: false, index });
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an expert service provider copywriter. Create a compelling, professional service description for the following:
+
+Service Title: ${service.title}
+Category: ${service.category}
+
+The description should:
+- Be 2-3 sentences long
+- Highlight the key benefits to customers
+- Sound professional yet approachable
+- Include relevant details about what's included
+- End with a call to action
+
+Generate only the description text, nothing else.`,
+        add_context_from_internet: false
+      });
+      
+      updateService(index, 'description', response);
+      toast.success('Description generated!');
+    } catch (error) {
+      toast.error('Failed to generate description');
+    } finally {
+      setGeneratingAI({ description: false, pricing: false, index: null });
+    }
+  };
+
+  const suggestPricing = async (index) => {
+    const service = services[index];
+    if (!service.title || !service.category) {
+      toast.error('Please enter a title and category first');
+      return;
+    }
+    
+    setGeneratingAI({ description: false, pricing: true, index });
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are a pricing expert for service marketplaces. Based on market trends and industry standards, suggest an optimal price for:
+
+Service: ${service.title}
+Category: ${service.category}
+Current Price Type: ${service.price_type}
+
+Provide a competitive price that balances profitability and market demand. Consider:
+- Industry standard rates
+- Skill level required
+- Time/effort involved
+- Local market conditions
+
+Respond with ONLY a single number (the suggested price in USD). No explanation, just the number.`,
+        add_context_from_internet: true
+      });
+      
+      const suggestedPrice = parseFloat(response.trim());
+      if (!isNaN(suggestedPrice)) {
+        updateService(index, 'price', suggestedPrice);
+        toast.success(`Suggested price: $${suggestedPrice}`);
+      }
+    } catch (error) {
+      toast.error('Failed to generate pricing suggestion');
+    } finally {
+      setGeneratingAI({ description: false, pricing: false, index: null });
+    }
+  };
+
   const completeOnboardingMutation = useMutation({
     mutationFn: async () => {
       // Save profile data
       await base44.auth.updateMe({
         ...profileData,
         driver_vehicle_info: type === 'driver' ? vehicleData : currentUser.driver_vehicle_info,
+        is_provider: type === 'provider',
         onboarding_status: {
           ...currentUser.onboarding_status,
           [`${type}_onboarding_completed`]: true,
           [`${type}_onboarding_step`]: 999
         }
       });
+
+      // Create service listings for providers
+      if (type === 'provider' && services.length > 0) {
+        for (const service of services) {
+          await base44.entities.MarketplaceItem.create({
+            title: service.title,
+            category: service.category,
+            price: service.price,
+            price_type: service.price_type,
+            description: service.description,
+            image_url: "",
+            escrow_required: false
+          });
+        }
+      }
 
       // Create verification records for documents
       if (type === 'driver') {
@@ -159,8 +276,13 @@ export default function OnboardingFlow() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['current-user']);
-      toast.success('Application submitted! We\'ll review and get back to you within 24-48 hours.');
-      navigate(createPageUrl('Profile'));
+      if (type === 'provider') {
+        toast.success('Welcome! Your services are now live. Application submitted for verification.');
+        navigate(createPageUrl('ProviderHub'));
+      } else {
+        toast.success('Application submitted! We\'ll review and get back to you within 24-48 hours.');
+        navigate(createPageUrl('Profile'));
+      }
     }
   });
 
@@ -184,6 +306,7 @@ export default function OnboardingFlow() {
   const providerSteps = [
     { title: "Profile Setup", icon: User },
     { title: "Service Details", icon: Briefcase },
+    { title: "Create Services", icon: Star },
     { title: "Documents", icon: FileText },
     { title: "Review & Submit", icon: CheckCircle }
   ];
@@ -521,7 +644,196 @@ export default function OnboardingFlow() {
               </div>
             )}
 
+            {/* Step 2: Create Services (Provider) */}
             {currentStep === 2 && type === 'provider' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Create Your Services</h2>
+                    <p className="text-gray-400 text-sm">Add 1-3 services to get started</p>
+                  </div>
+                  {services.length < 3 && (
+                    <Button
+                      onClick={addService}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Service
+                    </Button>
+                  )}
+                </div>
+
+                {services.length === 0 ? (
+                  <div className="bg-white/5 border border-white/10 rounded-xl p-12 text-center">
+                    <Sparkles className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                    <h3 className="text-white font-bold text-lg mb-2">Add Your First Service</h3>
+                    <p className="text-gray-400 mb-4">
+                      Ronron AI will help you create professional listings with optimized descriptions and pricing
+                    </p>
+                    <Button onClick={addService} className="bg-purple-600 hover:bg-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Get Started
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {services.map((service, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white/5 border border-white/10 rounded-xl p-6"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <h3 className="text-white font-bold">Service #{index + 1}</h3>
+                          <Button
+                            onClick={() => removeService(index)}
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-gray-400 text-sm mb-2 block">Service Title *</label>
+                            <Input
+                              value={service.title}
+                              onChange={(e) => updateService(index, 'title', e.target.value)}
+                              placeholder="e.g., Professional Home Cleaning"
+                              className="bg-white/10 border-white/20 text-white"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-gray-400 text-sm mb-2 block">Category *</label>
+                              <Select 
+                                value={service.category}
+                                onValueChange={(v) => updateService(index, 'category', v)}
+                              >
+                                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="plumbing">Plumbing</SelectItem>
+                                  <SelectItem value="electrical">Electrical</SelectItem>
+                                  <SelectItem value="cleaning">Cleaning</SelectItem>
+                                  <SelectItem value="landscaping">Landscaping</SelectItem>
+                                  <SelectItem value="photography">Photography</SelectItem>
+                                  <SelectItem value="catering">Catering</SelectItem>
+                                  <SelectItem value="personal_chef">Personal Chef</SelectItem>
+                                  <SelectItem value="barber_beauty">Barber/Beauty</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <label className="text-gray-400 text-sm mb-2 block">Price Type</label>
+                              <Select 
+                                value={service.price_type}
+                                onValueChange={(v) => updateService(index, 'price_type', v)}
+                              >
+                                <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fixed">Fixed Price</SelectItem>
+                                  <SelectItem value="hourly">Hourly Rate</SelectItem>
+                                  <SelectItem value="per_day">Per Day</SelectItem>
+                                  <SelectItem value="negotiable">Negotiable</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-gray-400 text-sm">Price (USD) *</label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => suggestPricing(index)}
+                                disabled={generatingAI.pricing && generatingAI.index === index || !service.title}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                {generatingAI.pricing && generatingAI.index === index ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    AI Suggesting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <TrendingUp className="w-3 h-3 mr-1" />
+                                    AI Suggest Price
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <Input
+                              type="number"
+                              value={service.price}
+                              onChange={(e) => updateService(index, 'price', parseFloat(e.target.value))}
+                              placeholder="100"
+                              className="bg-white/10 border-white/20 text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-gray-400 text-sm">Description</label>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => generateDescription(index)}
+                                disabled={generatingAI.description && generatingAI.index === index || !service.title}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                {generatingAI.description && generatingAI.index === index ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    AI Generating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    AI Generate
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            <Textarea
+                              value={service.description}
+                              onChange={(e) => updateService(index, 'description', e.target.value)}
+                              placeholder="Describe your service..."
+                              className="bg-white/10 border-white/20 text-white"
+                              rows={3}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+
+                    {services.length < 3 && (
+                      <Button
+                        onClick={addService}
+                        variant="outline"
+                        className="w-full bg-white/5 border-white/10 hover:bg-white/10"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Another Service ({services.length}/3)
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Documents (Provider) */}
+            {currentStep === 3 && type === 'provider' && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Professional Documents</h2>
                 
@@ -576,7 +888,7 @@ export default function OnboardingFlow() {
             )}
 
             {/* Final Step: Review & Submit */}
-            {currentStep === 3 && (
+            {((currentStep === 3 && type === 'driver') || (currentStep === 4 && type === 'provider')) && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Review & Submit</h2>
                 
@@ -600,14 +912,36 @@ export default function OnboardingFlow() {
                   </div>
 
                   {type === 'driver' && (
-                    <div className="bg-white/5 rounded-xl p-4">
-                      <h4 className="text-white font-medium mb-2">Vehicle</h4>
-                      <div className="text-gray-400 text-sm space-y-1">
-                        <p>{vehicleData.year} {vehicleData.make} {vehicleData.model}</p>
-                        <p>Color: {vehicleData.color}</p>
-                        <p>License: {vehicleData.license_plate}</p>
-                      </div>
-                    </div>
+                   <div className="bg-white/5 rounded-xl p-4">
+                     <h4 className="text-white font-medium mb-2">Vehicle</h4>
+                     <div className="text-gray-400 text-sm space-y-1">
+                       <p>{vehicleData.year} {vehicleData.make} {vehicleData.model}</p>
+                       <p>Color: {vehicleData.color}</p>
+                       <p>License: {vehicleData.license_plate}</p>
+                     </div>
+                   </div>
+                  )}
+
+                  {type === 'provider' && services.length > 0 && (
+                   <div className="bg-white/5 rounded-xl p-4">
+                     <h4 className="text-white font-medium mb-2">Services ({services.length})</h4>
+                     <div className="space-y-3">
+                       {services.map((service, idx) => (
+                         <div key={idx} className="bg-white/5 rounded-lg p-3">
+                           <div className="flex items-start justify-between">
+                             <div className="flex-1">
+                               <p className="text-white font-medium">{service.title}</p>
+                               <p className="text-gray-400 text-xs capitalize">{service.category}</p>
+                             </div>
+                             <div className="text-green-400 font-bold">${service.price}</div>
+                           </div>
+                           {service.description && (
+                             <p className="text-gray-400 text-xs mt-2 line-clamp-2">{service.description}</p>
+                           )}
+                         </div>
+                       ))}
+                     </div>
+                   </div>
                   )}
 
                   <div className="bg-white/5 rounded-xl p-4">
@@ -665,10 +999,11 @@ export default function OnboardingFlow() {
                 <Button
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 0 && (!profileData.full_name || !profileData.phone || !profileData.address)) ||
-                    (currentStep === 1 && type === 'driver' && (!documents.drivers_license || !documents.insurance || !documents.vehicle_registration)) ||
-                    (currentStep === 1 && type === 'provider' && !providerData.service_category) ||
-                    (currentStep === 2 && type === 'driver' && (!vehicleData.make || !vehicleData.model || !vehicleData.license_plate))
+                   (currentStep === 0 && (!profileData.full_name || !profileData.phone || !profileData.address)) ||
+                   (currentStep === 1 && type === 'driver' && (!documents.drivers_license || !documents.insurance || !documents.vehicle_registration)) ||
+                   (currentStep === 1 && type === 'provider' && !providerData.service_category) ||
+                   (currentStep === 2 && type === 'driver' && (!vehicleData.make || !vehicleData.model || !vehicleData.license_plate)) ||
+                   (currentStep === 2 && type === 'provider' && services.length === 0)
                   }
                   className="bg-purple-600 hover:bg-purple-700"
                 >
