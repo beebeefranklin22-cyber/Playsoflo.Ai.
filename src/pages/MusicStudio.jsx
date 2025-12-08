@@ -15,6 +15,9 @@ import {
   CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import AdvancedAnalytics from "../components/music/AdvancedAnalytics";
+import FanPoolManager from "../components/music/FanPoolManager";
+import DistributionManager from "../components/music/DistributionManager";
 
 export default function MusicStudio() {
   const navigate = useNavigate();
@@ -384,12 +387,22 @@ Make it legally sound, fair, and industry-standard.`;
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 border border-white/20">
+          <TabsList className="grid w-full grid-cols-6 bg-white/10 border border-white/20">
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="tracks">Tracks</TabsTrigger>
             <TabsTrigger value="pools">Fan Pools</TabsTrigger>
+            <TabsTrigger value="distribution">Distribution</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="deals">Deal Apps</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics" className="mt-6">
+            <AdvancedAnalytics tracks={myTracks} fanPools={myPools} />
+          </TabsContent>
+
+          <TabsContent value="distribution" className="mt-6">
+            <DistributionManager tracks={myTracks} currentUser={currentUser} />
+          </TabsContent>
 
           <TabsContent value="tracks" className="mt-6">
             {myTracks.length === 0 ? (
@@ -430,42 +443,7 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsContent>
 
           <TabsContent value="pools" className="mt-6">
-            {myPools.length === 0 ? (
-              <div className="text-center py-20">
-                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No fan pools yet</h3>
-                <p className="text-gray-400 mb-6">Create a fan pool to crowdfund concerts and projects</p>
-                <Button onClick={() => setShowPoolModal(true)} className="bg-blue-600">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Fan Pool
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {myPools.map((pool) => (
-                <Card key={pool.id} className="bg-white/5 border-white/10">
-                  <CardContent className="p-6">
-                    <h3 className="text-white font-bold text-xl mb-2">{pool.title}</h3>
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm mb-2">
-                        <span className="text-gray-400">Progress</span>
-                        <span className="text-white font-bold">
-                          ${pool.raised_amount.toLocaleString()} / ${pool.goal_amount.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-white/10 rounded-full">
-                        <div
-                          className="h-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
-                          style={{ width: `${Math.min((pool.raised_amount / pool.goal_amount) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <p className="text-gray-400 text-sm">{pool.contributors?.length || 0} backers</p>
-                  </CardContent>
-                </Card>
-              ))}
-              </div>
-            )}
+            <FanPoolManager fanPools={myPools} currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="contracts" className="mt-6">
