@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
-  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2
+  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2, Upload, Image
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,13 @@ import { toast } from "sonner";
 
 export default function Social() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [postContent, setPostContent] = useState("");
+  const [postImage, setPostImage] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
 
   useEffect(() => {
@@ -47,6 +50,56 @@ export default function Social() {
         newSet.add(postId);
       }
       return newSet;
+    });
+  };
+
+  const createPostMutation = useMutation({
+    mutationFn: async (postData) => {
+      return await base44.entities.SocialPost.create(postData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['social-posts']);
+      setShowCreatePost(false);
+      setPostContent("");
+      setPostImage("");
+      toast.success("Post created!");
+    },
+    onError: () => {
+      toast.error("Failed to create post");
+    }
+  });
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setPostImage(file_url);
+      toast.success("Image uploaded!");
+    } catch (error) {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!postContent.trim() && !postImage) {
+      toast.error("Add some content or an image");
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error("Please log in to create a post");
+      return;
+    }
+
+    createPostMutation.mutate({
+      caption: postContent,
+      image_url: postImage || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800",
+      likes_count: 0,
+      comments_count: 0,
+      vibe: "energetic"
     });
   };
 
@@ -255,7 +308,10 @@ export default function Social() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Welcome to Social</h3>
             <p className="text-gray-400 mb-6">Share your lifestyle experiences with the community</p>
-            <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform">
+            <button 
+              onClick={() => setShowCreatePost(true)}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform"
+            >
               Create Your First Post
             </button>
           </div>
@@ -296,37 +352,80 @@ export default function Social() {
                   placeholder="What's on your mind? (Type a topic for AI to help)"
                   className="bg-white/10 border-white/20 text-white placeholder-gray-500 min-h-[120px]"
                 />
-                
-                <Button
-                  onClick={generateAIPost}
-                  disabled={generatingAI || !postContent.trim()}
-                  variant="outline"
-                  className="w-full bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30"
-                >
-                  {generatingAI ? (
-                    "Generating..."
-                  ) : (
-                    <>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      AI Assist - Write Post
-                    </>
-                  )}
-                </Button>
+
+                {postImage && (
+                  <div className="relative">
+                    <img src={postImage} alt="Upload" className="w-full h-48 object-cover rounded-lg" />
+                    <button
+                      onClick={() => setPostImage("")}
+                      className="absolute top-2 right-2 p-2 bg-red-500 rounded-full hover:bg-red-600 transition"
+                    >
+                      <Plus className="w-4 h-4 text-white rotate-45" />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('image-upload').click()}
+                    disabled={uploadingImage}
+                    variant="outline"
+                    className="flex-1 bg-blue-500/20 border-blue-500/30 hover:bg-blue-500/30"
+                  >
+                    {uploadingImage ? (
+                      "Uploading..."
+                    ) : (
+                      <>
+                        <Image className="w-4 h-4 mr-2" />
+                        Add Image
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    onClick={generateAIPost}
+                    disabled={generatingAI || !postContent.trim()}
+                    variant="outline"
+                    className="flex-1 bg-purple-500/20 border-purple-500/30 hover:bg-purple-500/30"
+                  >
+                    {generatingAI ? (
+                      "Generating..."
+                    ) : (
+                      <>
+                        <Wand2 className="w-4 h-4 mr-2" />
+                        AI Assist
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => setShowCreatePost(false)}
+                  onClick={() => {
+                    setShowCreatePost(false);
+                    setPostContent("");
+                    setPostImage("");
+                  }}
                   variant="outline"
                   className="flex-1"
                 >
                   Cancel
                 </Button>
                 <Button 
+                  onClick={handleCreatePost}
+                  disabled={(!postContent.trim() && !postImage) || createPostMutation.isPending}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-                  disabled={!postContent.trim()}
                 >
-                  Post
+                  {createPostMutation.isPending ? "Posting..." : "Post"}
                 </Button>
               </div>
             </motion.div>
