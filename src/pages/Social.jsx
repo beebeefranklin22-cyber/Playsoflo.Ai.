@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import TipButton from "../components/TipButton";
 
 export default function Social() {
   const navigate = useNavigate();
@@ -261,6 +262,14 @@ export default function Social() {
                 <button>
                   <Share2 className="w-7 h-7 text-white" />
                 </button>
+                <TipButton 
+                  creatorEmail={post.created_by}
+                  creatorName={post.created_by}
+                  contentId={post.id}
+                  variant="ghost"
+                  size="sm"
+                  showAmount={false}
+                />
               </div>
               <button>
                 <Bookmark className="w-7 h-7 text-white" />
