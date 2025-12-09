@@ -34,7 +34,19 @@ const categories = [
 
 export default function ProviderHub() {
   const qc = useQueryClient();
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [availabilityForm, setAvailabilityForm] = useState({
+    day_of_week: "monday",
+    is_available: true,
+    start_time: "09:00",
+    end_time: "17:00",
+    break_start: "",
+    break_end: "",
+    slot_duration_minutes: 60
+  });
+
   const { data: myServices = [] } = useQuery({
     queryKey: ["my-services"],
     queryFn: () => base44.entities.MarketplaceItem.list(),
@@ -78,18 +90,6 @@ export default function ProviderHub() {
     },
     enabled: !!currentUser,
     initialData: []
-  });
-
-  const [currentUser, setCurrentUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [availabilityForm, setAvailabilityForm] = useState({
-    day_of_week: "monday",
-    is_available: true,
-    start_time: "09:00",
-    end_time: "17:00",
-    break_start: "",
-    break_end: "",
-    slot_duration_minutes: 60
   });
 
   useEffect(() => {
