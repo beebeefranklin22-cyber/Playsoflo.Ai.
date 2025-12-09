@@ -52,6 +52,10 @@ import EntertainmentExperiences from './pages/EntertainmentExperiences';
 import UniversalSearch from './pages/UniversalSearch';
 import ArtistProfile from './pages/ArtistProfile';
 import MusicDiscover from './pages/MusicDiscover';
+import StripeConnectOnboarding from './pages/StripeConnectOnboarding';
+import StripeProductManager from './pages/StripeProductManager';
+import StripeStorefront from './pages/StripeStorefront';
+import PaymentSuccess from './pages/PaymentSuccess';
 import __Layout from './Layout.jsx';
 
 
@@ -110,6 +114,10 @@ export const PAGES = {
     "UniversalSearch": UniversalSearch,
     "ArtistProfile": ArtistProfile,
     "MusicDiscover": MusicDiscover,
+    "StripeConnectOnboarding": StripeConnectOnboarding,
+    "StripeProductManager": StripeProductManager,
+    "StripeStorefront": StripeStorefront,
+    "PaymentSuccess": PaymentSuccess,
 }
 
 export const pagesConfig = {
