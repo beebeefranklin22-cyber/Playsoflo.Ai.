@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Upload, X, Shield, CheckCircle, AlertCircle,
+  Upload, X, Shield, CheckCircle, AlertCircle, Clock,
   Award, FileText, Calendar, TrendingUp, Plus, User, List,
-  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox, Sparkles, Clock
+  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox, Sparkles
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
