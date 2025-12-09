@@ -94,6 +94,11 @@ export default function Profile() {
   const handleImageUpload = async (file, type) => {
     if (!file) return;
     
+    if (!currentUser) {
+      toast.error('Please log in to upload');
+      return;
+    }
+    
     if (type === 'cover') setUploadingCover(true);
     if (type === 'profile') setUploadingProfile(true);
 
