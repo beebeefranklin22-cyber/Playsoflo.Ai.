@@ -132,7 +132,6 @@ export default function Universe() {
   const [showIntro, setShowIntro] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Add new pillars for Car Rentals and Meme Creator
   const updatedPillars = [
     ...pillars,
     {
@@ -157,7 +156,7 @@ export default function Universe() {
     }
   ];
 
-  const updatedCards = updatedPillars.map((pillar) => ({
+  const cards = updatedPillars.map((pillar) => ({
     id: pillar.id,
     content: (
       <div className="relative w-full h-full overflow-hidden rounded-3xl">
@@ -452,7 +451,7 @@ export default function Universe() {
       <div className="absolute inset-0 pt-[60px] sm:pt-[72px] md:pt-[84px] px-3 sm:px-4 md:px-6 pb-[80px] sm:pb-[90px] safe-area-bottom">
         <div className="h-full w-full">
           <CardStack
-            cards={updatedCards}
+            cards={cards}
             currentIndex={currentIndex}
             onCardChange={(index) => {
               setCurrentIndex(index);
