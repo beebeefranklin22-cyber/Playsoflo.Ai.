@@ -41,8 +41,10 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
 
   const toggleCommentLikeMutation = useMutation({
     mutationFn: async ({ commentId, liked_by, currentLikesCount }) => {
+      if (!currentUser?.email) return;
+      
       const likedByArray = liked_by || [];
-      const isLiked = likedByArray.includes(currentUser?.email);
+      const isLiked = likedByArray.includes(currentUser.email);
       const newLikedBy = isLiked
         ? likedByArray.filter(email => email !== currentUser.email)
         : [...likedByArray, currentUser.email];
@@ -58,7 +60,7 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
   });
 
   const handlePostComment = () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || !currentUser) return;
 
     createCommentMutation.mutate({
       post_id: postId,
@@ -106,11 +108,17 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
                     </div>
                     <div className="flex items-center gap-4 mt-1 ml-2">
                       <button
-                        onClick={() => toggleCommentLikeMutation.mutate({
-                          commentId: comment.id,
-                          liked_by: comment.liked_by || [],
-                          currentLikesCount: comment.likes_count
-                        })}
+                        onClick={() => {
+                          if (!currentUser) {
+                            toast.error("Please log in to like comments");
+                            return;
+                          }
+                          toggleCommentLikeMutation.mutate({
+                            commentId: comment.id,
+                            liked_by: comment.liked_by || [],
+                            currentLikesCount: comment.likes_count || 0
+                          });
+                        }}
                         className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1"
                       >
                         <Heart
