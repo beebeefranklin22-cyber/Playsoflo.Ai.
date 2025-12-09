@@ -21,6 +21,9 @@ import EarningsSection from "../components/provider/EarningsSection";
 import PerformanceDashboard from "../components/provider/PerformanceDashboard";
 import ProviderChatSection from "../components/provider/ProviderChatSection";
 import PortfolioSection from "../components/profile/PortfolioSection";
+import ServiceVariationsManager from "../components/provider/ServiceVariationsManager";
+import ServiceAddOnsManager from "../components/provider/ServiceAddOnsManager";
+import AvailabilityOverridesManager from "../components/provider/AvailabilityOverridesManager";
 
 const categories = [
   "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
@@ -263,8 +266,13 @@ export default function ProviderHub() {
     image_url: "",
     description: "",
     escrow_required: false,
-    portfolio_images: []
+    portfolio_images: [],
+    variations: [],
+    add_ons: []
   });
+  
+  const [sortBy, setSortBy] = useState("created_date");
+  const [filterCategory, setFilterCategory] = useState("all");
 
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [generatingPricing, setGeneratingPricing] = useState(false);
@@ -362,7 +370,8 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
-      setForm({ title: "", category: "logistics", price: 100, price_type: "fixed", image_url: "", description: "", escrow_required: false, portfolio_images: [] });
+      setForm({ title: "", category: "logistics", price: 100, price_type: "fixed", image_url: "", description: "", escrow_required: false, portfolio_images: [], variations: [], add_ons: [] });
+      toast.success("Service published!");
     },
     onError: (error) => {
         if (error !== "Not verified for logistics") { // Don't re-alert for this specific error
@@ -391,7 +400,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
       price: service.price || 0,
       price_type: service.price_type || "fixed",
       image_url: service.image_url || "",
-      portfolio_images: service.portfolio_images || []
+      portfolio_images: service.portfolio_images || [],
+      variations: service.variations || [],
+      add_ons: service.add_ons || []
     });
   };
 
@@ -1055,6 +1066,16 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   />
                 </div>
 
+                <ServiceVariationsManager 
+                  variations={form.variations}
+                  onChange={(v) => setForm({...form, variations: v})}
+                />
+
+                <ServiceAddOnsManager 
+                  addOns={form.add_ons}
+                  onChange={(a) => setForm({...form, add_ons: a})}
+                />
+
                 <div className="space-y-3">
                   <label className="text-white font-medium block">Cover Image</label>
                   {form.image_url && (
@@ -1151,15 +1172,59 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               </CardContent>
             </Card>
 
-            <h2 className="text-2xl text-white font-bold mb-4">Your Active Services</h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl text-white font-bold">Your Active Services</h2>
+              <div className="flex gap-2">
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {[...new Set(myServices.map(s => s.category))].map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ').toUpperCase()}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="created_date">Newest First</SelectItem>
+                    <SelectItem value="-created_date">Oldest First</SelectItem>
+                    <SelectItem value="price">Price: Low to High</SelectItem>
+                    <SelectItem value="-price">Price: High to Low</SelectItem>
+                    <SelectItem value="title">Name: A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myServices.map(s => (
+              {myServices
+                .filter(s => filterCategory === 'all' || s.category === filterCategory)
+                .sort((a, b) => {
+                  if (sortBy === 'price') return (a.price || 0) - (b.price || 0);
+                  if (sortBy === '-price') return (b.price || 0) - (a.price || 0);
+                  if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+                  if (sortBy === '-created_date') return new Date(a.created_date) - new Date(b.created_date);
+                  return new Date(b.created_date) - new Date(a.created_date);
+                })
+                .map(s => (
                 <Card key={s.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-4">
                     <img src={s.image_url} alt={s.title} className="h-40 w-full object-cover rounded-lg mb-3" />
                     <div className="text-white font-semibold text-lg mb-1">{s.title}</div>
                     <div className="text-gray-400 text-sm capitalize mb-2">{s.category?.replace("_"," ")}</div>
-                    <div className="text-white text-xl font-bold mb-3">${s.price?.toFixed(2)}</div>
+                    <div className="text-white text-xl font-bold mb-1">${s.price?.toFixed(2)}</div>
+                    {s.variations?.length > 0 && (
+                      <p className="text-purple-400 text-xs mb-1">{s.variations.length} variations</p>
+                    )}
+                    {s.add_ons?.length > 0 && (
+                      <p className="text-blue-400 text-xs mb-2">{s.add_ons.length} add-ons available</p>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => startEdit(s)} className="w-full">
                       Manage Service
                     </Button>
@@ -1241,6 +1306,21 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                             className="hidden"
                           />
                         </div>
+
+                        <ServiceVariationsManager 
+                          variations={editData.variations}
+                          onChange={(v) => setEditData({...editData, variations: v})}
+                        />
+
+                        <ServiceAddOnsManager 
+                          addOns={editData.add_ons}
+                          onChange={(a) => setEditData({...editData, add_ons: a})}
+                        />
+
+                        <AvailabilityOverridesManager 
+                          serviceId={s.id}
+                          providerEmail={currentUser?.email}
+                        />
 
                         <div className="flex gap-2">
                           <Button
