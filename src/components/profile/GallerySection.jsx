@@ -31,15 +31,21 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.UserGallery.create({
-      ...data,
-      user_email: currentUser.email
-    }),
+    mutationFn: (data) => {
+      if (!currentUser?.email) throw new Error("User not authenticated");
+      return base44.entities.UserGallery.create({
+        ...data,
+        user_email: currentUser.email
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gallery', userEmail] });
       setShowUploadModal(false);
       setNewMedia({ media_url: "", media_type: "photo", caption: "", location: "", tags: [] });
       toast.success('Added to gallery!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to add to gallery');
     }
   });
 
@@ -53,6 +59,10 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
 
   const likeMutation = useMutation({
     mutationFn: async (item) => {
+      if (!currentUser?.email) {
+        toast.error("Please log in to like");
+        return;
+      }
       const likedBy = item.liked_by || [];
       const isLiked = likedBy.includes(currentUser.email);
       return base44.entities.UserGallery.update(item.id, {
@@ -78,8 +88,10 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const mediaType = file.type.startsWith('video/') ? 'video' : 'photo';
       setNewMedia(prev => ({ ...prev, media_url: file_url, media_type: mediaType }));
+      toast.success('Upload successful!');
     } catch (error) {
-      toast.error('Upload failed');
+      console.error('Upload error:', error);
+      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
     } finally {
       setUploading(false);
     }

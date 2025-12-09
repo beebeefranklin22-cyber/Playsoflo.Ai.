@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, X, Play, Image as ImageIcon, 
-  Star, Trash2, Loader2, Upload
+  Plus, X, ExternalLink, Play, Image as ImageIcon, 
+  Star, Eye, Heart, Trash2, Edit2, Loader2, Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -46,15 +46,21 @@ export default function PortfolioSection({ userEmail, isOwnProfile, currentUser 
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.PortfolioItem.create({
-      ...data,
-      user_email: currentUser.email
-    }),
+    mutationFn: (data) => {
+      if (!currentUser?.email) throw new Error("User not authenticated");
+      return base44.entities.PortfolioItem.create({
+        ...data,
+        user_email: currentUser.email
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolio', userEmail] });
       setShowAddModal(false);
       resetForm();
       toast.success('Portfolio item added!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to add portfolio item');
     }
   });
 
@@ -94,8 +100,10 @@ export default function PortfolioSection({ userEmail, isOwnProfile, currentUser 
       const mediaType = file.type.startsWith('video/') ? 'video' : 
                        file.type.startsWith('audio/') ? 'audio' : 'image';
       setNewItem(prev => ({ ...prev, media_url: file_url, media_type: mediaType }));
+      toast.success('Upload successful!');
     } catch (error) {
-      toast.error('Upload failed');
+      console.error('Upload error:', error);
+      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
     } finally {
       setUploading(false);
     }

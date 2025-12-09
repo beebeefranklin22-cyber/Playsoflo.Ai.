@@ -102,11 +102,14 @@ export default function Profile() {
       
       if (type === 'cover') {
         await updateUserMutation.mutateAsync({ cover_photo: file_url });
+        toast.success('Cover photo updated!');
       } else {
         await updateUserMutation.mutateAsync({ profile_photo: file_url });
+        toast.success('Profile photo updated!');
       }
     } catch (error) {
-      toast.error('Upload failed');
+      console.error('Upload error:', error);
+      toast.error('Upload failed: ' + (error.message || 'Unknown error'));
     } finally {
       if (type === 'cover') setUploadingCover(false);
       if (type === 'profile') setUploadingProfile(false);
