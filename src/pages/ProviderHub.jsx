@@ -558,24 +558,26 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="flex w-full overflow-x-auto bg-white/10 backdrop-blur-xl border border-white/20 p-1 gap-1">
-            <TabsTrigger value="dashboard" className="whitespace-nowrap">Dashboard</TabsTrigger>
-            <TabsTrigger value="requests" className="whitespace-nowrap">Requests</TabsTrigger>
-            <TabsTrigger value="messages" className="relative whitespace-nowrap">
-              Messages
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {unreadMessages > 9 ? '9+' : unreadMessages}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="earnings" className="whitespace-nowrap">Earnings</TabsTrigger>
-            <TabsTrigger value="portfolio" className="whitespace-nowrap">Portfolio</TabsTrigger>
-            <TabsTrigger value="services" className="whitespace-nowrap">Services</TabsTrigger>
-            <TabsTrigger value="availability" className="whitespace-nowrap">Availability</TabsTrigger>
-            <TabsTrigger value="verification" className="whitespace-nowrap">Verification</TabsTrigger>
-            <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-2 px-2">
+            <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
+              <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
+              <TabsTrigger value="requests" className="whitespace-nowrap px-4">Requests</TabsTrigger>
+              <TabsTrigger value="messages" className="relative whitespace-nowrap px-4">
+                Messages
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="earnings" className="whitespace-nowrap px-4">Earnings</TabsTrigger>
+              <TabsTrigger value="portfolio" className="whitespace-nowrap px-4">Portfolio</TabsTrigger>
+              <TabsTrigger value="services" className="whitespace-nowrap px-4">Services</TabsTrigger>
+              <TabsTrigger value="availability" className="whitespace-nowrap px-4">Availability</TabsTrigger>
+              <TabsTrigger value="verification" className="whitespace-nowrap px-4">Verification</TabsTrigger>
+              <TabsTrigger value="profile" className="whitespace-nowrap px-4">Profile</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
