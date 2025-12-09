@@ -24,6 +24,8 @@ import PortfolioSection from "../components/profile/PortfolioSection";
 import ServiceVariationsManager from "../components/provider/ServiceVariationsManager";
 import ServiceAddOnsManager from "../components/provider/ServiceAddOnsManager";
 import AvailabilityOverridesManager from "../components/provider/AvailabilityOverridesManager";
+import RentalAssetManager from "../components/provider/RentalAssetManager";
+import RentalCalendar from "../components/provider/RentalCalendar";
 
 const categories = [
   "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
@@ -268,11 +270,23 @@ export default function ProviderHub() {
     escrow_required: false,
     portfolio_images: [],
     variations: [],
-    add_ons: []
+    add_ons: [],
+    is_rental: false,
+    rental_details: {},
+    blocked_dates: []
   });
   
   const [sortBy, setSortBy] = useState("created_date");
   const [filterCategory, setFilterCategory] = useState("all");
+
+  // Rental categories
+  const rentalCategories = [
+    "property_rental", "equipment_rental", "yacht_charter", 
+    "private_aviation", "bounce_house_rental", "party_rental",
+    "photo_booth_rental"
+  ];
+
+  const isRentalCategory = (category) => rentalCategories.includes(category);
 
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [generatingPricing, setGeneratingPricing] = useState(false);
@@ -370,7 +384,12 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
-      setForm({ title: "", category: "logistics", price: 100, price_type: "fixed", image_url: "", description: "", escrow_required: false, portfolio_images: [], variations: [], add_ons: [] });
+      setForm({ 
+        title: "", category: "logistics", price: 100, price_type: "fixed", 
+        image_url: "", description: "", escrow_required: false, 
+        portfolio_images: [], variations: [], add_ons: [],
+        is_rental: false, rental_details: {}, blocked_dates: []
+      });
       toast.success("Service published!");
     },
     onError: (error) => {
@@ -402,7 +421,10 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
       image_url: service.image_url || "",
       portfolio_images: service.portfolio_images || [],
       variations: service.variations || [],
-      add_ons: service.add_ons || []
+      add_ons: service.add_ons || [],
+      is_rental: service.is_rental || false,
+      rental_details: service.rental_details || {},
+      blocked_dates: service.blocked_dates || []
     });
   };
 
@@ -980,7 +1002,13 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 />
 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <Select value={form.category} onValueChange={(v) => setForm({...form, category: v})}>
+                  <Select 
+                    value={form.category} 
+                    onValueChange={(v) => {
+                      const isRental = isRentalCategory(v);
+                      setForm({...form, category: v, is_rental: isRental});
+                    }}
+                  >
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
@@ -1066,15 +1094,30 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   />
                 </div>
 
-                <ServiceVariationsManager 
-                  variations={form.variations}
-                  onChange={(v) => setForm({...form, variations: v})}
-                />
+                {form.is_rental ? (
+                  <>
+                    <RentalAssetManager
+                      rentalDetails={form.rental_details}
+                      onChange={(d) => setForm({...form, rental_details: d})}
+                    />
+                    <RentalCalendar
+                      blockedDates={form.blocked_dates}
+                      onChange={(d) => setForm({...form, blocked_dates: d})}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ServiceVariationsManager 
+                      variations={form.variations}
+                      onChange={(v) => setForm({...form, variations: v})}
+                    />
 
-                <ServiceAddOnsManager 
-                  addOns={form.add_ons}
-                  onChange={(a) => setForm({...form, add_ons: a})}
-                />
+                    <ServiceAddOnsManager 
+                      addOns={form.add_ons}
+                      onChange={(a) => setForm({...form, add_ons: a})}
+                    />
+                  </>
+                )}
 
                 <div className="space-y-3">
                   <label className="text-white font-medium block">Cover Image</label>
@@ -1219,14 +1262,26 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                     <div className="text-white font-semibold text-lg mb-1">{s.title}</div>
                     <div className="text-gray-400 text-sm capitalize mb-2">{s.category?.replace("_"," ")}</div>
                     <div className="text-white text-xl font-bold mb-1">${s.price?.toFixed(2)}</div>
-                    {s.variations?.length > 0 && (
+                    {s.is_rental && (
+                      <div className="mb-2">
+                        <Badge className="bg-purple-500/20 text-purple-300 text-xs">
+                          Rental Asset
+                        </Badge>
+                        {s.rental_details?.security_deposit && (
+                          <p className="text-gray-400 text-xs mt-1">
+                            Deposit: ${s.rental_details.security_deposit}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {!s.is_rental && s.variations?.length > 0 && (
                       <p className="text-purple-400 text-xs mb-1">{s.variations.length} variations</p>
                     )}
-                    {s.add_ons?.length > 0 && (
+                    {!s.is_rental && s.add_ons?.length > 0 && (
                       <p className="text-blue-400 text-xs mb-2">{s.add_ons.length} add-ons available</p>
                     )}
                     <Button size="sm" variant="outline" onClick={() => startEdit(s)} className="w-full">
-                      Manage Service
+                      Manage {s.is_rental ? 'Rental' : 'Service'}
                     </Button>
 
                     {editingId === s.id && editData && (
@@ -1307,15 +1362,30 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                           />
                         </div>
 
-                        <ServiceVariationsManager 
-                          variations={editData.variations}
-                          onChange={(v) => setEditData({...editData, variations: v})}
-                        />
+                        {editData.is_rental ? (
+                          <>
+                            <RentalAssetManager
+                              rentalDetails={editData.rental_details}
+                              onChange={(d) => setEditData({...editData, rental_details: d})}
+                            />
+                            <RentalCalendar
+                              blockedDates={editData.blocked_dates}
+                              onChange={(d) => setEditData({...editData, blocked_dates: d})}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <ServiceVariationsManager 
+                              variations={editData.variations}
+                              onChange={(v) => setEditData({...editData, variations: v})}
+                            />
 
-                        <ServiceAddOnsManager 
-                          addOns={editData.add_ons}
-                          onChange={(a) => setEditData({...editData, add_ons: a})}
-                        />
+                            <ServiceAddOnsManager 
+                              addOns={editData.add_ons}
+                              onChange={(a) => setEditData({...editData, add_ons: a})}
+                            />
+                          </>
+                        )}
 
                         <AvailabilityOverridesManager 
                           serviceId={s.id}
