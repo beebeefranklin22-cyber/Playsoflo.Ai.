@@ -1,12 +1,17 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { 
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
-  Bed, Bath, Maximize, Star, Check, Sparkles
+  Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
+  Search, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -27,15 +32,42 @@ const listingTypes = [
 
 export default function RealEstate() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedListingType, setSelectedListingType] = useState("all");
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [searchLocation, setSearchLocation] = useState("");
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
     queryFn: () => base44.entities.Property.list(),
     initialData: []
   });
+
+  const fetchPropertiesMutation = useMutation({
+    mutationFn: async (location) => {
+      const response = await base44.functions.invoke('fetchRealEstateData', {
+        location,
+        listing_type: selectedListingType !== 'all' ? selectedListingType : null,
+        property_type: selectedCategory !== 'all' ? selectedCategory : null
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      toast.success(`Found ${data.properties?.length || 0} properties in ${data.location}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to fetch properties');
+    }
+  });
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchLocation.trim()) {
+      fetchPropertiesMutation.mutate(searchLocation);
+    }
+  };
 
   const filteredProperties = properties.filter(prop => {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
@@ -70,9 +102,36 @@ export default function RealEstate() {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
             Real Estate & Stays
           </h1>
-          <p className="text-gray-300 text-lg">
-            Find your perfect space - from weekend getaways to dream homes
+          <p className="text-gray-300 text-lg mb-4">
+            Millions of properties nationwide - Find your perfect space
           </p>
+          
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="flex gap-3 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                value={searchLocation}
+                onChange={(e) => setSearchLocation(e.target.value)}
+                placeholder="Search by city, state, or zip code (e.g., Miami FL, 33101)"
+                className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
+              />
+            </div>
+            <Button 
+              type="submit"
+              disabled={fetchPropertiesMutation.isPending}
+              className="bg-emerald-500 hover:bg-emerald-600 h-12 px-6"
+            >
+              {fetchPropertiesMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <Search className="w-5 h-5 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </form>
         </div>
       </div>
 
@@ -119,6 +178,9 @@ export default function RealEstate() {
         <div className="flex items-center justify-between mb-6">
           <p className="text-gray-300">
             {filteredProperties.length} propert{filteredProperties.length !== 1 ? 'ies' : 'y'} available
+            {properties.length > 0 && properties[0]?.data_source && (
+              <span className="ml-2 text-emerald-400">• Powered by {properties[0].data_source}</span>
+            )}
           </p>
         </div>
 
@@ -288,9 +350,51 @@ export default function RealEstate() {
                   )}
                 </div>
 
-                <p className="text-gray-300 mb-6 text-lg">
+                <p className="text-gray-300 mb-4 text-lg">
                   {selectedProperty.description}
                 </p>
+
+                {/* Property Details */}
+                {(selectedProperty.year_built || selectedProperty.parcel_number || selectedProperty.owner_name) && (
+                  <div className="grid grid-cols-2 gap-3 mb-6 p-4 bg-white/5 rounded-xl">
+                    {selectedProperty.year_built && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Year Built</p>
+                        <p className="text-white font-semibold">{selectedProperty.year_built}</p>
+                      </div>
+                    )}
+                    {selectedProperty.lot_size && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Lot Size</p>
+                        <p className="text-white font-semibold">{selectedProperty.lot_size.toLocaleString()} sqft</p>
+                      </div>
+                    )}
+                    {selectedProperty.parcel_number && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Parcel #</p>
+                        <p className="text-white font-semibold text-xs">{selectedProperty.parcel_number}</p>
+                      </div>
+                    )}
+                    {selectedProperty.owner_name && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Owner</p>
+                        <p className="text-white font-semibold">{selectedProperty.owner_name}</p>
+                      </div>
+                    )}
+                    {selectedProperty.zoning && (
+                      <div>
+                        <p className="text-gray-400 text-sm">Zoning</p>
+                        <p className="text-white font-semibold">{selectedProperty.zoning}</p>
+                      </div>
+                    )}
+                    {selectedProperty.county && (
+                      <div>
+                        <p className="text-gray-400 text-sm">County</p>
+                        <p className="text-white font-semibold">{selectedProperty.county}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   {selectedProperty.bedrooms && (
