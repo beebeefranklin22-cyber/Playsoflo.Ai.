@@ -115,6 +115,7 @@ export default function Social() {
 
   const createPostMutation = useMutation({
     mutationFn: async (postData) => {
+      if (!currentUser?.email) throw new Error("User not authenticated");
       return await base44.entities.SocialPost.create(postData);
     },
     onSuccess: () => {
@@ -124,20 +125,28 @@ export default function Social() {
       setPostImage("");
       toast.success("Post created!");
     },
-    onError: () => {
-      toast.error("Failed to create post");
+    onError: (error) => {
+      console.error('Create post error:', error);
+      toast.error(error.message || "Failed to create post");
     }
   });
 
   const handleImageUpload = async (file) => {
     if (!file) return;
+    
+    if (!currentUser) {
+      toast.error("Please log in to upload");
+      return;
+    }
+    
     setUploadingImage(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setPostImage(file_url);
       toast.success("Image uploaded!");
     } catch (error) {
-      toast.error("Failed to upload image");
+      console.error('Upload error:', error);
+      toast.error("Upload failed: " + (error.message || 'Unknown error'));
     } finally {
       setUploadingImage(false);
     }
@@ -149,7 +158,7 @@ export default function Social() {
       return;
     }
 
-    if (!currentUser) {
+    if (!currentUser?.email) {
       toast.error("Please log in to create a post");
       return;
     }
