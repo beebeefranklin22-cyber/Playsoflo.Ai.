@@ -19,105 +19,200 @@ const memeTemplates = [
     name: "Drake Hotline Bling",
     url: "https://i.imgflip.com/30b1gx.jpg",
     topText: "Eating pizza with a fork",
-    bottomText: "Eating pizza with your hands"
+    bottomText: "Eating pizza with your hands",
+    category: "classic"
   },
   {
     id: "distracted",
     name: "Distracted Boyfriend",
     url: "https://i.imgflip.com/1ur9b0.jpg",
     topText: "Working on important project",
-    bottomText: "Scrolling memes instead"
+    bottomText: "Scrolling memes instead",
+    category: "classic"
   },
   {
     id: "success",
     name: "Success Kid",
     url: "https://i.imgflip.com/1bhk.jpg",
     topText: "Found my keys",
-    bottomText: "In my pocket the whole time"
+    bottomText: "In my pocket the whole time",
+    category: "classic"
   },
   {
     id: "fry",
     name: "Futurama Fry",
     url: "https://i.imgflip.com/1bgw.jpg",
     topText: "Not sure if hungry",
-    bottomText: "Or just bored"
+    bottomText: "Or just bored",
+    category: "classic"
   },
   {
     id: "brain",
     name: "Expanding Brain",
     url: "https://i.imgflip.com/1jwhww.jpg",
     topText: "Reading documentation",
-    bottomText: "Stack overflow everything"
+    bottomText: "Stack overflow everything",
+    category: "classic"
   },
   {
     id: "picard",
     name: "Picard Facepalm",
     url: "https://i.imgflip.com/1bij.jpg",
     topText: "When someone says 'just google it'",
-    bottomText: "After you spent 3 hours googling"
+    bottomText: "After you spent 3 hours googling",
+    category: "classic"
   },
   {
     id: "buttons",
     name: "Two Buttons",
     url: "https://i.imgflip.com/1g8my4.jpg",
     topText: "Be productive",
-    bottomText: "Watch one more episode"
+    bottomText: "Watch one more episode",
+    category: "decision"
   },
   {
     id: "woman",
     name: "Woman Yelling at Cat",
     url: "https://i.imgflip.com/345v97.jpg",
     topText: "You need to wake up early!",
-    bottomText: "But sleep is amazing tho"
+    bottomText: "But sleep is amazing tho",
+    category: "reaction"
   },
   {
     id: "bernie",
     name: "Bernie Sanders",
     url: "https://i.imgflip.com/4x6d.jpg",
     topText: "I am once again asking",
-    bottomText: "For weekend to come faster"
+    bottomText: "For weekend to come faster",
+    category: "classic"
   },
   {
     id: "ralph",
     name: "I'm In Danger",
     url: "https://i.imgflip.com/2wifvo.jpg",
     topText: "Deadline is tomorrow",
-    bottomText: "Haven't started yet"
+    bottomText: "Haven't started yet",
+    category: "reaction"
   },
   {
     id: "disaster",
     name: "Disaster Girl",
     url: "https://i.imgflip.com/2od.jpg",
     topText: "Accidentally liked their post",
-    bottomText: "From 3 years ago"
+    bottomText: "From 3 years ago",
+    category: "chaos"
   },
   {
     id: "change",
     name: "Change My Mind",
     url: "https://i.imgflip.com/24y43o.jpg",
     topText: "Pineapple belongs on pizza",
-    bottomText: "Change my mind"
+    bottomText: "Change my mind",
+    category: "debate"
   },
   {
     id: "thinking",
     name: "Roll Safe",
     url: "https://i.imgflip.com/1h7in3.jpg",
     topText: "Can't fail the test",
-    bottomText: "If you don't take it"
+    bottomText: "If you don't take it",
+    category: "genius"
   },
   {
     id: "stonks",
     name: "Stonks",
     url: "https://i.imgflip.com/2hvti.jpg",
     topText: "Spent entire paycheck",
-    bottomText: "On meme coins - Stonks"
+    bottomText: "On meme coins - Stonks",
+    category: "business"
   },
   {
     id: "spongebob",
     name: "Mocking SpongeBob",
     url: "https://i.imgflip.com/1otk96.jpg",
     topText: "YoU nEeD tO wAkE uP eArLy",
-    bottomText: "ToMoRrOw"
+    bottomText: "ToMoRrOw",
+    category: "sarcasm"
+  },
+  {
+    id: "doge",
+    name: "Doge",
+    url: "https://i.imgflip.com/4t0m5.jpg",
+    topText: "Such wow",
+    bottomText: "Much meme. Very funny",
+    category: "classic"
+  },
+  {
+    id: "batman",
+    name: "Batman Slapping Robin",
+    url: "https://i.imgflip.com/9ehk.jpg",
+    topText: "I'm gonna say something dumb",
+    bottomText: "Not on my watch",
+    category: "reaction"
+  },
+  {
+    id: "pepe",
+    name: "Sad Frog",
+    url: "https://i.imgflip.com/1e7ql7.jpg",
+    topText: "When you realize",
+    bottomText: "It's Monday tomorrow",
+    category: "reaction"
+  },
+  {
+    id: "leonardo",
+    name: "Leo Cheers",
+    url: "https://i.imgflip.com/14wx.jpg",
+    topText: "When you accomplish",
+    bottomText: "Absolutely nothing today",
+    category: "celebration"
+  },
+  {
+    id: "puppet",
+    name: "Puppet Side Eye",
+    url: "https://i.imgflip.com/3pnmg.jpg",
+    topText: "Them: You can't judge me",
+    bottomText: "Me: *judges in silence*",
+    category: "reaction"
+  },
+  {
+    id: "aliens",
+    name: "Ancient Aliens",
+    url: "https://i.imgflip.com/26am.jpg",
+    topText: "How did this happen?",
+    bottomText: "Aliens",
+    category: "conspiracy"
+  },
+  {
+    id: "hide",
+    name: "Hide the Pain Harold",
+    url: "https://i.imgflip.com/gk5el.jpg",
+    topText: "Everything is fine",
+    bottomText: "I'm not dying inside at all",
+    category: "reaction"
+  },
+  {
+    id: "evil",
+    name: "Evil Kermit",
+    url: "https://i.imgflip.com/1e7ql7.jpg",
+    topText: "Me: Go to sleep",
+    bottomText: "Evil me: Watch one more video",
+    category: "internal"
+  },
+  {
+    id: "panik",
+    name: "Panik Kalm",
+    url: "https://i.imgflip.com/3qqcim.jpg",
+    topText: "Forgot homework - PANIK",
+    bottomText: "Remember no school today - KALM",
+    category: "reaction"
+  },
+  {
+    id: "spiderman",
+    name: "Spider-Man Pointing",
+    url: "https://i.imgflip.com/2of9ds.jpg",
+    topText: "Me accusing my friend",
+    bottomText: "Of the same thing I do",
+    category: "pointing"
   }
 ];
 
@@ -134,6 +229,7 @@ export default function MemeCreator() {
   const [showTemplates, setShowTemplates] = useState(true);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     if (selectedTemplate) {
@@ -258,16 +354,36 @@ export default function MemeCreator() {
     setIsGenerating(true);
     try {
       const memeContext = selectedTemplate?.name || "general meme";
-      const prompt = `You are a viral meme creator. Generate hilarious, modern, and relatable meme text for a "${memeContext}" template. 
+      const memeCategory = selectedTemplate?.category || "classic";
+      
+      const prompt = `You are the funniest meme lord on the internet. Create HILARIOUS meme text for "${memeContext}" template (category: ${memeCategory}).
 
-Make it:
-- Super funny and witty
-- Relatable to everyday situations
-- Current with 2024 trends
-- Short and punchy
-- Internet culture savvy
+Context: ${memeCategory === 'reaction' ? 'Create a perfect reaction meme' : 
+           memeCategory === 'decision' ? 'Show the struggle of choosing' :
+           memeCategory === 'genius' ? 'Make it cleverly stupid' :
+           memeCategory === 'sarcasm' ? 'Maximum mockery energy' :
+           memeCategory === 'chaos' ? 'Embrace the chaos and destruction' :
+           'Make it relatable and viral-worthy'}
 
-Return ONLY a JSON object with "topText" and "bottomText". Be creative and make people laugh!`;
+Rules:
+- Be EXTREMELY funny and clever
+- Use current 2024-2025 trends, slang, and internet culture
+- Reference modern struggles: AI, apps, social media, WFH, inflation, dating apps
+- Short, punchy, meme-worthy text
+- Think like a Gen Z comedian who lives on Twitter/TikTok
+- Add unexpected twists that make people laugh out loud
+
+Examples of good meme humor:
+- "POV:" scenarios
+- Overthinking everyday situations  
+- Calling out relatable behavior
+- Modern technology struggles
+- Work from home chaos
+- Dating app disasters
+- Inflation jokes
+- AI taking over everything
+
+Return ONLY JSON with "topText" and "bottomText". Make it VIRAL! 🔥`;
       
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
@@ -537,38 +653,59 @@ Return ONLY a JSON object with "topText" and "bottomText". Be creative and make 
                       <ImageIcon className="w-5 h-5 text-pink-400" />
                       <h3 className="text-white font-bold text-lg">Templates</h3>
                     </div>
-                    <span className="text-gray-400 text-sm">{memeTemplates.length} memes</span>
+                    <span className="text-gray-400 text-sm">
+                      {selectedCategory === 'all' ? memeTemplates.length : memeTemplates.filter(t => t.category === selectedCategory).length} memes
+                    </span>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {['all', 'classic', 'reaction', 'genius', 'chaos', 'sarcasm'].map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                          selectedCategory === cat
+                            ? 'bg-pink-600 text-white'
+                            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        }`}
+                      >
+                        {cat === 'all' ? '🔥 All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </button>
+                    ))}
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
-                    {memeTemplates.map((template) => (
-                      <motion.button
-                        key={template.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          setSelectedTemplate(template);
-                          setCustomImage(null);
-                          setImageLoaded(false);
-                        }}
-                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition ${
-                          selectedTemplate.id === template.id && !customImage
-                            ? 'border-pink-400'
-                            : 'border-white/20 hover:border-white/40'
-                        }`}
-                      >
-                        <img
-                          src={template.url}
-                          alt={template.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-2">
-                          <span className="text-white text-xs font-medium line-clamp-2">
-                            {template.name}
-                          </span>
-                        </div>
-                      </motion.button>
-                    ))}
+                    {memeTemplates
+                      .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
+                      .map((template) => (
+                        <motion.button
+                          key={template.id}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setSelectedTemplate(template);
+                            setCustomImage(null);
+                            setImageLoaded(false);
+                          }}
+                          className={`relative aspect-square rounded-xl overflow-hidden border-2 transition ${
+                            selectedTemplate.id === template.id && !customImage
+                              ? 'border-pink-400 shadow-lg shadow-pink-400/50'
+                              : 'border-white/20 hover:border-white/40'
+                          }`}
+                        >
+                          <img
+                            src={template.url}
+                            alt={template.name}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-2">
+                            <span className="text-white text-xs font-medium line-clamp-2">
+                              {template.name}
+                            </span>
+                          </div>
+                        </motion.button>
+                      ))}
                   </div>
                 </CardContent>
               </Card>
