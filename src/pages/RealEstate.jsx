@@ -46,18 +46,22 @@ export default function RealEstate() {
 
   const fetchPropertiesMutation = useMutation({
     mutationFn: async (location) => {
+      console.log('Fetching properties for:', location);
       const response = await base44.functions.invoke('fetchRealEstateData', {
         location,
         listing_type: selectedListingType !== 'all' ? selectedListingType : null,
         property_type: selectedCategory !== 'all' ? selectedCategory : null
       });
+      console.log('Response:', response);
       return response.data;
     },
     onSuccess: (data) => {
+      console.log('Success:', data);
       queryClient.invalidateQueries({ queryKey: ['properties'] });
-      toast.success(`Found ${data.properties?.length || 0} properties in ${data.location}`);
+      toast.success(`Found ${data.properties?.length || 0} properties in ${data.location || searchLocation}`);
     },
     onError: (error) => {
+      console.error('Error:', error);
       toast.error(error.message || 'Failed to fetch properties');
     }
   });

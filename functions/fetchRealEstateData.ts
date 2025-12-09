@@ -20,20 +20,34 @@ Deno.serve(async (req) => {
       }, { status: 500 });
     }
 
-    // Parse location (city, state or zip code)
+    // Parse location to get city and state
+    const locationParts = location.split(',').map(s => s.trim());
+    let city = locationParts[0] || 'Miami';
+    let state = locationParts[1] || 'FL';
+    
+    // If it's a zip code
+    if (/^\d{5}$/.test(city)) {
+      const zip = city;
+      city = null;
+      state = null;
+    }
+
+    // Use expanded search endpoint for better results
     const searchParams = new URLSearchParams({
-      address: location || 'Miami, FL',
-      pageSize: '50'
+      page: '1',
+      pagesize: '100'
     });
 
-    if (min_price) searchParams.append('minValue', min_price);
-    if (max_price) searchParams.append('maxValue', max_price);
-    if (bedrooms) searchParams.append('bedrooms', bedrooms);
-    if (bathrooms) searchParams.append('bathrooms', bathrooms);
+    if (city) searchParams.append('locality', city);
+    if (state) searchParams.append('sublocality', state);
+    if (min_price) searchParams.append('minvalue', min_price);
+    if (max_price) searchParams.append('maxvalue', max_price);
 
-    // ATTOM Property API - Search properties
+    console.log('Searching with params:', searchParams.toString());
+
+    // ATTOM Property API - Expanded search
     const propertyResponse = await fetch(
-      `https://api.gateway.attomdata.com/propertyapi/v1.0.0/property/address?${searchParams}`,
+      `https://api.gateway.attomdata.com/propertyapi/v1.0.0/property/expandedprofile?${searchParams}`,
       {
         headers: {
           'apikey': apiKey,
