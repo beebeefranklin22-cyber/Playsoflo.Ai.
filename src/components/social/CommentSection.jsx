@@ -41,10 +41,11 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
 
   const toggleCommentLikeMutation = useMutation({
     mutationFn: async ({ commentId, liked_by, currentLikesCount }) => {
-      const isLiked = liked_by.includes(currentUser.email);
+      const likedByArray = liked_by || [];
+      const isLiked = likedByArray.includes(currentUser?.email);
       const newLikedBy = isLiked
-        ? liked_by.filter(email => email !== currentUser.email)
-        : [...liked_by, currentUser.email];
+        ? likedByArray.filter(email => email !== currentUser.email)
+        : [...likedByArray, currentUser.email];
 
       return await base44.entities.Comment.update(commentId, {
         liked_by: newLikedBy,
