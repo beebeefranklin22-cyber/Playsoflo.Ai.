@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
-  Bed, Bath, Maximize, Star, Check, Sparkles
+  Bed, Bath, Maximize, Star, Calendar, Check, Sparkles, Search, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -30,6 +33,8 @@ export default function RealEstate() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedListingType, setSelectedListingType] = useState("all");
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [searchLocation, setSearchLocation] = useState("");
+  const [scrapedProperties, setScrapedProperties] = useState([]);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
@@ -37,13 +42,33 @@ export default function RealEstate() {
     initialData: []
   });
 
-  const filteredProperties = properties.filter(prop => {
+  const scrapeApartmentsMutation = useMutation({
+    mutationFn: async (location) => {
+      const response = await base44.functions.invoke('scrapeApartments', {
+        location,
+        maxPages: 3
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setScrapedProperties(data.properties || []);
+    }
+  });
+
+  const allProperties = [...properties, ...scrapedProperties];
+  
+  const filteredProperties = allProperties.filter(prop => {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
     const listingMatch = selectedListingType === "all" || prop.listing_type === selectedListingType;
     return categoryMatch && listingMatch;
   });
 
   const getPrice = (property) => {
+    // Handle scraped properties
+    if (property.price && property.source === 'apartments.com') {
+      return `$${property.price.toLocaleString()}/mo`;
+    }
+    
     if (property.listing_type === "short_term" && property.price_per_night) {
       return `$${property.price_per_night}/night`;
     } else if (property.listing_type === "for_rent" && property.price_per_month) {
@@ -73,6 +98,47 @@ export default function RealEstate() {
           <p className="text-gray-300 text-lg">
             Find your perfect space - from weekend getaways to dream homes
           </p>
+        </div>
+      </div>
+
+      {/* Search Apartments.com */}
+      <div className="px-6 mb-6">
+        <div className="bg-gradient-to-r from-emerald-600/20 to-green-600/20 border border-emerald-500/30 rounded-2xl p-6">
+          <h3 className="text-white font-bold text-xl mb-3 flex items-center gap-2">
+            <Search className="w-5 h-5" />
+            Search Millions of Properties
+          </h3>
+          <p className="text-gray-300 text-sm mb-4">
+            Search Apartments.com for properties in any US location
+          </p>
+          <div className="flex gap-3">
+            <Input
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              placeholder="Enter location (e.g., Miami, FL)"
+              className="bg-white/10 border-white/20 text-white placeholder-gray-400"
+              onKeyPress={(e) => e.key === 'Enter' && searchLocation && scrapeApartmentsMutation.mutate(searchLocation)}
+            />
+            <Button
+              onClick={() => scrapeApartmentsMutation.mutate(searchLocation)}
+              disabled={!searchLocation || scrapeApartmentsMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {scrapeApartmentsMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+          {scrapedProperties.length > 0 && (
+            <p className="text-emerald-400 text-sm mt-3">
+              ✓ Found {scrapedProperties.length} properties in {searchLocation}
+            </p>
+          )}
         </div>
       </div>
 
@@ -135,11 +201,11 @@ export default function RealEstate() {
                 className="group cursor-pointer"
               >
                 <div className="relative h-64 rounded-3xl overflow-hidden bg-gray-900 mb-4">
-                  <img 
-                    src={property.main_image} 
-                    alt={property.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
+                 <img 
+                   src={property.main_image || property.image_url || "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800"} 
+                   alt={property.title}
+                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                 />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   
                   {property.verified_host && (
@@ -178,7 +244,12 @@ export default function RealEstate() {
 
                   <div className="flex items-center gap-2 text-gray-400 text-sm mb-3">
                     <MapPin className="w-4 h-4" />
-                    <span>{property.location}</span>
+                    <span>{property.location || property.address}</span>
+                    {property.source === 'apartments.com' && (
+                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-xs">
+                        Apartments.com
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4 text-gray-300 text-sm mb-3">
