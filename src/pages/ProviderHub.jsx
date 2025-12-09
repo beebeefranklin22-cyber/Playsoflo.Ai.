@@ -558,10 +558,10 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 bg-white/10 backdrop-blur-xl border border-white/20">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-            <TabsTrigger value="messages" className="relative">
+          <TabsList className="flex w-full overflow-x-auto bg-white/10 backdrop-blur-xl border border-white/20 p-1 gap-1">
+            <TabsTrigger value="dashboard" className="whitespace-nowrap">Dashboard</TabsTrigger>
+            <TabsTrigger value="requests" className="whitespace-nowrap">Requests</TabsTrigger>
+            <TabsTrigger value="messages" className="relative whitespace-nowrap">
               Messages
               {unreadMessages > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -569,12 +569,12 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="earnings">Earnings</TabsTrigger>
-            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="availability">Availability</TabsTrigger>
-            <TabsTrigger value="verification">Verification</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="earnings" className="whitespace-nowrap">Earnings</TabsTrigger>
+            <TabsTrigger value="portfolio" className="whitespace-nowrap">Portfolio</TabsTrigger>
+            <TabsTrigger value="services" className="whitespace-nowrap">Services</TabsTrigger>
+            <TabsTrigger value="availability" className="whitespace-nowrap">Availability</TabsTrigger>
+            <TabsTrigger value="verification" className="whitespace-nowrap">Verification</TabsTrigger>
+            <TabsTrigger value="profile" className="whitespace-nowrap">Profile</TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
