@@ -5,13 +5,14 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
-  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2, Upload, Image
+  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2, Upload, Image, Copy
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import TipButton from "../components/TipButton";
+import CommentSection from "../components/social/CommentSection";
 
 export default function Social() {
   const navigate = useNavigate();
@@ -42,16 +43,74 @@ export default function Social() {
     initialData: []
   });
 
-  const toggleLike = (postId) => {
+  const toggleLikeMutation = useMutation({
+    mutationFn: async (post) => {
+      const isLiked = likedPosts.has(post.id);
+      return await base44.entities.SocialPost.update(post.id, {
+        likes_count: isLiked ? post.likes_count - 1 : post.likes_count + 1
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['social-posts']);
+    }
+  });
+
+  const toggleLike = (post) => {
     setLikedPosts(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
+      if (newSet.has(post.id)) {
+        newSet.delete(post.id);
       } else {
-        newSet.add(postId);
+        newSet.add(post.id);
       }
       return newSet;
     });
+    toggleLikeMutation.mutate(post);
+  };
+
+  const handleSharePost = async (post) => {
+    const shareUrl = `${window.location.origin}/post/${post.id}`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Post by ${post.created_by}`,
+          text: post.caption,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Post link copied to clipboard!");
+      }
+    } catch (error) {
+      console.log('Share failed:', error);
+    }
+  };
+
+  const handleRepost = async (post) => {
+    if (!currentUser) {
+      toast.error("Please log in to repost");
+      return;
+    }
+
+    try {
+      await base44.entities.SocialPost.create({
+        caption: `Repost from @${post.created_by}\n\n${post.caption}`,
+        image_url: post.image_url,
+        location: post.location,
+        music_playing: post.music_playing,
+        vibe: post.vibe,
+        is_experience: post.is_experience,
+        experience_type: post.experience_type,
+        likes_count: 0,
+        comments_count: 0
+      });
+
+      toast.success("Post shared to your feed!");
+      queryClient.invalidateQueries(['social-posts']);
+    } catch (error) {
+      toast.error("Failed to share post");
+    }
   };
 
   const createPostMutation = useMutation({
@@ -245,7 +304,7 @@ export default function Social() {
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => toggleLike(post.id)}
+                  onClick={() => toggleLike(post)}
                   className="transform active:scale-125 transition-transform"
                 >
                   <Heart 
@@ -259,9 +318,27 @@ export default function Social() {
                 <button>
                   <MessageCircle className="w-7 h-7 text-white" />
                 </button>
-                <button>
-                  <Share2 className="w-7 h-7 text-white" />
-                </button>
+                <div className="relative group">
+                  <button className="text-white">
+                    <Share2 className="w-7 h-7" />
+                  </button>
+                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-900 rounded-lg shadow-xl p-2 min-w-[150px] z-10">
+                    <button
+                      onClick={() => handleSharePost(post)}
+                      className="w-full text-left px-3 py-2 text-white text-sm hover:bg-white/10 rounded flex items-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy Link
+                    </button>
+                    <button
+                      onClick={() => handleRepost(post)}
+                      className="w-full text-left px-3 py-2 text-white text-sm hover:bg-white/10 rounded flex items-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      Share to Feed
+                    </button>
+                  </div>
+                </div>
                 <TipButton 
                   creatorEmail={post.created_by}
                   creatorName={post.created_by}
@@ -296,12 +373,12 @@ export default function Social() {
               </p>
             </div>
 
-            {/* Comments */}
-            {post.comments_count > 0 && (
-              <button className="px-4 pb-3 text-gray-400 text-sm">
-                View all {post.comments_count} comments
-              </button>
-            )}
+            {/* Comments Section */}
+            <CommentSection 
+              postId={post.id} 
+              commentsCount={post.comments_count}
+              currentUser={currentUser}
+            />
 
             {/* Time */}
             <p className="px-4 pb-3 text-gray-500 text-xs uppercase">

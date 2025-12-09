@@ -3,313 +3,154 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MessageCircle, Heart, Send, ChevronDown, ChevronUp, Trash2, MoreHorizontal } from "lucide-react";
+import { Heart, Send, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDistanceToNow } from "date-fns";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
-export default function CommentSection({ postId, postAuthorEmail, currentUser }) {
+export default function CommentSection({ postId, commentsCount, currentUser }) {
   const queryClient = useQueryClient();
-  const [newComment, setNewComment] = useState("");
-  const [replyingTo, setReplyingTo] = useState(null);
-  const [replyContent, setReplyContent] = useState("");
-  const [expandedReplies, setExpandedReplies] = useState({});
+  const [commentText, setCommentText] = useState("");
+  const [showComments, setShowComments] = useState(false);
 
-  const { data: comments = [], isLoading } = useQuery({
-    queryKey: ['comments', postId],
-    queryFn: () => base44.entities.Comment.filter({ post_id: postId, parent_comment_id: { $exists: false } }, '-created_date'),
-    enabled: !!postId
-  });
-
-  const { data: allReplies = [] } = useQuery({
-    queryKey: ['replies', postId],
-    queryFn: () => base44.entities.Comment.filter({ post_id: postId, parent_comment_id: { $exists: true } }, 'created_date'),
-    enabled: !!postId
+  const { data: comments = [] } = useQuery({
+    queryKey: ['post-comments', postId],
+    queryFn: async () => {
+      return await base44.entities.Comment.filter({ post_id: postId });
+    },
+    enabled: showComments,
+    initialData: []
   });
 
   const createCommentMutation = useMutation({
-    mutationFn: async (data) => {
-      const comment = await base44.entities.Comment.create({
-        ...data,
-        author_email: currentUser.email,
-        author_name: currentUser.full_name,
-        author_photo: currentUser.profile_photo
+    mutationFn: async (commentData) => {
+      const comment = await base44.entities.Comment.create(commentData);
+      
+      await base44.entities.SocialPost.update(postId, {
+        comments_count: commentsCount + 1
       });
-
-      // Notify post author
-      if (postAuthorEmail !== currentUser.email) {
-        await base44.entities.Notification.create({
-          recipient_email: postAuthorEmail,
-          type: data.parent_comment_id ? "comment_reply" : "new_comment",
-          title: data.parent_comment_id ? "New reply to your comment" : "New comment on your post",
-          message: `${currentUser.full_name} ${data.parent_comment_id ? 'replied' : 'commented'}: "${data.content.substring(0, 50)}${data.content.length > 50 ? '...' : ''}"`,
-          reference_type: "comment",
-          reference_id: comment.id,
-          sender_email: currentUser.email,
-          sender_name: currentUser.full_name,
-          sender_photo: currentUser.profile_photo
-        });
-      }
-
-      // If reply, update parent's reply count
-      if (data.parent_comment_id) {
-        const parentComment = comments.find(c => c.id === data.parent_comment_id);
-        if (parentComment) {
-          await base44.entities.Comment.update(data.parent_comment_id, {
-            replies_count: (parentComment.replies_count || 0) + 1
-          });
-        }
-      }
 
       return comment;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['replies', postId] });
-      setNewComment("");
-      setReplyContent("");
-      setReplyingTo(null);
+      queryClient.invalidateQueries(['post-comments', postId]);
+      queryClient.invalidateQueries(['social-posts']);
+      setCommentText("");
+      toast.success("Comment posted!");
     }
   });
 
-  const likeCommentMutation = useMutation({
-    mutationFn: async (comment) => {
-      const likedBy = comment.liked_by || [];
-      const isLiked = likedBy.includes(currentUser.email);
-      
-      const updated = await base44.entities.Comment.update(comment.id, {
-        liked_by: isLiked 
-          ? likedBy.filter(e => e !== currentUser.email)
-          : [...likedBy, currentUser.email],
-        likes_count: isLiked ? (comment.likes_count || 1) - 1 : (comment.likes_count || 0) + 1
+  const toggleCommentLikeMutation = useMutation({
+    mutationFn: async ({ commentId, liked_by, currentLikesCount }) => {
+      const isLiked = liked_by.includes(currentUser.email);
+      const newLikedBy = isLiked
+        ? liked_by.filter(email => email !== currentUser.email)
+        : [...liked_by, currentUser.email];
+
+      return await base44.entities.Comment.update(commentId, {
+        liked_by: newLikedBy,
+        likes_count: isLiked ? currentLikesCount - 1 : currentLikesCount + 1
       });
-
-      // Notify comment author on like
-      if (!isLiked && comment.author_email !== currentUser.email) {
-        await base44.entities.Notification.create({
-          recipient_email: comment.author_email,
-          type: "comment_like",
-          title: "Someone liked your comment",
-          message: `${currentUser.full_name} liked your comment`,
-          reference_type: "comment",
-          reference_id: comment.id,
-          sender_email: currentUser.email,
-          sender_name: currentUser.full_name,
-          sender_photo: currentUser.profile_photo
-        });
-      }
-
-      return updated;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['replies', postId] });
+      queryClient.invalidateQueries(['post-comments', postId]);
     }
   });
 
-  const deleteCommentMutation = useMutation({
-    mutationFn: (id) => base44.entities.Comment.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
-      queryClient.invalidateQueries({ queryKey: ['replies', postId] });
-    }
-  });
+  const handlePostComment = () => {
+    if (!commentText.trim()) return;
 
-  const handleSubmitComment = (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    createCommentMutation.mutate({ post_id: postId, content: newComment.trim() });
-  };
-
-  const handleSubmitReply = (parentId) => {
-    if (!replyContent.trim()) return;
-    createCommentMutation.mutate({ 
-      post_id: postId, 
-      content: replyContent.trim(),
-      parent_comment_id: parentId
+    createCommentMutation.mutate({
+      post_id: postId,
+      author_email: currentUser.email,
+      author_name: currentUser.full_name || currentUser.email,
+      author_photo: currentUser.profile_photo,
+      content: commentText,
+      likes_count: 0,
+      liked_by: []
     });
   };
 
-  const getReplies = (commentId) => allReplies.filter(r => r.parent_comment_id === commentId);
-
-  const CommentItem = ({ comment, isReply = false }) => {
-    const replies = getReplies(comment.id);
-    const isExpanded = expandedReplies[comment.id];
-    const isLiked = (comment.liked_by || []).includes(currentUser?.email);
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`${isReply ? 'ml-8 sm:ml-12 border-l-2 border-white/10 pl-4' : ''}`}
-      >
-        <div className="flex gap-3 py-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
-            {comment.author_photo ? (
-              <img src={comment.author_photo} alt="" className="w-full h-full object-cover" />
-            ) : (
-              comment.author_name?.[0] || "U"
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <span className="text-white font-medium text-sm">{comment.author_name}</span>
-                <span className="text-gray-500 text-xs ml-2">
-                  {formatDistanceToNow(new Date(comment.created_date), { addSuffix: true })}
-                </span>
-              </div>
-
-              {comment.author_email === currentUser?.email && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="p-1 hover:bg-white/10 rounded-full">
-                      <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem 
-                      onClick={() => deleteCommentMutation.mutate(comment.id)}
-                      className="text-red-400"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-
-            <p className="text-gray-300 text-sm mt-1 break-words">{comment.content}</p>
-
-            <div className="flex items-center gap-4 mt-2">
-              <button
-                onClick={() => likeCommentMutation.mutate(comment)}
-                className={`flex items-center gap-1 text-xs ${isLiked ? 'text-pink-400' : 'text-gray-400 hover:text-pink-400'} transition`}
-              >
-                <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                {comment.likes_count || 0}
-              </button>
-
-              {!isReply && (
-                <button
-                  onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-purple-400 transition"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Reply
-                </button>
-              )}
-
-              {!isReply && replies.length > 0 && (
-                <button
-                  onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: !prev[comment.id] }))}
-                  className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition"
-                >
-                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                  {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-                </button>
-              )}
-            </div>
-
-            {/* Reply input */}
-            <AnimatePresence>
-              {replyingTo === comment.id && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3"
-                >
-                  <div className="flex gap-2">
-                    <Textarea
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      placeholder="Write a reply..."
-                      className="bg-white/5 border-white/10 text-white text-sm min-h-[60px] resize-none flex-1"
-                    />
-                    <Button
-                      onClick={() => handleSubmitReply(comment.id)}
-                      disabled={!replyContent.trim() || createCommentMutation.isPending}
-                      size="sm"
-                      className="bg-purple-600 hover:bg-purple-700 self-end"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Replies */}
-            <AnimatePresence>
-              {isExpanded && replies.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-2"
-                >
-                  {replies.map(reply => (
-                    <CommentItem key={reply.id} comment={reply} isReply />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
-    );
-  };
-
-  if (!currentUser) return null;
-
   return (
-    <div className="border-t border-white/10 pt-4">
-      {/* Comment input */}
-      <form onSubmit={handleSubmitComment} className="mb-4">
-        <div className="flex gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
-            {currentUser.profile_photo ? (
-              <img src={currentUser.profile_photo} alt="" className="w-full h-full object-cover" />
-            ) : (
-              currentUser.full_name?.[0] || "U"
-            )}
-          </div>
-          <div className="flex-1 flex gap-2">
-            <Textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
-              className="bg-white/5 border-white/10 text-white text-sm min-h-[50px] resize-none flex-1"
-            />
-            <Button
-              type="submit"
-              disabled={!newComment.trim() || createCommentMutation.isPending}
-              size="sm"
-              className="bg-purple-600 hover:bg-purple-700 self-end"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </form>
+    <div>
+      <button
+        onClick={() => setShowComments(!showComments)}
+        className="px-4 text-gray-400 text-sm mb-2"
+      >
+        {commentsCount > 0 ? `View all ${commentsCount} comments` : 'Be the first to comment'}
+      </button>
 
-      {/* Comments list */}
-      <div className="space-y-1">
-        {comments.length === 0 && !isLoading && (
-          <p className="text-gray-500 text-sm text-center py-4">No comments yet. Be the first!</p>
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 pb-4"
+          >
+            {/* Comments List */}
+            <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {comment.author_photo ? (
+                      <img src={comment.author_photo} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <User className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-white/10 rounded-2xl px-4 py-2">
+                      <p className="text-white font-semibold text-sm">{comment.author_name}</p>
+                      <p className="text-gray-200 text-sm">{comment.content}</p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 ml-2">
+                      <button
+                        onClick={() => toggleCommentLikeMutation.mutate({
+                          commentId: comment.id,
+                          liked_by: comment.liked_by || [],
+                          currentLikesCount: comment.likes_count
+                        })}
+                        className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1"
+                      >
+                        <Heart
+                          className={`w-3 h-3 ${
+                            comment.liked_by?.includes(currentUser?.email)
+                              ? 'fill-red-500 text-red-500'
+                              : ''
+                          }`}
+                        />
+                        {comment.likes_count > 0 && comment.likes_count}
+                      </button>
+                      <span className="text-xs text-gray-500">
+                        {new Date(comment.created_date).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Comment Input */}
+            <div className="flex items-center gap-2">
+              <Textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 bg-white/10 border-white/20 text-white text-sm min-h-[40px] max-h-[80px]"
+                rows={1}
+              />
+              <Button
+                onClick={handlePostComment}
+                disabled={!commentText.trim() || createCommentMutation.isPending}
+                size="icon"
+                className="bg-purple-600 hover:bg-purple-700 flex-shrink-0"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
         )}
-        {comments.map(comment => (
-          <CommentItem key={comment.id} comment={comment} />
-        ))}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
