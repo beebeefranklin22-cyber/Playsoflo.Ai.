@@ -81,6 +81,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
           options={{
             layout: "tabs",
           }}
+          onReady={() => setElementsReady(true)}
         />
       </div>
 
