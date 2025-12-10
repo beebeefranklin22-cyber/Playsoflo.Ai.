@@ -99,7 +99,8 @@ export default function FollowRequestsModal({ isOpen, onClose, currentUser }) {
                         onClick={() => handleRequestMutation.mutate({ 
                           requestId: request.id, 
                           action: 'accepted',
-                          fromEmail: request.from_email
+                          fromEmail: request.from_email,
+                          fromName: request.from_name
                         })}
                         className="bg-green-600 hover:bg-green-700"
                       >
@@ -111,7 +112,8 @@ export default function FollowRequestsModal({ isOpen, onClose, currentUser }) {
                         onClick={() => handleRequestMutation.mutate({ 
                           requestId: request.id, 
                           action: 'declined',
-                          fromEmail: request.from_email
+                          fromEmail: request.from_email,
+                          fromName: request.from_name
                         })}
                         className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30"
                       >
