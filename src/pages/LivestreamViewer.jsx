@@ -10,6 +10,7 @@ import LivestreamTipping from "../components/livestream/LivestreamTipping.jsx";
 import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
 import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
+import TippingIntegration from "../components/creator/TippingIntegration.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
@@ -102,13 +103,12 @@ export default function LivestreamViewer() {
             </div>
           </div>
 
-          <Button
-            onClick={() => setShowTipping(true)}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-          >
-            <Gift className="w-4 h-4 mr-2" />
-            Send Gift
-          </Button>
+          <TippingIntegration
+            creatorEmail={stream.created_by}
+            contentId={streamId}
+            currentUser={currentUser}
+            variant="button"
+          />
         </div>
       </div>
 
@@ -219,15 +219,7 @@ export default function LivestreamViewer() {
         </div>
       </div>
 
-      {/* Tipping Modal */}
-      {showTipping && (
-        <LivestreamTipping
-          streamId={streamId}
-          creatorEmail={stream.created_by}
-          currentUser={currentUser}
-          onClose={() => setShowTipping(false)}
-        />
-      )}
+
     </div>
   );
 

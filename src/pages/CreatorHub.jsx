@@ -21,6 +21,9 @@ import MembershipManager from "../components/creator/MembershipManager.jsx";
 import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
 import CollaborativeContentManager from "../components/creator/CollaborativeContentManager.jsx";
 import CreatorContentSuggestions from "../components/creator/CreatorContentSuggestions.jsx";
+import SharedLibraryManager from "../components/collaboration/SharedLibraryManager.jsx";
+import ContentEditWorkflow from "../components/collaboration/ContentEditWorkflow.jsx";
+import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -359,6 +362,7 @@ export default function CreatorHub() {
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
+            <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
           </TabsList>
 
           {/* Livestream Management Tab */}
@@ -380,9 +384,15 @@ export default function CreatorHub() {
           {activeTab === "overview" && (
             <div className="space-y-6 mt-6">
               <CreatorContentSuggestions currentUser={currentUser} />
-              <CollaborativeContentManager currentUser={currentUser} />
             </div>
           )}
+
+          {/* Collaboration Tab */}
+          <TabsContent value="collaboration" className="space-y-6">
+            <SharedLibraryManager currentUser={currentUser} />
+            <ContentEditWorkflow currentUser={currentUser} />
+            <CollaborativeContentManager currentUser={currentUser} />
+          </TabsContent>
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
@@ -928,6 +938,7 @@ export default function CreatorHub() {
 
           {/* Products Tab */}
           <TabsContent value="products" className="space-y-6">
+            <DigitalProductsManager currentUser={currentUser} />
             <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Add New Product</CardTitle>
