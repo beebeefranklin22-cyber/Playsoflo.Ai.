@@ -16,6 +16,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
+import PPVContentManager from "../components/creator/PPVContentManager.jsx";
+import MembershipManager from "../components/creator/MembershipManager.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -344,9 +346,11 @@ export default function CreatorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="livestream">Livestream</TabsTrigger>
+            <TabsTrigger value="ppv">PPV</TabsTrigger>
+            <TabsTrigger value="memberships">Memberships</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
@@ -357,6 +361,16 @@ export default function CreatorHub() {
           {/* Livestream Management Tab */}
           <TabsContent value="livestream" className="space-y-6">
             <LivestreamManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* PPV Content Tab */}
+          <TabsContent value="ppv" className="space-y-6">
+            <PPVContentManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Memberships Tab */}
+          <TabsContent value="memberships" className="space-y-6">
+            <MembershipManager currentUser={currentUser} />
           </TabsContent>
 
           {/* Content Tab */}

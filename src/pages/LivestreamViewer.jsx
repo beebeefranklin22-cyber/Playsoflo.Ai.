@@ -7,6 +7,7 @@ import { ArrowLeft, Users, Gift, Video } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
 import LivestreamTipping from "../components/livestream/LivestreamTipping.jsx";
+import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
@@ -37,6 +38,16 @@ export default function LivestreamViewer() {
     select: (data) => data[0]
   });
 
+  // Check if stream is PPV
+  const { data: ppvContent } = useQuery({
+    queryKey: ['stream-ppv', streamId],
+    queryFn: async () => {
+      const ppvs = await base44.entities.PPVContent.filter({ stream_id: streamId });
+      return ppvs[0];
+    },
+    enabled: !!streamId
+  });
+
   const { data: viewerCount = 0 } = useQuery({
     queryKey: ['viewer-count', streamId],
     queryFn: async () => {
@@ -57,7 +68,8 @@ export default function LivestreamViewer() {
 
   const isCreator = currentUser?.email === stream.created_by;
 
-  return (
+  // Wrap content in PPV gate if applicable
+  const content = (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 pb-20">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-black/60 backdrop-blur-lg border-b border-white/10 p-4">
@@ -156,4 +168,15 @@ export default function LivestreamViewer() {
       )}
     </div>
   );
+
+  // Check if PPV and user needs access
+  if (ppvContent && !isCreator) {
+    return (
+      <PPVAccessGate ppvContentId={ppvContent.id} currentUser={currentUser}>
+        {content}
+      </PPVAccessGate>
+    );
+  }
+
+  return content;
 }
