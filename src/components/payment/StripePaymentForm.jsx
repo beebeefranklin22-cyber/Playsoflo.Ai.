@@ -93,7 +93,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
       <Button
         type="submit"
-        disabled={!stripe || isProcessing}
+        disabled={!stripe || !elementsReady || isProcessing}
         className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 py-6 text-lg font-bold"
       >
         {isProcessing ? (
