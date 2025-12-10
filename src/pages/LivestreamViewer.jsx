@@ -8,12 +8,15 @@ import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
 import LivestreamTipping from "../components/livestream/LivestreamTipping.jsx";
 import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
+import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
+import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [streamId, setStreamId] = useState(null);
   const [showTipping, setShowTipping] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -146,13 +149,72 @@ export default function LivestreamViewer() {
             </div>
           </div>
 
-          {/* Chat */}
-          <div className="lg:col-span-1 h-[600px]">
-            <LivestreamChat 
-              streamId={streamId} 
-              isCreator={isCreator}
-              currentUser={currentUser}
-            />
+          {/* Interactive Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-black/40 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/10 h-[600px] flex flex-col">
+              {/* Tabs */}
+              <div className="flex border-b border-white/10">
+                <button
+                  onClick={() => setActiveTab('chat')}
+                  className={`flex-1 py-3 text-sm font-medium transition ${
+                    activeTab === 'chat' 
+                      ? 'bg-purple-500/20 text-purple-300 border-b-2 border-purple-500' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActiveTab('polls')}
+                  className={`flex-1 py-3 text-sm font-medium transition ${
+                    activeTab === 'polls' 
+                      ? 'bg-blue-500/20 text-blue-300 border-b-2 border-blue-500' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Polls
+                </button>
+                <button
+                  onClick={() => setActiveTab('qa')}
+                  className={`flex-1 py-3 text-sm font-medium transition ${
+                    activeTab === 'qa' 
+                      ? 'bg-green-500/20 text-green-300 border-b-2 border-green-500' 
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Q&A
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-hidden">
+                {activeTab === 'chat' && (
+                  <LivestreamChat 
+                    streamId={streamId} 
+                    isCreator={isCreator}
+                    currentUser={currentUser}
+                  />
+                )}
+                {activeTab === 'polls' && (
+                  <div className="h-full overflow-y-auto p-4">
+                    <LivestreamPolls
+                      streamId={streamId}
+                      isCreator={isCreator}
+                      currentUser={currentUser}
+                    />
+                  </div>
+                )}
+                {activeTab === 'qa' && (
+                  <div className="h-full overflow-y-auto p-4">
+                    <LivestreamQA
+                      streamId={streamId}
+                      isCreator={isCreator}
+                      currentUser={currentUser}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

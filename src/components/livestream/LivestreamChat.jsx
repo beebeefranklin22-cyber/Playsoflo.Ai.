@@ -24,7 +24,19 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: (data) => base44.entities.LivestreamChat.create(data),
+    mutationFn: async (data) => {
+      const msg = await base44.entities.LivestreamChat.create(data);
+      
+      // AI moderation check
+      base44.functions.invoke('moderateContent', {
+        content: data.message,
+        contentType: 'chat_message',
+        contentId: msg.id,
+        userEmail: currentUser.email
+      }).catch(err => console.log('Moderation check failed:', err));
+      
+      return msg;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       setMessage("");
@@ -68,7 +80,7 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   const regularMessages = messages.filter(m => !m.is_pinned);
 
   return (
-    <div className="flex flex-col h-full bg-black/40 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/10">
+    <div className="flex flex-col h-full">
       <div className="p-4 border-b border-white/10">
         <h3 className="text-white font-bold flex items-center gap-2">
           Live Chat
