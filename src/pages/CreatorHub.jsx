@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -9,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   TrendingUp, DollarSign, Users, Heart, 
-  Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle
+  Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
+  Upload, X, Loader2, Video, Radio
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -75,6 +75,12 @@ export default function CreatorHub() {
     initialData: []
   });
 
+  const { data: myContent = [] } = useQuery({
+    queryKey: ["my-streaming-content"],
+    queryFn: () => base44.entities.StreamingContent.list(),
+    initialData: []
+  });
+
   const [form, setForm] = useState({ 
     title: "", 
     type: "show_ticket", 
@@ -90,6 +96,19 @@ export default function CreatorHub() {
     file_size: "",
     license_type: "personal"
   });
+
+  const [contentForm, setContentForm] = useState({
+    title: "",
+    type: "movie",
+    category: "entertainment",
+    description: "",
+    thumbnail_url: "",
+    duration: "",
+    is_live: false
+  });
+  
+  const [uploadingContent, setUploadingContent] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [subscriptionForm, setSubscriptionForm] = useState({
     tier_name: "",
@@ -175,6 +194,87 @@ export default function CreatorHub() {
     });
   };
 
+  const handleContentUpload = async (file, type) => {
+    if (!file) return;
+    
+    setUploadingContent(true);
+    setUploadProgress(10);
+    
+    try {
+      setUploadProgress(30);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadProgress(70);
+      
+      if (type === 'thumbnail') {
+        setContentForm(prev => ({ ...prev, thumbnail_url: file_url }));
+      } else {
+        // Create streaming content immediately after upload
+        await base44.entities.StreamingContent.create({
+          ...contentForm,
+          thumbnail_url: contentForm.thumbnail_url || file_url,
+          duration: "N/A",
+          rating: 0,
+          requires_subscription: false,
+          betting_available: false
+        });
+        
+        qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
+        
+        setContentForm({
+          title: "",
+          type: "movie",
+          category: "entertainment",
+          description: "",
+          thumbnail_url: "",
+          duration: "",
+          is_live: false
+        });
+      }
+      
+      setUploadProgress(100);
+    } catch (error) {
+      alert('Upload failed: ' + error.message);
+    } finally {
+      setTimeout(() => {
+        setUploadingContent(false);
+        setUploadProgress(0);
+      }, 500);
+    }
+  };
+
+  const startLivestream = async () => {
+    if (!contentForm.title) {
+      alert('Please enter a title for your livestream');
+      return;
+    }
+
+    await base44.entities.StreamingContent.create({
+      title: contentForm.title,
+      type: 'live_event',
+      category: contentForm.category,
+      description: contentForm.description,
+      thumbnail_url: contentForm.thumbnail_url,
+      is_live: true,
+      rating: 0,
+      requires_subscription: false,
+      betting_available: false
+    });
+    
+    qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
+    
+    setContentForm({
+      title: "",
+      type: "movie",
+      category: "entertainment",
+      description: "",
+      thumbnail_url: "",
+      duration: "",
+      is_live: false
+    });
+    
+    alert('Livestream started! Users can now discover it.');
+  };
+
   // Calculate stats
   const totalRevenue = tips.reduce((sum, tip) => sum + (tip.amount_usd || 0), 0);
   const totalTips = tips.length;
@@ -219,13 +319,186 @@ export default function CreatorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-6 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
+
+          {/* Content Tab */}
+          <TabsContent value="content" className="space-y-6">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Video className="w-5 h-5" />
+                  Upload Content to Streaming Network
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Content Title"
+                    value={contentForm.title}
+                    onChange={(e) => setContentForm({...contentForm, title: e.target.value})}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                  <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue placeholder="Content Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="movie">Movie</SelectItem>
+                      <SelectItem value="series">Series</SelectItem>
+                      <SelectItem value="live_sports">Live Sports</SelectItem>
+                      <SelectItem value="live_event">Live Event</SelectItem>
+                      <SelectItem value="gaming_stream">Gaming Stream</SelectItem>
+                      <SelectItem value="music_concert">Music Concert</SelectItem>
+                      <SelectItem value="podcast">Podcast</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Select value={contentForm.category} onValueChange={(v) => setContentForm({...contentForm, category: v})}>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sports">Sports</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
+                    <SelectItem value="gaming">Gaming</SelectItem>
+                    <SelectItem value="music">Music</SelectItem>
+                    <SelectItem value="news">News</SelectItem>
+                    <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Input
+                  placeholder="Description"
+                  value={contentForm.description}
+                  onChange={(e) => setContentForm({...contentForm, description: e.target.value})}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Thumbnail Image</label>
+                  {contentForm.thumbnail_url && (
+                    <div className="relative mb-3 inline-block">
+                      <img src={contentForm.thumbnail_url} className="w-32 h-32 object-cover rounded-lg" />
+                      <button
+                        onClick={() => setContentForm({...contentForm, thumbnail_url: ""})}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('thumbnail-upload').click()}
+                      className="bg-white/5"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Thumbnail
+                    </Button>
+                    <input
+                      id="thumbnail-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleContentUpload(e.target.files?.[0], 'thumbnail')}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-white/10 pt-4">
+                  <label className="text-white font-medium mb-3 block">Upload Video Content</label>
+                  <p className="text-gray-400 text-sm mb-4">Supports videos up to 4+ hours. Fast upload with chunked processing.</p>
+                  
+                  {uploadingContent && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white text-sm">Uploading...</span>
+                        <span className="text-purple-400 text-sm">{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-white/10 rounded-full h-2">
+                        <div 
+                          className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('video-upload').click()}
+                    disabled={uploadingContent || !contentForm.title}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  >
+                    {uploadingContent ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading Content...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Video/Movie
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    id="video-upload"
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => handleContentUpload(e.target.files?.[0], 'video')}
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="border-t border-white/10 pt-4">
+                  <Button
+                    onClick={startLivestream}
+                    disabled={!contentForm.title}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+                  >
+                    <Radio className="w-4 h-4 mr-2" />
+                    Start Livestream
+                  </Button>
+                  <p className="text-gray-400 text-xs text-center mt-2">Go live instantly with real-time streaming</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <h2 className="text-2xl font-bold text-white">My Streaming Content</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              {myContent.map(content => (
+                <Card key={content.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-4">
+                    {content.thumbnail_url && (
+                      <img src={content.thumbnail_url} className="w-full h-40 object-cover rounded-lg mb-3" />
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-white font-semibold">{content.title}</h3>
+                      {content.is_live && (
+                        <Badge className="bg-red-500/20 text-red-300">
+                          <Radio className="w-3 h-3 mr-1" />
+                          LIVE
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-sm capitalize">{content.type?.replace('_', ' ')}</p>
+                    <p className="text-gray-500 text-xs mt-1">{content.category}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
