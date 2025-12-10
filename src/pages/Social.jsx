@@ -71,11 +71,31 @@ export default function Social() {
   const toggleLikeMutation = useMutation({
     mutationFn: async (post) => {
       const isLiked = likedPosts.has(post.id);
-      return await base44.entities.SocialPost.update(post.id, {
-        likes_count: isLiked ? post.likes_count - 1 : post.likes_count + 1
+      const newLikesCount = isLiked ? post.likes_count - 1 : post.likes_count + 1;
+      
+      await base44.entities.SocialPost.update(post.id, {
+        likes_count: newLikesCount
       });
+
+      // Send notification if liking (not unliking)
+      if (!isLiked && post.created_by !== currentUser.email) {
+        await base44.entities.Notification.create({
+          recipient_email: post.created_by,
+          type: "post_like",
+          title: "New like!",
+          message: `${currentUser.full_name} liked your post`,
+          reference_type: "post",
+          reference_id: post.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        });
+      }
+      
+      return newLikesCount;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries(['social-feed']);
       queryClient.invalidateQueries(['social-posts']);
     }
   });
