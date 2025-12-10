@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Check, CheckCheck, Loader2 } from "lucide-react";
+import { X, Send, Image, Check, CheckCheck, Circle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 
@@ -67,14 +67,31 @@ export default function DirectChatModal({
 
   // Send message mutation
   const sendMessageMutation = useMutation({
-    mutationFn: (content) => base44.entities.DirectMessage.create({
-      conversation_id: conversationId,
-      sender_email: currentUser.email,
-      sender_name: currentUser.full_name,
-      sender_photo: currentUser.profile_photo,
-      recipient_email: targetUser.email,
-      content
-    }),
+    mutationFn: async (content) => {
+      const message = await base44.entities.DirectMessage.create({
+        conversation_id: conversationId,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_photo,
+        recipient_email: targetUser.email,
+        content
+      });
+
+      // Send notification to recipient
+      await base44.entities.Notification.create({
+        recipient_email: targetUser.email,
+        type: "direct_message",
+        title: `New message from ${currentUser.full_name}`,
+        message: content.slice(0, 100),
+        reference_type: "direct_message",
+        reference_id: message.id,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_photo
+      });
+
+      return message;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['direct-messages', conversationId] });
       setMessage("");
