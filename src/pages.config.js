@@ -57,6 +57,8 @@ import StripeProductManager from './pages/StripeProductManager';
 import StripeStorefront from './pages/StripeStorefront';
 import PaymentSuccess from './pages/PaymentSuccess';
 import LivestreamViewer from './pages/LivestreamViewer';
+import CreatorOnboarding from './pages/CreatorOnboarding';
+import CreatorDiscovery from './pages/CreatorDiscovery';
 import __Layout from './Layout.jsx';
 
 
@@ -120,6 +122,8 @@ export const PAGES = {
     "StripeStorefront": StripeStorefront,
     "PaymentSuccess": PaymentSuccess,
     "LivestreamViewer": LivestreamViewer,
+    "CreatorOnboarding": CreatorOnboarding,
+    "CreatorDiscovery": CreatorDiscovery,
 }
 
 export const pagesConfig = {

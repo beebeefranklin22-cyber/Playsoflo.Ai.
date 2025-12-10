@@ -31,7 +31,14 @@ export default function CreatorHub() {
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    base44.auth.me().then(setCurrentUser).catch(() => {});
+    base44.auth.me().then(async (user) => {
+      setCurrentUser(user);
+      
+      // Check URL params for tab
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) setActiveTab(tabParam);
+    }).catch(() => {});
   }, []);
 
   const { data: products = [] } = useQuery({
