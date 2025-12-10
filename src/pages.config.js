@@ -60,6 +60,8 @@ import LivestreamViewer from './pages/LivestreamViewer';
 import CreatorOnboarding from './pages/CreatorOnboarding';
 import CreatorDiscovery from './pages/CreatorDiscovery';
 import PersonalizedFeed from './pages/PersonalizedFeed';
+import StripeConnectProducts from './pages/StripeConnectProducts';
+import StripeConnectStorefront from './pages/StripeConnectStorefront';
 import __Layout from './Layout.jsx';
 
 
@@ -126,6 +128,8 @@ export const PAGES = {
     "CreatorOnboarding": CreatorOnboarding,
     "CreatorDiscovery": CreatorDiscovery,
     "PersonalizedFeed": PersonalizedFeed,
+    "StripeConnectProducts": StripeConnectProducts,
+    "StripeConnectStorefront": StripeConnectStorefront,
 }
 
 export const pagesConfig = {

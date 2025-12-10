@@ -1,41 +1,30 @@
+/**
+ * Create Stripe Connect Checkout Session
+ * 
+ * Creates a checkout session using Destination Charges with application fee.
+ * This allows the platform to take a commission on each sale.
+ * 
+ * Flow:
+ * 1. Authenticate user (optional for guests)
+ * 2. Fetch product details from Stripe
+ * 3. Calculate application fee (platform commission)
+ * 4. Create checkout session with destination charge
+ * 5. Return checkout URL
+ */
+
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.5.0';
-
-/**
- * STRIPE CONNECT - CREATE CHECKOUT WITH DESTINATION CHARGE
- * 
- * This function creates a Stripe Checkout session that uses a DESTINATION CHARGE.
- * 
- * How it works:
- * 1. Customer pays $100 for a product
- * 2. Platform takes $10 as application fee (commission)
- * 3. Connected account receives $90 automatically
- * 
- * The transfer happens automatically - no manual transfer needed.
- * 
- * API Version: 2025-11-17.clover
- */
 
 Deno.serve(async (req) => {
   try {
     // ============================================
-    // STEP 1: AUTHENTICATE USER (CUSTOMER)
-    // ============================================
-    const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // ============================================
-    // STEP 2: INITIALIZE STRIPE
+    // STEP 1: VALIDATE STRIPE CREDENTIALS
     // ============================================
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     
     if (!stripeSecretKey) {
       return Response.json({ 
-        error: 'STRIPE_SECRET_KEY not configured' 
+        error: 'Stripe API key not configured'
       }, { status: 500 });
     }
 
@@ -44,138 +33,147 @@ Deno.serve(async (req) => {
     });
 
     // ============================================
-    // STEP 3: PARSE CHECKOUT REQUEST
+    // STEP 2: PARSE REQUEST BODY
     // ============================================
     const { 
-      product_id,             // Stripe Product ID
-      quantity,               // Number of items (default: 1)
-      connected_account_id,   // Destination account for the funds
-      application_fee_amount, // Platform commission in cents (e.g., 1000 = $10)
-      success_url,            // Where to redirect after success
-      cancel_url,             // Where to redirect if canceled
+      product_id,
+      quantity = 1,
+      success_url,
+      cancel_url
     } = await req.json();
+    
+    if (!product_id) {
+      return Response.json({ error: 'product_id is required' }, { status: 400 });
+    }
 
-    // Validate required fields
-    if (!product_id || !connected_account_id) {
+    // ============================================
+    // STEP 3: FETCH PRODUCT DETAILS
+    // ============================================
+    /**
+     * Get product from Stripe to access:
+     * - Price information
+     * - Connected account ID from metadata
+     */
+    const product = await stripe.products.retrieve(product_id, {
+      expand: ['default_price']
+    });
+
+    // Extract connected account ID from metadata
+    const connectedAccountId = product.metadata?.connected_account_id;
+    
+    if (!connectedAccountId) {
       return Response.json({ 
-        error: 'Missing required fields: product_id and connected_account_id' 
+        error: 'Product does not have a connected account configured' 
       }, { status: 400 });
     }
 
-    // ============================================
-    // STEP 4: RETRIEVE PRODUCT DETAILS
-    // ============================================
-    // Get the product to access its default price
-    const product = await stripe.products.retrieve(product_id);
-    
-    if (!product.default_price) {
-      return Response.json({ 
-        error: 'Product does not have a default price' 
-      }, { status: 400 });
-    }
+    // Get price details
+    const defaultPrice = product.default_price;
+    const priceId = typeof defaultPrice === 'object' ? defaultPrice.id : defaultPrice;
+    const priceAmount = typeof defaultPrice === 'object' ? defaultPrice.unit_amount : 0;
 
     // ============================================
-    // STEP 5: CALCULATE APPLICATION FEE
+    // STEP 4: CALCULATE APPLICATION FEE
     // ============================================
-    // If no fee is specified, use a default (e.g., 10% platform commission)
-    let platformFee = application_fee_amount;
-    
-    if (!platformFee) {
-      // Get price details to calculate 10% fee
-      const price = await stripe.prices.retrieve(product.default_price);
-      const totalAmount = price.unit_amount * (quantity || 1);
-      platformFee = Math.round(totalAmount * 0.10); // 10% default commission
-    }
+    /**
+     * Application Fee = Platform Commission
+     * 
+     * Example: 10% platform fee on $20 product
+     * - Product price: 2000 cents ($20.00)
+     * - Application fee: 200 cents ($2.00)
+     * - Seller receives: 1800 cents ($18.00)
+     * 
+     * Adjust the percentage based on your business model
+     */
+    const PLATFORM_FEE_PERCENTAGE = 0.10; // 10% platform fee
+    const applicationFeeAmount = Math.round(priceAmount * PLATFORM_FEE_PERCENTAGE * quantity);
 
     // ============================================
-    // STEP 6: DETERMINE REDIRECT URLS
+    // STEP 5: CREATE CHECKOUT SESSION
     // ============================================
-    const origin = req.headers.get('origin') || 'http://localhost:3000';
-    const successRedirect = success_url || `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelRedirect = cancel_url || `${origin}/payment-cancelled`;
+    /**
+     * DESTINATION CHARGE CONFIGURATION
+     * 
+     * Key components:
+     * - line_items: Products being purchased
+     * - payment_intent_data.application_fee_amount: Platform's commission
+     * - payment_intent_data.transfer_data.destination: Connected account receiving funds
+     * - mode: 'payment' for one-time charges
+     */
+    const origin = new URL(req.url).origin;
+    const checkoutSession = await stripe.checkout.sessions.create({
+      // ============================================
+      // LINE ITEMS (Products to purchase)
+      // ============================================
+      line_items: [
+        {
+          price: priceId,
+          quantity: quantity,
+        },
+      ],
 
-    // ============================================
-    // STEP 7: CREATE CHECKOUT SESSION
-    // ============================================
-    // This creates a hosted checkout page with destination charge
-    const session = await stripe.checkout.sessions.create({
-      // Payment mode - one-time payment
-      mode: 'payment',
-      
-      // Accepted payment methods
-      payment_method_types: ['card'],
-      
-      // Line items (products being purchased)
-      line_items: [{
-        price: product.default_price, // Use the default price ID
-        quantity: quantity || 1,
-      }],
-      
-      // DESTINATION CHARGE CONFIGURATION
-      // This is where the magic happens!
+      // ============================================
+      // PAYMENT INTENT DATA (Destination Charge)
+      // ============================================
       payment_intent_data: {
-        // Platform commission (in cents)
-        application_fee_amount: platformFee,
+        // Platform's commission (in cents)
+        application_fee_amount: applicationFeeAmount,
         
-        // Where to send the remaining funds
+        // Route funds to connected account
         transfer_data: {
-          destination: connected_account_id, // Connected account receives funds minus fee
+          destination: connectedAccountId,
         },
         
-        // Store useful info in metadata
+        // Optional: Add metadata for tracking
         metadata: {
-          customer_email: user.email,
-          customer_name: user.full_name || user.email,
-          product_id: product_id,
-          platform_fee: platformFee,
+          product_name: product.name,
+          seller_account: connectedAccountId,
+          platform_fee_percentage: PLATFORM_FEE_PERCENTAGE,
         },
       },
+
+      // ============================================
+      // CHECKOUT CONFIGURATION
+      // ============================================
+      mode: 'payment', // One-time payment (use 'subscription' for recurring)
       
-      // Pre-fill customer email
-      customer_email: user.email,
+      // Success URL (user redirected after payment)
+      success_url: success_url || `${origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       
-      // Store session metadata
-      metadata: {
-        customer_id: user.id,
-        customer_email: user.email,
-        product_id: product_id,
-        connected_account_id: connected_account_id,
-      },
+      // Cancel URL (user redirected if they cancel)
+      cancel_url: cancel_url || `${origin}/stripe-connect-storefront`,
       
-      // Redirect URLs
-      success_url: successRedirect,
-      cancel_url: cancelRedirect,
+      // Optional: Collect customer email
+      customer_email: undefined, // Add if you want to collect email
     });
 
     // ============================================
-    // STEP 8: RETURN CHECKOUT SESSION
+    // STEP 6: RETURN CHECKOUT URL
     // ============================================
-    return Response.json({ 
-      session_id: session.id,
-      url: session.url,
-      
-      // Payment details
-      product: {
-        id: product.id,
-        name: product.name,
-        description: product.description,
-      },
-      
-      // Financial breakdown
-      total_amount: session.amount_total,
-      application_fee: platformFee,
-      seller_receives: session.amount_total - platformFee,
-      currency: session.currency,
-      
-      message: 'Redirect customer to session.url to complete payment',
-      note: 'After payment, funds are automatically split between platform and seller'
+    return Response.json({
+      success: true,
+      checkout_url: checkoutSession.url,
+      session_id: checkoutSession.id,
+      product_name: product.name,
+      total_amount: priceAmount * quantity,
+      platform_fee: applicationFeeAmount,
+      seller_receives: (priceAmount * quantity) - applicationFeeAmount,
+      message: 'Redirect user to checkout_url to complete purchase'
     });
 
   } catch (error) {
-    console.error('Checkout session creation error:', error);
+    console.error('Create checkout error:', error);
+    
+    // Handle specific errors
+    if (error.code === 'resource_missing') {
+      return Response.json({ 
+        error: 'Product or connected account not found' 
+      }, { status: 404 });
+    }
+    
     return Response.json({ 
-      error: error.message,
-      hint: 'Verify product_id, connected_account_id, and that the connected account is onboarded'
+      error: 'Failed to create checkout session',
+      details: error.message 
     }, { status: 500 });
   }
 });
