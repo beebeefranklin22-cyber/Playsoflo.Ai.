@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
+import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (

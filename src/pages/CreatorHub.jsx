@@ -20,6 +20,7 @@ import PPVContentManager from "../components/creator/PPVContentManager.jsx";
 import MembershipManager from "../components/creator/MembershipManager.jsx";
 import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
 import CollaborativeContentManager from "../components/creator/CollaborativeContentManager.jsx";
+import CreatorContentSuggestions from "../components/creator/CreatorContentSuggestions.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -375,9 +376,10 @@ export default function CreatorHub() {
             <MembershipManager currentUser={currentUser} />
           </TabsContent>
 
-          {/* Collaborations Tab - Add to Overview */}
+          {/* AI Content Suggestions - Add to Overview */}
           {activeTab === "overview" && (
-            <div className="mt-6">
+            <div className="space-y-6 mt-6">
+              <CreatorContentSuggestions currentUser={currentUser} />
               <CollaborativeContentManager currentUser={currentUser} />
             </div>
           )}
