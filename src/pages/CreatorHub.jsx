@@ -207,45 +207,45 @@ export default function CreatorHub() {
         setUploadProgress(100);
         setContentForm(prev => ({ ...prev, thumbnail_url: file_url }));
       } else {
-        // Use optimized backend function for video uploads
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('contentData', JSON.stringify({
+        // Optimized upload with progress simulation
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => Math.min(prev + 8, 85));
+        }, 400);
+
+        // Platform handles large files automatically with chunking
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        
+        clearInterval(progressInterval);
+        setUploadProgress(90);
+
+        // Create streaming content entry
+        await base44.entities.StreamingContent.create({
           title: contentForm.title,
           type: contentForm.type,
           category: contentForm.category,
           description: contentForm.description,
-          thumbnail_url: contentForm.thumbnail_url
-        }));
-
-        // Simulate progress while uploading
-        const progressInterval = setInterval(() => {
-          setUploadProgress(prev => {
-            if (prev >= 90) return prev;
-            return prev + 5;
-          });
-        }, 500);
-
-        const response = await base44.functions.invoke('uploadVideoContent', formData);
+          thumbnail_url: contentForm.thumbnail_url || file_url,
+          duration: "N/A",
+          rating: 0,
+          is_live: false,
+          requires_subscription: false,
+          betting_available: false
+        });
         
-        clearInterval(progressInterval);
         setUploadProgress(100);
-
-        if (response.data?.success) {
-          qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
-          
-          setContentForm({
-            title: "",
-            type: "movie",
-            category: "entertainment",
-            description: "",
-            thumbnail_url: "",
-            duration: "",
-            is_live: false
-          });
-          
-          alert('Video uploaded and synced to streaming network!');
-        }
+        qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
+        
+        setContentForm({
+          title: "",
+          type: "movie",
+          category: "entertainment",
+          description: "",
+          thumbnail_url: "",
+          duration: "",
+          is_live: false
+        });
+        
+        alert('Video uploaded and synced to streaming network!');
       }
     } catch (error) {
       alert('Upload failed: ' + error.message);
@@ -253,7 +253,7 @@ export default function CreatorHub() {
       setTimeout(() => {
         setUploadingContent(false);
         setUploadProgress(0);
-      }, 500);
+      }, 1000);
     }
   };
 
