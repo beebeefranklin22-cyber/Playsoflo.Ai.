@@ -6,7 +6,6 @@ import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
-import { PostHogProvider } from "./components/analytics/PostHogProvider";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -111,8 +110,7 @@ export default function Layout({ children, currentPageName }) {
   );
 
   return (
-    <PostHogProvider user={currentUser}>
-      <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
           --primary: #00E0E0;
@@ -366,7 +364,6 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </nav>
       )}
-      </div>
-    </PostHogProvider>
+    </div>
   );
 }

@@ -90,9 +90,6 @@ export default function Social() {
           sender_name: currentUser.full_name,
           sender_photo: currentUser.profile_photo
         });
-        
-        // Track analytics
-        trackPostLiked(post.id);
       }
       
       return newLikesCount;
@@ -126,11 +123,9 @@ export default function Social() {
           text: post.caption,
           url: shareUrl,
         });
-        trackPostShared(post.id);
       } else {
         await navigator.clipboard.writeText(shareUrl);
         toast.success("Post link copied to clipboard!");
-        trackPostShared(post.id);
       }
     } catch (error) {
       console.log('Share failed:', error);
@@ -189,10 +184,6 @@ export default function Social() {
       );
       
       await Promise.all(notificationPromises);
-      
-      // Track analytics
-      trackPostCreated(post.id, post.is_experience ? 'experience' : 'standard');
-      
       return post;
     },
     onSuccess: () => {
