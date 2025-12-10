@@ -161,9 +161,33 @@ export default function Social() {
   const createPostMutation = useMutation({
     mutationFn: async (postData) => {
       if (!currentUser?.email) throw new Error("User not authenticated");
-      return await base44.entities.SocialPost.create(postData);
+      const post = await base44.entities.SocialPost.create(postData);
+      
+      // Notify followers about new post
+      const followers = await base44.entities.Follow.filter({ 
+        following_email: currentUser.email 
+      });
+      
+      // Send notifications to followers (batch)
+      const notificationPromises = followers.map(follower => 
+        base44.entities.Notification.create({
+          recipient_email: follower.follower_email,
+          type: "new_post",
+          title: "New post from someone you follow",
+          message: `${currentUser.full_name} shared a new post`,
+          reference_type: "post",
+          reference_id: post.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        })
+      );
+      
+      await Promise.all(notificationPromises);
+      return post;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries(['social-feed']);
       queryClient.invalidateQueries(['social-posts']);
       setShowCreatePost(false);
       setPostContent("");
