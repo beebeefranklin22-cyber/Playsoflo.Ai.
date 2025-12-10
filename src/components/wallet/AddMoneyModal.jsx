@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, CreditCard, Building } from "lucide-react";
+import { X, Plus, CreditCard, Building, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
@@ -152,7 +152,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   onSuccess={handleSuccess}
                   onError={(error) => {
                     console.error("Payment error:", error);
-                    alert("Payment failed: " + error.message);
+                    const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                    alert("Payment failed: " + errorMsg);
                   }}
                 />
 
