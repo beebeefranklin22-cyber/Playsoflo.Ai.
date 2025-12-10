@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StreamCalendarView from "../creator/StreamCalendarView.jsx";
+import CoStreamManager from "../creator/CoStreamManager.jsx";
 
 export default function LivestreamManager({ currentUser }) {
   const queryClient = useQueryClient();
@@ -302,8 +303,11 @@ export default function LivestreamManager({ currentUser }) {
                       </div>
                     </div>
 
+                    {/* Co-Streamers */}
+                    <CoStreamManager streamId={stream.id} currentUser={currentUser} />
+
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       <Link to={`${createPageUrl("LivestreamViewer")}?id=${stream.id}`}>
                         <Button className="bg-purple-600 hover:bg-purple-700">
                           <Eye className="w-4 h-4 mr-2" />

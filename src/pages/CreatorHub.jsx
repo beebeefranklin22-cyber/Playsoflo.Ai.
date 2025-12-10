@@ -19,6 +19,7 @@ import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
 import PPVContentManager from "../components/creator/PPVContentManager.jsx";
 import MembershipManager from "../components/creator/MembershipManager.jsx";
 import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
+import CollaborativeContentManager from "../components/creator/CollaborativeContentManager.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -373,6 +374,13 @@ export default function CreatorHub() {
           <TabsContent value="memberships" className="space-y-6">
             <MembershipManager currentUser={currentUser} />
           </TabsContent>
+
+          {/* Collaborations Tab - Add to Overview */}
+          {activeTab === "overview" && (
+            <div className="mt-6">
+              <CollaborativeContentManager currentUser={currentUser} />
+            </div>
+          )}
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">

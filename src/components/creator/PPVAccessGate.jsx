@@ -62,7 +62,7 @@ export default function PPVAccessGate({ ppvContentId, currentUser, children }) {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + ppvContent.access_duration_hours);
 
-      return await base44.entities.PPVPurchase.create({
+      const purchase = await base44.entities.PPVPurchase.create({
         user_email: currentUser.email,
         ppv_content_id: ppvContentId,
         creator_email: ppvContent.creator_email,
@@ -71,14 +71,23 @@ export default function PPVAccessGate({ ppvContentId, currentUser, children }) {
         access_expires_at: expiresAt.toISOString(),
         payment_method: 'card'
       });
-    },
-    onSuccess: async () => {
+
       // Update PPV content stats
       await base44.asServiceRole.entities.PPVContent.update(ppvContentId, {
         total_purchases: (ppvContent.total_purchases || 0) + 1,
         revenue_generated: (ppvContent.revenue_generated || 0) + finalPrice
       });
 
+      // Process collaborative revenue distribution
+      await base44.functions.invoke('processCollaborativeRevenue', {
+        purchaseId: purchase.id,
+        contentId: ppvContentId,
+        totalAmount: finalPrice
+      });
+
+      return purchase;
+    },
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['ppv-access'] });
       toast.success('Access granted! Enjoy the content.');
     }
