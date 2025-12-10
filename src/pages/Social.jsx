@@ -37,9 +37,34 @@ export default function Social() {
     fetchUser();
   }, []);
 
+  // Fetch user's following list
+  const { data: following = [] } = useQuery({
+    queryKey: ['my-following', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const follows = await base44.entities.Follow.filter({ follower_email: currentUser.email });
+      return follows.map(f => f.following_email);
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  // Fetch posts from followed users + own posts
   const { data: posts = [], isLoading } = useQuery({
-    queryKey: ['social-posts'],
-    queryFn: () => base44.entities.SocialPost.list('-created_date'),
+    queryKey: ['social-feed', currentUser?.email],
+    queryFn: async () => {
+      const allPosts = await base44.entities.SocialPost.list('-created_date', 100);
+      if (!currentUser) return allPosts;
+      
+      // Show posts from followed users + own posts
+      const feedPosts = allPosts.filter(post => 
+        following.includes(post.created_by) || post.created_by === currentUser.email
+      );
+      
+      return feedPosts.length > 0 ? feedPosts : allPosts.slice(0, 20); // Fallback to all if no following
+    },
+    enabled: !!currentUser,
+    refetchInterval: 30000, // Refresh every 30 seconds
     initialData: []
   });
 
