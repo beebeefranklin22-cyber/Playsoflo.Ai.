@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
 import PPVContentManager from "../components/creator/PPVContentManager.jsx";
 import MembershipManager from "../components/creator/MembershipManager.jsx";
+import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -1101,51 +1102,7 @@ export default function CreatorHub() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid md:grid-cols-3 gap-4">
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <BarChart3 className="w-6 h-6 text-purple-400" />
-                    <h3 className="text-white font-semibold">Engagement Rate</h3>
-                  </div>
-                  <div className="text-4xl font-bold text-white mb-2">{engagementRate}%</div>
-                  <div className="text-green-400 text-sm">+2.3% from last month</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Calendar className="w-6 h-6 text-blue-400" />
-                    <h3 className="text-white font-semibold">Avg. Tip Amount</h3>
-                  </div>
-                  <div className="text-4xl font-bold text-white mb-2">${avgTip.toFixed(2)}</div>
-                  <div className="text-gray-400 text-sm">Per transaction</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <TrendingUp className="w-6 h-6 text-green-400" />
-                    <h3 className="text-white font-semibold">Growth</h3>
-                  </div>
-                  <div className="text-4xl font-bold text-white mb-2">+24%</div>
-                  <div className="text-green-400 text-sm">Last 30 days</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Content Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-400 text-center py-8">
-                  Detailed analytics coming soon. Track views, engagement, and revenue per content piece.
-                </p>
-              </CardContent>
-            </Card>
+            <CreatorAnalyticsDashboard currentUser={currentUser} />
           </TabsContent>
 
           {/* Earnings Tab */}
