@@ -11,6 +11,7 @@ import {
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
 import FriendFinder from "../components/FriendFinder";
+import FollowRequestsModal from "../components/FollowRequestsModal";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -24,6 +25,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showFollowRequests, setShowFollowRequests] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -86,6 +88,19 @@ export default function Home() {
   };
 
   const [showFriendFinder, setShowFriendFinder] = useState(false);
+
+  const { data: pendingRequestsCount = 0 } = useQuery({
+    queryKey: ['pending-requests-count', currentUser?.email],
+    queryFn: async () => {
+      const requests = await base44.entities.FollowRequest.filter({ 
+        to_email: currentUser.email, 
+        status: 'pending' 
+      });
+      return requests.length;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 10000
+  });
 
   const { data: posts = [], isLoading, error } = useQuery({
     queryKey: ['social-posts', currentUser?.email],
@@ -207,13 +222,26 @@ export default function Home() {
       <div className="px-4 py-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-white font-semibold">Quick Access</h3>
-          <button
-            onClick={() => setShowFriendFinder(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 rounded-full text-white text-sm font-medium hover:bg-purple-700 transition"
-          >
-            <UserPlus className="w-4 h-4" />
-            Find Friends
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowFollowRequests(true)}
+              className="relative flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-medium hover:bg-white/20 transition"
+            >
+              Requests
+              {pendingRequestsCount > 0 && (
+                <span className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
+                  {pendingRequestsCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setShowFriendFinder(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 rounded-full text-white text-sm font-medium hover:bg-purple-700 transition"
+            >
+              <UserPlus className="w-4 h-4" />
+              Find Friends
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {quickAccess.map((item) => (
@@ -396,6 +424,13 @@ export default function Home() {
       <FriendFinder
         isOpen={showFriendFinder}
         onClose={() => setShowFriendFinder(false)}
+        currentUser={currentUser}
+      />
+
+      {/* Follow Requests Modal */}
+      <FollowRequestsModal
+        isOpen={showFollowRequests}
+        onClose={() => setShowFollowRequests(false)}
         currentUser={currentUser}
       />
 

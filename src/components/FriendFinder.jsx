@@ -24,38 +24,84 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
     queryKey: ['suggested-users', currentUser?.email],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users
+      
+      // Score users based on mutual connections
+      const scoredUsers = users
         .filter(u => u.email !== currentUser?.email && !currentUser?.following?.includes(u.email))
-        .slice(0, 10);
+        .map(user => {
+          // Count mutual friends
+          const mutualFriends = (user.following || []).filter(email => 
+            currentUser?.following?.includes(email)
+          ).length;
+          
+          // Score: prioritize mutual friends
+          const score = mutualFriends * 10 + (user.followers_count || 0);
+          
+          return { ...user, mutualFriends, score };
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 15);
+      
+      return scoredUsers;
     },
     enabled: isOpen && !!currentUser
   });
 
+  const { data: pendingRequests = [] } = useQuery({
+    queryKey: ['pending-requests', currentUser?.email],
+    queryFn: () => base44.entities.FollowRequest.filter({ from_email: currentUser.email, status: 'pending' }),
+    enabled: isOpen && !!currentUser
+  });
+
   const followMutation = useMutation({
-    mutationFn: async (userEmail) => {
-      const isFollowing = currentUser?.following?.includes(userEmail);
-      const newFollowing = isFollowing
-        ? currentUser.following.filter(e => e !== userEmail)
-        : [...(currentUser.following || []), userEmail];
+    mutationFn: async (targetUser) => {
+      const isFollowing = currentUser?.following?.includes(targetUser.email);
       
+      if (isFollowing) {
+        // Unfollow
+        const newFollowing = currentUser.following.filter(e => e !== targetUser.email);
+        await base44.auth.updateMe({ 
+          following: newFollowing,
+          following_count: newFollowing.length
+        });
+        await base44.asServiceRole.entities.User.update(targetUser.id, {
+          followers_count: (targetUser.followers_count || 0) - 1
+        });
+        return { newFollowing, isFollowing: true, isRequest: false };
+      }
+      
+      // Check if profile is private
+      if (targetUser.is_private) {
+        // Create follow request
+        await base44.entities.FollowRequest.create({
+          from_email: currentUser.email,
+          to_email: targetUser.email,
+          status: 'pending'
+        });
+        return { newFollowing: currentUser.following, isFollowing: false, isRequest: true };
+      }
+      
+      // Public profile - follow directly
+      const newFollowing = [...(currentUser.following || []), targetUser.email];
       await base44.auth.updateMe({ 
         following: newFollowing,
         following_count: newFollowing.length
       });
+      await base44.asServiceRole.entities.User.update(targetUser.id, {
+        followers_count: (targetUser.followers_count || 0) + 1
+      });
       
-      const targetUser = allUsers.find(u => u.email === userEmail);
-      if (targetUser) {
-        await base44.asServiceRole.entities.User.update(targetUser.id, {
-          followers_count: (targetUser.followers_count || 0) + (isFollowing ? -1 : 1)
-        });
-      }
-      
-      return { newFollowing, isFollowing };
+      return { newFollowing, isFollowing: false, isRequest: false };
     },
-    onSuccess: ({ newFollowing, isFollowing }) => {
+    onSuccess: ({ isFollowing, isRequest }) => {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['suggested-users'] });
-      toast.success(isFollowing ? 'Unfollowed' : 'Following!');
+      queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+      toast.success(
+        isFollowing ? 'Unfollowed' : 
+        isRequest ? 'Follow request sent' : 
+        'Following!'
+      );
     }
   });
 
@@ -119,7 +165,8 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                         key={user.id}
                         user={user}
                         currentUser={currentUser}
-                        onFollow={() => followMutation.mutate(user.email)}
+                        pendingRequests={pendingRequests}
+                        onFollow={() => followMutation.mutate(user)}
                         onViewProfile={() => {
                           navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`);
                           onClose();
@@ -139,7 +186,8 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                       key={user.id}
                       user={user}
                       currentUser={currentUser}
-                      onFollow={() => followMutation.mutate(user.email)}
+                      pendingRequests={pendingRequests}
+                      onFollow={() => followMutation.mutate(user)}
                       onViewProfile={() => {
                         navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`);
                         onClose();
@@ -157,8 +205,9 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
   );
 }
 
-function UserCard({ user, currentUser, onFollow, onViewProfile, isLoading }) {
+function UserCard({ user, currentUser, pendingRequests, onFollow, onViewProfile, isLoading }) {
   const isFollowing = currentUser?.following?.includes(user.email);
+  const hasPendingRequest = pendingRequests.some(req => req.to_email === user.email);
 
   return (
     <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition">
@@ -171,7 +220,12 @@ function UserCard({ user, currentUser, onFollow, onViewProfile, isLoading }) {
           {user.username && (
             <p className="text-gray-400 text-sm truncate">@{user.username}</p>
           )}
-          <p className="text-gray-500 text-xs">{user.followers_count || 0} followers</p>
+          <div className="flex items-center gap-2">
+            <p className="text-gray-500 text-xs">{user.followers_count || 0} followers</p>
+            {user.mutualFriends > 0 && (
+              <p className="text-purple-400 text-xs">• {user.mutualFriends} mutual</p>
+            )}
+          </div>
         </div>
       </button>
       
@@ -179,7 +233,11 @@ function UserCard({ user, currentUser, onFollow, onViewProfile, isLoading }) {
         onClick={onFollow}
         disabled={isLoading}
         size="sm"
-        className={isFollowing ? "bg-white/10 hover:bg-white/20" : "bg-purple-600 hover:bg-purple-700"}
+        className={
+          isFollowing ? "bg-white/10 hover:bg-white/20" : 
+          hasPendingRequest ? "bg-yellow-600/50" :
+          "bg-purple-600 hover:bg-purple-700"
+        }
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -188,6 +246,8 @@ function UserCard({ user, currentUser, onFollow, onViewProfile, isLoading }) {
             <UserCheck className="w-4 h-4 mr-1" />
             Following
           </>
+        ) : hasPendingRequest ? (
+          "Requested"
         ) : (
           <>
             <UserPlus className="w-4 h-4 mr-1" />

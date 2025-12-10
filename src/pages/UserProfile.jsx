@@ -44,25 +44,54 @@ export default function UserProfile() {
   const isFollowing = currentUser?.following?.includes(profileUser?.email);
   const isOwnProfile = currentUser?.email === profileUser?.email;
 
+  const { data: hasPendingRequest = false } = useQuery({
+    queryKey: ['has-pending-request', currentUser?.email, profileUser?.email],
+    queryFn: async () => {
+      const requests = await base44.entities.FollowRequest.filter({
+        from_email: currentUser.email,
+        to_email: profileUser.email,
+        status: 'pending'
+      });
+      return requests.length > 0;
+    },
+    enabled: !!currentUser && !!profileUser && !isOwnProfile
+  });
+
   const followMutation = useMutation({
     mutationFn: async () => {
-      const newFollowing = isFollowing
-        ? currentUser.following.filter(e => e !== profileUser.email)
-        : [...(currentUser.following || []), profileUser.email];
+      if (isFollowing) {
+        // Unfollow
+        const newFollowing = currentUser.following.filter(e => e !== profileUser.email);
+        await base44.auth.updateMe({ following: newFollowing, following_count: newFollowing.length });
+        await base44.asServiceRole.entities.User.update(profileUser.id, {
+          followers_count: (profileUser.followers_count || 0) - 1
+        });
+        return { newFollowing, isRequest: false };
+      }
       
-      await base44.auth.updateMe({ following: newFollowing });
+      // Check if private
+      if (profileUser.is_private) {
+        await base44.entities.FollowRequest.create({
+          from_email: currentUser.email,
+          to_email: profileUser.email,
+          status: 'pending'
+        });
+        return { newFollowing: currentUser.following, isRequest: true };
+      }
       
-      // Update follower counts
+      // Public - follow directly
+      const newFollowing = [...(currentUser.following || []), profileUser.email];
+      await base44.auth.updateMe({ following: newFollowing, following_count: newFollowing.length });
       await base44.asServiceRole.entities.User.update(profileUser.id, {
-        followers_count: (profileUser.followers_count || 0) + (isFollowing ? -1 : 1)
+        followers_count: (profileUser.followers_count || 0) + 1
       });
-      
-      return newFollowing;
+      return { newFollowing, isRequest: false };
     },
-    onSuccess: (newFollowing) => {
+    onSuccess: ({ newFollowing, isRequest }) => {
       setCurrentUser(prev => ({ ...prev, following: newFollowing }));
       queryClient.invalidateQueries({ queryKey: ['profile-user'] });
-      toast.success(isFollowing ? 'Unfollowed' : 'Following!');
+      queryClient.invalidateQueries({ queryKey: ['has-pending-request'] });
+      toast.success(isRequest ? 'Request sent!' : isFollowing ? 'Unfollowed' : 'Following!');
     }
   });
 
@@ -128,13 +157,19 @@ export default function UserProfile() {
                 <Button
                   onClick={() => followMutation.mutate()}
                   disabled={followMutation.isPending}
-                  className={isFollowing ? "bg-white/10 hover:bg-white/20" : "bg-purple-600 hover:bg-purple-700"}
+                  className={
+                    isFollowing ? "bg-white/10 hover:bg-white/20" : 
+                    hasPendingRequest ? "bg-yellow-600/50" :
+                    "bg-purple-600 hover:bg-purple-700"
+                  }
                 >
                   {isFollowing ? (
                     <>
                       <UserCheck className="w-4 h-4 mr-2" />
                       Following
                     </>
+                  ) : hasPendingRequest ? (
+                    "Requested"
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4 mr-2" />

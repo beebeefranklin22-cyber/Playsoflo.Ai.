@@ -37,13 +37,17 @@ export default function Layout({ children, currentPageName }) {
       if (!currentUser) return 0;
       try {
         const notifications = await base44.entities.Notification.filter({ read: false });
-        return notifications.length;
+        const requests = await base44.entities.FollowRequest.filter({ 
+          to_email: currentUser.email, 
+          status: 'pending' 
+        });
+        return notifications.length + requests.length;
       } catch {
         return 0;
       }
     },
     enabled: !!currentUser,
-    refetchInterval: 30000 // Refetch every 30 seconds
+    refetchInterval: 30000
   });
 
   const handleSearch = (e) => {
