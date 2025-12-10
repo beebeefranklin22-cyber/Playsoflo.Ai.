@@ -4,9 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Gift, Video } from "lucide-react";
-import LivestreamChat from "../components/livestream/LivestreamChat";
-import LivestreamReactions from "../components/livestream/LivestreamReactions";
-import LivestreamTipping from "../components/livestream/LivestreamTipping";
+import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
+import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
+import LivestreamTipping from "../components/livestream/LivestreamTipping.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
