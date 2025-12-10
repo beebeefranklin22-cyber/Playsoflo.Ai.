@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import {
   MessageCircle, Send, Phone, Video, MoreVertical,
   Plus, Search, Image as ImageIcon, Paperclip,
   Smile, Check, CheckCheck, ArrowLeft, Users,
-  X
+  X, Camera, Mic, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoCallModal from "../components/VideoCallModal";
@@ -75,17 +76,21 @@ export default function Messages() {
         p => p !== currentUser.email
       );
       
-      for (const recipient of otherParticipants) {
-        await base44.entities.Notification.create({
+      const notificationPromises = otherParticipants.map(recipient => 
+        base44.entities.Notification.create({
           recipient_email: recipient,
-          type: "new_message",
+          type: "chat_message",
           title: `New message from ${currentUser.full_name || currentUser.email}`,
           message: data.content.substring(0, 100),
-          reference_type: "message",
-          reference_id: message.id,
-          action_url: "/Messages"
-        });
-      }
+          reference_type: "conversation",
+          reference_id: selectedConversation.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        })
+      );
+      
+      await Promise.all(notificationPromises);
 
       return message;
     },
