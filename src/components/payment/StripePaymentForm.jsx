@@ -165,8 +165,10 @@ export default function StripePaymentForm({
       }
     } catch (error) {
       console.error('Payment intent creation error:', error);
-      setInitError(error);
-      if (onError) onError(error);
+      const errorMsg = error?.message || error?.error || 'Failed to initialize payment';
+      const errorObj = new Error(errorMsg);
+      setInitError(errorObj);
+      if (onError) onError(errorObj);
     } finally {
       setLoading(false);
     }
