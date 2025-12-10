@@ -14,12 +14,18 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [elementsReady, setElementsReady] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
       setErrorMessage("Payment system is still loading. Please wait a moment.");
+      return;
+    }
+
+    if (!elementsReady) {
+      setErrorMessage("Please complete the payment details before submitting.");
       return;
     }
 
