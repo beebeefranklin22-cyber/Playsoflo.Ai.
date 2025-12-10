@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import TipButton from "../components/TipButton";
 import CommentSection from "../components/social/CommentSection";
+import { trackPostCreated, trackPostLiked, trackPostShared } from "@/components/analytics/analytics";
 
 export default function Social() {
   const navigate = useNavigate();
