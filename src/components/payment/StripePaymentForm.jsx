@@ -19,27 +19,44 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      setErrorMessage("Payment system is still loading. Please wait a moment.");
       return;
     }
 
     setIsProcessing(true);
     setErrorMessage(null);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: window.location.origin,
-      },
-      redirect: "if_required",
-    });
+    try {
+      // First, ensure the payment element is ready
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setErrorMessage(submitError.message);
+        setIsProcessing(false);
+        if (onError) onError(submitError);
+        return;
+      }
 
-    if (error) {
-      setErrorMessage(error.message);
+      // Then confirm the payment
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsProcessing(false);
+        if (onError) onError(error);
+      } else {
+        setIsProcessing(false);
+        if (onSuccess) onSuccess();
+      }
+    } catch (err) {
+      setErrorMessage(err.message || "An error occurred during payment");
       setIsProcessing(false);
-      if (onError) onError(error);
-    } else {
-      setIsProcessing(false);
-      if (onSuccess) onSuccess();
+      if (onError) onError(err);
     }
   };
 
