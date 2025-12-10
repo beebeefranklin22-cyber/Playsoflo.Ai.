@@ -34,7 +34,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
       setStep(3);
     } catch (err) {
       console.error("Failed to update balance:", err);
-      alert("Payment successful but failed to update balance");
+      const errorMsg = err?.message || err?.error || 'Failed to update balance';
+      alert("Payment successful but " + errorMsg);
     }
   };
 
