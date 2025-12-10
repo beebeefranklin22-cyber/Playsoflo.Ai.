@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Heart, Send, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { trackPostCommented } from "@/utils/analytics";
 
 export default function CommentSection({ postId, commentsCount, currentUser }) {
   const queryClient = useQueryClient();
@@ -47,9 +48,12 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
           sender_name: currentUser.full_name,
           sender_photo: currentUser.profile_photo
         });
-      }
+        }
 
-      return comment;
+        // Track analytics
+        trackPostCommented(postId, comment.id);
+
+        return comment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['post-comments', postId]);
