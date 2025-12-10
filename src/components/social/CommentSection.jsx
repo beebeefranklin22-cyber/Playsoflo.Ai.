@@ -25,14 +25,35 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
     mutationFn: async (commentData) => {
       const comment = await base44.entities.Comment.create(commentData);
       
+      // Update post comments count
       await base44.entities.SocialPost.update(postId, {
         comments_count: commentsCount + 1
       });
+
+      // Get post info to notify the author
+      const posts = await base44.entities.SocialPost.filter({ id: postId });
+      const post = posts[0];
+      
+      // Notify post author (if not commenting on own post)
+      if (post && post.created_by !== currentUser.email) {
+        await base44.entities.Notification.create({
+          recipient_email: post.created_by,
+          type: "comment",
+          title: "New comment on your post",
+          message: `${currentUser.full_name} commented: ${commentData.content.slice(0, 50)}${commentData.content.length > 50 ? '...' : ''}`,
+          reference_type: "post",
+          reference_id: postId,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
+        });
+      }
 
       return comment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['post-comments', postId]);
+      queryClient.invalidateQueries(['social-feed']);
       queryClient.invalidateQueries(['social-posts']);
       setCommentText("");
       toast.success("Comment posted!");
