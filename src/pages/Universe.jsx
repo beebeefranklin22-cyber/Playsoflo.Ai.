@@ -255,13 +255,11 @@ export default function Universe() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                try {
-                  navigate(createPageUrl(pillar.action));
-                } catch (err) {
-                  console.error("Navigation error:", err);
-                }
+                e.preventDefault();
+                navigate(createPageUrl(pillar.action));
               }}
-              className="w-full py-3 sm:py-4 md:py-5 bg-white/30 backdrop-blur-xl rounded-xl sm:rounded-2xl text-white text-sm sm:text-base md:text-lg font-bold hover:bg-white/40 active:scale-[0.98] transition border-2 border-white/50 shadow-2xl flex items-center justify-center gap-2 sm:gap-3"
+              type="button"
+              className="w-full py-3 sm:py-4 md:py-5 bg-white/30 backdrop-blur-xl rounded-xl sm:rounded-2xl text-white text-sm sm:text-base md:text-lg font-bold hover:bg-white/40 active:scale-[0.98] transition border-2 border-white/50 shadow-2xl flex items-center justify-center gap-2 sm:gap-3 cursor-pointer touch-manipulation"
             >
               Enter {pillar.title}
               <span className="inline-block">→</span>
@@ -408,13 +406,11 @@ export default function Universe() {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            try {
-              navigate(createPageUrl("Home"));
-            } catch (err) {
-              console.error("Navigation error:", err);
-            }
+            e.preventDefault();
+            navigate(createPageUrl("Home"));
           }}
-          className="p-2 sm:p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0"
+          type="button"
+          className="p-2 sm:p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="Home"
         >
           <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -434,13 +430,11 @@ export default function Universe() {
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            try {
-              navigate(createPageUrl("Profile"));
-            } catch (err) {
-              console.error("Navigation error:", err);
-            }
+            e.preventDefault();
+            navigate(createPageUrl("Profile"));
           }}
-          className="p-2 sm:p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0"
+          type="button"
+          className="p-2 sm:p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="View profile"
         >
           <UserCircle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />

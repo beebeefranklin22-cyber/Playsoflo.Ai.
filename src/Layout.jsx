@@ -56,13 +56,8 @@ export default function Layout({ children, currentPageName }) {
   const handleNavigation = (path) => {
     if (isNavigating) return;
     setIsNavigating(true);
-    try {
-      navigate(createPageUrl(path));
-    } catch (err) {
-      console.error("Navigation error:", err);
-    } finally {
-      setTimeout(() => setIsNavigating(false), 300);
-    }
+    navigate(createPageUrl(path));
+    setTimeout(() => setIsNavigating(false), 100);
   };
 
   const navItems = [
@@ -135,7 +130,12 @@ export default function Layout({ children, currentPageName }) {
 
         * {
           -webkit-tap-highlight-color: transparent;
-          touch-action: pan-y;
+        }
+        
+        button {
+          touch-action: manipulation;
+          -webkit-user-select: none;
+          user-select: none;
         }
       `}</style>
 
