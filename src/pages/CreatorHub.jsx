@@ -365,6 +365,11 @@ export default function CreatorHub() {
             <TabsTrigger value="collaboration">Collaboration</TabsTrigger>
           </TabsList>
 
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <CreatorContentSuggestions currentUser={currentUser} />
+          </TabsContent>
+
           {/* Livestream Management Tab */}
           <TabsContent value="livestream" className="space-y-6">
             <LivestreamManager currentUser={currentUser} />
@@ -379,13 +384,6 @@ export default function CreatorHub() {
           <TabsContent value="memberships" className="space-y-6">
             <MembershipManager currentUser={currentUser} />
           </TabsContent>
-
-          {/* AI Content Suggestions - Add to Overview */}
-          {activeTab === "overview" && (
-            <div className="space-y-6 mt-6">
-              <CreatorContentSuggestions currentUser={currentUser} />
-            </div>
-          )}
 
           {/* Collaboration Tab */}
           <TabsContent value="collaboration" className="space-y-6">
@@ -566,8 +564,8 @@ export default function CreatorHub() {
             </div>
           </TabsContent>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          {/* Stats Tab - moved from overview */}
+          <TabsContent value="stats" className="space-y-6">
             {/* Enhanced Stats Grid */}
             <div className="grid md:grid-cols-5 gap-4">
               <Card className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-white/10">
