@@ -5,7 +5,7 @@ import {
   Lock, Eye, EyeOff, Upload, Loader2, Tag, Plus, X, Check,
   Share2, Shield, Bell, Globe, Heart, Star, Award, Trophy,
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
-  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation
+  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
