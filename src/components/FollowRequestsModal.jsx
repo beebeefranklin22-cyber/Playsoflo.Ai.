@@ -16,27 +16,37 @@ export default function FollowRequestsModal({ isOpen, onClose, currentUser }) {
   });
 
   const handleRequestMutation = useMutation({
-    mutationFn: async ({ requestId, action, fromEmail }) => {
+    mutationFn: async ({ requestId, action, fromEmail, fromName }) => {
       await base44.entities.FollowRequest.update(requestId, { status: action });
       
       if (action === 'accepted') {
-        // Add to following list
-        const requester = (await base44.entities.User.filter({ email: fromEmail }))[0];
-        if (requester) {
-          await base44.asServiceRole.entities.User.update(requester.id, {
-            following: [...(requester.following || []), currentUser.email],
-            following_count: (requester.following_count || 0) + 1
-          });
-        }
-        
-        // Update own followers count
-        await base44.auth.updateMe({
-          followers_count: (currentUser.followers_count || 0) + 1
+        // Create follow relationship
+        await base44.entities.Follow.create({
+          follower_email: fromEmail,
+          following_email: currentUser.email,
+          follower_name: fromName || fromEmail,
+          following_name: currentUser.full_name
+        });
+
+        // Send notification to requester
+        await base44.entities.Notification.create({
+          recipient_email: fromEmail,
+          type: "follow_request_accepted",
+          title: "Follow request accepted!",
+          message: `${currentUser.full_name} accepted your follow request`,
+          reference_type: "user",
+          reference_id: currentUser.id,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          sender_photo: currentUser.profile_photo
         });
       }
     },
     onSuccess: (_, { action }) => {
       queryClient.invalidateQueries({ queryKey: ['follow-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
       toast.success(action === 'accepted' ? 'Request accepted!' : 'Request declined');
     }
   });
