@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Heart, Send, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { trackPostCommented } from "@/components/analytics/analytics";
 import { trackPostCommented } from "@/utils/analytics";
 
 export default function CommentSection({ postId, commentsCount, currentUser }) {
