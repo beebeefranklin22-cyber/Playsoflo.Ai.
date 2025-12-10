@@ -9,6 +9,7 @@ import {
   Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet
 } from "lucide-react";
 import { motion } from "framer-motion";
+import CreatePostModal from "../components/CreatePostModal";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -21,7 +22,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
-  const [hasCheckedOnboarding, setHasCheckedOnboarding] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -152,7 +153,10 @@ export default function Home() {
       <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {/* Add Your Story */}
-          <button className="flex flex-col items-center gap-2 flex-shrink-0">
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="flex flex-col items-center gap-2 flex-shrink-0"
+          >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative">
               <Plus className="w-6 h-6 text-white" />
             </div>
@@ -324,7 +328,10 @@ export default function Home() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Welcome to PlaySoFlo</h3>
             <p className="text-gray-400 mb-6">Share your lifestyle experiences with the community</p>
-            <button className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform">
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform"
+            >
               Create Your First Post
             </button>
           </div>
@@ -332,9 +339,19 @@ export default function Home() {
       </div>
 
       {/* Floating Create Button */}
-      <button className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform glow-effect z-40">
+      <button 
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform glow-effect z-40"
+      >
         <Plus className="w-8 h-8 text-white" />
       </button>
+
+      {/* Create Post Modal */}
+      <CreatePostModal 
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        currentUser={currentUser}
+      />
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
