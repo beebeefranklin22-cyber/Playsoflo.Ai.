@@ -62,6 +62,7 @@ import CreatorDiscovery from './pages/CreatorDiscovery';
 import PersonalizedFeed from './pages/PersonalizedFeed';
 import StripeConnectProducts from './pages/StripeConnectProducts';
 import StripeConnectStorefront from './pages/StripeConnectStorefront';
+import EarningsDashboard from './pages/EarningsDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -130,6 +131,7 @@ export const PAGES = {
     "PersonalizedFeed": PersonalizedFeed,
     "StripeConnectProducts": StripeConnectProducts,
     "StripeConnectStorefront": StripeConnectStorefront,
+    "EarningsDashboard": EarningsDashboard,
 }
 
 export const pagesConfig = {
