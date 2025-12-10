@@ -6,10 +6,11 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
+import FriendFinder from "../components/FriendFinder";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -84,20 +85,28 @@ export default function Home() {
     });
   };
 
+  const [showFriendFinder, setShowFriendFinder] = useState(false);
+
   const { data: posts = [], isLoading, error } = useQuery({
-    queryKey: ['social-posts'],
+    queryKey: ['social-posts', currentUser?.email],
     queryFn: async () => {
       try {
         const allPosts = await base44.entities.SocialPost.list('-created_date');
         
-        // Track post views for the first few posts (e.g., top 5)
+        // Filter to show posts from friends and own posts
+        const friendPosts = allPosts.filter(post => 
+          post.created_by === currentUser?.email || 
+          currentUser?.following?.includes(post.created_by)
+        );
+        
+        // Track post views for the first few posts
         if (currentUser?.email) {
-          allPosts.slice(0, 5).forEach(post => {
+          friendPosts.slice(0, 5).forEach(post => {
             trackView("post", post.id, post.vibe || "social");
           });
         }
         
-        return allPosts;
+        return friendPosts;
       } catch (err) {
         console.log("Error loading posts:", err);
         return [];
@@ -105,7 +114,8 @@ export default function Home() {
     },
     initialData: [],
     retry: 1,
-    retryDelay: 1000
+    retryDelay: 1000,
+    enabled: !!currentUser
   });
 
   const toggleLike = (postId) => {
@@ -147,6 +157,22 @@ export default function Home() {
     { icon: Music, label: "Music", color: "pink", path: "Vibe" },
   ];
 
+  const { data: stories = [] } = useQuery({
+    queryKey: ['stories', currentUser?.email],
+    queryFn: async () => {
+      const allStories = await base44.entities.Story.list('-created_date');
+      const now = new Date();
+      return allStories.filter(story => {
+        const expires = new Date(story.expires_at);
+        return expires > now && (
+          story.user_email === currentUser?.email ||
+          currentUser?.following?.includes(story.user_email)
+        );
+      });
+    },
+    enabled: !!currentUser
+  });
+
   return (
     <div className="min-h-screen pb-20">
       {/* Stories Bar */}
@@ -179,6 +205,16 @@ export default function Home() {
 
       {/* Quick Access Pills */}
       <div className="px-4 py-4 border-b border-white/10">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-semibold">Quick Access</h3>
+          <button
+            onClick={() => setShowFriendFinder(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 rounded-full text-white text-sm font-medium hover:bg-purple-700 transition"
+          >
+            <UserPlus className="w-4 h-4" />
+            Find Friends
+          </button>
+        </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {quickAccess.map((item) => (
             <button
@@ -205,7 +241,10 @@ export default function Home() {
           >
             {/* Post Header */}
             <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(createPageUrl("UserProfile") + `?email=${post.created_by}`)}
+                className="flex items-center gap-3"
+              >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
                   {post.created_by?.[0]?.toUpperCase() || "U"}
                 </div>
@@ -218,7 +257,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
               <button className="text-gray-400 hover:text-white">
                 <MoreHorizontal className="w-6 h-6" />
               </button>
@@ -350,6 +389,13 @@ export default function Home() {
       <CreatePostModal 
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        currentUser={currentUser}
+      />
+
+      {/* Friend Finder Modal */}
+      <FriendFinder
+        isOpen={showFriendFinder}
+        onClose={() => setShowFriendFinder(false)}
         currentUser={currentUser}
       />
 
