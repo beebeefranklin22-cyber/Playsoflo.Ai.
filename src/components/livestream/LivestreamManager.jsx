@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import StreamCalendarView from "../creator/StreamCalendarView.jsx";
 
 export default function LivestreamManager({ currentUser }) {
   const queryClient = useQueryClient();
@@ -25,7 +26,15 @@ export default function LivestreamManager({ currentUser }) {
     scheduled_time: "",
     duration_minutes: 60,
     category: "entertainment",
-    thumbnail_url: ""
+    thumbnail_url: "",
+    is_recurring: false,
+    recurrence_pattern: "none",
+    recurrence_day: "",
+    recurrence_time: "",
+    recurrence_end_date: "",
+    access_type: "public",
+    ppv_price_usd: 0,
+    member_discount_percent: 0
   });
 
   // Fetch active livestreams
@@ -108,10 +117,32 @@ export default function LivestreamManager({ currentUser }) {
 
   // Schedule livestream
   const scheduleStreamMutation = useMutation({
-    mutationFn: (data) => base44.entities.LivestreamSchedule.create({
-      ...data,
-      creator_email: currentUser.email
-    }),
+    mutationFn: async (data) => {
+      const schedule = await base44.entities.LivestreamSchedule.create({
+        ...data,
+        creator_email: currentUser.email
+      });
+
+      // Send reminder notification to followers
+      const followers = await base44.entities.Follow.filter({
+        following_email: currentUser.email
+      });
+
+      const notificationPromises = followers.map(f => 
+        base44.asServiceRole.entities.Notification.create({
+          user_email: f.follower_email,
+          type: 'livestream_scheduled',
+          title: 'New Livestream Scheduled',
+          message: `${currentUser.full_name || currentUser.email} scheduled a livestream: "${data.title}"`,
+          related_id: schedule.id,
+          read: false
+        })
+      );
+
+      await Promise.all(notificationPromises);
+
+      return schedule;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] });
       setShowScheduleModal(false);
@@ -121,9 +152,17 @@ export default function LivestreamManager({ currentUser }) {
         scheduled_time: "",
         duration_minutes: 60,
         category: "entertainment",
-        thumbnail_url: ""
+        thumbnail_url: "",
+        is_recurring: false,
+        recurrence_pattern: "none",
+        recurrence_day: "",
+        recurrence_time: "",
+        recurrence_end_date: "",
+        access_type: "public",
+        ppv_price_usd: 0,
+        member_discount_percent: 0
       });
-      toast.success('Livestream scheduled!');
+      toast.success('Livestream scheduled and followers notified!');
     }
   });
 
@@ -182,6 +221,9 @@ export default function LivestreamManager({ currentUser }) {
           Schedule Stream
         </Button>
       </div>
+
+      {/* Calendar View */}
+      <StreamCalendarView currentUser={currentUser} />
 
       {/* Active Livestreams */}
       <Card className="bg-white/5 border-white/10">
@@ -298,9 +340,23 @@ export default function LivestreamManager({ currentUser }) {
                 <div key={schedule.id} className="p-4 bg-white/5 rounded-xl">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-white font-semibold mb-1">{schedule.title}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-white font-semibold">{schedule.title}</h3>
+                        {schedule.is_recurring && (
+                          <Badge className="bg-indigo-500/20 text-indigo-300">
+                            {schedule.recurrence_pattern}
+                          </Badge>
+                        )}
+                        {schedule.access_type !== 'public' && (
+                          <Badge className="bg-yellow-500/20 text-yellow-300 flex items-center gap-1">
+                            {schedule.access_type === 'members_only' && <Crown className="w-3 h-3" />}
+                            {(schedule.access_type === 'ppv' || schedule.access_type === 'ppv_with_member_discount') && <Lock className="w-3 h-3" />}
+                            {schedule.access_type.replace(/_/g, ' ')}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-gray-400 text-sm mb-2">{schedule.description}</p>
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
                         <div className="flex items-center gap-1 text-purple-400">
                           <Clock className="w-4 h-4" />
                           {new Date(schedule.scheduled_time).toLocaleString()}
@@ -308,6 +364,11 @@ export default function LivestreamManager({ currentUser }) {
                         <Badge className="bg-blue-500/20 text-blue-300">
                           {schedule.duration_minutes} min
                         </Badge>
+                        {schedule.ppv_price_usd > 0 && (
+                          <Badge className="bg-green-500/20 text-green-300">
+                            ${schedule.ppv_price_usd}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -409,6 +470,98 @@ export default function LivestreamManager({ currentUser }) {
                     <SelectItem value="lifestyle">Lifestyle</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Recurring Options */}
+                <div className="border-t border-white/10 pt-4">
+                  <label className="flex items-center gap-2 text-white cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      checked={scheduleForm.is_recurring}
+                      onChange={(e) => setScheduleForm({
+                        ...scheduleForm, 
+                        is_recurring: e.target.checked,
+                        recurrence_pattern: e.target.checked ? 'weekly' : 'none'
+                      })}
+                      className="w-5 h-5 rounded accent-purple-500"
+                    />
+                    Make this a recurring stream
+                  </label>
+
+                  {scheduleForm.is_recurring && (
+                    <div className="space-y-3 pl-7">
+                      <Select 
+                        value={scheduleForm.recurrence_pattern} 
+                        onValueChange={(v) => setScheduleForm({...scheduleForm, recurrence_pattern: v})}
+                      >
+                        <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                          <SelectValue placeholder="Frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="weekly">Every Week</SelectItem>
+                          <SelectItem value="bi-weekly">Every 2 Weeks</SelectItem>
+                          <SelectItem value="monthly">Every Month</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">End Recurrence On</label>
+                        <Input
+                          type="date"
+                          value={scheduleForm.recurrence_end_date}
+                          onChange={(e) => setScheduleForm({...scheduleForm, recurrence_end_date: e.target.value})}
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Access Rules */}
+                <div className="border-t border-white/10 pt-4">
+                  <label className="text-gray-400 text-sm mb-2 block">Access Type</label>
+                  <Select 
+                    value={scheduleForm.access_type} 
+                    onValueChange={(v) => setScheduleForm({...scheduleForm, access_type: v})}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public (Free)</SelectItem>
+                      <SelectItem value="members_only">Members Only</SelectItem>
+                      <SelectItem value="ppv">Pay-Per-View</SelectItem>
+                      <SelectItem value="ppv_with_member_discount">PPV with Member Discount</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {(scheduleForm.access_type === 'ppv' || scheduleForm.access_type === 'ppv_with_member_discount') && (
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <div>
+                        <label className="text-gray-400 text-sm mb-2 block">PPV Price (USD)</label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={scheduleForm.ppv_price_usd}
+                          onChange={(e) => setScheduleForm({...scheduleForm, ppv_price_usd: Number(e.target.value)})}
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      {scheduleForm.access_type === 'ppv_with_member_discount' && (
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Member Discount %</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={scheduleForm.member_discount_percent}
+                            onChange={(e) => setScheduleForm({...scheduleForm, member_discount_percent: Number(e.target.value)})}
+                            className="bg-white/10 border-white/20 text-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <Button
                   onClick={() => scheduleStreamMutation.mutate(scheduleForm)}
