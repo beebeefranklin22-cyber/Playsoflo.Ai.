@@ -198,28 +198,34 @@ export default function CreatorHub() {
     if (!file) return;
     
     setUploadingContent(true);
-    setUploadProgress(10);
+    setUploadProgress(0);
     
     try {
       if (type === 'thumbnail') {
-        setUploadProgress(30);
+        setUploadProgress(50);
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         setUploadProgress(100);
         setContentForm(prev => ({ ...prev, thumbnail_url: file_url }));
       } else {
-        // Optimized upload with progress simulation
+        // Progressive upload with smooth progress
         const progressInterval = setInterval(() => {
-          setUploadProgress(prev => Math.min(prev + 8, 85));
-        }, 400);
+          setUploadProgress(prev => {
+            if (prev >= 80) {
+              clearInterval(progressInterval);
+              return 80;
+            }
+            return prev + 10;
+          });
+        }, 500);
 
-        // Platform handles large files automatically with chunking
+        // Upload file to platform
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
         
         clearInterval(progressInterval);
-        setUploadProgress(90);
+        setUploadProgress(85);
 
         // Create streaming content entry
-        await base44.entities.StreamingContent.create({
+        const content = await base44.entities.StreamingContent.create({
           title: contentForm.title,
           type: contentForm.type,
           category: contentForm.category,
@@ -233,7 +239,8 @@ export default function CreatorHub() {
         });
         
         setUploadProgress(100);
-        qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
+        
+        await qc.invalidateQueries({ queryKey: ["my-streaming-content"] });
         
         setContentForm({
           title: "",
@@ -245,15 +252,17 @@ export default function CreatorHub() {
           is_live: false
         });
         
-        alert('Video uploaded and synced to streaming network!');
+        alert('✅ Video uploaded successfully and available on streaming network!');
       }
     } catch (error) {
-      alert('Upload failed: ' + error.message);
+      console.error('Upload error:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Network error occurred';
+      alert(`Upload failed: ${errorMsg}. Please check your connection and try again.`);
+      setUploadProgress(0);
     } finally {
       setTimeout(() => {
         setUploadingContent(false);
-        setUploadProgress(0);
-      }, 1000);
+      }, 1500);
     }
   };
 
