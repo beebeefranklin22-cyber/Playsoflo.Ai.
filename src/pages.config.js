@@ -59,6 +59,7 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import LivestreamViewer from './pages/LivestreamViewer';
 import CreatorOnboarding from './pages/CreatorOnboarding';
 import CreatorDiscovery from './pages/CreatorDiscovery';
+import PersonalizedFeed from './pages/PersonalizedFeed';
 import __Layout from './Layout.jsx';
 
 
@@ -124,6 +125,7 @@ export const PAGES = {
     "LivestreamViewer": LivestreamViewer,
     "CreatorOnboarding": CreatorOnboarding,
     "CreatorDiscovery": CreatorDiscovery,
+    "PersonalizedFeed": PersonalizedFeed,
 }
 
 export const pagesConfig = {
