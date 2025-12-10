@@ -24,19 +24,7 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (data) => {
-      const msg = await base44.entities.LivestreamChat.create(data);
-      
-      // AI moderation check
-      base44.functions.invoke('moderateContent', {
-        content: data.message,
-        contentType: 'chat_message',
-        contentId: msg.id,
-        userEmail: currentUser.email
-      }).catch(err => console.log('Moderation check failed:', err));
-      
-      return msg;
-    },
+    mutationFn: (data) => base44.entities.LivestreamChat.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       setMessage("");
