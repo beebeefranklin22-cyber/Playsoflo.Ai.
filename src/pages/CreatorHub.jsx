@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
+import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -343,14 +344,20 @@ export default function CreatorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-7 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="livestream">Livestream</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
+
+          {/* Livestream Management Tab */}
+          <TabsContent value="livestream" className="space-y-6">
+            <LivestreamManager currentUser={currentUser} />
+          </TabsContent>
 
           {/* Content Tab */}
           <TabsContent value="content" className="space-y-6">
