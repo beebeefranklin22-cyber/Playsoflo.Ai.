@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
+import RonronVehicleRecommendations from "../components/car/RonronVehicleRecommendations";
 
 export default function CarRentals() {
   const navigate = useNavigate();
