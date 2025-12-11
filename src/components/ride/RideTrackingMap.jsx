@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Navigation, Clock, TrendingUp } from "lucide-react";
+import { MapPin, Navigation, Clock, TrendingUp } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -69,8 +69,19 @@ export default function RideTrackingMap({ ride, driverLocation }) {
 
   // Default to Miami if no location
   const defaultCenter = [25.7617, -80.1918];
-  const pickupCoords = ride?.pickup_coords || defaultCenter;
-  const driverCoords = driverLocation ? [driverLocation.lat, driverLocation.lng] : null;
+  
+  // Handle different coordinate formats
+  const getCoords = (coords) => {
+    if (!coords) return defaultCenter;
+    if (Array.isArray(coords) && coords.length === 2) return coords;
+    if (coords.lat && coords.lng) return [coords.lat, coords.lng];
+    return defaultCenter;
+  };
+  
+  const pickupCoords = getCoords(ride?.pickup_coords);
+  const driverCoords = driverLocation && driverLocation.lat && driverLocation.lng 
+    ? [driverLocation.lat, driverLocation.lng] 
+    : null;
 
   useEffect(() => {
     if (driverCoords && pickupCoords) {
@@ -120,15 +131,17 @@ export default function RideTrackingMap({ ride, driverLocation }) {
             />
             
             {/* Pickup Location */}
-            <Marker position={pickupCoords}>
-              <Popup>
-                <div className="text-sm">
-                  <strong>Pickup Location</strong>
-                  <br />
-                  {ride.pickup_address}
-                </div>
-              </Popup>
-            </Marker>
+            {pickupCoords && pickupCoords.length === 2 && (
+              <Marker position={pickupCoords}>
+                <Popup>
+                  <div className="text-sm">
+                    <strong>Pickup Location</strong>
+                    <br />
+                    {ride.pickup_address}
+                  </div>
+                </Popup>
+              </Marker>
+            )}
 
             {/* Driver Location */}
             {driverCoords && (

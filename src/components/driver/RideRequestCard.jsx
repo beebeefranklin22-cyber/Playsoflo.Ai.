@@ -231,13 +231,27 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           {showMap && ride.pickup_coords && (
             <div className="mb-4 h-48 rounded-xl overflow-hidden">
               <MapContainer
-                center={ride.pickup_coords}
+                center={
+                  Array.isArray(ride.pickup_coords) && ride.pickup_coords.length === 2
+                    ? ride.pickup_coords
+                    : ride.pickup_coords?.lat && ride.pickup_coords?.lng
+                    ? [ride.pickup_coords.lat, ride.pickup_coords.lng]
+                    : [25.7617, -80.1918]
+                }
                 zoom={13}
                 style={{ height: "100%", width: "100%" }}
                 zoomControl={false}
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <Marker position={ride.pickup_coords} />
+                {ride.pickup_coords && (
+                  <Marker position={
+                    Array.isArray(ride.pickup_coords) && ride.pickup_coords.length === 2
+                      ? ride.pickup_coords
+                      : ride.pickup_coords?.lat && ride.pickup_coords?.lng
+                      ? [ride.pickup_coords.lat, ride.pickup_coords.lng]
+                      : [25.7617, -80.1918]
+                  } />
+                )}
               </MapContainer>
             </div>
           )}
