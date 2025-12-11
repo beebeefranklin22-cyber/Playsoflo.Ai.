@@ -127,35 +127,34 @@ const pillars = [
   }
 ];
 
+const updatedPillars = [
+  ...pillars,
+  {
+    id: "car_rentals",
+    title: "Car Rentals",
+    subtitle: "Drive Your Dream",
+    icon: Car,
+    gradient: "from-blue-600 via-indigo-600 to-blue-600",
+    image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200",
+    features: ["Exotic Cars", "App Unlock", "Full Insurance", "Delivery"],
+    action: "CarRentals"
+  },
+  {
+    id: "memes",
+    title: "Meme Creator",
+    subtitle: "Create Viral Content",
+    icon: Sparkles,
+    gradient: "from-pink-600 via-purple-600 to-pink-600",
+    image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200",
+    features: ["Templates", "AI Text", "Custom Upload", "Share"],
+    action: "MemeCreator"
+  }
+];
+
 export default function Universe() {
   const navigate = useNavigate();
   const [showIntro, setShowIntro] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  const updatedPillars = [
-    ...pillars,
-    {
-      id: "car_rentals",
-      title: "Car Rentals",
-      subtitle: "Drive Your Dream",
-      icon: Car,
-      gradient: "from-blue-600 via-indigo-600 to-blue-600",
-      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200",
-      features: ["Exotic Cars", "App Unlock", "Full Insurance", "Delivery"],
-      action: "CarRentals"
-    },
-    {
-      id: "memes",
-      title: "Meme Creator",
-      subtitle: "Create Viral Content",
-      icon: Sparkles,
-      gradient: "from-pink-600 via-purple-600 to-pink-600",
-      image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200",
-      features: ["Templates", "AI Text", "Custom Upload", "Share"],
-      action: "MemeCreator"
-    }
-  ];
-
   const cards = updatedPillars.map((pillar) => ({
     id: pillar.id,
     content: (
