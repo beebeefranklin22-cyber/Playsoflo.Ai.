@@ -55,9 +55,10 @@ Provide a helpful response in 2-3 sentences max.`,
 
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
     } catch (error) {
+      console.error("AI Assistant error:", error);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "Sorry, I encountered an error. Please try again." 
+        content: "I apologize, but I encountered an error processing your question. Please try rephrasing or ask something else." 
       }]);
     } finally {
       setLoading(false);

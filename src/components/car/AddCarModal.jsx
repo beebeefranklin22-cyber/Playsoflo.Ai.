@@ -36,7 +36,8 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
       setFormData(prev => ({ ...prev, image_url: file_url }));
       toast.success("Image uploaded!");
     } catch (error) {
-      toast.error("Failed to upload image");
+      console.error("Image upload error:", error);
+      toast.error("Failed to upload image: " + (error.message || "Unknown error"));
     } finally {
       setUploadingImage(false);
     }
