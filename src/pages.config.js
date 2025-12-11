@@ -64,6 +64,7 @@ import StripeConnectProducts from './pages/StripeConnectProducts';
 import StripeConnectStorefront from './pages/StripeConnectStorefront';
 import EarningsDashboard from './pages/EarningsDashboard';
 import FleetManager from './pages/FleetManager';
+import CommunityHub from './pages/CommunityHub';
 import __Layout from './Layout.jsx';
 
 
@@ -134,6 +135,7 @@ export const PAGES = {
     "StripeConnectStorefront": StripeConnectStorefront,
     "EarningsDashboard": EarningsDashboard,
     "FleetManager": FleetManager,
+    "CommunityHub": CommunityHub,
 }
 
 export const pagesConfig = {

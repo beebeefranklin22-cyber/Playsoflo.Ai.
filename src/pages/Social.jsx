@@ -5,7 +5,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
-  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2, Upload, Image, Copy
+  Music, Sparkles, Plus, MoreHorizontal, Activity, Wand2, Upload, Image, Copy, Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -290,6 +290,16 @@ export default function Social() {
     <div className="min-h-screen pb-20">
       {/* Stories Bar */}
       <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-white font-semibold">Stories</h3>
+          <Button
+            onClick={() => navigate(createPageUrl("CommunityHub"))}
+            className="bg-gradient-to-r from-purple-600 to-pink-600"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Community Hub
+          </Button>
+        </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {/* Add Your Story */}
           <button className="flex flex-col items-center gap-2 flex-shrink-0">
