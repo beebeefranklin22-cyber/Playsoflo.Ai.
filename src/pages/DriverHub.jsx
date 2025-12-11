@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
-  DollarSign, Clock, Star, Zap, Award,
-  MapPin, ArrowUpRight, Activity, Target, Gift, Calendar, BarChart3, Bell, MessageCircle, User
+  DollarSign, TrendingUp, Clock, Star, Zap, Award,
+  MapPin, ArrowUpRight, Activity, Target, Gift,
+  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RideRequestCard from "../components/driver/RideRequestCard";
@@ -17,6 +18,9 @@ import RideChatModal from "../components/chat/RideChatModal";
 import DriverProfileModal from "../components/driver/DriverProfileModal";
 import NavigationModal from "../components/driver/NavigationModal";
 import EarningsChart from "../components/driver/EarningsChart";
+import AIDriverAssistant from "../components/driver/AIDriverAssistant";
+import AIRouteOptimizer from "../components/driver/AIRouteOptimizer";
+import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -25,6 +29,7 @@ export default function DriverHub() {
   const [chatRide, setChatRide] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [navRide, setNavRide] = useState(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -222,14 +227,23 @@ export default function DriverHub() {
               </p>
             </div>
             
-            <Button
-              onClick={() => setShowProfile(true)}
-              variant="outline"
-              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-            >
-              <User className="w-4 h-4 mr-2" />
-              Driver Profile
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowAIAssistant(true)}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                AI Assistant
+              </Button>
+              <Button
+                onClick={() => setShowProfile(true)}
+                variant="outline"
+                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </Button>
+            </div>
             
             {/* Online/Offline Toggle */}
             <Card className={`${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
@@ -290,6 +304,18 @@ export default function DriverHub() {
           </div>
         )}
 
+        {/* AI Route Optimizer */}
+        {isOnline && (
+          <div className="mb-6">
+            <AIRouteOptimizer 
+              currentLocation={currentUser?.driver_current_lat ? 
+                [currentUser.driver_current_lat, currentUser.driver_current_lng] : null
+              } 
+              isOnline={isOnline} 
+            />
+          </div>
+        )}
+
         {/* Pending Ride Requests */}
         {isOnline && pendingRequests.length > 0 && (
           <div className="mb-6">
@@ -303,16 +329,21 @@ export default function DriverHub() {
             <AnimatePresence>
               <div className="space-y-4">
                 {pendingRequests.map(request => (
-                  <RideRequestCard
-                    key={request.id}
-                    ride={request}
-                    onAccept={() => {
-                      queryClient.invalidateQueries(['pending-ride-requests']);
-                      queryClient.invalidateQueries(['driver-active-rides']);
-                    }}
-                    onDecline={() => queryClient.invalidateQueries(['pending-ride-requests'])}
-                    onNavigate={setNavRide}
-                  />
+                  <div key={request.id} className="space-y-3">
+                    <AIPassengerMatcher 
+                      ride={request} 
+                      driverStats={todayStats}
+                    />
+                    <RideRequestCard
+                      ride={request}
+                      onAccept={() => {
+                        queryClient.invalidateQueries(['pending-ride-requests']);
+                        queryClient.invalidateQueries(['driver-active-rides']);
+                      }}
+                      onDecline={() => queryClient.invalidateQueries(['pending-ride-requests'])}
+                      onNavigate={setNavRide}
+                    />
+                  </div>
                 ))}
               </div>
             </AnimatePresence>
@@ -722,6 +753,12 @@ export default function DriverHub() {
           ride={navRide}
         />
       )}
+
+      {/* AI Assistant */}
+      <AIDriverAssistant
+        open={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+      />
       </div>
     </>
   );
