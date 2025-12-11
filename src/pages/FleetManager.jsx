@@ -295,6 +295,11 @@ export default function FleetManager() {
 
           <TabsContent value="analytics">
             <FleetAnalytics cars={myCars} rentals={myRentals} />
+            
+            {/* Dispute Resolution */}
+            <div className="mt-6">
+              <FleetDisputeResolution rentals={myRentals} cars={myCars} />
+            </div>
           </TabsContent>
 
           <TabsContent value="calendar">
