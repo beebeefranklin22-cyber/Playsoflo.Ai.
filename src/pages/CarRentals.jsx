@@ -300,6 +300,13 @@ export default function CarRentals() {
           </TabsList>
 
           <TabsContent value="browse">
+            {/* Ronron AI Recommendations */}
+            {currentUser && (
+              <div className="mb-8">
+                <RonronVehicleRecommendations currentUser={currentUser} />
+              </div>
+            )}
+
             <div className="grid md:grid-cols-3 gap-6">
               {availableCars.map((car) => (
                 <motion.div

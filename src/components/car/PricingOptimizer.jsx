@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { TrendingUp, DollarSign, Zap, Loader2, ArrowUpRight } from "lucide-react";
+import { TrendingUp, DollarSign, Zap, Loader2, ArrowUpRight, Sparkles } from "lucide-react";
 
 export default function PricingOptimizer({ cars, rentals }) {
   const [suggestions, setSuggestions] = useState(null);
@@ -106,7 +106,11 @@ Return JSON:
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-green-400" />
-            Dynamic Pricing AI
+            Ronron AI Pricing Optimizer
+            <Badge className="bg-green-500/30 text-green-200">
+              <Sparkles className="w-3 h-3 mr-1" />
+              AI
+            </Badge>
           </CardTitle>
           <Button
             onClick={analyzePricing}
