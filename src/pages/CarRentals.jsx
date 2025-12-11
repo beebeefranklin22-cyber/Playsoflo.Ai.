@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
+import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 
 export default function CarRentals() {
   const navigate = useNavigate();
@@ -45,6 +46,10 @@ export default function CarRentals() {
     photos: [],
     estimated_cost: 0
   });
+
+  const [showPhotoDoc, setShowPhotoDoc] = useState(false);
+  const [photoDocStage, setPhotoDocStage] = useState('pre');
+  const [photoDocRental, setPhotoDocRental] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -216,8 +221,10 @@ export default function CarRentals() {
 
   const handlePaymentSuccess = async () => {
     setShowPaymentModal(false);
-    alert('Payment successful! Check your messages for unlock code and pickup details.');
-    navigate(createPageUrl("Messages"));
+    // Trigger pre-rental photo documentation
+    setPhotoDocRental(selectedRental);
+    setPhotoDocStage('pre');
+    setShowPhotoDoc(true);
   };
 
   return (
@@ -416,6 +423,21 @@ export default function CarRentals() {
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Message Provider
                           </Button>
+                          {rental.status === 'active' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setPhotoDocRental(rental);
+                                setPhotoDocStage('post');
+                                setShowPhotoDoc(true);
+                              }}
+                              className="bg-blue-500/10 border-blue-500/30 text-blue-400"
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              End Rental (Photos)
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"
@@ -1033,6 +1055,23 @@ export default function CarRentals() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <VehiclePhotoDocumentation
+          open={showPhotoDoc}
+          onClose={() => setShowPhotoDoc(false)}
+          rental={photoDocRental}
+          stage={photoDocStage}
+          onComplete={(data) => {
+            setShowPhotoDoc(false);
+            if (photoDocStage === 'pre') {
+              alert('Pre-rental inspection complete! You can now pick up the vehicle.');
+              navigate(createPageUrl("Messages"));
+            } else {
+              alert('Post-rental inspection complete! Thank you for renting with us.');
+              queryClient.invalidateQueries(['my-rentals']);
+            }
+          }}
+        />
       </div>
     </div>
   );
