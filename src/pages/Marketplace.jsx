@@ -179,15 +179,6 @@ export default function Marketplace() {
     "shelter_services", "medical_health"
   ];
 
-  // Group items by service/title to show multiple providers
-  const groupedByService = filteredItems.reduce((acc, item) => {
-    if (!acc[item.title]) {
-      acc[item.title] = [];
-    }
-    acc[item.title].push(item);
-    return acc;
-  }, {});
-
   const filteredItems = items.filter(item => {
     // Exclude wellness categories
     if (wellnessCategoryIds.includes(item.category)) {
@@ -200,6 +191,15 @@ export default function Marketplace() {
       item.provider_name?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  // Group items by service/title to show multiple providers
+  const groupedByService = filteredItems.reduce((acc, item) => {
+    if (!acc[item.title]) {
+      acc[item.title] = [];
+    }
+    acc[item.title].push(item);
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950 to-gray-950 pb-20">
