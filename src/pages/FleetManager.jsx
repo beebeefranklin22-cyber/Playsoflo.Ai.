@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Car, Plus, DollarSign, TrendingUp, BarChart3,
-  Calendar, Settings, Eye, Edit, Trash2, Upload
+  Calendar, Settings, Eye, Edit, Trash2, Upload, Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
 import AddCarModal from "../components/car/AddCarModal";
@@ -15,6 +15,9 @@ import EditCarModal from "../components/car/EditCarModal";
 import BulkUploadModal from "../components/car/BulkUploadModal";
 import FleetAnalytics from "../components/car/FleetAnalytics";
 import AvailabilityCalendar from "../components/car/AvailabilityCalendar";
+import MaintenanceAlert from "../components/car/MaintenanceAlert";
+import PricingOptimizer from "../components/car/PricingOptimizer";
+import FleetAIAssistant from "../components/fleet/FleetAIAssistant";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -23,6 +26,7 @@ export default function FleetManager() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [selectedCar, setSelectedCar] = useState(null);
   const [selectedCarForCalendar, setSelectedCarForCalendar] = useState(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -79,6 +83,13 @@ export default function FleetManager() {
             <p className="text-gray-300 text-lg">Manage your rental car fleet efficiently</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={() => setShowAIAssistant(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Brain className="w-4 h-4 mr-2" />
+              AI Assistant
+            </Button>
             <Button
               onClick={() => setShowBulkUpload(true)}
               variant="outline"
@@ -144,6 +155,12 @@ export default function FleetManager() {
               <div className="text-gray-300 text-sm">Ready to Rent</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* AI-Powered Insights */}
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <MaintenanceAlert cars={myCars} rentals={myRentals} />
+          <PricingOptimizer cars={myCars} rentals={myRentals} />
         </div>
 
         <Tabs defaultValue="fleet" className="space-y-6">
@@ -324,6 +341,22 @@ export default function FleetManager() {
         onSuccess={() => {
           setShowBulkUpload(false);
           queryClient.invalidateQueries(['my-fleet']);
+        }}
+      />
+
+      <FleetAIAssistant
+        open={showAIAssistant}
+        onClose={() => setShowAIAssistant(false)}
+        fleetData={{
+          totalVehicles: myCars.length,
+          available: availableCars.length,
+          rented: myCars.filter(c => c.availability === 'rented').length,
+          maintenance: myCars.filter(c => c.availability === 'maintenance').length,
+          totalRevenue: totalEarnings,
+          activeRentals: activeRentals.length,
+          utilizationRate: myCars.length > 0 ? ((activeRentals.length / myCars.length) * 100).toFixed(1) : 0,
+          recentBookings: myRentals.slice(0, 10),
+          pendingDisputes: myRentals.filter(r => r.status === 'disputed')
         }}
       />
     </div>
