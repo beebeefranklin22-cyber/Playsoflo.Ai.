@@ -633,24 +633,31 @@ Make it legally sound, fair, and industry-standard.`;
                         </Button>
                       </div>
                     ) : (
-                      <>
+                      <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-purple-500/50 transition">
                         <input
                           id="audio-upload"
                           type="file"
-                          accept="audio/*"
-                          onChange={(e) => handleFileUpload(e.target.files?.[0], 'audio')}
+                          accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'audio');
+                          }}
                           className="hidden"
                         />
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => document.getElementById('audio-upload').click()}
-                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document.getElementById('audio-upload')?.click();
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 border-0"
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           Upload Audio File
                         </Button>
-                      </>
+                        <p className="text-gray-400 text-xs mt-2">MP3, WAV, M4A, AAC, OGG</p>
+                      </div>
                     )}
                   </div>
 
@@ -669,24 +676,31 @@ Make it legally sound, fair, and industry-standard.`;
                         </Button>
                       </div>
                     ) : (
-                      <>
+                      <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-blue-500/50 transition">
                         <input
                           id="cover-upload"
                           type="file"
-                          accept="image/*"
-                          onChange={(e) => handleFileUpload(e.target.files?.[0], 'cover')}
+                          accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'cover');
+                          }}
                           className="hidden"
                         />
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => document.getElementById('cover-upload').click()}
-                          className="w-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document.getElementById('cover-upload')?.click();
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 border-0"
                         >
                           <Upload className="w-4 h-4 mr-2" />
                           Upload Cover Art
                         </Button>
-                      </>
+                        <p className="text-gray-400 text-xs mt-2">JPG, PNG, GIF, WEBP</p>
+                      </div>
                     )}
                   </div>
 
