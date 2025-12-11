@@ -118,7 +118,11 @@ export default function ScheduleRideModal({ open, onClose, onSchedule }) {
                   mode="single"
                   selected={scheduledDate}
                   onSelect={setScheduledDate}
-                  disabled={(date) => date < new Date()}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
                   initialFocus
                 />
               </PopoverContent>
