@@ -56,9 +56,10 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
         verified_provider: true
       });
       toast.success("Vehicle added successfully!");
-      onSuccess();
+      if (onSuccess) onSuccess();
     } catch (error) {
-      toast.error("Failed to add vehicle");
+      console.error("Add vehicle error:", error);
+      toast.error("Failed to add vehicle: " + (error.message || "Unknown error"));
     } finally {
       setLoading(false);
     }

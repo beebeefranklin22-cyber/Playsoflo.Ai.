@@ -78,10 +78,13 @@ export default function BulkUploadModal({ open, onClose, onSuccess }) {
       });
 
       toast.success(`Successfully added ${vehicles.length} vehicles!`);
-      setTimeout(() => onSuccess(), 2000);
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+      }, 2000);
     } catch (error) {
       console.error("Bulk upload error:", error);
-      toast.error("Failed to process bulk upload");
+      toast.error("Failed to process bulk upload: " + (error.message || "Unknown error"));
+      setResults({ success: 0, total: 0, error: true });
     } finally {
       setLoading(false);
     }
@@ -151,13 +154,16 @@ export default function BulkUploadModal({ open, onClose, onSuccess }) {
           </div>
 
           {results && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-green-400 mb-2">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-semibold">Upload Complete!</span>
+            <div className={`${results.error ? 'bg-red-500/10 border-red-500/30' : 'bg-green-500/10 border-green-500/30'} rounded-xl p-4`}>
+              <div className={`flex items-center gap-2 mb-2 ${results.error ? 'text-red-400' : 'text-green-400'}`}>
+                {results.error ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                <span className="font-semibold">{results.error ? 'Upload Failed' : 'Upload Complete!'}</span>
               </div>
               <p className="text-gray-300 text-sm">
-                Successfully added {results.success} out of {results.total} vehicles
+                {results.error 
+                  ? 'Please check your CSV format and try again' 
+                  : `Successfully added ${results.success} out of ${results.total} vehicles`
+                }
               </p>
             </div>
           )}

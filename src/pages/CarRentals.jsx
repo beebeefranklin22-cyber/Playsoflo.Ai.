@@ -15,6 +15,7 @@ import {
   ChevronLeft, FileText, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 
@@ -144,17 +145,29 @@ export default function CarRentals() {
 
   const handleDocumentUpload = async (file, field) => {
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setBookingForm(prev => ({ ...prev, [field]: file_url }));
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setBookingForm(prev => ({ ...prev, [field]: file_url }));
+      toast.success("Document uploaded");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload document");
+    }
   };
 
   const handleDamagePhotoUpload = async (file) => {
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setDamageForm(prev => ({ 
-      ...prev, 
-      photos: [...prev.photos, file_url] 
-    }));
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setDamageForm(prev => ({ 
+        ...prev, 
+        photos: [...prev.photos, file_url] 
+      }));
+      toast.success("Damage photo uploaded");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload photo");
+    }
   };
 
   const calculateTotalCost = () => {
@@ -1066,10 +1079,14 @@ export default function CarRentals() {
           onComplete={(data) => {
             setShowPhotoDoc(false);
             if (photoDocStage === 'pre') {
-              alert('Pre-rental inspection complete! You can now pick up the vehicle.');
+              toast.success('Pre-rental inspection complete! You can now pick up the vehicle.');
               navigate(createPageUrl("Messages"));
             } else {
-              alert('Post-rental inspection complete! Thank you for renting with us.');
+              if (data.comparison && data.comparison.new_damages_count > 0) {
+                toast.warning(`Post-rental inspection complete. ${data.comparison.new_damages_count} new damage(s) detected.`);
+              } else {
+                toast.success('Post-rental inspection complete! Vehicle returned in good condition.');
+              }
               queryClient.invalidateQueries(['my-rentals']);
             }
           }}

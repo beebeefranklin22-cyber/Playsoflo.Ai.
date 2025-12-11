@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { Camera, X, Upload, CheckCircle, AlertTriangle } from "lucide-react";
+import { Camera, X, Upload, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function VehiclePhotoDocumentation({ open, onClose, rental, stage, onComplete }) {

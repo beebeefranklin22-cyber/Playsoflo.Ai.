@@ -31,9 +31,10 @@ export default function EditCarModal({ open, onClose, car, onSuccess }) {
         price: parseFloat(formData.price)
       });
       toast.success("Vehicle updated!");
-      onSuccess();
+      if (onSuccess) onSuccess();
     } catch (error) {
-      toast.error("Failed to update vehicle");
+      console.error("Update vehicle error:", error);
+      toast.error("Failed to update vehicle: " + (error.message || "Unknown error"));
     } finally {
       setLoading(false);
     }

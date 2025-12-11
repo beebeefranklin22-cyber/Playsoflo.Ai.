@@ -10,6 +10,7 @@ import {
   Calendar, Settings, Eye, Edit, Trash2, Upload, Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import AddCarModal from "../components/car/AddCarModal";
 import EditCarModal from "../components/car/EditCarModal";
 import BulkUploadModal from "../components/car/BulkUploadModal";
@@ -64,6 +65,11 @@ export default function FleetManager() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['my-fleet']);
+      toast.success("Vehicle deleted successfully");
+    },
+    onError: (error) => {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete vehicle");
     }
   });
 
