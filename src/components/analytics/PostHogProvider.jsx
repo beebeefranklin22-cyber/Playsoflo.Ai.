@@ -19,11 +19,11 @@ export function PostHogProvider({ children, user }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      posthog.identify(user.email, {
-        email: user.email,
-        name: user.full_name,
-        role: user.role
+    if (user?.email) {
+      posthog.identify(String(user.email), {
+        email: String(user.email || ''),
+        name: String(user.full_name || ''),
+        role: String(user.role || 'user')
       });
     }
   }, [user]);
