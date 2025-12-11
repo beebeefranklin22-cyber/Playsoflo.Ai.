@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import RatingModal from "../ride/RatingModal";
 import CancellationModal from "../ride/CancellationModal";
+import PassengerVerificationModal from "../ride/PassengerVerificationModal";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -17,6 +18,7 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
   const [showMap, setShowMap] = React.useState(false);
   const [showCancelModal, setShowCancelModal] = React.useState(false);
   const [showPreferences, setShowPreferences] = React.useState(false);
+  const [showVerification, setShowVerification] = React.useState(false);
 
   // Fetch customer preferences
   const { data: customerData } = useQuery({
@@ -300,13 +302,15 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
               </Button>
             </div>
           ) : ride.status === 'en_route' ? (
-            <Button
-              onClick={() => handleStatusUpdate('accepted', 'Driver Arrived', 'Your driver has arrived at the pickup location')}
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {loading ? "Updating..." : "I've Arrived"}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={() => setShowVerification(true)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Verify Passenger & Start
+              </Button>
+            </div>
           ) : ride.status === 'accepted' ? (
             <div className="space-y-2">
               <Button
@@ -338,6 +342,16 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
               }}
               ride={ride}
               userType="driver"
+            />
+          )}
+
+          {/* Passenger Verification Modal */}
+          {showVerification && (
+            <PassengerVerificationModal
+              open={showVerification}
+              onClose={() => setShowVerification(false)}
+              ride={ride}
+              onVerified={() => handleStatusUpdate('accepted', 'Driver Arrived', 'Your driver has arrived and verified your identity')}
             />
           )}
         </CardContent>

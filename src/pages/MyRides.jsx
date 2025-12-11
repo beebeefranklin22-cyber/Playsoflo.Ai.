@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  MapPin, Clock, Users, Share2, X,
-  CheckCircle, ArrowRight, Crown, Star, MessageCircle
+  MapPin, Clock, DollarSign, Users, Share2, X,
+  CheckCircle, ArrowRight, Copy, Crown, Star, MessageCircle,
+  Settings, Calendar, Gift, Heart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import RideTrackingMap from "../components/ride/RideTrackingMap";
 import RatingModal from "../components/ride/RatingModal";
 import RideChatModal from "../components/chat/RideChatModal";
 import CancellationModal from "../components/ride/CancellationModal";
+import RidePreferencesModal from "../components/ride/RidePreferencesModal";
+import ScheduleRideModal from "../components/ride/ScheduleRideModal";
+import GiftRideModal from "../components/ride/GiftRideModal";
+import TipButton from "../components/TipButton";
 
 export default function MyRides() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -21,6 +26,9 @@ export default function MyRides() {
   const [ratingRide, setRatingRide] = useState(null);
   const [chatRide, setChatRide] = useState(null);
   const [cancelRide, setCancelRide] = useState(null);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showGiftRide, setShowGiftRide] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -43,6 +51,27 @@ export default function MyRides() {
     mutationFn: async (rideId) => {
       await base44.entities.RideRequest.update(rideId, {
         status: "declined_by_customer"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-rides']);
+    }
+  });
+
+  const scheduleRideMutation = useMutation({
+    mutationFn: async (rideData) => {
+      const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+      return await base44.entities.RideRequest.create({
+        ...rideData,
+        ride_type: "car",
+        status: "scheduled",
+        passenger_verification_code: verificationCode,
+        rider_preferences: currentUser?.ride_preferences || {},
+        fare_breakdown: {
+          total_fare: 15,
+          base_fare: 5,
+          distance_fare: 10
+        }
       });
     },
     onSuccess: () => {
@@ -101,10 +130,40 @@ export default function MyRides() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-4xl font-bold text-white mb-2">My Rides</h1>
-          <p className="text-gray-300 text-lg">
-            Track and manage your ride requests
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">My Rides</h1>
+              <p className="text-gray-300 text-lg">
+                Track and manage your ride requests
+              </p>
+            </div>
+            <Button
+              onClick={() => setShowPreferences(true)}
+              variant="outline"
+              className="bg-white/5 border-white/20"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Preferences
+            </Button>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              onClick={() => setShowSchedule(true)}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              <Calendar className="w-5 h-5 mr-2" />
+              Schedule Ride
+            </Button>
+            <Button
+              onClick={() => setShowGiftRide(true)}
+              className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700"
+            >
+              <Gift className="w-5 h-5 mr-2" />
+              Gift a Ride
+            </Button>
+          </div>
         </motion.div>
 
         <Tabs defaultValue="active" className="space-y-6">
@@ -319,14 +378,26 @@ export default function MyRides() {
                       </div>
                     </div>
                     
-                    <Button
-                      onClick={() => setRatingRide(ride)}
-                      size="sm"
-                      className="w-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/30"
-                    >
-                      <Star className="w-4 h-4 mr-2" />
-                      Rate Driver
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setRatingRide(ride)}
+                        size="sm"
+                        className="flex-1 bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/30"
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Rate
+                      </Button>
+                      {ride.driver_email && (
+                        <TipButton
+                          creatorEmail={ride.driver_email}
+                          creatorName={ride.driver_email}
+                          contentId={ride.id}
+                          variant="outline"
+                          size="sm"
+                          showAmount={true}
+                        />
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -397,6 +468,27 @@ export default function MyRides() {
           userType="passenger"
         />
       )}
+
+      {/* Preferences Modal */}
+      <RidePreferencesModal
+        open={showPreferences}
+        onClose={() => setShowPreferences(false)}
+        currentUser={currentUser}
+        onSave={() => queryClient.invalidateQueries(['my-rides'])}
+      />
+
+      {/* Schedule Ride Modal */}
+      <ScheduleRideModal
+        open={showSchedule}
+        onClose={() => setShowSchedule(false)}
+        onSchedule={(rideData) => scheduleRideMutation.mutate(rideData)}
+      />
+
+      {/* Gift Ride Modal */}
+      <GiftRideModal
+        open={showGiftRide}
+        onClose={() => setShowGiftRide(false)}
+      />
     </div>
   );
 }
