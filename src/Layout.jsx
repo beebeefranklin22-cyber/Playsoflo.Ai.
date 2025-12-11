@@ -68,7 +68,6 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { icon: Brain, label: "Ronron", path: "RonronAI" },
     { icon: Home, label: "Home", path: "Home" },
-    { icon: Users, label: "Discover", path: "CreatorDiscovery" },
     { icon: Music, label: "Music", path: "Vibe" },
     { icon: Globe, label: "Universe", path: "Universe" },
     { icon: Wallet, label: "Wallet", path: "Wallet" },
