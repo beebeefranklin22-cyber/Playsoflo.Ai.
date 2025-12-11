@@ -70,6 +70,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Home, label: "Home", path: "Home" },
     { icon: Users, label: "Discover", path: "CreatorDiscovery" },
     { icon: Music, label: "Music", path: "Vibe" },
+    { icon: Globe, label: "Universe", path: "Universe" },
     { icon: Wallet, label: "Wallet", path: "Wallet" },
     { icon: User, label: "Profile", path: "Profile" },
   ];
@@ -174,7 +175,13 @@ export default function Layout({ children, currentPageName }) {
             )}
 
             <button
-              onClick={() => navigate(createPageUrl("Profile"))}
+              onClick={() => {
+                if (currentUser?.email) {
+                  navigate(createPageUrl("UserProfile") + `?user=${encodeURIComponent(currentUser.email)}`);
+                } else {
+                  navigate(createPageUrl("Profile"));
+                }
+              }}
               className="flex-shrink-0"
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">

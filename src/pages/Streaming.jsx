@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { 
   Play, ChevronLeft, Tv, Gamepad2, Music, Radio,
-  TrendingUp, Clock, Users
+  TrendingUp, Clock, Users, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -58,14 +57,41 @@ export default function Streaming() {
         </div>
       </div>
 
-      {/* New Creator Monetization Section */}
-      <div className="px-6 mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Creator Monetization</h2>
-        <a href={createPageUrl("CreatorHub")} className="px-4 py-2 rounded-full bg-red-500 text-white font-semibold hover:bg-red-600">
-          Open Creator Hub
-        </a>
+      {/* Content Discovery Section */}
+      <div className="px-6 mb-8">
+        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl p-6 border border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">Discover Content</h2>
+              <p className="text-gray-300">Personalized recommendations based on your interests</p>
+            </div>
+            <Button
+              onClick={() => navigate(createPageUrl("PersonalizedFeed"))}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Explore
+            </Button>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="text-center p-4 bg-white/5 rounded-xl">
+              <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
+              <p className="text-white font-bold text-lg">2.4M</p>
+              <p className="text-gray-400 text-xs">Trending Now</p>
+            </div>
+            <div className="text-center p-4 bg-white/5 rounded-xl">
+              <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+              <p className="text-white font-bold text-lg">850K</p>
+              <p className="text-gray-400 text-xs">Creators</p>
+            </div>
+            <div className="text-center p-4 bg-white/5 rounded-xl">
+              <Play className="w-8 h-8 text-pink-400 mx-auto mb-2" />
+              <p className="text-white font-bold text-lg">15K</p>
+              <p className="text-gray-400 text-xs">Live Streams</p>
+            </div>
+          </div>
+        </div>
       </div>
-      {/* End New Creator Monetization Section */}
 
       {liveContent.length > 0 && (
         <div className="px-6 mb-8">
