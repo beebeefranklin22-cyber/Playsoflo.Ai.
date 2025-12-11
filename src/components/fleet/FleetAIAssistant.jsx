@@ -51,22 +51,23 @@ As a fleet management AI assistant, provide helpful, actionable advice. Be speci
 
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
     } catch (error) {
+      console.error("AI Assistant error:", error);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "I apologize, but I encountered an error. Please try again." 
+        content: "I apologize, but I encountered an error processing your request. Please try again or rephrase your question." 
       }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const quickActions = [
+  const quickActions = fleetData ? [
     "How can I increase my utilization rate?",
     "What pricing should I set for peak season?",
     "Help me resolve a damage dispute",
     "When should I schedule maintenance?",
     "Analyze my fleet performance"
-  ];
+  ] : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

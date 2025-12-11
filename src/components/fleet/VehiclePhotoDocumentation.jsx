@@ -129,13 +129,19 @@ Return JSON:
       setAiAnalysis(analysis);
 
       // If post-rental, compare with pre-rental photos
-      if (stage === 'post' && rental.pre_rental_photos) {
-        await comparePhotos(rental.pre_rental_photos, photos);
+      if (stage === 'post' && rental.pre_rental_photos && rental.pre_rental_photos.length > 0) {
+        try {
+          await comparePhotos(rental.pre_rental_photos, photos);
+        } catch (compareError) {
+          console.error("Comparison error:", compareError);
+          toast.error("Photo comparison failed, but analysis completed");
+        }
       }
 
       toast.success("AI analysis complete!");
     } catch (error) {
-      toast.error("Failed to analyze photos");
+      console.error("Analysis error:", error);
+      toast.error("Failed to analyze photos: " + (error.message || "Unknown error"));
     } finally {
       setUploading(false);
     }
@@ -228,22 +234,27 @@ Return JSON:
       return;
     }
 
-    // Save documentation
-    await base44.entities.CarRental.update(rental.id, {
-      [`${stage}_rental_photos`]: photos,
-      [`${stage}_rental_videos`]: videos,
-      [`${stage}_rental_inspection`]: {
-        ...aiAnalysis,
-        completed_at: new Date().toISOString()
-      },
-      ...(comparison && {
-        photo_comparison: comparison,
-        new_damages_detected: comparison.new_damages_count > 0
-      })
-    });
+    try {
+      // Save documentation
+      await base44.entities.CarRental.update(rental.id, {
+        [`${stage}_rental_photos`]: photos,
+        [`${stage}_rental_videos`]: videos,
+        [`${stage}_rental_inspection`]: {
+          ...aiAnalysis,
+          completed_at: new Date().toISOString()
+        },
+        ...(comparison && {
+          photo_comparison: comparison,
+          new_damages_detected: comparison.new_damages_count > 0
+        })
+      });
 
-    toast.success("Documentation saved!");
-    onComplete({ photos, videos, analysis: aiAnalysis, comparison });
+      toast.success("Documentation saved!");
+      onComplete({ photos, videos, analysis: aiAnalysis, comparison });
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save documentation: " + (error.message || "Unknown error"));
+    }
   };
 
   return (

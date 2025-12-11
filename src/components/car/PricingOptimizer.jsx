@@ -94,6 +94,7 @@ Return JSON:
       setSuggestions(analysis);
     } catch (error) {
       console.error("Pricing analysis error:", error);
+      setSuggestions({ suggestions: [], marketInsight: "Analysis temporarily unavailable" });
     } finally {
       setLoading(false);
     }

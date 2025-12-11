@@ -86,6 +86,7 @@ Return JSON:
       setAlerts(analysis);
     } catch (error) {
       console.error("Maintenance analysis error:", error);
+      setAlerts({ alerts: [], summary: "Analysis temporarily unavailable" });
     } finally {
       setLoading(false);
     }

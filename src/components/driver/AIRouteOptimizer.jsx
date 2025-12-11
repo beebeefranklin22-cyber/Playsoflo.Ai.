@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 export default function AIRouteOptimizer({ currentLocation, isOnline }) {
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isOnline && currentLocation) {
@@ -89,12 +90,24 @@ Return as JSON: {
                   demand: { type: "string" },
                   earnings: { type: "number" },
                   waitTime: { type: "number" },
-                  tip: { type: "string" }
+                  tip: { type: "string" },
+                  demandScore: { type: "number" }
                 }
               }
             },
+            demand_heatmap: {
+              type: "object",
+              properties: {
+                high: { type: "array", items: { type: "string" } },
+                medium: { type: "array", items: { type: "string" } },
+                low: { type: "array", items: { type: "string" } }
+              }
+            },
             peakAdvice: { type: "string" },
-            trafficAlert: { type: "string" }
+            trafficAlert: { type: "string" },
+            demandHeatmap: { type: "string" },
+            earnings_potential: { type: "string" },
+            surge_zones: { type: "string" }
           }
         }
       });
@@ -102,6 +115,7 @@ Return as JSON: {
       setRecommendations(analysis);
     } catch (error) {
       console.error("Route optimization error:", error);
+      setError("Failed to analyze routes. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -132,6 +146,18 @@ Return as JSON: {
           <div className="text-center py-8">
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-2" />
             <p className="text-gray-400 text-sm">Analyzing demand patterns...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+            <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+            <p className="text-red-300 text-sm">{error}</p>
+            <Button
+              onClick={analyzeRoutes}
+              size="sm"
+              className="mt-3 bg-purple-600 hover:bg-purple-700"
+            >
+              Retry
+            </Button>
           </div>
         ) : recommendations ? (
           <div className="space-y-4">

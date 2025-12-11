@@ -73,6 +73,7 @@ export default function FleetManager() {
     .reduce((sum, r) => sum + (r.total_amount || 0), 0);
   
   const availableCars = myCars.filter(c => c.availability === 'available');
+  const utilizationRate = myCars.length > 0 ? ((activeRentals.length / myCars.length) * 100).toFixed(1) : 0;
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950 pb-20">
@@ -354,7 +355,7 @@ export default function FleetManager() {
           maintenance: myCars.filter(c => c.availability === 'maintenance').length,
           totalRevenue: totalEarnings,
           activeRentals: activeRentals.length,
-          utilizationRate: myCars.length > 0 ? ((activeRentals.length / myCars.length) * 100).toFixed(1) : 0,
+          utilizationRate: utilizationRate,
           recentBookings: myRentals.slice(0, 10),
           pendingDisputes: myRentals.filter(r => r.status === 'disputed')
         }}

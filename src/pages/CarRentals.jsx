@@ -221,10 +221,12 @@ export default function CarRentals() {
 
   const handlePaymentSuccess = async () => {
     setShowPaymentModal(false);
-    // Trigger pre-rental photo documentation
-    setPhotoDocRental(selectedRental);
-    setPhotoDocStage('pre');
-    setShowPhotoDoc(true);
+    if (selectedRental) {
+      // Trigger pre-rental photo documentation
+      setPhotoDocRental(selectedRental);
+      setPhotoDocStage('pre');
+      setShowPhotoDoc(true);
+    }
   };
 
   return (
