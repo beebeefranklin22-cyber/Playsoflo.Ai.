@@ -12,6 +12,7 @@ import {
   Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import RideRequestCard from "../components/driver/RideRequestCard";
 import DriverLocationTracker from "../components/driver/DriverLocationTracker";
 import RideChatModal from "../components/chat/RideChatModal";
@@ -21,6 +22,7 @@ import EarningsChart from "../components/driver/EarningsChart";
 import AIDriverAssistant from "../components/driver/AIDriverAssistant";
 import AIRouteOptimizer from "../components/driver/AIRouteOptimizer";
 import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
+import DisputeResolutionModal from "../components/driver/DisputeResolutionModal";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -30,6 +32,7 @@ export default function DriverHub() {
   const [showProfile, setShowProfile] = useState(false);
   const [navRide, setNavRide] = useState(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [disputeRide, setDisputeRide] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -228,22 +231,22 @@ export default function DriverHub() {
             </div>
             
             <div className="flex gap-2">
-              <Button
-                onClick={() => setShowAIAssistant(true)}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                AI Assistant
-              </Button>
-              <Button
-                onClick={() => setShowProfile(true)}
-                variant="outline"
-                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-              >
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Button>
-            </div>
+                              <Button
+                                onClick={() => setShowAIAssistant(true)}
+                                className="bg-purple-600 hover:bg-purple-700"
+                              >
+                                <Brain className="w-4 h-4 mr-2" />
+                                AI Assistant
+                              </Button>
+                              <Button
+                                onClick={() => setShowProfile(true)}
+                                variant="outline"
+                                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+                              >
+                                <User className="w-4 h-4 mr-2" />
+                                Profile
+                              </Button>
+                            </div>
             
             {/* Online/Offline Toggle */}
             <Card className={`${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
@@ -370,7 +373,24 @@ export default function DriverHub() {
                   <Zap className="w-4 h-4 mr-2" />
                   Instant Cash Out
                 </Button>
-              </div>
+                </div>
+
+                {/* Dispute Resolution Access */}
+                <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
+                <div className="text-white/80 text-sm mb-2">Need Help?</div>
+                <Button
+                  onClick={() => {
+                    const lastRide = recentRides.find(r => r.status === 'completed');
+                    if (lastRide) setDisputeRide(lastRide);
+                    else toast.error("No completed rides to dispute");
+                  }}
+                  variant="outline"
+                  className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  File a Dispute
+                </Button>
+                </div>
 
               <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                 <div className="text-white/80 text-sm mb-1">Today's Earnings</div>
@@ -759,7 +779,16 @@ export default function DriverHub() {
         open={showAIAssistant}
         onClose={() => setShowAIAssistant(false)}
       />
+
+      {/* Dispute Resolution */}
+      {disputeRide && (
+        <DisputeResolutionModal
+          open={!!disputeRide}
+          onClose={() => setDisputeRide(null)}
+          ride={disputeRide}
+        />
+      )}
       </div>
-    </>
-  );
-}
+      </>
+      );
+      }

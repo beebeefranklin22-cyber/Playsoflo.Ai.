@@ -19,6 +19,7 @@ import AvailabilityCalendar from "../components/car/AvailabilityCalendar";
 import MaintenanceAlert from "../components/car/MaintenanceAlert";
 import PricingOptimizer from "../components/car/PricingOptimizer";
 import FleetAIAssistant from "../components/fleet/FleetAIAssistant";
+import FleetDisputeResolution from "../components/fleet/FleetDisputeResolution";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
