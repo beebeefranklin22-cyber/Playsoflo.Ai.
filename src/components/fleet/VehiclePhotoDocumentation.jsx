@@ -7,8 +7,11 @@ import { toast } from "sonner";
 
 export default function VehiclePhotoDocumentation({ open, onClose, rental, stage, onComplete }) {
   const [photos, setPhotos] = useState([]);
+  const [videos, setVideos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [comparison, setComparison] = useState(null);
+  const [comparing, setComparing] = useState(false);
 
   const requiredAngles = [
     { id: "front", label: "Front View", icon: "🚗" },
@@ -41,6 +44,26 @@ export default function VehiclePhotoDocumentation({ open, onClose, rental, stage
     }
   };
 
+  const handleVideoUpload = async (file) => {
+    if (!file) return;
+    
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      setVideos(prev => [...prev, {
+        url: file_url,
+        timestamp: new Date().toISOString()
+      }]);
+
+      toast.success("Video walkaround uploaded");
+    } catch (error) {
+      toast.error("Failed to upload video");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const analyzePhotos = async () => {
     setUploading(true);
     try {
@@ -48,47 +71,149 @@ export default function VehiclePhotoDocumentation({ open, onClose, rental, stage
         prompt: `Analyze these vehicle photos for a ${stage === 'pre' ? 'PRE-RENTAL' : 'POST-RENTAL'} inspection.
 
 Photos: ${photos.length} uploaded
+Videos: ${videos.length} walkarounds
 Stage: ${stage === 'pre' ? 'Before rental starts' : 'After rental completed'}
 
 Provide detailed analysis:
 1. Overall vehicle condition (1-10)
-2. Any visible damage, scratches, dents
+2. Any visible damage, scratches, dents, with specific locations
 3. Interior cleanliness and condition
 4. Dashboard/mileage reading (if visible)
-5. Comparison notes if this is post-rental
-6. Recommendations
+5. Exterior condition (paint, body, glass)
+6. Tire condition
+7. Recommendations
 
 Return JSON:
 {
   "condition_score": 8,
-  "damages_detected": ["Minor scratch on front bumper"],
+  "damages_detected": [
+    {"location": "Front bumper", "severity": "Minor", "description": "Small scratch"}
+  ],
   "cleanliness": "Good",
   "mileage": "45,230 miles",
+  "exterior_condition": "Excellent",
+  "interior_condition": "Good",
+  "tire_condition": "Good tread depth",
   "recommendations": "Vehicle is in good condition",
-  "pre_post_comparison": "If post-rental, note any changes",
-  "dispute_risk": "Low/Medium/High"
+  "confidence_score": 95,
+  "dispute_risk": "Low"
 }`,
-        file_urls: photos.map(p => p.url),
+        file_urls: [...photos.map(p => p.url), ...videos.map(v => v.url)],
         response_json_schema: {
           type: "object",
           properties: {
             condition_score: { type: "number" },
-            damages_detected: { type: "array", items: { type: "string" } },
+            damages_detected: { 
+              type: "array", 
+              items: { 
+                type: "object",
+                properties: {
+                  location: { type: "string" },
+                  severity: { type: "string" },
+                  description: { type: "string" }
+                }
+              }
+            },
             cleanliness: { type: "string" },
             mileage: { type: "string" },
+            exterior_condition: { type: "string" },
+            interior_condition: { type: "string" },
+            tire_condition: { type: "string" },
             recommendations: { type: "string" },
-            pre_post_comparison: { type: "string" },
+            confidence_score: { type: "number" },
             dispute_risk: { type: "string" }
           }
         }
       });
 
       setAiAnalysis(analysis);
+
+      // If post-rental, compare with pre-rental photos
+      if (stage === 'post' && rental.pre_rental_photos) {
+        await comparePhotos(rental.pre_rental_photos, photos);
+      }
+
       toast.success("AI analysis complete!");
     } catch (error) {
       toast.error("Failed to analyze photos");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const comparePhotos = async (prePhotos, postPhotos) => {
+    setComparing(true);
+    try {
+      const comparison = await base44.integrations.Core.InvokeLLM({
+        prompt: `You are an AI damage detection expert. Compare PRE-RENTAL vs POST-RENTAL photos of the same vehicle.
+
+PRE-RENTAL PHOTOS (${prePhotos.length}):
+${JSON.stringify(prePhotos.map(p => ({ angle: p.angle, label: p.label })))}
+
+POST-RENTAL PHOTOS (${postPhotos.length}):
+${JSON.stringify(postPhotos.map(p => ({ angle: p.angle, label: p.label })))}
+
+TASK: Identify NEW damages or changes that occurred during the rental period.
+
+Compare matching angles and provide:
+1. Discrepancies found (new scratches, dents, stains)
+2. Severity of each discrepancy (Minor/Moderate/Major)
+3. Estimated repair cost for each
+4. Overall comparison confidence score (0-100)
+5. Recommendation (Accept return / Investigate further / Charge damage fee)
+
+Return JSON:
+{
+  "discrepancies": [
+    {
+      "angle": "front",
+      "description": "New scratch on front bumper left side",
+      "severity": "Minor",
+      "estimated_cost": 150,
+      "confidence": 92
+    }
+  ],
+  "new_damages_count": 1,
+  "total_estimated_cost": 150,
+  "overall_confidence": 88,
+  "recommendation": "Minor damage detected - suggest $150 deduction from deposit",
+  "comparison_summary": "Vehicle returned in similar condition with minor front bumper damage",
+  "visual_highlights": ["Front bumper area shows new impact"]
+}`,
+        file_urls: [...prePhotos.map(p => p.url), ...postPhotos.map(p => p.url)],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            discrepancies: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  angle: { type: "string" },
+                  description: { type: "string" },
+                  severity: { type: "string" },
+                  estimated_cost: { type: "number" },
+                  confidence: { type: "number" }
+                }
+              }
+            },
+            new_damages_count: { type: "number" },
+            total_estimated_cost: { type: "number" },
+            overall_confidence: { type: "number" },
+            recommendation: { type: "string" },
+            comparison_summary: { type: "string" },
+            visual_highlights: { type: "array", items: { type: "string" } }
+          }
+        }
+      });
+
+      setComparison(comparison);
+      toast.success("Photo comparison complete!");
+    } catch (error) {
+      console.error("Comparison error:", error);
+      toast.error("Failed to compare photos");
+    } finally {
+      setComparing(false);
     }
   };
 
@@ -106,14 +231,19 @@ Return JSON:
     // Save documentation
     await base44.entities.CarRental.update(rental.id, {
       [`${stage}_rental_photos`]: photos,
+      [`${stage}_rental_videos`]: videos,
       [`${stage}_rental_inspection`]: {
         ...aiAnalysis,
         completed_at: new Date().toISOString()
-      }
+      },
+      ...(comparison && {
+        photo_comparison: comparison,
+        new_damages_detected: comparison.new_damages_count > 0
+      })
     });
 
     toast.success("Documentation saved!");
-    onComplete({ photos, analysis: aiAnalysis });
+    onComplete({ photos, videos, analysis: aiAnalysis, comparison });
   };
 
   return (
@@ -187,14 +317,54 @@ Return JSON:
             })}
           </div>
 
+          {/* Video Walkaround */}
+          <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              🎥 Video Walkaround (Optional)
+            </h3>
+            <p className="text-gray-400 text-sm mb-3">
+              Record a 360° video walkaround for comprehensive documentation
+            </p>
+            {videos.length > 0 ? (
+              <div className="space-y-2">
+                {videos.map((video, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-white/5 rounded-lg p-3">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span className="text-white text-sm">Video {idx + 1} uploaded</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <input
+                  id="video-upload"
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  onChange={(e) => handleVideoUpload(e.target.files?.[0])}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => document.getElementById('video-upload').click()}
+                  disabled={uploading}
+                  variant="outline"
+                  className="w-full bg-white/5 border-white/20"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Video Walkaround
+                </Button>
+              </>
+            )}
+          </div>
+
           {photos.length >= 4 && !aiAnalysis && (
             <Button
               onClick={analyzePhotos}
-              disabled={uploading}
+              disabled={uploading || comparing}
               className="w-full bg-purple-600 hover:bg-purple-700"
             >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Run AI Analysis
+              {comparing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <AlertTriangle className="w-4 h-4 mr-2" />}
+              {comparing ? "Analyzing & Comparing..." : "Run AI Analysis"}
             </Button>
           )}
 
@@ -205,10 +375,14 @@ Return JSON:
                 🤖 AI Analysis Results
               </h3>
               
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="grid md:grid-cols-3 gap-4 mb-4">
                 <div className="bg-white/10 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Condition Score</p>
                   <p className="text-white text-3xl font-bold">{aiAnalysis.condition_score}/10</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">Confidence</p>
+                  <p className="text-blue-400 text-3xl font-bold">{aiAnalysis.confidence_score}%</p>
                 </div>
                 <div className="bg-white/10 rounded-lg p-4">
                   <p className="text-gray-400 text-sm mb-1">Dispute Risk</p>
@@ -225,24 +399,134 @@ Return JSON:
               {aiAnalysis.damages_detected?.length > 0 && (
                 <div className="mb-4">
                   <p className="text-gray-400 text-sm mb-2">⚠️ Damages Detected:</p>
-                  <ul className="space-y-1">
+                  <div className="space-y-2">
                     {aiAnalysis.damages_detected.map((damage, idx) => (
-                      <li key={idx} className="text-yellow-400 text-sm">• {damage}</li>
+                      <div key={idx} className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="text-white font-semibold">{damage.location || damage}</p>
+                            <p className="text-gray-400 text-sm">{damage.description || damage}</p>
+                          </div>
+                          {damage.severity && (
+                            <Badge className={
+                              damage.severity === 'Major' ? 'bg-red-500 text-white' :
+                              damage.severity === 'Moderate' ? 'bg-orange-500 text-white' :
+                              'bg-yellow-500/30 text-yellow-300'
+                            }>
+                              {damage.severity}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
-              <div className="space-y-2 text-sm">
-                <p className="text-gray-400">Cleanliness: <span className="text-white font-semibold">{aiAnalysis.cleanliness}</span></p>
+              <div className="grid md:grid-cols-2 gap-3 text-sm mb-4">
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-gray-400 mb-1">Interior</p>
+                  <p className="text-white font-semibold">{aiAnalysis.interior_condition || aiAnalysis.cleanliness}</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-gray-400 mb-1">Exterior</p>
+                  <p className="text-white font-semibold">{aiAnalysis.exterior_condition || 'Good'}</p>
+                </div>
                 {aiAnalysis.mileage && (
-                  <p className="text-gray-400">Mileage: <span className="text-white font-semibold">{aiAnalysis.mileage}</span></p>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-gray-400 mb-1">Mileage</p>
+                    <p className="text-white font-semibold">{aiAnalysis.mileage}</p>
+                  </div>
                 )}
-                <p className="text-gray-300 mt-3">{aiAnalysis.recommendations}</p>
-                {aiAnalysis.pre_post_comparison && stage === 'post' && (
-                  <p className="text-blue-300 mt-3">📊 {aiAnalysis.pre_post_comparison}</p>
+                {aiAnalysis.tire_condition && (
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <p className="text-gray-400 mb-1">Tires</p>
+                    <p className="text-white font-semibold">{aiAnalysis.tire_condition}</p>
+                  </div>
                 )}
               </div>
+              
+              <p className="text-gray-300 text-sm bg-white/5 rounded-lg p-3">{aiAnalysis.recommendations}</p>
+            </div>
+          )}
+
+          {/* Pre/Post Comparison Results */}
+          {comparison && stage === 'post' && (
+            <div className="bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl p-6">
+              <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                🔍 Pre vs Post Rental Comparison
+                <Badge className={
+                  comparison.overall_confidence >= 80 ? 'bg-green-500 text-white' :
+                  comparison.overall_confidence >= 60 ? 'bg-yellow-500 text-white' :
+                  'bg-red-500 text-white'
+                }>
+                  {comparison.overall_confidence}% Confidence
+                </Badge>
+              </h3>
+
+              {comparison.new_damages_count > 0 ? (
+                <>
+                  <div className="bg-red-500/20 border border-red-500/40 rounded-lg p-4 mb-4">
+                    <p className="text-red-300 font-bold mb-2">
+                      ⚠️ {comparison.new_damages_count} New Damage{comparison.new_damages_count > 1 ? 's' : ''} Detected
+                    </p>
+                    <p className="text-white text-2xl font-bold">
+                      Estimated Cost: ${comparison.total_estimated_cost}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    {comparison.discrepancies.map((disc, idx) => (
+                      <div key={idx} className="bg-white/10 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-white font-semibold">{disc.angle?.toUpperCase()}</p>
+                            <p className="text-gray-300 text-sm">{disc.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <Badge className={
+                              disc.severity === 'Major' ? 'bg-red-500 text-white' :
+                              disc.severity === 'Moderate' ? 'bg-orange-500 text-white' :
+                              'bg-yellow-500 text-white'
+                            }>
+                              {disc.severity}
+                            </Badge>
+                            <p className="text-red-400 font-bold mt-1">${disc.estimated_cost}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Detection Confidence</span>
+                          <span className="text-blue-400 font-semibold">{disc.confidence}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {comparison.visual_highlights?.length > 0 && (
+                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 mb-4">
+                      <p className="text-orange-300 text-sm font-semibold mb-2">📸 Visual Highlights:</p>
+                      <ul className="space-y-1">
+                        {comparison.visual_highlights.map((highlight, idx) => (
+                          <li key={idx} className="text-orange-200 text-sm">• {highlight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <p className="text-blue-300 text-sm font-semibold mb-2">AI Recommendation:</p>
+                    <p className="text-white">{comparison.recommendation}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-green-500/20 border border-green-500/40 rounded-lg p-4">
+                  <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-green-300 font-bold text-center mb-2">
+                    ✅ No New Damages Detected
+                  </p>
+                  <p className="text-gray-300 text-sm text-center">{comparison.comparison_summary}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -256,11 +540,11 @@ Return JSON:
             </Button>
             <Button
               onClick={handleComplete}
-              disabled={photos.length < 4 || !aiAnalysis}
+              disabled={photos.length < 4 || !aiAnalysis || comparing}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              Complete Inspection
+              {comparing ? "Comparing..." : "Complete Inspection"}
             </Button>
           </div>
         </div>
