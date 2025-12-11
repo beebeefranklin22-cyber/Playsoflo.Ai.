@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import BookingModal from "../components/BookingModal";
+import StripePaymentForm from "../components/payment/StripePaymentForm";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -129,6 +130,8 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   const { data: items = [], isLoading, error } = useQuery({
     queryKey: ['marketplace-items'],
@@ -448,27 +451,16 @@ export default function Marketplace() {
                         ) : (
                           <button
                             className="px-6 py-3 bg-green-600 rounded-full text-white font-semibold hover:bg-green-700 transition"
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              const order = await base44.entities.Order.create({
-                                order_type: item.category,
+                              setPendingOrder({
+                                category: item.category,
                                 item_id: String(item.id),
-                                item_title: item.title,
-                                quantity: 1,
-                                total_usd: item.price,
-                                pickup: false,
-                                status: "pending",
+                                title: item.title,
+                                price: item.price,
                                 provider_email: item.created_by || ""
                               });
-                              await base44.entities.Payment.create({
-                                amount_usd: item.price,
-                                method: "rri",
-                                status: "completed",
-                                reference_type: "order",
-                                reference_id: String(order.id),
-                                memo: `Order for ${item.title}`
-                              });
-                              alert("✅ Order placed! You'll receive updates.");
+                              setShowPayment(true);
                             }}
                           >
                             Order Now
@@ -508,6 +500,69 @@ export default function Marketplace() {
             setSelectedService(null);
           }}
         />
+      )}
+
+      {/* Payment Modal for Food Orders */}
+      {showPayment && pendingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <div className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white">Complete Your Order</h2>
+                <button 
+                  onClick={() => {
+                    setShowPayment(false);
+                    setPendingOrder(null);
+                  }}
+                  className="p-2 hover:bg-white/10 rounded-full transition"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+              <p className="text-white/90 mt-2">{pendingOrder.title}</p>
+              <p className="text-white font-bold text-xl mt-1">${pendingOrder.price.toFixed(2)}</p>
+            </div>
+
+            <div className="p-6">
+              <StripePaymentForm
+                amount={pendingOrder.price}
+                referenceType="order"
+                referenceId={pendingOrder.item_id}
+                description={`Food order: ${pendingOrder.title}`}
+                onSuccess={async () => {
+                  try {
+                    const order = await base44.entities.Order.create({
+                      order_type: pendingOrder.category,
+                      item_id: pendingOrder.item_id,
+                      item_title: pendingOrder.title,
+                      quantity: 1,
+                      total_usd: pendingOrder.price,
+                      pickup: false,
+                      status: "confirmed",
+                      provider_email: pendingOrder.provider_email
+                    });
+                    
+                    setShowPayment(false);
+                    setPendingOrder(null);
+                    alert("✅ Order placed successfully! You'll receive updates.");
+                  } catch (error) {
+                    console.error('Order creation error:', error);
+                    alert('Payment succeeded but order failed. Please contact support.');
+                  }
+                }}
+                onError={(error) => {
+                  console.error('Payment error:', error);
+                  alert('Payment failed: ' + (error?.message || 'Unknown error'));
+                }}
+                metadata={{
+                  order_type: pendingOrder.category,
+                  item_title: pendingOrder.title,
+                  provider_email: pendingOrder.provider_email
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`

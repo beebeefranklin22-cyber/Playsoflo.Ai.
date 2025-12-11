@@ -10,6 +10,7 @@ import {
   X, Calendar, Clock, MapPin, DollarSign, Check,
   AlertCircle, Loader2, User, Phone, Mail, Users, Bell, Sparkles, Send
 } from "lucide-react";
+import StripePaymentForm from "@/components/payment/StripePaymentForm";
 
 export default function BookingModal({ service, onClose }) {
   const queryClient = useQueryClient();
@@ -35,6 +36,8 @@ export default function BookingModal({ service, onClose }) {
   const [aiMessages, setAiMessages] = useState([]);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingBooking, setPendingBooking] = useState(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -244,8 +247,10 @@ export default function BookingModal({ service, onClose }) {
 
     const totalPrice = service.price * duration;
     const location = locationType === 'customer_location' ? customerAddress : service.location || "Provider's location";
+    const amountToPay = paymentOption === 'layaway' ? totalPrice * 0.25 : totalPrice;
 
-    createBookingMutation.mutate({
+    // Store booking data and show payment
+    setPendingBooking({
       service_id: service.id,
       service_title: service.title,
       provider_email: service.created_by,
@@ -259,8 +264,20 @@ export default function BookingModal({ service, onClose }) {
       customer_notes: customerNotes,
       payment_option: paymentOption,
       group_size: paymentOption === 'group' ? groupSize : 1,
-      amount_paid: paymentOption === 'layaway' ? totalPrice * 0.25 : totalPrice
+      amount_paid: amountToPay
     });
+    
+    setShowPayment(true);
+  };
+
+  const handlePaymentSuccess = async () => {
+    try {
+      // Create booking after successful payment
+      createBookingMutation.mutate(pendingBooking);
+    } catch (error) {
+      console.error('Booking creation error:', error);
+      alert('Payment succeeded but booking failed. Please contact support.');
+    }
   };
 
   // Get next 30 days for date selection
@@ -634,8 +651,58 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
               </motion.div>
             )}
 
+            {/* Payment Step */}
+            {showPayment && pendingBooking && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-6">
+                  <h4 className="text-white font-semibold mb-2">Payment Required</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-300">Amount to pay now:</span>
+                    <span className="text-white font-bold text-lg">
+                      ${pendingBooking.amount_paid.toFixed(2)}
+                    </span>
+                  </div>
+                  {paymentOption === 'layaway' && (
+                    <p className="text-gray-400 text-xs mt-2">
+                      Remaining balance: ${(pendingBooking.total_price - pendingBooking.amount_paid).toFixed(2)} due before appointment
+                    </p>
+                  )}
+                </div>
+
+                <StripePaymentForm
+                  amount={pendingBooking.amount_paid}
+                  referenceType="booking"
+                  referenceId={service.id}
+                  description={`${service.title} - ${selectedDate} at ${selectedTime}`}
+                  onSuccess={handlePaymentSuccess}
+                  onError={(error) => {
+                    console.error('Payment error:', error);
+                    alert('Payment failed: ' + (error?.message || 'Unknown error'));
+                  }}
+                  metadata={{
+                    service_title: service.title,
+                    booking_date: selectedDate,
+                    booking_time: selectedTime,
+                    provider_email: service.created_by
+                  }}
+                />
+
+                <Button
+                  onClick={() => setShowPayment(false)}
+                  variant="outline"
+                  className="w-full bg-white/5"
+                >
+                  Back to Details
+                </Button>
+              </motion.div>
+            )}
+
             {/* Step 2: Details */}
-            {step === 2 && (
+            {step === 2 && !showPayment && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
