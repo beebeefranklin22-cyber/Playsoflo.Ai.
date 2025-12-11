@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   DollarSign, TrendingUp, Clock, Star, Zap, Award,
   MapPin, ArrowUpRight, Activity, Target, Gift,
-  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain
+  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
