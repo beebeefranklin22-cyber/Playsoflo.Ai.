@@ -63,6 +63,7 @@ import PersonalizedFeed from './pages/PersonalizedFeed';
 import StripeConnectProducts from './pages/StripeConnectProducts';
 import StripeConnectStorefront from './pages/StripeConnectStorefront';
 import EarningsDashboard from './pages/EarningsDashboard';
+import FleetManager from './pages/FleetManager';
 import __Layout from './Layout.jsx';
 
 
@@ -132,6 +133,7 @@ export const PAGES = {
     "StripeConnectProducts": StripeConnectProducts,
     "StripeConnectStorefront": StripeConnectStorefront,
     "EarningsDashboard": EarningsDashboard,
+    "FleetManager": FleetManager,
 }
 
 export const pagesConfig = {
