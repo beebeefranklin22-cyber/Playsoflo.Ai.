@@ -164,13 +164,24 @@ export default function NavigationModal({ open, onClose, ride }) {
               </div>
             ) : (
               <MapContainer
-                center={ride.pickup_coords || [25.7617, -80.1918]}
+                center={
+                  ride.pickup_coords && Array.isArray(ride.pickup_coords) && ride.pickup_coords.length === 2
+                    ? ride.pickup_coords
+                    : ride.pickup_coords && ride.pickup_coords.lat && ride.pickup_coords.lng
+                    ? [ride.pickup_coords.lat, ride.pickup_coords.lng]
+                    : [25.7617, -80.1918]
+                }
                 zoom={13}
                 style={{ height: "100%", width: "100%" }}
               >
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 
-                {ride.pickup_coords && <Marker position={ride.pickup_coords} />}
+                {ride.pickup_coords && ride.pickup_coords.lat && ride.pickup_coords.lng && (
+                  <Marker position={[ride.pickup_coords.lat, ride.pickup_coords.lng]} />
+                )}
+                {ride.pickup_coords && Array.isArray(ride.pickup_coords) && ride.pickup_coords.length === 2 && (
+                  <Marker position={ride.pickup_coords} />
+                )}
                 
                 {routeCoordinates.length > 0 && (
                   <Polyline 
