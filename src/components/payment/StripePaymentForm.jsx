@@ -16,6 +16,12 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [elementsReady, setElementsReady] = useState(false);
 
+  console.log('=== CHECKOUT FORM RENDER ===');
+  console.log('Stripe loaded:', !!stripe);
+  console.log('Elements loaded:', !!elements);
+  console.log('Elements ready:', elementsReady);
+  console.log('Amount:', amount);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 

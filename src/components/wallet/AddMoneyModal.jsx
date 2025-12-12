@@ -14,6 +14,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
 
+  console.log('=== ADD MONEY MODAL RENDER ===');
+  console.log('Current step:', step);
+  console.log('Amount:', amount);
+  console.log('Current user:', currentUser?.email);
+
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async () => {
@@ -51,9 +56,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   };
 
   const handleContinue = () => {
+    console.log('=== CONTINUE CLICKED ===');
+    console.log('Amount:', amount);
+    console.log('Current step:', step);
+    
     if (amount && parseFloat(amount) > 0) {
+      console.log('✅ Valid amount, moving to step 2');
       setPaymentError(null);
       setStep(2);
+    } else {
+      console.log('❌ Invalid amount');
     }
   };
 
