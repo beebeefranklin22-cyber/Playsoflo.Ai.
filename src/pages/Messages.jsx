@@ -9,10 +9,13 @@ import {
   MessageCircle, Send, Phone, Video, MoreVertical,
   Plus, Search, Image as ImageIcon, Paperclip,
   Smile, Check, CheckCheck, ArrowLeft, Users,
-  X, Camera, Mic, MapPin
+  X, Camera, Mic, MapPin, Edit2, Trash2, FileText,
+  Download, Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoCallModal from "../components/VideoCallModal";
+import MessageReactions from "../components/chat/MessageReactions";
+import { MessageEncryption } from "../components/chat/MessageEncryption";
 import { toast } from "sonner";
 
 export default function Messages() {
@@ -27,7 +30,12 @@ export default function Messages() {
   const [showGroupChat, setShowGroupChat] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editContent, setEditContent] = useState("");
+  const [encryptionEnabled, setEncryptionEnabled] = useState(false);
+  const [encryptionKey, setEncryptionKey] = useState(null);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -60,13 +68,40 @@ export default function Messages() {
     initialData: []
   });
 
+  const { data: presenceData = [] } = useQuery({
+    queryKey: ['user-presence'],
+    queryFn: () => base44.entities.UserPresence.list('-last_seen'),
+    refetchInterval: 5000,
+    initialData: []
+  });
+
+  // Initialize encryption for current conversation
+  useEffect(() => {
+    if (selectedConversation && !selectedConversation.is_group && encryptionEnabled && !encryptionKey) {
+      MessageEncryption.generateKey().then(setEncryptionKey);
+    }
+  }, [selectedConversation, encryptionEnabled]);
+
   const sendMessageMutation = useMutation({
     mutationFn: async (data) => {
-      const message = await base44.entities.ChatMessage.create(data);
+      let messageData = { ...data };
+
+      // Encrypt if enabled and key exists
+      if (encryptionEnabled && encryptionKey && !selectedConversation.is_group) {
+        const encrypted = await MessageEncryption.encrypt(data.content, encryptionKey);
+        messageData = {
+          ...data,
+          content: encrypted.ciphertext,
+          is_encrypted: true,
+          encryption_iv: encrypted.iv
+        };
+      }
+
+      const message = await base44.entities.ChatMessage.create(messageData);
       
       // Update conversation
       await base44.entities.ChatConversation.update(selectedConversation.id, {
-        last_message: data.content,
+        last_message: encryptionEnabled ? "🔒 Encrypted message" : data.content.substring(0, 50),
         last_message_time: new Date().toISOString(),
         last_message_sender: currentUser.email
       });
@@ -81,7 +116,7 @@ export default function Messages() {
           recipient_email: recipient,
           type: "chat_message",
           title: `New message from ${currentUser.full_name || currentUser.email}`,
-          message: data.content.substring(0, 100),
+          message: encryptionEnabled ? "🔒 Encrypted message" : data.content.substring(0, 100),
           reference_type: "conversation",
           reference_id: selectedConversation.id,
           sender_email: currentUser.email,
@@ -99,6 +134,61 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setMessageInput("");
       scrollToBottom();
+    }
+  });
+
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, newContent }) => {
+      return await base44.entities.ChatMessage.update(messageId, {
+        content: newContent,
+        is_edited: true,
+        edited_at: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      setEditingMessage(null);
+      setEditContent("");
+      toast.success('Message updated');
+    }
+  });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId) => {
+      return await base44.entities.ChatMessage.update(messageId, {
+        content: "This message was deleted",
+        is_deleted: true,
+        deleted_at: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      toast.success('Message deleted');
+    }
+  });
+
+  const reactToMessageMutation = useMutation({
+    mutationFn: async ({ messageId, emoji }) => {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) return;
+
+      const reactions = message.reactions || {};
+      const userReactions = reactions[emoji] || [];
+      
+      const hasReacted = userReactions.includes(currentUser.email);
+      const updatedReactions = {
+        ...reactions,
+        [emoji]: hasReacted
+          ? userReactions.filter(email => email !== currentUser.email)
+          : [...userReactions, currentUser.email]
+      };
+
+      return await base44.entities.ChatMessage.update(messageId, {
+        reactions: updatedReactions
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
     }
   });
 
@@ -176,25 +266,120 @@ export default function Messages() {
   const handleFileUpload = async (file) => {
     if (!file || !selectedConversation) return;
 
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      toast.error('File too large. Max size is 50MB');
+      return;
+    }
+
     toast.info('Uploading file...');
     
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
       const messageType = file.type.startsWith('image/') ? 'image' : 
-                         file.type.startsWith('video/') ? 'video' : 'file';
+                         file.type.startsWith('video/') ? 'video' :
+                         file.type.startsWith('audio/') ? 'audio' : 'file';
 
       sendMessageMutation.mutate({
         conversation_id: selectedConversation.id,
         sender_email: currentUser.email,
         content: file.name,
         message_type: messageType,
-        file_url
+        file_url,
+        file_name: file.name,
+        file_size: file.size,
+        file_mime_type: file.type
       });
       
       toast.success('File uploaded!');
     } catch (error) {
       toast.error('Upload failed');
+    }
+  };
+
+  const getUserPresence = (email) => {
+    const presence = presenceData.find(p => p.user_email === email);
+    if (!presence) return 'offline';
+    
+    const lastSeen = new Date(presence.last_seen);
+    const now = new Date();
+    const diffMinutes = (now - lastSeen) / (1000 * 60);
+    
+    if (diffMinutes < 2) return 'online';
+    if (diffMinutes < 10) return 'away';
+    return 'offline';
+  };
+
+  const isUserTyping = (email) => {
+    const presence = presenceData.find(p => p.user_email === email);
+    if (!presence || !presence.typing_to) return false;
+    
+    const typingTo = presence.typing_to;
+    const shouldShowTyping = selectedConversation?.participants.includes(email) && 
+                            typingTo === currentUser?.email;
+    
+    if (!shouldShowTyping) return false;
+    
+    const typingStarted = new Date(presence.typing_started);
+    const now = new Date();
+    const diffSeconds = (now - typingStarted) / 1000;
+    
+    return diffSeconds < 5;
+  };
+
+  // Update typing status
+  useEffect(() => {
+    if (!currentUser || !selectedConversation) return;
+    
+    const updateTypingStatus = async () => {
+      const otherParticipant = selectedConversation.participants.find(p => p !== currentUser.email);
+      if (!otherParticipant) return;
+
+      const presence = presenceData.find(p => p.user_email === currentUser.email);
+      
+      if (messageInput.trim()) {
+        if (presence) {
+          await base44.entities.UserPresence.update(presence.id, {
+            typing_to: otherParticipant,
+            typing_started: new Date().toISOString(),
+            status: 'online',
+            last_seen: new Date().toISOString()
+          });
+        } else {
+          await base44.entities.UserPresence.create({
+            user_email: currentUser.email,
+            user_name: currentUser.full_name,
+            user_photo: currentUser.profile_photo,
+            typing_to: otherParticipant,
+            typing_started: new Date().toISOString(),
+            status: 'online',
+            last_seen: new Date().toISOString()
+          });
+        }
+      } else if (presence?.typing_to) {
+        await base44.entities.UserPresence.update(presence.id, {
+          typing_to: null,
+          typing_started: null
+        });
+      }
+    };
+
+    const timeout = setTimeout(updateTypingStatus, 500);
+    return () => clearTimeout(timeout);
+  }, [messageInput, selectedConversation, currentUser]);
+
+  // Decrypt messages
+  const decryptMessage = async (message) => {
+    if (!message.is_encrypted || !encryptionKey) return message.content;
+    
+    try {
+      return await MessageEncryption.decrypt(
+        { ciphertext: message.content, iv: message.encryption_iv },
+        encryptionKey
+      );
+    } catch (error) {
+      return "🔒 Unable to decrypt message";
     }
   };
 
@@ -300,7 +485,16 @@ export default function Messages() {
                         otherParticipant?.[0]?.toUpperCase() || "U"
                       )}
                     </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900" />
+                    {!conv.is_group && (() => {
+                      const status = getUserPresence(otherParticipant);
+                      return (
+                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-gray-900 ${
+                          status === 'online' ? 'bg-green-500' :
+                          status === 'away' ? 'bg-yellow-500' :
+                          'bg-gray-500'
+                        }`} />
+                      );
+                    })()}
                   </div>
 
                   <div className="flex-1 min-w-0">
@@ -372,18 +566,50 @@ export default function Messages() {
                   </div>
 
                   <div>
-                    <h2 className="text-white font-semibold">
+                    <h2 className="text-white font-semibold flex items-center gap-2">
                       {selectedConversation.is_group 
                         ? selectedConversation.name 
                         : selectedConversation.participants.find(p => p !== currentUser?.email)}
+                      {encryptionEnabled && !selectedConversation.is_group && (
+                        <Lock className="w-4 h-4 text-green-400" title="End-to-end encrypted" />
+                      )}
                     </h2>
-                    <p className="text-xs text-gray-400">
-                      {isTyping ? "typing..." : "Active now"}
+                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                      {!selectedConversation.is_group && (() => {
+                        const otherUser = selectedConversation.participants.find(p => p !== currentUser?.email);
+                        const status = getUserPresence(otherUser);
+                        const typing = isUserTyping(otherUser);
+                        
+                        if (typing) return "typing...";
+                        
+                        return (
+                          <>
+                            <span className={`w-2 h-2 rounded-full ${
+                              status === 'online' ? 'bg-green-500' :
+                              status === 'away' ? 'bg-yellow-500' :
+                              'bg-gray-500'
+                            }`} />
+                            {status === 'online' ? 'Online' : status === 'away' ? 'Away' : 'Offline'}
+                          </>
+                        );
+                      })()}
+                      {selectedConversation.is_group && 'Group chat'}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {!selectedConversation.is_group && (
+                    <Button
+                      onClick={() => setEncryptionEnabled(!encryptionEnabled)}
+                      variant="ghost"
+                      size="sm"
+                      className={encryptionEnabled ? "text-green-400 hover:bg-green-500/20" : "text-gray-400 hover:bg-white/10"}
+                      title="Toggle encryption"
+                    >
+                      <Lock className="w-5 h-5" />
+                    </Button>
+                  )}
                   <Button
                     onClick={() => setShowVideoCall(true)}
                     variant="ghost"
@@ -439,19 +665,21 @@ export default function Messages() {
                       )}
                       {!isOwn && !showAvatar && <div className="w-8" />}
 
-                      <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
+                      <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col group`}>
                         {!isOwn && selectedConversation.is_group && (
                           <p className="text-xs text-gray-500 mb-1 px-2">{message.sender_email}</p>
                         )}
-                        {message.message_type === 'image' && (
+                        
+                        {message.message_type === 'image' && !message.is_deleted && (
                           <img
                             src={message.file_url}
                             alt="Shared image"
-                            className="rounded-xl max-w-full mb-1"
+                            className="rounded-xl max-w-full mb-1 cursor-pointer"
+                            onClick={() => window.open(message.file_url, '_blank')}
                           />
                         )}
 
-                        {message.message_type === 'video' && (
+                        {message.message_type === 'video' && !message.is_deleted && (
                           <video
                             src={message.file_url}
                             controls
@@ -459,15 +687,107 @@ export default function Messages() {
                           />
                         )}
 
-                        <div
-                          className={`px-4 py-2 rounded-2xl ${
-                            isOwn
-                              ? 'bg-purple-600 text-white'
-                              : 'bg-white/10 text-white'
-                          }`}
-                        >
-                          <p className="text-sm">{message.content}</p>
-                        </div>
+                        {message.message_type === 'audio' && !message.is_deleted && (
+                          <audio src={message.file_url} controls className="mb-1" />
+                        )}
+
+                        {message.message_type === 'file' && !message.is_deleted && (
+                          <a
+                            href={message.file_url}
+                            download={message.file_name}
+                            className={`flex items-center gap-2 px-4 py-3 rounded-2xl mb-1 ${
+                              isOwn ? 'bg-purple-600' : 'bg-white/10'
+                            } hover:opacity-80 transition`}
+                          >
+                            <FileText className="w-5 h-5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{message.file_name}</p>
+                              <p className="text-xs opacity-70">
+                                {(message.file_size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <Download className="w-4 h-4" />
+                          </a>
+                        )}
+
+                        {editingMessage?.id === message.id ? (
+                          <div className="w-full">
+                            <Input
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="bg-white/10 border-white/20 text-white mb-2"
+                              autoFocus
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  editMessageMutation.mutate({
+                                    messageId: message.id,
+                                    newContent: editContent
+                                  });
+                                }}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingMessage(null);
+                                  setEditContent("");
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className={`px-4 py-2 rounded-2xl relative ${
+                              isOwn
+                                ? 'bg-purple-600 text-white'
+                                : 'bg-white/10 text-white'
+                            } ${message.is_deleted ? 'italic opacity-60' : ''}`}
+                          >
+                            {message.is_encrypted && <Lock className="w-3 h-3 inline mr-1 text-green-400" />}
+                            <p className="text-sm">{message.is_deleted ? message.content : message.content}</p>
+                            {message.is_edited && !message.is_deleted && (
+                              <span className="text-xs opacity-60 ml-2">(edited)</span>
+                            )}
+                            
+                            {isOwn && !message.is_deleted && (
+                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingMessage(message);
+                                    setEditContent(message.content);
+                                  }}
+                                  className="p-1 hover:bg-white/20 rounded"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => deleteMessageMutation.mutate(message.id)}
+                                  className="p-1 hover:bg-red-500/20 rounded"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {!message.is_deleted && (
+                          <MessageReactions
+                            message={message}
+                            currentUser={currentUser}
+                            onReact={(messageId, emoji) => 
+                              reactToMessageMutation.mutate({ messageId, emoji })
+                            }
+                          />
+                        )}
 
                         <div className="flex items-center gap-1 mt-1 px-2">
                           <span className="text-xs text-gray-500">
@@ -507,18 +827,22 @@ export default function Messages() {
             <div className="p-4 border-t border-white/10 bg-gray-900/50 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <input
+                  ref={fileInputRef}
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept="image/*,video/*"
-                  onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip"
+                  onChange={(e) => {
+                    handleFileUpload(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
                 />
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => document.getElementById('file-upload').click()}
+                  onClick={() => fileInputRef.current?.click()}
                   className="text-purple-400 hover:bg-purple-500/20"
-                  title="Attach file"
+                  title="Attach file (up to 50MB)"
                 >
                   <Paperclip className="w-5 h-5" />
                 </Button>
@@ -527,9 +851,8 @@ export default function Messages() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const input = document.getElementById('file-upload');
-                    input.accept = 'image/*';
-                    input.click();
+                    fileInputRef.current.accept = 'image/*';
+                    fileInputRef.current?.click();
                   }}
                   className="text-purple-400 hover:bg-purple-500/20"
                   title="Send image"
@@ -541,9 +864,8 @@ export default function Messages() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const input = document.getElementById('file-upload');
-                    input.accept = 'video/*';
-                    input.click();
+                    fileInputRef.current.accept = 'video/*';
+                    fileInputRef.current?.click();
                   }}
                   className="text-purple-400 hover:bg-purple-500/20"
                   title="Send video"
@@ -551,21 +873,26 @@ export default function Messages() {
                   <Camera className="w-5 h-5" />
                 </Button>
 
-                <Input
-                  placeholder="Type a message..."
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="flex-1 bg-white/10 border-white/20 text-white"
-                />
-
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-gray-400 hover:bg-white/10"
+                  onClick={() => {
+                    fileInputRef.current.accept = 'audio/*';
+                    fileInputRef.current?.click();
+                  }}
+                  className="text-purple-400 hover:bg-purple-500/20"
+                  title="Send audio"
                 >
-                  <Smile className="w-5 h-5" />
+                  <Mic className="w-5 h-5" />
                 </Button>
+
+                <Input
+                  placeholder={encryptionEnabled ? "🔒 Type an encrypted message..." : "Type a message..."}
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                  className="flex-1 bg-white/10 border-white/20 text-white"
+                />
 
                 <Button
                   onClick={handleSendMessage}
