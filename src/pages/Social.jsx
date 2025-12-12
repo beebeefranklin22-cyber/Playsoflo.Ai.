@@ -26,6 +26,11 @@ export default function Social() {
   const [postImage, setPostImage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [showStoryModal, setShowStoryModal] = useState(false);
+  const [storyMedia, setStoryMedia] = useState(null);
+  const [uploadingStory, setUploadingStory] = useState(false);
+  const [viewingStory, setViewingStory] = useState(null);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -66,8 +71,37 @@ export default function Social() {
       return feedPosts.length > 0 ? feedPosts : allPosts.slice(0, 20); // Fallback to all if no following
     },
     enabled: !!currentUser,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
     initialData: []
+  });
+
+  // Fetch stories (24-hour ephemeral content)
+  const { data: stories = [] } = useQuery({
+    queryKey: ['stories', currentUser?.email],
+    queryFn: async () => {
+      const allStories = await base44.entities.Story.list('-created_date');
+      const now = new Date();
+      
+      // Filter out expired stories (older than 24 hours)
+      const activeStories = allStories.filter(story => {
+        const expiresAt = new Date(story.expires_at || story.created_date);
+        return expiresAt > now;
+      });
+      
+      // Group by user
+      const groupedByUser = {};
+      activeStories.forEach(story => {
+        if (!groupedByUser[story.created_by]) {
+          groupedByUser[story.created_by] = [];
+        }
+        groupedByUser[story.created_by].push(story);
+      });
+      
+      return groupedByUser;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 60000,
+    initialData: {}
   });
 
   const toggleLikeMutation = useMutation({
@@ -164,6 +198,53 @@ export default function Social() {
       toast.error("Failed to share post");
     }
   };
+
+  const handleStoryUpload = async (file) => {
+    if (!file) return;
+    
+    setUploadingStory(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setStoryMedia({ url: file_url, type: file.type.startsWith('video/') ? 'video' : 'image' });
+      setShowStoryModal(true);
+    } catch (error) {
+      toast.error("Upload failed");
+    } finally {
+      setUploadingStory(false);
+    }
+  };
+
+  const createStoryMutation = useMutation({
+    mutationFn: async (data) => {
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      return await base44.entities.Story.create({
+        ...data,
+        expires_at: expiresAt.toISOString()
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['stories']);
+      setShowStoryModal(false);
+      setStoryMedia(null);
+      toast.success("Story posted!");
+    }
+  });
+
+  const viewStoryMutation = useMutation({
+    mutationFn: async (storyId) => {
+      const story = Object.values(stories).flat().find(s => s.id === storyId);
+      if (!story || story.views?.includes(currentUser.email)) return;
+      
+      await base44.entities.Story.update(storyId, {
+        views: [...(story.views || []), currentUser.email]
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['stories']);
+    }
+  });
 
   const createPostMutation = useMutation({
     mutationFn: async (postData) => {
@@ -303,24 +384,50 @@ export default function Social() {
         </div>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {/* Add Your Story */}
-          <button className="flex flex-col items-center gap-2 flex-shrink-0">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative">
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-white text-xs font-medium">Your Story</span>
-          </button>
-
-          {/* Stories from others */}
-          {[1, 2, 3, 4, 5].map((i) => (
-            <button key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 p-0.5">
-                <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">
-                  U{i}
-                </div>
-              </div>
-              <span className="text-gray-400 text-xs">User {i}</span>
+          <div className="flex flex-col items-center gap-2 flex-shrink-0">
+            <input
+              type="file"
+              id="story-upload"
+              className="hidden"
+              accept="image/*,video/*"
+              onChange={(e) => handleStoryUpload(e.target.files?.[0])}
+            />
+            <button 
+              onClick={() => document.getElementById('story-upload').click()}
+              disabled={uploadingStory}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative hover:scale-105 transition"
+            >
+              {uploadingStory ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Plus className="w-6 h-6 text-white" />
+              )}
             </button>
-          ))}
+            <span className="text-white text-xs font-medium">Your Story</span>
+          </div>
+
+          {/* Stories from users */}
+          {Object.entries(stories).map(([userEmail, userStories]) => {
+            const hasViewed = userStories.every(s => s.views?.includes(currentUser?.email));
+            return (
+              <button 
+                key={userEmail}
+                onClick={() => {
+                  setViewingStory(userStories);
+                  setCurrentStoryIndex(0);
+                  viewStoryMutation.mutate(userStories[0].id);
+                }}
+                className="flex flex-col items-center gap-2 flex-shrink-0 hover:scale-105 transition"
+              >
+                <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${hasViewed ? 'from-gray-500 to-gray-600' : 'from-pink-500 to-purple-500'} p-0.5`}>
+                  <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">
+                    {userEmail[0].toUpperCase()}
+                  </div>
+                </div>
+                <span className="text-gray-400 text-xs truncate max-w-[64px]">{userEmail.split('@')[0]}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -368,13 +475,33 @@ export default function Social() {
               </div>
             </div>
 
-            {/* Post Image */}
+            {/* Post Media */}
             <div className="relative">
-              <img 
-                src={post.image_url} 
-                alt={post.caption}
-                className="w-full aspect-square object-cover"
-              />
+              {post.media_type === 'video' ? (
+                <video
+                  src={post.image_url}
+                  controls
+                  className="w-full aspect-square object-cover bg-black"
+                  playsInline
+                />
+              ) : post.media_type === 'audio' ? (
+                <div className="w-full aspect-square bg-gradient-to-br from-purple-900 to-pink-900 flex items-center justify-center">
+                  <div className="text-center">
+                    <Music className="w-20 h-20 text-white mx-auto mb-4" />
+                    <audio
+                      src={post.image_url}
+                      controls
+                      className="w-full max-w-sm mx-auto"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <img 
+                  src={post.image_url} 
+                  alt={post.caption}
+                  className="w-full aspect-square object-cover"
+                />
+              )}
               
               {/* Vibe Overlay */}
               {post.vibe && (
@@ -521,6 +648,159 @@ export default function Social() {
       >
         <Plus className="w-8 h-8 text-white" />
       </button>
+
+      {/* Story Modal */}
+      <AnimatePresence>
+        {showStoryModal && storyMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+            onClick={() => {
+              setShowStoryModal(false);
+              setStoryMedia(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-gray-900 rounded-3xl p-6"
+            >
+              <h3 className="text-2xl font-bold text-white mb-4">Post Story</h3>
+              
+              {storyMedia.type === 'video' ? (
+                <video src={storyMedia.url} controls className="w-full rounded-xl mb-4" />
+              ) : (
+                <img src={storyMedia.url} alt="Story" className="w-full rounded-xl mb-4" />
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setShowStoryModal(false);
+                    setStoryMedia(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => createStoryMutation.mutate({
+                    media_url: storyMedia.url,
+                    media_type: storyMedia.type
+                  })}
+                  disabled={createStoryMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                >
+                  {createStoryMutation.isPending ? "Posting..." : "Post Story"}
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Story Viewer */}
+      <AnimatePresence>
+        {viewingStory && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black"
+          >
+            <div className="relative h-full">
+              {/* Story Progress Bars */}
+              <div className="absolute top-0 left-0 right-0 p-2 z-10 flex gap-1">
+                {viewingStory.map((_, idx) => (
+                  <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full bg-white transition-all ${idx === currentStoryIndex ? 'w-full duration-[5000ms]' : idx < currentStoryIndex ? 'w-full' : 'w-0'}`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Story Header */}
+              <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                    {viewingStory[currentStoryIndex].created_by[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">{viewingStory[currentStoryIndex].created_by}</p>
+                    <p className="text-gray-300 text-xs">
+                      {new Date(viewingStory[currentStoryIndex].created_date).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setViewingStory(null)} className="text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Story Content */}
+              <div className="h-full flex items-center justify-center">
+                {viewingStory[currentStoryIndex].media_type === 'video' ? (
+                  <video
+                    src={viewingStory[currentStoryIndex].media_url}
+                    className="max-h-full max-w-full"
+                    autoPlay
+                    onEnded={() => {
+                      if (currentStoryIndex < viewingStory.length - 1) {
+                        setCurrentStoryIndex(currentStoryIndex + 1);
+                        viewStoryMutation.mutate(viewingStory[currentStoryIndex + 1].id);
+                      } else {
+                        setViewingStory(null);
+                      }
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={viewingStory[currentStoryIndex].media_url}
+                    alt="Story"
+                    className="max-h-full max-w-full"
+                  />
+                )}
+              </div>
+
+              {/* Navigation */}
+              <div className="absolute inset-0 flex">
+                <button
+                  onClick={() => {
+                    if (currentStoryIndex > 0) {
+                      setCurrentStoryIndex(currentStoryIndex - 1);
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <button
+                  onClick={() => {
+                    if (currentStoryIndex < viewingStory.length - 1) {
+                      setCurrentStoryIndex(currentStoryIndex + 1);
+                      viewStoryMutation.mutate(viewingStory[currentStoryIndex + 1].id);
+                    } else {
+                      setViewingStory(null);
+                    }
+                  }}
+                  className="flex-1"
+                />
+              </div>
+
+              {/* Caption */}
+              {viewingStory[currentStoryIndex].caption && (
+                <div className="absolute bottom-20 left-4 right-4 text-center">
+                  <p className="text-white text-lg font-medium">{viewingStory[currentStoryIndex].caption}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Create Post Modal */}
       <AnimatePresence>
