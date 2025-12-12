@@ -165,11 +165,11 @@ export default function Home() {
   };
 
   const quickAccess = [
-    { icon: Compass, label: "Explore", color: "purple", path: "explore" },
+    { icon: Compass, label: "Explore", color: "purple", path: "Universe" },
     { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
     { icon: ShoppingBag, label: "Shop", color: "orange", path: "Marketplace" },
-    { icon: Tv, label: "Stream", color: "red", path: "Streaming" },
-    { icon: Wand2, label: "AI Studio", color: "violet", path: "AIStudio" },
+    { icon: Tv, label: "Stream", color: "red", path: "Universe" },
+    { icon: Wand2, label: "AI Studio", color: "violet", path: "RonronAI" },
     { icon: Music, label: "Music", color: "pink", path: "Vibe" },
   ];
 
