@@ -171,23 +171,29 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   </div>
                 )}
 
-                <StripePaymentForm
-                  amount={parseFloat(amount)}
-                  referenceType="deposit"
-                  referenceId={currentUser?.id}
-                  description={`Add $${amount} to wallet`}
-                  onSuccess={() => {
-                    setIsProcessing(false);
-                    handleSuccess();
-                  }}
-                  onError={(error) => {
-                    setIsProcessing(false);
-                    console.error("Payment error:", error);
-                    const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
-                    setPaymentError(errorMsg);
-                    toast.error(errorMsg);
-                  }}
-                />
+                {amount && currentUser ? (
+                  <StripePaymentForm
+                    amount={parseFloat(amount)}
+                    referenceType="deposit"
+                    referenceId={currentUser.id}
+                    description={`Add $${amount} to wallet`}
+                    onSuccess={() => {
+                      setIsProcessing(false);
+                      handleSuccess();
+                    }}
+                    onError={(error) => {
+                      setIsProcessing(false);
+                      console.error("Payment error:", error);
+                      const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                      setPaymentError(errorMsg);
+                      toast.error(errorMsg);
+                    }}
+                  />
+                ) : (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                    <p className="text-red-400">Missing required information</p>
+                  </div>
+                )}
 
                 <button
                   onClick={() => {

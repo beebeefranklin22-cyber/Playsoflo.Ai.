@@ -157,10 +157,10 @@ export default function StripePaymentForm({
   }, [publishableKey]);
 
   useEffect(() => {
-    if (amount && referenceType && referenceId) {
+    if (amount) {
       createPaymentIntent();
     }
-  }, [amount, referenceType, referenceId]);
+  }, [amount]);
 
   const createPaymentIntent = async () => {
     try {
@@ -169,14 +169,14 @@ export default function StripePaymentForm({
       
       const { base44 } = await import("@/api/base44Client");
       
-      console.log('Creating payment intent with:', { amount, referenceType, referenceId });
+      console.log('Creating payment intent with:', { amount, description, referenceType, referenceId });
       
       const response = await base44.functions.invoke('processStripePayment', {
         amount,
-        description,
+        description: description || `Payment of $${amount}`,
         metadata: {
-          reference_type: referenceType,
-          reference_id: referenceId,
+          reference_type: referenceType || 'deposit',
+          reference_id: referenceId || 'wallet',
           ...metadata
         }
       });
@@ -208,13 +208,25 @@ export default function StripePaymentForm({
     );
   }
 
-  if (initError || !clientSecret || !stripePromise) {
+  if (initError) {
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-        <p className="text-red-400">Failed to initialize payment. Please ensure Stripe is configured properly.</p>
-        {initError && (
-          <p className="text-red-400 text-xs mt-2">{initError.message}</p>
-        )}
+        <p className="text-red-400 font-semibold mb-2">Payment initialization failed</p>
+        <p className="text-red-400 text-sm">{initError.message}</p>
+        <Button 
+          onClick={createPaymentIntent}
+          className="mt-4 bg-red-600 hover:bg-red-700"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!clientSecret || !stripePromise) {
+    return (
+      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+        <p className="text-yellow-400">Waiting for payment system to initialize...</p>
       </div>
     );
   }
