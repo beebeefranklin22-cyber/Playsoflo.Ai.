@@ -141,7 +141,11 @@ export default function StripePaymentForm({
   useEffect(() => {
     const initStripe = async () => {
       try {
-        const key = publishableKey || "pk_test_51SFfJq2ORNyJCJkCOcqPJR27TkvEAThfkGkAkMaASgexCL3RSzqchqYWqA2LwnJEVJxiY8ID8tXGrBulPVEOrd9Z00L5wTr0p6";
+        let key = publishableKey;
+        if (!key) {
+          // Fetch publishable key from environment
+          key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51SFfJq2ORNyJCJkCOcqPJR27TkvEAThfkGkAkMaASgexCL3RSzqchqYWqA2LwnJEVJxiY8ID8tXGrBulPVEOrd9Z00L5wTr0p6";
+        }
         setStripePromise(loadStripe(key));
       } catch (error) {
         console.error("Stripe initialization error:", error);
@@ -161,25 +165,33 @@ export default function StripePaymentForm({
   const createPaymentIntent = async () => {
     try {
       setLoading(true);
+      setInitError(null);
       
       const { base44 } = await import("@/api/base44Client");
+      
+      console.log('Creating payment intent with:', { amount, referenceType, referenceId });
       
       const response = await base44.functions.invoke('processStripePayment', {
         amount,
         description,
-        reference_type: referenceType,
-        reference_id: referenceId,
-        metadata
+        metadata: {
+          reference_type: referenceType,
+          reference_id: referenceId,
+          ...metadata
+        }
       });
 
-      if (response.data.clientSecret) {
+      console.log('Payment intent response:', response);
+
+      if (response?.data?.clientSecret) {
         setClientSecret(response.data.clientSecret);
       } else {
-        throw new Error('Failed to create payment intent');
+        throw new Error(response?.data?.error || 'No client secret received from server');
       }
     } catch (error) {
       console.error('Payment intent creation error:', error);
-      const errorMsg = error?.message || error?.error || 'Failed to initialize payment';
+      console.error('Error details:', error.response?.data || error);
+      const errorMsg = error?.response?.data?.error || error?.message || error?.error || 'Failed to initialize payment. Please check console for details.';
       const errorObj = new Error(errorMsg);
       setInitError(errorObj);
       if (onError) onError(errorObj);
