@@ -81,25 +81,23 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
     setAddingPayment(true);
     try {
-      const response = await base44.functions.invoke('createStripeCheckout', {
+      const { data } = await base44.functions.invoke('createStripeCheckout', {
         amount: 0.50,
         description: 'Add Payment Method - $0.50 verification charge',
       });
 
-      console.log('Stripe checkout response:', response);
+      console.log('Stripe checkout response:', data);
 
-      const checkoutUrl = response?.data?.checkout_url || response?.checkout_url;
-      
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url;
       } else {
-        console.error('No checkout URL in response:', response);
+        console.error('No checkout URL in response:', data);
         toast.error("Failed to create checkout. Please try again.");
         setAddingPayment(false);
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error(error?.response?.data?.message || error.message || "Failed to start checkout");
+      toast.error(error?.message || "Failed to start checkout");
       setAddingPayment(false);
     }
   };
