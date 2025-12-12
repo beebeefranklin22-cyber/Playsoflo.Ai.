@@ -40,21 +40,14 @@ export default function Vibe() {
       try {
         const query = searchQuery || selectedGenre || 'popular';
         
-        // Fetch from both Deezer and SoundCloud in parallel
-        const [deezerResponse, soundcloudResponse] = await Promise.allSettled([
-          base44.functions.invoke('fetchDeezerMusic', { query, genre: selectedGenre }),
-          base44.functions.invoke('fetchSoundCloudMusic', { query, genre: selectedGenre })
-        ]);
+        // Fetch from SoundCloud
+        const soundcloudResponse = await base44.functions.invoke('fetchSoundCloudMusic', { query, genre: selectedGenre });
         
-        const deezerTracks = deezerResponse.status === 'fulfilled' && deezerResponse.value?.data?.tracks 
-          ? deezerResponse.value.data.tracks : [];
-        const soundcloudTracks = soundcloudResponse.status === 'fulfilled' && soundcloudResponse.value?.data?.tracks
-          ? soundcloudResponse.value.data.tracks : [];
+        const soundcloudTracks = soundcloudResponse?.data?.tracks || [];
         
-        console.log('Deezer tracks:', deezerTracks.length, 'SoundCloud tracks:', soundcloudTracks.length);
+        console.log('SoundCloud tracks:', soundcloudTracks.length);
         
-        // Combine tracks from both sources
-        const allTracks = [...deezerTracks, ...soundcloudTracks];
+        const allTracks = soundcloudTracks;
         
         if (allTracks.length > 0) {
           // Shuffle for variety
@@ -323,7 +316,7 @@ export default function Vibe() {
                     <Sparkles className="w-6 h-6 text-purple-400" />
                     <div>
                       <p className="text-white font-bold">
-                        {filteredTracks.length.toLocaleString()} Songs • {musicData?.source === 'streaming' ? '🎵 Deezer + SoundCloud' : '👤 User Uploads'}
+                        {filteredTracks.length.toLocaleString()} Songs • {musicData?.source === 'streaming' ? '🎵 SoundCloud' : '👤 User Uploads'}
                       </p>
                       <p className="text-gray-400 text-sm">
                         {isLoading ? 'Loading...' : queryError ? 'Error loading songs' : 'Ready to play'}
@@ -344,13 +337,11 @@ export default function Vibe() {
             </Card>
 
             {/* Debug info for troubleshooting */}
-            {filteredTracks.length === 0 && !isLoading && (
+            {filteredTracks.length === 0 && !isLoading && queryError && (
               <Card className="bg-yellow-500/10 border-yellow-500/30 mb-6">
                 <CardContent className="p-4">
                   <p className="text-yellow-400 text-sm">
-                    🔍 Troubleshooting: Check browser console for errors. 
-                    Spotify API might need configuration or rate limit reached.
-                    {queryError && ` Error: ${queryError.message}`}
+                    🔍 Error loading music: {queryError.message}
                   </p>
                 </CardContent>
               </Card>
@@ -407,11 +398,6 @@ export default function Vibe() {
                         <button className="p-1 hover:bg-white/10 rounded transition">
                           <Heart className="w-4 h-4 text-gray-400 hover:text-red-400" />
                         </button>
-                        {track.source === 'deezer' && (
-                          <Badge className="bg-pink-500/20 text-pink-400 text-xs">
-                            Deezer
-                          </Badge>
-                        )}
                         {track.source === 'soundcloud' && (
                           <Badge className="bg-orange-500/20 text-orange-400 text-xs">
                             SoundCloud
