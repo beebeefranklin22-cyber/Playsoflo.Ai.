@@ -17,11 +17,6 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async () => {
-    if (!currentUser || isProcessing) {
-      return;
-    }
-
-    setIsProcessing(true);
     try {
       // Update user balance
       const currentBalance = currentUser.usd_balance || 0;
@@ -44,14 +39,14 @@ export default function AddMoneyModal({ currentUser, onClose }) {
     } catch (err) {
       console.error("Failed to update balance:", err);
       toast.error(err?.message || 'Failed to update balance');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const handleClose = () => {
-    if (!isProcessing && step !== 2) {
+    if (step !== 3) {
       onClose();
+    } else {
+      window.location.reload();
     }
   };
 
@@ -74,13 +69,14 @@ export default function AddMoneyModal({ currentUser, onClose }) {
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Add Money</h2>
-            <button 
-              onClick={handleClose}
-              disabled={isProcessing}
-              className="p-2 hover:bg-white/10 rounded-full transition disabled:opacity-50"
-            >
-              <X className="w-6 h-6 text-white" />
-            </button>
+            {step !== 2 && (
+              <button 
+                onClick={handleClose}
+                className="p-2 hover:bg-white/10 rounded-full transition"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -171,39 +167,26 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   </div>
                 )}
 
-                {amount && currentUser ? (
-                  <StripePaymentForm
-                    amount={parseFloat(amount)}
-                    referenceType="deposit"
-                    referenceId={currentUser.id}
-                    description={`Add $${amount} to wallet`}
-                    onSuccess={() => {
-                      setIsProcessing(false);
-                      handleSuccess();
-                    }}
-                    onError={(error) => {
-                      setIsProcessing(false);
-                      console.error("Payment error:", error);
-                      const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
-                      setPaymentError(errorMsg);
-                      toast.error(errorMsg);
-                    }}
-                  />
-                ) : (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-                    <p className="text-red-400">Missing required information</p>
-                  </div>
-                )}
+                <StripePaymentForm
+                  amount={parseFloat(amount)}
+                  referenceType="deposit"
+                  referenceId={currentUser?.id || 'wallet'}
+                  description={`Add $${amount} to wallet`}
+                  onSuccess={handleSuccess}
+                  onError={(error) => {
+                    console.error("Payment error:", error);
+                    const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                    setPaymentError(errorMsg);
+                    toast.error(errorMsg);
+                  }}
+                />
 
                 <button
                   onClick={() => {
-                    if (!isProcessing) {
-                      setStep(1);
-                      setPaymentError(null);
-                    }
+                    setStep(1);
+                    setPaymentError(null);
                   }}
-                  disabled={isProcessing}
-                  className="w-full text-gray-400 hover:text-white transition disabled:opacity-50"
+                  className="w-full text-gray-400 hover:text-white transition"
                 >
                   ← Back
                 </button>

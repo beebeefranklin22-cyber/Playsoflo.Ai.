@@ -50,16 +50,22 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
+        confirmParams: {
+          return_url: window.location.href,
+        }
       });
 
       if (error) {
+        console.error('Payment confirmation error:', error);
         setErrorMessage(error.message);
         setIsProcessing(false);
         if (onError) onError(error);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        console.log('Payment succeeded:', paymentIntent);
         setIsProcessing(false);
         if (onSuccess) onSuccess();
       } else {
+        console.error('Payment not completed:', paymentIntent);
         const msg = 'Payment was not completed. Please try again.';
         setErrorMessage(msg);
         setIsProcessing(false);
