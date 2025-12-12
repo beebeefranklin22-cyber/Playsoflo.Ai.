@@ -14,21 +14,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'SoundCloud API key not configured' }, { status: 500 });
     }
 
-    // Try both URL params and body (for compatibility)
-    const { searchParams } = new URL(req.url);
-    let query = searchParams.get('query') || '';
-    let genre = searchParams.get('genre') || '';
-    
-    // If not in URL, check body
-    if (!query && !genre) {
-      try {
-        const payload = await req.json();
-        query = payload.query || '';
-        genre = payload.genre || '';
-      } catch (e) {
-        // Body parsing failed, use defaults
-      }
-    }
+    // Read from request body (Base44 SDK sends data this way)
+    const payload = await req.json();
+    const query = payload.query || '';
+    const genre = payload.genre || '';
     
     let searchTerm = query || genre;
     if (!searchTerm) searchTerm = 'trending';
