@@ -623,8 +623,11 @@ export default function Messages() {
                 {filteredUsers.map((user) => (
                   <button
                     key={user.id}
-                    onClick={() => createConversationMutation.mutate(user.email)}
-                    className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-3 transition"
+                    onClick={() => {
+                      createConversationMutation.mutate(user.email);
+                    }}
+                    disabled={createConversationMutation.isPending}
+                    className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
                       {user.email[0].toUpperCase()}
