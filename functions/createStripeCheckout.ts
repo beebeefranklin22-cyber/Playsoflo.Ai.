@@ -16,7 +16,11 @@ Deno.serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey);
-    const { amount, currency = 'usd', description, payment_method_id } = await req.json();
+    const { amount, currency = 'usd', description, payment_method_id, success_url, cancel_url } = await req.json();
+
+    // Calculate platform fee: 1% with $1 minimum
+    const platformFee = Math.max(1, amount * 0.01);
+    const totalAmount = amount + platformFee;
 
     // Get or create Stripe customer
     let customer;
@@ -37,7 +41,7 @@ Deno.serve(async (req) => {
     // Get origin from request headers
     const origin = req.headers.get('origin') || 'https://playsoflo.vercel.app';
     
-    // Create checkout session
+    // Create checkout session with platform fee included
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
       payment_method_types: ['card', 'us_bank_account', 'cashapp'],
@@ -47,27 +51,35 @@ Deno.serve(async (req) => {
             currency,
             product_data: {
               name: description || 'Payment',
-              description: 'PlaySoFlo Payment',
+              description: `PlaySoFlo Payment (includes $${platformFee.toFixed(2)} platform fee)`,
             },
-            unit_amount: Math.round(amount * 100), // Convert to cents
+            unit_amount: Math.round(totalAmount * 100), // Convert to cents with fee
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/wallet?payment=success`,
-      cancel_url: `${origin}/wallet?payment=cancelled`,
+      success_url: success_url || `${origin}/wallet?payment=success`,
+      cancel_url: cancel_url || `${origin}/wallet?payment=cancelled`,
       metadata: {
         user_id: user.id,
         user_email: user.email,
         description: description,
+        base_amount: amount.toString(),
+        platform_fee: platformFee.toString(),
+        total_amount: totalAmount.toString()
       },
     });
 
     return Response.json({ 
       success: true,
       session_id: session.id,
-      checkout_url: session.url
+      checkout_url: session.url,
+      amount_breakdown: {
+        base_amount: amount,
+        platform_fee: platformFee,
+        total_amount: totalAmount
+      }
     });
   } catch (error) {
     console.error('Checkout creation error:', error);
