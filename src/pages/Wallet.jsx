@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { TrendingUp, ArrowUpRight, ArrowDownLeft,
+import { 
+  Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
   Plus, Crown, Building2
@@ -16,6 +17,7 @@ import AddMoneyModal from "../components/wallet/AddMoneyModal";
 import WithdrawModal from "../components/wallet/WithdrawModal";
 import SubscriptionManagementModal from "../components/wallet/SubscriptionManagementModal";
 import WireTransferModal from "../components/wallet/WireTransferModal";
+import PaymentMethodsManager from "../components/wallet/PaymentMethodsManager";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -161,13 +163,13 @@ export default function Wallet() {
           {/* Secondary Actions */}
           <div className="grid grid-cols-4 gap-3 mt-3">
             <button 
-              onClick={() => setActiveModal('cards')}
+              onClick={() => setActiveModal('payment-methods')}
               className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
             >
               <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
                 <CreditCard className="w-6 h-6 text-orange-400" />
               </div>
-              <span className="text-white text-xs font-medium">Cards</span>
+              <span className="text-white text-xs font-medium">Payment</span>
             </button>
 
             <button 
@@ -368,6 +370,9 @@ export default function Wallet() {
       )}
       {activeModal === 'wire' && currentUser && (
         <WireTransferModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'payment-methods' && currentUser && (
+        <PaymentMethodsManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
     </div>
   );
