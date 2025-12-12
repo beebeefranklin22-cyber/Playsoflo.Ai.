@@ -3,15 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play } from "lucide-react";
+import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import FollowButton from "../components/social/FollowButton";
 
 export default function UserProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const username = searchParams.get("username") || searchParams.get("email");
+  const userParam = searchParams.get("user") || searchParams.get("username") || searchParams.get("email");
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
 
@@ -23,16 +24,30 @@ export default function UserProfile() {
     loadUser();
   }, []);
 
-  const { data: profileUser } = useQuery({
-    queryKey: ['profile-user', username],
+  const { data: profileUser, isLoading: loadingProfile } = useQuery({
+    queryKey: ['profile-user', userParam],
     queryFn: async () => {
-      if (!username) return null;
-      const users = await base44.entities.User.filter({ 
-        $or: [{ username }, { email: username }]
-      });
-      return users[0];
+      if (!userParam) return null;
+      
+      // Try to find by email first, then username, then full_name
+      const users = await base44.entities.User.list();
+      
+      // First try exact email match
+      let user = users.find(u => u.email === userParam);
+      
+      // Then try username match
+      if (!user) {
+        user = users.find(u => u.username === userParam);
+      }
+      
+      // Finally try full_name match
+      if (!user) {
+        user = users.find(u => u.full_name === userParam);
+      }
+      
+      return user || null;
     },
-    enabled: !!username
+    enabled: !!userParam
   });
 
   const { data: posts = [] } = useQuery({
@@ -41,66 +56,26 @@ export default function UserProfile() {
     enabled: !!profileUser?.email
   });
 
-  const isFollowing = currentUser?.following?.includes(profileUser?.email);
   const isOwnProfile = currentUser?.email === profileUser?.email;
 
-  const { data: hasPendingRequest = false } = useQuery({
-    queryKey: ['has-pending-request', currentUser?.email, profileUser?.email],
-    queryFn: async () => {
-      const requests = await base44.entities.FollowRequest.filter({
-        from_email: currentUser.email,
-        to_email: profileUser.email,
-        status: 'pending'
-      });
-      return requests.length > 0;
-    },
-    enabled: !!currentUser && !!profileUser && !isOwnProfile
-  });
-
-  const followMutation = useMutation({
-    mutationFn: async () => {
-      if (isFollowing) {
-        // Unfollow
-        const newFollowing = currentUser.following.filter(e => e !== profileUser.email);
-        await base44.auth.updateMe({ following: newFollowing, following_count: newFollowing.length });
-        await base44.asServiceRole.entities.User.update(profileUser.id, {
-          followers_count: (profileUser.followers_count || 0) - 1
-        });
-        return { newFollowing, isRequest: false };
-      }
-      
-      // Check if private
-      if (profileUser.is_private) {
-        await base44.entities.FollowRequest.create({
-          from_email: currentUser.email,
-          to_email: profileUser.email,
-          status: 'pending'
-        });
-        return { newFollowing: currentUser.following, isRequest: true };
-      }
-      
-      // Public - follow directly
-      const newFollowing = [...(currentUser.following || []), profileUser.email];
-      await base44.auth.updateMe({ following: newFollowing, following_count: newFollowing.length });
-      await base44.asServiceRole.entities.User.update(profileUser.id, {
-        followers_count: (profileUser.followers_count || 0) + 1
-      });
-      return { newFollowing, isRequest: false };
-    },
-    onSuccess: ({ newFollowing, isRequest }) => {
-      setCurrentUser(prev => ({ ...prev, following: newFollowing }));
-      queryClient.invalidateQueries({ queryKey: ['profile-user'] });
-      queryClient.invalidateQueries({ queryKey: ['has-pending-request'] });
-      toast.success(isRequest ? 'Request sent!' : isFollowing ? 'Unfollowed' : 'Following!');
-    }
-  });
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!profileUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white text-xl">User not found</p>
-          <Button onClick={() => navigate(-1)} className="mt-4">Go Back</Button>
+          <p className="text-white text-xl mb-2">User not found</p>
+          <p className="text-gray-400 text-sm mb-4">The profile you're looking for doesn't exist</p>
+          <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">Go Back</Button>
         </div>
       </div>
     );
@@ -152,32 +127,22 @@ export default function UserProfile() {
               </div>
             </div>
 
-            {!isOwnProfile && (
+            {!isOwnProfile && currentUser && (
               <div className="flex gap-2">
-                <Button
-                  onClick={() => followMutation.mutate()}
-                  disabled={followMutation.isPending}
-                  className={
-                    isFollowing ? "bg-white/10 hover:bg-white/20" : 
-                    hasPendingRequest ? "bg-yellow-600/50" :
-                    "bg-purple-600 hover:bg-purple-700"
-                  }
+                <FollowButton
+                  targetEmail={profileUser.email}
+                  targetName={profileUser.full_name}
+                  currentUser={currentUser}
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  className="bg-white/5 border-white/20 hover:bg-white/10"
+                  onClick={() => {
+                    const conversationId = [currentUser.email, profileUser.email].sort().join('_');
+                    navigate(`/messages?conversation=${conversationId}`);
+                  }}
                 >
-                  {isFollowing ? (
-                    <>
-                      <UserCheck className="w-4 h-4 mr-2" />
-                      Following
-                    </>
-                  ) : hasPendingRequest ? (
-                    "Requested"
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Follow
-                    </>
-                  )}
-                </Button>
-                <Button variant="outline" className="bg-white/5 border-white/20">
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Message
                 </Button>
@@ -211,7 +176,43 @@ export default function UserProfile() {
 
       {/* Content Grid */}
       <div className="grid grid-cols-3 gap-1 p-1">
-        {posts.map((post, idx) => (
+        {activeTab === "posts" && posts.map((post, idx) => (
+          <motion.div
+            key={post.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: idx * 0.05 }}
+            className="aspect-square relative cursor-pointer group"
+            onClick={() => {
+              // Navigate to post detail or open modal
+              toast.info("Post detail view - coming soon!");
+            }}
+          >
+            <img src={post.image_url} alt={post.caption} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6">
+              <div className="flex items-center gap-2 text-white">
+                <Heart className="w-5 h-5 fill-white" />
+                <span className="font-bold text-lg">{post.likes_count || 0}</span>
+              </div>
+              <div className="flex items-center gap-2 text-white">
+                <MessageCircle className="w-5 h-5 fill-white" />
+                <span className="font-bold text-lg">{post.comments_count || 0}</span>
+              </div>
+            </div>
+            {post.music_playing && (
+              <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-full p-2">
+                <Play className="w-5 h-5 text-white fill-white" />
+              </div>
+            )}
+            {post.is_experience && (
+              <div className="absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full px-2 py-1 text-white text-xs font-bold">
+                Experience
+              </div>
+            )}
+          </motion.div>
+        ))}
+        
+        {activeTab === "videos" && posts.filter(p => p.music_playing || p.is_experience).map((post, idx) => (
           <motion.div
             key={post.id}
             initial={{ opacity: 0 }}
@@ -219,21 +220,14 @@ export default function UserProfile() {
             transition={{ delay: idx * 0.05 }}
             className="aspect-square relative cursor-pointer group"
           >
-            <img src={post.image_url} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-4">
-              <div className="flex items-center gap-1 text-white">
-                <span className="font-bold">{post.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1 text-white">
-                <MessageCircle className="w-5 h-5" />
-                <span className="font-bold">{post.comments_count || 0}</span>
-              </div>
+            <img src={post.image_url} alt={post.caption} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Play className="w-12 h-12 text-white" />
             </div>
-            {post.music_playing && (
-              <div className="absolute top-2 right-2">
-                <Play className="w-6 h-6 text-white" />
-              </div>
-            )}
+            <div className="absolute bottom-2 left-2 flex items-center gap-2 text-white text-sm">
+              <Play className="w-4 h-4" />
+              <span className="font-bold">{post.likes_count || 0}</span>
+            </div>
           </motion.div>
         ))}
       </div>
