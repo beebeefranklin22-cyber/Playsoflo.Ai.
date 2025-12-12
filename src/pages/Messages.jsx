@@ -569,7 +569,7 @@ export default function Messages() {
 
                 <Button
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || sendMessageMutation.isLoading}
+                  disabled={!messageInput.trim() || sendMessageMutation.isPending}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   <Send className="w-5 h-5" />
