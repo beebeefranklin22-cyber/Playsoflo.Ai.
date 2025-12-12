@@ -37,7 +37,7 @@ export default function Messages() {
     queryKey: ['conversations'],
     queryFn: () => base44.entities.ChatConversation.list('-last_message_time'),
     initialData: [],
-    refetchInterval: 3000 // Poll every 3 seconds for new messages
+    refetchInterval: 1500 // Real-time updates - poll every 1.5 seconds
   });
 
   const { data: messages = [] } = useQuery({
@@ -51,7 +51,7 @@ export default function Messages() {
     },
     enabled: !!selectedConversation,
     initialData: [],
-    refetchInterval: 2000 // Poll for new messages
+    refetchInterval: 1000 // Real-time updates - poll every second
   });
 
   const { data: allUsers = [] } = useQuery({
@@ -176,18 +176,26 @@ export default function Messages() {
   const handleFileUpload = async (file) => {
     if (!file || !selectedConversation) return;
 
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    toast.info('Uploading file...');
     
-    const messageType = file.type.startsWith('image/') ? 'image' : 
-                       file.type.startsWith('video/') ? 'video' : 'file';
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      const messageType = file.type.startsWith('image/') ? 'image' : 
+                         file.type.startsWith('video/') ? 'video' : 'file';
 
-    sendMessageMutation.mutate({
-      conversation_id: selectedConversation.id,
-      sender_email: currentUser.email,
-      content: file.name,
-      message_type: messageType,
-      file_url
-    });
+      sendMessageMutation.mutate({
+        conversation_id: selectedConversation.id,
+        sender_email: currentUser.email,
+        content: file.name,
+        message_type: messageType,
+        file_url
+      });
+      
+      toast.success('File uploaded!');
+    } catch (error) {
+      toast.error('Upload failed');
+    }
   };
 
   const scrollToBottom = () => {
@@ -196,12 +204,16 @@ export default function Messages() {
 
   useEffect(() => {
     scrollToBottom();
-    // Mark messages as read when viewing conversation
-    if (selectedConversation && messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.sender_email !== currentUser?.email) {
-        markAsReadMutation.mutate(lastMessage.id);
-      }
+    // Mark all unread messages as read when viewing conversation
+    if (selectedConversation && messages.length > 0 && currentUser) {
+      const unreadMessages = messages.filter(msg => 
+        msg.sender_email !== currentUser.email && 
+        !msg.read_by?.includes(currentUser.email)
+      );
+      
+      unreadMessages.forEach(msg => {
+        markAsReadMutation.mutate(msg.id);
+      });
     }
   }, [messages, selectedConversation]);
 
@@ -404,9 +416,13 @@ export default function Messages() {
                 {messages.map((message, idx) => {
                   const isOwn = message.sender_email === currentUser?.email;
                   const showAvatar = idx === 0 || messages[idx - 1].sender_email !== message.sender_email;
-                  const isRead = message.read_by?.includes(
-                    selectedConversation.participants.find(p => p !== currentUser?.email)
+                  const otherParticipants = selectedConversation.participants.filter(p => p !== currentUser?.email);
+                  const isRead = otherParticipants.some(participant => 
+                    message.read_by?.includes(participant)
                   );
+                  const readCount = otherParticipants.filter(participant => 
+                    message.read_by?.includes(participant)
+                  ).length;
 
                   return (
                     <motion.div
@@ -461,10 +477,21 @@ export default function Messages() {
                             })}
                           </span>
                           {isOwn && (
-                            isRead ? (
-                              <CheckCheck className="w-3 h-3 text-blue-400" />
+                            selectedConversation.is_group ? (
+                              readCount > 0 ? (
+                                <div className="flex items-center gap-0.5">
+                                  <CheckCheck className="w-3 h-3 text-blue-400" />
+                                  <span className="text-xs text-blue-400">{readCount}</span>
+                                </div>
+                              ) : (
+                                <Check className="w-3 h-3 text-gray-500" />
+                              )
                             ) : (
-                              <Check className="w-3 h-3 text-gray-500" />
+                              isRead ? (
+                                <CheckCheck className="w-3 h-3 text-blue-400" title="Read" />
+                              ) : (
+                                <Check className="w-3 h-3 text-gray-500" title="Sent" />
+                              )
                             )
                           )}
                         </div>
@@ -491,6 +518,7 @@ export default function Messages() {
                   size="sm"
                   onClick={() => document.getElementById('file-upload').click()}
                   className="text-purple-400 hover:bg-purple-500/20"
+                  title="Attach file"
                 >
                   <Paperclip className="w-5 h-5" />
                 </Button>
@@ -498,10 +526,29 @@ export default function Messages() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => document.getElementById('file-upload').click()}
+                  onClick={() => {
+                    const input = document.getElementById('file-upload');
+                    input.accept = 'image/*';
+                    input.click();
+                  }}
                   className="text-purple-400 hover:bg-purple-500/20"
+                  title="Send image"
                 >
                   <ImageIcon className="w-5 h-5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const input = document.getElementById('file-upload');
+                    input.accept = 'video/*';
+                    input.click();
+                  }}
+                  className="text-purple-400 hover:bg-purple-500/20"
+                  title="Send video"
+                >
+                  <Camera className="w-5 h-5" />
                 </Button>
 
                 <Input
