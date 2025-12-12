@@ -149,9 +149,9 @@ export default function StripePaymentForm({
       try {
         let key = publishableKey;
         if (!key) {
-          // Fetch publishable key from environment
           key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51SFfJq2ORNyJCJkCOcqPJR27TkvEAThfkGkAkMaASgexCL3RSzqchqYWqA2LwnJEVJxiY8ID8tXGrBulPVEOrd9Z00L5wTr0p6";
         }
+        console.log('Loading Stripe with key:', key.substring(0, 20) + '...');
         setStripePromise(loadStripe(key));
       } catch (error) {
         console.error("Stripe initialization error:", error);
@@ -163,7 +163,8 @@ export default function StripePaymentForm({
   }, [publishableKey]);
 
   useEffect(() => {
-    if (amount) {
+    console.log('Amount changed:', amount);
+    if (amount && amount > 0) {
       createPaymentIntent();
     }
   }, [amount]);
@@ -173,9 +174,13 @@ export default function StripePaymentForm({
       setLoading(true);
       setInitError(null);
       
-      const { base44 } = await import("@/api/base44Client");
+      console.log('=== STARTING PAYMENT INTENT CREATION ===');
+      console.log('Amount:', amount);
+      console.log('Description:', description);
+      console.log('Reference Type:', referenceType);
+      console.log('Reference ID:', referenceId);
       
-      console.log('Creating payment intent with:', { amount, description, referenceType, referenceId });
+      const { base44 } = await import("@/api/base44Client");
       
       const response = await base44.functions.invoke('processStripePayment', {
         amount,
@@ -187,21 +192,27 @@ export default function StripePaymentForm({
         }
       });
 
-      console.log('Payment intent response:', response);
+      console.log('=== PAYMENT INTENT RESPONSE ===');
+      console.log('Full response:', response);
+      console.log('Client secret:', response?.data?.clientSecret);
 
       if (response?.data?.clientSecret) {
+        console.log('✅ Client secret received, setting state');
         setClientSecret(response.data.clientSecret);
       } else {
+        console.error('❌ No client secret in response');
         throw new Error(response?.data?.error || 'No client secret received from server');
       }
     } catch (error) {
-      console.error('Payment intent creation error:', error);
+      console.error('❌ Payment intent creation error:', error);
       console.error('Error details:', error.response?.data || error);
-      const errorMsg = error?.response?.data?.error || error?.message || error?.error || 'Failed to initialize payment. Please check console for details.';
+      const errorMsg = error?.response?.data?.error || error?.message || error?.error || 'Failed to initialize payment';
       const errorObj = new Error(errorMsg);
       setInitError(errorObj);
       if (onError) onError(errorObj);
     } finally {
+      console.log('=== PAYMENT INTENT CREATION COMPLETE ===');
+      console.log('Loading set to false');
       setLoading(false);
     }
   };
