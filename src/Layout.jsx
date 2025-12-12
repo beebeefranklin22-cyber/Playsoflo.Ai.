@@ -216,12 +216,13 @@ export default function Layout({ children, currentPageName }) {
 
             {currentUser?.current_music && (
               <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="flex-shrink-0 hidden md:flex items-center gap-2 px-4 py-2 glass-effect rounded-full hover:bg-white/10 transition"
+                onClick={() => navigate(createPageUrl("Vibe"))}
+                className="flex-shrink-0 hidden md:flex items-center gap-2 px-4 py-2 glass-effect rounded-full hover:bg-white/10 transition group"
               >
-                <Music className={`w-4 h-4 text-purple-400 ${isPlaying ? 'animate-pulse' : ''}`} />
-                <div className="text-left">
-                  <p className="text-white text-sm font-medium line-clamp-1">{currentUser.current_music}</p>
+                <Music className="w-4 h-4 text-purple-400 animate-pulse" />
+                <div className="text-left max-w-[200px]">
+                  <p className="text-white text-xs font-medium line-clamp-1">{currentUser.current_music}</p>
+                  <p className="text-gray-400 text-[10px] opacity-0 group-hover:opacity-100 transition">Tap to open music</p>
                 </div>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               </button>
@@ -234,18 +235,14 @@ export default function Layout({ children, currentPageName }) {
         <motion.div 
           initial={{ y: -100 }}
           animate={{ y: 0 }}
-          className="md:hidden fixed top-16 left-1/2 -translate-x-1/2 z-40 glass-effect rounded-full px-4 py-2 flex items-center gap-2"
+          className="md:hidden fixed top-16 left-1/2 -translate-x-1/2 z-40 glass-effect rounded-full px-3 py-2 flex items-center gap-2 max-w-[90vw]"
+          onClick={() => navigate(createPageUrl("Vibe"))}
         >
-          <Music className={`w-4 h-4 text-purple-400 ${isPlaying ? 'animate-pulse' : ''}`} />
-          <div className="text-xs">
-            <p className="text-white font-medium">{currentUser.current_music}</p>
+          <Music className="w-4 h-4 text-purple-400 animate-pulse flex-shrink-0" />
+          <div className="text-xs flex-1 min-w-0">
+            <p className="text-white font-medium truncate">{currentUser.current_music}</p>
           </div>
-          <button 
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs"
-          >
-            {isPlaying ? "⏸" : "▶"}
-          </button>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
         </motion.div>
       )}
 
