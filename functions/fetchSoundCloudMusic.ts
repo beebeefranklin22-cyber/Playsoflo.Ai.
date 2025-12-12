@@ -14,9 +14,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'SoundCloud API key not configured' }, { status: 500 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const query = searchParams.get('query') || '';
-    const genre = searchParams.get('genre') || '';
+    const payload = await req.json();
+    const query = payload.query || '';
+    const genre = payload.genre || '';
     
     let searchTerm = query || genre;
     if (!searchTerm) searchTerm = 'trending';
