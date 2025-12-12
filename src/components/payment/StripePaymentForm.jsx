@@ -20,12 +20,16 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
-      setErrorMessage("Payment system is still loading. Please wait a moment.");
+      const msg = "Payment system is still loading. Please wait a moment.";
+      setErrorMessage(msg);
+      if (onError) onError(new Error(msg));
       return;
     }
 
     if (!elementsReady) {
-      setErrorMessage("Please complete the payment details before submitting.");
+      const msg = "Please wait for payment form to load completely.";
+      setErrorMessage(msg);
+      if (onError) onError(new Error(msg));
       return;
     }
 
@@ -56,12 +60,14 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         setIsProcessing(false);
         if (onSuccess) onSuccess();
       } else {
-        setErrorMessage('Payment was not completed');
+        const msg = 'Payment was not completed. Please try again.';
+        setErrorMessage(msg);
         setIsProcessing(false);
-        if (onError) onError(new Error('Payment incomplete'));
+        if (onError) onError(new Error(msg));
       }
     } catch (err) {
-      setErrorMessage(err.message || "An error occurred during payment");
+      const msg = err.message || "An error occurred during payment";
+      setErrorMessage(msg);
       setIsProcessing(false);
       if (onError) onError(err);
     }

@@ -12,6 +12,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
 
   const quickAmounts = [50, 100, 250, 500, 1000];
 
@@ -49,8 +50,15 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   };
 
   const handleClose = () => {
-    if (!isProcessing) {
+    if (!isProcessing && step !== 2) {
       onClose();
+    }
+  };
+
+  const handleContinue = () => {
+    if (amount && parseFloat(amount) > 0) {
+      setPaymentError(null);
+      setStep(2);
     }
   };
 
@@ -141,9 +149,9 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                 </div>
 
                 <Button
-                  onClick={() => setStep(2)}
+                  onClick={handleContinue}
                   disabled={!amount || parseFloat(amount) <= 0}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 py-6 text-lg"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 py-6 text-lg hover:from-green-700 hover:to-emerald-700"
                 >
                   Continue
                 </Button>
@@ -157,21 +165,37 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
                 </div>
 
+                {paymentError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                    <p className="text-red-400 text-sm">{paymentError}</p>
+                  </div>
+                )}
+
                 <StripePaymentForm
                   amount={parseFloat(amount)}
                   referenceType="deposit"
-                  referenceId={currentUser.id}
-                  description={`Add ${amount} to wallet`}
-                  onSuccess={handleSuccess}
+                  referenceId={currentUser?.id}
+                  description={`Add $${amount} to wallet`}
+                  onSuccess={() => {
+                    setIsProcessing(false);
+                    handleSuccess();
+                  }}
                   onError={(error) => {
+                    setIsProcessing(false);
                     console.error("Payment error:", error);
                     const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
-                    alert("Payment failed: " + errorMsg);
+                    setPaymentError(errorMsg);
+                    toast.error(errorMsg);
                   }}
                 />
 
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => {
+                    if (!isProcessing) {
+                      setStep(1);
+                      setPaymentError(null);
+                    }
+                  }}
                   disabled={isProcessing}
                   className="w-full text-gray-400 hover:text-white transition disabled:opacity-50"
                 >
