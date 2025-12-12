@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Music, Play, Pause, Heart, TrendingUp, Flame, Mic2, Users, ChevronLeft,
-  Search, Upload,
+  Music, Play, Pause, Heart, TrendingUp, Flame,
+  Radio, Mic2, Users, DollarSign, ChevronLeft,
+  Search, Clock, BarChart3, Upload, Briefcase,
   Sparkles, RefreshCw
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import MusicPlayer from "../components/MusicPlayer";
 
 export default function Vibe() {
@@ -31,47 +31,45 @@ export default function Vibe() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  // Fetch music from Spotify + user uploads
+  // Fetch music from Deezer + SoundCloud + user uploads
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['music-discovery', selectedGenre, searchQuery],
     queryFn: async () => {
       console.log('Fetching music for genre:', selectedGenre);
       
       try {
-        // Always try Spotify first for massive catalog
-        const response = await base44.functions.invoke('fetchSpotifyMusic', {
-          genre: selectedGenre,
-          limit: 100,
-          search: searchQuery
-        });
+        const query = searchQuery || selectedGenre || 'popular';
         
-        console.log('Spotify response:', response?.data);
+        // Fetch from both Deezer and SoundCloud in parallel
+        const [deezerResponse, soundcloudResponse] = await Promise.allSettled([
+          base44.functions.invoke('fetchDeezerMusic', { query, genre: selectedGenre }),
+          base44.functions.invoke('fetchSoundCloudMusic', { query, genre: selectedGenre })
+        ]);
         
-        if (response?.data?.tracks && response.data.tracks.length > 0) {
-          return { tracks: response.data.tracks, source: 'spotify' };
+        const deezerTracks = deezerResponse.status === 'fulfilled' && deezerResponse.value?.data?.tracks 
+          ? deezerResponse.value.data.tracks : [];
+        const soundcloudTracks = soundcloudResponse.status === 'fulfilled' && soundcloudResponse.value?.data?.tracks
+          ? soundcloudResponse.value.data.tracks : [];
+        
+        console.log('Deezer tracks:', deezerTracks.length, 'SoundCloud tracks:', soundcloudTracks.length);
+        
+        // Combine tracks from both sources
+        const allTracks = [...deezerTracks, ...soundcloudTracks];
+        
+        if (allTracks.length > 0) {
+          // Shuffle for variety
+          return { tracks: allTracks.sort(() => Math.random() - 0.5), source: 'streaming' };
         }
         
-        // Fallback to user tracks if Spotify fails or returns no tracks
+        // Fallback to user tracks if both APIs fail
         const userTracks = await base44.entities.MusicTrack.filter({
           status: "published"
         });
         
-        console.log('User tracks:', userTracks.length);
-        
         return { tracks: userTracks, source: 'user' };
       } catch (error) {
         console.error('Music fetch error:', error);
-        
-        // Last resort - try to get user tracks if Spotify completely failed
-        try {
-          const userTracks = await base44.entities.MusicTrack.filter({
-            status: "published"
-          });
-          return { tracks: userTracks, source: 'user' };
-        } catch (err) {
-          console.error('Failed to fetch user tracks too:', err);
-          return { tracks: [], source: 'none' };
-        }
+        return { tracks: [], source: 'none' };
       }
     },
     initialData: { tracks: [], source: 'none' },
@@ -285,7 +283,7 @@ export default function Vibe() {
                     <Sparkles className="w-6 h-6 text-purple-400" />
                     <div>
                       <p className="text-white font-bold">
-                        {filteredTracks.length.toLocaleString()} Songs • {musicData?.source === 'spotify' ? '🎵 Spotify' : '👤 User Uploads'}
+                        {filteredTracks.length.toLocaleString()} Songs • {musicData?.source === 'streaming' ? '🎵 Deezer + SoundCloud' : '👤 User Uploads'}
                       </p>
                       <p className="text-gray-400 text-sm">
                         {isLoading ? 'Loading...' : queryError ? 'Error loading songs' : 'Ready to play'}
@@ -330,7 +328,7 @@ export default function Vibe() {
                   <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition cursor-pointer group">
                     <div className="relative">
                       <img
-                        src={track.cover_art_url || track.album?.images?.[0]?.url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400"}
+                        src={track.cover_art_url || track.image || track.album?.images?.[0]?.url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400"}
                         alt={track.title || track.name}
                         className="w-full aspect-square object-cover"
                         onError={(e) => {
@@ -363,15 +361,20 @@ export default function Vibe() {
                         {track.title || track.name}
                       </h3>
                       <p className="text-gray-400 text-xs truncate">
-                        {track.artist_name || track.artists?.[0]?.name || "Unknown Artist"}
+                        {track.artist_name || track.artist || track.artists?.[0]?.name || "Unknown Artist"}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <button className="p-1 hover:bg-white/10 rounded transition">
                           <Heart className="w-4 h-4 text-gray-400 hover:text-red-400" />
                         </button>
-                        {track.source === 'spotify' && (
-                          <Badge className="bg-green-500/20 text-green-400 text-xs">
-                            Spotify
+                        {track.source === 'deezer' && (
+                          <Badge className="bg-pink-500/20 text-pink-400 text-xs">
+                            Deezer
+                          </Badge>
+                        )}
+                        {track.source === 'soundcloud' && (
+                          <Badge className="bg-orange-500/20 text-orange-400 text-xs">
+                            SoundCloud
                           </Badge>
                         )}
                         {track.pricing_model && track.pricing_model !== 'free' && (
