@@ -11,15 +11,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("card");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async () => {
-    if (!currentUser) {
-      toast.error("User not authenticated");
+    if (!currentUser || isProcessing) {
       return;
     }
 
+    setIsProcessing(true);
     try {
       // Update user balance
       const currentBalance = currentUser.usd_balance || 0;
@@ -42,38 +43,38 @@ export default function AddMoneyModal({ currentUser, onClose }) {
     } catch (err) {
       console.error("Failed to update balance:", err);
       toast.error(err?.message || 'Failed to update balance');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isProcessing) {
+      onClose();
     }
   };
 
   return (
-    <AnimatePresence mode="wait">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-        onClick={(e) => {
-          // Only close if clicking the backdrop, not the modal content
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden shadow-2xl"
       >
-        <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
-        >
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Add Money</h2>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
-                <X className="w-6 h-6 text-white" />
-              </button>
-            </div>
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">Add Money</h2>
+            <button 
+              onClick={handleClose}
+              disabled={isProcessing}
+              className="p-2 hover:bg-white/10 rounded-full transition disabled:opacity-50"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
           </div>
+        </div>
 
           <div className="p-6">
             {step === 1 && (
@@ -187,14 +188,13 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                 <p className="text-gray-300 mb-6">
                   ${amount} has been added to your wallet
                 </p>
-                <Button onClick={onClose} className="w-full bg-green-600">
+                <Button onClick={handleClose} className="w-full bg-green-600">
                   Done
                 </Button>
               </div>
             )}
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
   );
 }
