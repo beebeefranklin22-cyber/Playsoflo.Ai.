@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -347,7 +346,7 @@ export default function Explore() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                   
                   <div className="absolute top-6 right-6 flex gap-2">
-                    {card.experience.tier_required !== "standard" && (
+                    {card.experience.tier_required && card.experience.tier_required !== "standard" && (
                       <div className="px-4 py-2 bg-yellow-500 rounded-full text-xs font-bold text-black shadow-lg flex items-center gap-2">
                         <Sparkles className="w-3 h-3" />
                         {card.experience.tier_required.toUpperCase()}
