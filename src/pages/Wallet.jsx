@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import SendMoneyModal from "../components/wallet/SendMoneyModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
 import CardManagementModal from "../components/wallet/CardManagementModal";
