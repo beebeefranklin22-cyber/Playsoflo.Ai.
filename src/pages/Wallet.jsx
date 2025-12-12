@@ -7,8 +7,9 @@ import {
   Plus, Crown, Building2
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { toast } from "sonner";
 import SendMoneyModal from "../components/wallet/SendMoneyModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
 import CardManagementModal from "../components/wallet/CardManagementModal";
@@ -24,6 +25,18 @@ export default function Wallet() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+    if (paymentStatus === 'success') {
+      toast.success('Payment completed successfully!');
+      navigate(createPageUrl("Wallet"), { replace: true });
+    } else if (paymentStatus === 'cancelled') {
+      toast.error('Payment cancelled');
+      navigate(createPageUrl("Wallet"), { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     const fetchUser = async () => {

@@ -78,16 +78,18 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     try {
       const response = await base44.functions.invoke('createStripeCheckout', {
         amount: 0.50,
-        description: 'Add Payment Method',
+        description: 'Verify Payment Method - $0.50 will be refunded',
       });
 
-      if (response.data.checkout_url) {
+      if (response.data?.checkout_url) {
         window.location.href = response.data.checkout_url;
       } else {
-        toast.error("Failed to create checkout");
+        toast.error("Failed to create checkout session");
+        setAddingPayment(false);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error('Checkout error:', error);
+      toast.error(error.message || "Failed to start checkout");
       setAddingPayment(false);
     }
   };

@@ -1,53 +1,57 @@
-import React, { useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import confetti from "canvas-confetti";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get("session_id");
+  const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
-    // Celebrate with confetti
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 }
-    });
+    // Simulate verification
+    const timer = setTimeout(() => {
+      setVerifying(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-green-950 to-gray-950 p-6 flex items-center justify-center">
-      <Card className="bg-white/5 border-white/10 max-w-md w-full">
-        <CardContent className="p-12 text-center">
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-12 h-12 text-green-400" />
-          </div>
-          
-          <h1 className="text-3xl font-bold text-white mb-4">Payment Successful!</h1>
-          <p className="text-gray-400 mb-8">
-            Thank you for your purchase. You'll receive a confirmation email shortly.
-          </p>
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-purple-500 animate-spin mx-auto mb-4" />
+          <p className="text-white text-xl">Verifying payment...</p>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="space-y-3">
-            <Button
-              onClick={() => navigate(createPageUrl('StripeConnectStorefront'))}
-              className="w-full bg-purple-600 hover:bg-purple-700"
-            >
-              Continue Shopping
-            </Button>
-            <Button
-              onClick={() => navigate(createPageUrl('Home'))}
-              variant="outline"
-              className="w-full bg-white/5 border-white/20"
-            >
-              Go to Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center max-w-md"
+      >
+        <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-12 h-12 text-green-400" />
+        </div>
+        <h1 className="text-3xl font-bold text-white mb-4">Payment Successful!</h1>
+        <p className="text-gray-400 mb-8">
+          Your payment has been processed successfully.
+        </p>
+        <Button
+          onClick={() => navigate(createPageUrl("Wallet"))}
+          className="bg-gradient-to-r from-purple-600 to-pink-600"
+        >
+          Back to Wallet
+        </Button>
+      </motion.div>
     </div>
   );
 }

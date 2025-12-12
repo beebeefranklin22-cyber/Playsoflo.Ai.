@@ -34,6 +34,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Get origin from request headers
+    const origin = req.headers.get('origin') || 'https://playsoflo.vercel.app';
+    
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,
@@ -44,6 +47,7 @@ Deno.serve(async (req) => {
             currency,
             product_data: {
               name: description || 'Payment',
+              description: 'PlaySoFlo Payment',
             },
             unit_amount: Math.round(amount * 100), // Convert to cents
           },
@@ -51,11 +55,12 @@ Deno.serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.get('origin')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/wallet`,
+      success_url: `${origin}/wallet?payment=success`,
+      cancel_url: `${origin}/wallet?payment=cancelled`,
       metadata: {
         user_id: user.id,
         user_email: user.email,
+        description: description,
       },
     });
 
