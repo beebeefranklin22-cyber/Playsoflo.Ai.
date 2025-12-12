@@ -223,15 +223,24 @@ export default function StripePaymentForm({
     }
   };
 
+  console.log('=== RENDER CHECK ===');
+  console.log('Loading:', loading);
+  console.log('Init error:', initError);
+  console.log('Client secret exists:', !!clientSecret);
+  console.log('Stripe promise exists:', !!stripePromise);
+
   if (loading) {
+    console.log('Rendering loading state');
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+        <p className="text-white ml-3">Initializing payment...</p>
       </div>
     );
   }
 
   if (initError) {
+    console.log('Rendering error state');
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
         <p className="text-red-400 font-semibold mb-2">Payment initialization failed</p>
@@ -246,14 +255,25 @@ export default function StripePaymentForm({
     );
   }
 
-  if (!clientSecret || !stripePromise) {
+  if (!clientSecret) {
+    console.log('Missing client secret, showing waiting state');
     return (
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
-        <p className="text-yellow-400">Waiting for payment system to initialize...</p>
+        <p className="text-yellow-400">Waiting for payment system...</p>
       </div>
     );
   }
 
+  if (!stripePromise) {
+    console.log('Missing stripe promise, showing waiting state');
+    return (
+      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+        <p className="text-yellow-400">Loading Stripe...</p>
+      </div>
+    );
+  }
+
+  console.log('✅ Rendering Stripe Elements form');
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
       <CheckoutForm 
