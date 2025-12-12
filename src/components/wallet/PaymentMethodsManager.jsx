@@ -81,19 +81,20 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
     setAddingPayment(true);
     try {
+      const successUrl = `${window.location.origin}${window.location.pathname}?payment=success`;
+      const cancelUrl = `${window.location.origin}${window.location.pathname}?payment=cancelled`;
+
       const { data } = await base44.functions.invoke('createStripeCheckout', {
         amount: 0.50,
-        description: 'Add Payment Method - $0.50 verification charge',
+        description: 'Add Payment Method - $0.50 verification charge (refundable)',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
       });
-
-      console.log('Stripe checkout response:', data);
 
       if (data?.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
-        console.error('No checkout URL in response:', data);
-        toast.error("Failed to create checkout. Please try again.");
-        setAddingPayment(false);
+        throw new Error('No checkout URL received from server');
       }
     } catch (error) {
       console.error('Checkout error:', error);
