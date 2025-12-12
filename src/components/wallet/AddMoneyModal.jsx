@@ -172,7 +172,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
                 <button
                   onClick={() => setStep(1)}
-                  className="w-full text-gray-400 hover:text-white transition"
+                  disabled={isProcessing}
+                  className="w-full text-gray-400 hover:text-white transition disabled:opacity-50"
                 >
                   ← Back
                 </button>

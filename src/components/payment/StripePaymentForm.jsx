@@ -42,12 +42,9 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         return;
       }
 
-      // Then confirm the payment
-      const { error } = await stripe.confirmPayment({
+      // Then confirm the payment WITHOUT redirect
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
-        confirmParams: {
-          return_url: window.location.origin,
-        },
         redirect: "if_required",
       });
 
@@ -55,9 +52,13 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         setErrorMessage(error.message);
         setIsProcessing(false);
         if (onError) onError(error);
-      } else {
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         setIsProcessing(false);
         if (onSuccess) onSuccess();
+      } else {
+        setErrorMessage('Payment was not completed');
+        setIsProcessing(false);
+        if (onError) onError(new Error('Payment incomplete'));
       }
     } catch (err) {
       setErrorMessage(err.message || "An error occurred during payment");
