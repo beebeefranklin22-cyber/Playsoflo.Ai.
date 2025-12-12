@@ -639,11 +639,12 @@ export default function Profile() {
                   Privacy Settings
                 </Button>
                 <Button
+                  onClick={() => navigate(createPageUrl("Notifications"))}
                   variant="outline"
                   className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
                 >
                   <Bell className="w-4 h-4 mr-2" />
-                  Notifications
+                  Notification Settings
                 </Button>
                 <Button
                   variant="outline"

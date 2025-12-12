@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, CheckCircle, Package, Heart, MessageCircle, 
   AlertCircle, DollarSign, Users, Trash2, Settings,
-  Mail, Smartphone, Filter, UserPlus
+  Mail, Smartphone, Filter, UserPlus, Music
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,10 @@ const notificationIcons = {
   comment_reply: MessageCircle,
   comment_like: Heart,
   post_like: Heart,
-  new_post: Bell
+  new_post: Bell,
+  friend_listening: Music,
+  booking_update: Package,
+  important_update: AlertCircle
 };
 
 const notificationColors = {
@@ -54,7 +57,10 @@ const notificationColors = {
   comment_reply: "text-blue-400",
   comment_like: "text-pink-400",
   post_like: "text-pink-400",
-  new_post: "text-purple-400"
+  new_post: "text-purple-400",
+  friend_listening: "text-green-400",
+  booking_update: "text-blue-400",
+  important_update: "text-red-400"
 };
 
 export default function Notifications() {
@@ -94,9 +100,10 @@ export default function Notifications() {
     ? allNotifications 
     : allNotifications.filter(n => {
         if (filterType === "unread") return !n.read;
-        if (filterType === "social") return ["post_like", "new_comment", "comment_reply", "new_follower", "follow_request"].includes(n.type);
+        if (filterType === "social") return ["post_like", "new_comment", "comment_reply", "new_follower", "follow_request", "friend_listening"].includes(n.type);
         if (filterType === "messages") return ["new_message", "chat_message", "direct_message"].includes(n.type);
         if (filterType === "payments") return ["payment_received", "tip_received", "booking_confirmed"].includes(n.type);
+        if (filterType === "bookings") return ["booking_confirmed", "booking_update", "order_update"].includes(n.type);
         return true;
       });
 
@@ -242,6 +249,7 @@ export default function Notifications() {
                 { value: "unread", label: "Unread", icon: Bell, badge: unreadCount },
                 { value: "social", label: "Social", icon: Users },
                 { value: "messages", label: "Messages", icon: MessageCircle },
+                { value: "bookings", label: "Bookings", icon: Package },
                 { value: "payments", label: "Payments", icon: DollarSign }
               ].map(({ value, label, icon: Icon, badge }) => (
                 <Button
@@ -384,11 +392,14 @@ export default function Notifications() {
                     { type: "comment_like", label: "Comment Likes", desc: "When someone likes your comment" },
                     { type: "new_follower", label: "New Followers", desc: "When someone follows you" },
                     { type: "follow_request", label: "Follow Requests", desc: "When someone requests to follow you" },
+                    { type: "friend_listening", label: "Friend Listening", desc: "When friends start listening to music" },
                     { type: "new_message", label: "Messages", desc: "New direct messages" },
                     { type: "chat_message", label: "Chat Messages", desc: "New chat room messages" },
                     { type: "booking_confirmed", label: "Bookings", desc: "Booking confirmations and updates" },
+                    { type: "booking_update", label: "Booking Updates", desc: "Updates on your bookings" },
                     { type: "payment_received", label: "Payments", desc: "When you receive a payment" },
-                    { type: "tip_received", label: "Tips", desc: "When someone tips you" }
+                    { type: "tip_received", label: "Tips", desc: "When someone tips you" },
+                    { type: "important_update", label: "Important Updates", desc: "Critical system notifications" }
                   ].map(({ type, label, desc }) => (
                     <div key={type} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
                       <div className="flex-1">
