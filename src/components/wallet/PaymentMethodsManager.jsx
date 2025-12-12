@@ -11,81 +11,13 @@ import {
   Check, Trash2, Star, X
 } from "lucide-react";
 import { toast } from "sonner";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
-function AddCardForm({ currentUser, onSuccess }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setProcessing(true);
-    try {
-      const { token, error } = await stripe.createToken(elements.getElement(CardElement));
-      
-      if (error) {
-        toast.error(error.message);
-        setProcessing(false);
-        return;
-      }
-
-      const response = await base44.functions.invoke('createStripePaymentMethod', {
-        type: 'card',
-        token: token.id
-      });
-
-      if (response.data.success) {
-        toast.success("Card added successfully!");
-        onSuccess();
-      } else {
-        toast.error("Failed to add card");
-      }
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 bg-white/5 rounded-xl">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#fff',
-                '::placeholder': { color: '#9ca3af' },
-              },
-            },
-          }}
-        />
-      </div>
-      <Button
-        type="submit"
-        disabled={!stripe || processing}
-        className="w-full bg-purple-600 hover:bg-purple-700"
-      >
-        {processing ? "Adding..." : "Add Card"}
-      </Button>
-    </form>
-  );
-}
 
 export default function PaymentMethodsManager({ currentUser, onClose }) {
   const queryClient = useQueryClient();
-  const [showAddCard, setShowAddCard] = useState(false);
-  const [showAddBank, setShowAddBank] = useState(false);
   const [showAddExternal, setShowAddExternal] = useState(false);
   const [externalType, setExternalType] = useState(null);
   const [externalUsername, setExternalUsername] = useState("");
+  const [addingPayment, setAddingPayment] = useState(false);
 
   const { data: paymentMethods = [] } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
@@ -141,6 +73,25 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     }
   });
 
+  const handleAddStripePayment = async () => {
+    setAddingPayment(true);
+    try {
+      const response = await base44.functions.invoke('createStripeCheckout', {
+        amount: 0.50,
+        description: 'Add Payment Method',
+      });
+
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else {
+        toast.error("Failed to create checkout");
+      }
+    } catch (error) {
+      toast.error(error.message);
+      setAddingPayment(false);
+    }
+  };
+
   const getIcon = (type) => {
     switch (type) {
       case 'card': return CreditCard;
@@ -176,20 +127,14 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         </div>
 
         {/* Add Payment Method Options */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <Button
-            onClick={() => setShowAddCard(true)}
+            onClick={handleAddStripePayment}
+            disabled={addingPayment}
             className="bg-purple-600 hover:bg-purple-700"
           >
             <CreditCard className="w-4 h-4 mr-2" />
-            Add Card
-          </Button>
-          <Button
-            onClick={() => setShowAddBank(true)}
-            className="bg-teal-600 hover:bg-teal-700"
-          >
-            <Building className="w-4 h-4 mr-2" />
-            Add Bank
+            {addingPayment ? "Loading..." : "Add Card/Bank"}
           </Button>
           <Button
             onClick={() => {
@@ -199,45 +144,9 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
             className="bg-green-600 hover:bg-green-700"
           >
             <DollarSign className="w-4 h-4 mr-2" />
-            CashApp
-          </Button>
-          <Button
-            onClick={() => {
-              setExternalType('venmo');
-              setShowAddExternal(true);
-            }}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <DollarSign className="w-4 h-4 mr-2" />
-            Venmo
+            CashApp/Venmo
           </Button>
         </div>
-
-        {/* Add Card Form */}
-        <AnimatePresence>
-          {showAddCard && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6"
-            >
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6">
-                  <Elements stripe={stripePromise}>
-                    <AddCardForm
-                      currentUser={currentUser}
-                      onSuccess={() => {
-                        setShowAddCard(false);
-                        queryClient.invalidateQueries(['payment-methods']);
-                      }}
-                    />
-                  </Elements>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Add External Account Form */}
         <AnimatePresence>
