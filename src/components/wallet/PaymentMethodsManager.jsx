@@ -81,20 +81,18 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
     setAddingPayment(true);
     try {
-      const successUrl = `${window.location.origin}${window.location.pathname}?payment=success`;
+      const successUrl = `${window.location.origin}${window.location.pathname}?payment=success&action=add_card`;
       const cancelUrl = `${window.location.origin}${window.location.pathname}?payment=cancelled`;
 
-      const { data } = await base44.functions.invoke('createStripeCheckout', {
-        amount: 0.50,
-        description: 'Add Payment Method - $0.50 verification charge (refundable)',
+      const { data } = await base44.functions.invoke('createStripeSetupSession', {
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
 
-      if (data?.checkout_url) {
-        window.location.href = data.checkout_url;
+      if (data?.setup_url) {
+        window.location.href = data.setup_url;
       } else {
-        throw new Error('No checkout URL received from server');
+        throw new Error('No setup URL received from server');
       }
     } catch (error) {
       console.error('Checkout error:', error);

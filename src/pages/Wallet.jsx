@@ -90,11 +90,18 @@ export default function Wallet() {
     },
   ];
 
-  const recentTransactions = [
-    { type: "received", name: "Exotic Car Experience", amount: "+250 RRI", time: "2 hours ago" },
-    { type: "sent", name: "Yacht Charter", amount: "-1,200 RRI", time: "1 day ago" },
-    { type: "received", name: "Referral Bonus", amount: "+100 RRI", time: "2 days ago" },
-  ];
+  // Fetch real transaction history
+  const { data: transactions = [] } = useQuery({
+    queryKey: ['transactions', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const payments = await base44.entities.Payment.filter({
+        created_by: currentUser.email
+      });
+      return payments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 20);
+    },
+    enabled: !!currentUser
+  });
 
   return (
     <div className="min-h-screen pb-20">
@@ -273,36 +280,53 @@ export default function Wallet() {
       <div className="px-6">
         <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>
         <div className="space-y-3">
-          {recentTransactions.map((tx, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
-              className="glass-effect rounded-2xl p-4 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 ${
-                  tx.type === "received" ? "bg-green-500/20" : "bg-red-500/20"
-                } rounded-full flex items-center justify-center`}>
-                  {tx.type === "received" ? (
-                    <ArrowDownLeft className="w-5 h-5 text-green-400" />
-                  ) : (
-                    <ArrowUpRight className="w-5 h-5 text-red-400" />
+          {transactions.length > 0 ? transactions.map((tx, index) => {
+            const isIncoming = tx.reference_type === 'deposit' || tx.reference_type === 'received';
+            return (
+              <motion.div
+                key={tx.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                className="glass-effect rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 ${
+                    isIncoming ? "bg-green-500/20" : "bg-red-500/20"
+                  } rounded-full flex items-center justify-center`}>
+                    {isIncoming ? (
+                      <ArrowDownLeft className="w-5 h-5 text-green-400" />
+                    ) : (
+                      <ArrowUpRight className="w-5 h-5 text-red-400" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-white font-medium">{tx.memo || tx.reference_type}</p>
+                    <p className="text-gray-400 text-sm">
+                      {new Date(tx.created_date).toLocaleDateString()} • {tx.method}
+                    </p>
+                    <p className="text-gray-500 text-xs capitalize">{tx.status}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`font-semibold ${
+                    isIncoming ? "text-green-400" : "text-red-400"
+                  }`}>
+                    {isIncoming ? '+' : '-'}${tx.amount_usd?.toFixed(2) || '0.00'}
+                  </p>
+                  {tx.amount_rri > 0 && (
+                    <p className="text-purple-400 text-xs">{tx.amount_rri} SFC</p>
                   )}
                 </div>
-                <div>
-                  <p className="text-white font-medium">{tx.name}</p>
-                  <p className="text-gray-400 text-sm">{tx.time}</p>
-                </div>
-              </div>
-              <p className={`font-semibold ${
-                tx.type === "received" ? "text-green-400" : "text-red-400"
-              }`}>
-                {tx.amount}
-              </p>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          }) : (
+            <div className="text-center py-12">
+              <TrendingUp className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">No transactions yet</h3>
+              <p className="text-gray-400">Your transaction history will appear here</p>
+            </div>
+          )}
         </div>
       </div>
 
