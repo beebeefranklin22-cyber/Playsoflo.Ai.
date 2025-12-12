@@ -5,6 +5,7 @@ import { X, Plus, CreditCard, Building, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function AddMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
@@ -14,6 +15,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async () => {
+    if (!currentUser) {
+      toast.error("User not authenticated");
+      return;
+    }
+
     try {
       // Update user balance
       const currentBalance = currentUser.usd_balance || 0;
@@ -31,11 +37,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
         memo: "Added funds to wallet"
       });
 
+      toast.success("Funds added successfully!");
       setStep(3);
     } catch (err) {
       console.error("Failed to update balance:", err);
-      const errorMsg = err?.message || err?.error || 'Failed to update balance';
-      alert("Payment successful but " + errorMsg);
+      toast.error(err?.message || 'Failed to update balance');
     }
   };
 
