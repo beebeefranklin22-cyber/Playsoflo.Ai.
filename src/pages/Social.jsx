@@ -414,51 +414,52 @@ export default function Social() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => toggleLike(post)}
-                  className="transform active:scale-125 transition-transform"
+                  className="transform active:scale-125 transition-transform hover:scale-110"
                 >
                   <Heart 
                     className={`w-7 h-7 ${
                       likedPosts.has(post.id) 
                         ? 'fill-red-500 text-red-500' 
-                        : 'text-white'
+                        : 'text-white hover:text-red-400'
                     }`} 
                   />
                 </button>
-                <button>
-                  <MessageCircle className="w-7 h-7 text-white" />
+                <button className="transform hover:scale-110 transition-transform">
+                  <MessageCircle className="w-7 h-7 text-white hover:text-blue-400" />
                 </button>
-                <div className="relative group">
-                  <button className="text-white">
-                    <Share2 className="w-7 h-7" />
-                  </button>
-                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-900 rounded-lg shadow-xl p-2 min-w-[150px] z-10">
-                    <button
-                      onClick={() => handleSharePost(post)}
-                      className="w-full text-left px-3 py-2 text-white text-sm hover:bg-white/10 rounded flex items-center gap-2"
-                    >
-                      <Copy className="w-4 h-4" />
-                      Copy Link
-                    </button>
-                    <button
-                      onClick={() => handleRepost(post)}
-                      className="w-full text-left px-3 py-2 text-white text-sm hover:bg-white/10 rounded flex items-center gap-2"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share to Feed
-                    </button>
-                  </div>
+                <button 
+                  onClick={() => handleRepost(post)}
+                  className="transform hover:scale-110 transition-transform group/repost"
+                  title="Share to your feed"
+                >
+                  <Share2 className="w-7 h-7 text-white hover:text-green-400" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 rounded text-white text-xs whitespace-nowrap opacity-0 group-hover/repost:opacity-100 transition-opacity pointer-events-none">
+                    Share to Feed
+                  </span>
+                </button>
+                <button 
+                  onClick={() => handleSharePost(post)}
+                  className="transform hover:scale-110 transition-transform group/share"
+                  title="Copy link"
+                >
+                  <Copy className="w-6 h-6 text-white hover:text-purple-400" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 rounded text-white text-xs whitespace-nowrap opacity-0 group-hover/share:opacity-100 transition-opacity pointer-events-none">
+                    Copy Link
+                  </span>
+                </button>
+                <div className="transform hover:scale-110 transition-transform">
+                  <TipButton 
+                    creatorEmail={post.created_by}
+                    creatorName={post.created_by}
+                    contentId={post.id}
+                    variant="ghost"
+                    size="sm"
+                    showAmount={false}
+                  />
                 </div>
-                <TipButton 
-                  creatorEmail={post.created_by}
-                  creatorName={post.created_by}
-                  contentId={post.id}
-                  variant="ghost"
-                  size="sm"
-                  showAmount={false}
-                />
               </div>
-              <button>
-                <Bookmark className="w-7 h-7 text-white" />
+              <button className="transform hover:scale-110 transition-transform">
+                <Bookmark className="w-7 h-7 text-white hover:text-yellow-400" />
               </button>
             </div>
 
