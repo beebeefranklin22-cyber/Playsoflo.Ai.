@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, User, DollarSign, MessageCircle } from "lucide-react";
+import { X, Send, User, DollarSign, MessageCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 export default function SendMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
@@ -12,38 +14,115 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   const [message, setMessage] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Search for users
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['user-search', searchQuery],
+    queryFn: async () => {
+      if (!searchQuery || searchQuery.length < 2) return [];
+      const users = await base44.entities.User.filter({});
+      return users.filter(u => 
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5);
+    },
+    enabled: searchQuery.length >= 2
+  });
 
   const handleSend = async () => {
     if (!recipient || !amount) {
-      alert("Please enter recipient and amount");
+      toast.error("Please enter recipient and amount");
       return;
     }
 
     setLoading(true);
     try {
-      await base44.entities.P2PTransaction.create({
-        sender_email: currentUser.email,
+      const sendAmount = parseFloat(amount);
+
+      // Verify recipient exists
+      const recipientUsers = await base44.entities.User.filter({});
+      const recipientUser = recipientUsers.find(u => u.email === recipient);
+      
+      if (!recipientUser) {
+        toast.error("Recipient not found");
+        setLoading(false);
+        return;
+      }
+
+      if (currency === "USD") {
+        const currentBalance = currentUser.usd_balance || 0;
+        if (currentBalance < sendAmount) {
+          toast.error("Insufficient USD balance");
+          setLoading(false);
+          return;
+        }
+
+        // Deduct from sender
+        await base44.auth.updateMe({
+          usd_balance: currentBalance - sendAmount
+        });
+
+        // Credit recipient
+        const recipientBalance = recipientUser.usd_balance || 0;
+        await base44.asServiceRole.entities.User.update(recipientUser.id, {
+          usd_balance: recipientBalance + sendAmount
+        });
+      } else if (currency === "SoFloCoin") {
+        const currentCoins = currentUser.soflo_coins || 0;
+        if (currentCoins < sendAmount) {
+          toast.error("Insufficient SoFloCoin balance");
+          setLoading(false);
+          return;
+        }
+
+        // Deduct from sender
+        await base44.auth.updateMe({
+          soflo_coins: currentCoins - sendAmount
+        });
+
+        // Credit recipient
+        const recipientCoins = recipientUser.soflo_coins || 0;
+        await base44.asServiceRole.entities.User.update(recipientUser.id, {
+          soflo_coins: recipientCoins + sendAmount
+        });
+      }
+
+      // Create payment records
+      await base44.entities.Payment.create({
+        amount_usd: currency === "USD" ? sendAmount : 0,
+        amount_rri: currency === "SoFloCoin" ? sendAmount : 0,
+        method: "internal_transfer",
+        status: "completed",
+        reference_type: "sent",
         recipient_email: recipient,
-        amount: parseFloat(amount),
-        currency,
-        message,
-        transaction_type: "send",
-        status: "completed"
+        memo: message || `Transfer to ${recipientUser.full_name || recipient}`
       });
 
-      // Create notification for recipient
+      await base44.asServiceRole.entities.Payment.create({
+        created_by: recipient,
+        amount_usd: currency === "USD" ? sendAmount : 0,
+        amount_rri: currency === "SoFloCoin" ? sendAmount : 0,
+        method: "internal_transfer",
+        status: "completed",
+        reference_type: "received",
+        sender_email: currentUser.email,
+        memo: message || `Transfer from ${currentUser.full_name || currentUser.email}`
+      });
+
+      // Notify recipient
       await base44.entities.Notification.create({
         recipient_email: recipient,
         type: "payment_received",
         title: "Money Received",
-        message: `${currentUser.full_name} sent you $${amount}`,
+        message: `${currentUser.full_name} sent you ${sendAmount} ${currency}${message ? ': ' + message : ''}`,
         reference_type: "transaction"
       });
 
       setStep(2);
     } catch (err) {
       console.error("Send failed:", err);
-      alert("Failed to send money: " + err.message);
+      toast.error(err?.message || "Failed to send money");
     } finally {
       setLoading(false);
     }
@@ -80,14 +159,44 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                 <div>
                   <label className="text-white font-semibold mb-3 block flex items-center gap-2">
                     <User className="w-5 h-5 text-purple-400" />
-                    Recipient Email or Username
+                    Recipient
                   </label>
-                  <Input
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    placeholder="friend@example.com"
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setRecipient(e.target.value);
+                      }}
+                      placeholder="Search by name or email..."
+                      className="bg-white/10 border-white/20 text-white pl-10"
+                    />
+                  </div>
+                  
+                  {searchResults.length > 0 && searchQuery.length >= 2 && (
+                    <div className="mt-2 bg-white/10 border border-white/20 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                      {searchResults.map((user) => (
+                        <button
+                          key={user.id}
+                          onClick={() => {
+                            setRecipient(user.email);
+                            setSearchQuery(user.full_name || user.email);
+                          }}
+                          className="w-full px-4 py-3 hover:bg-white/10 transition text-left flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {user.full_name?.[0] || user.email[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{user.full_name || 'User'}</p>
+                            <p className="text-gray-400 text-sm">{user.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -103,7 +212,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                     className="bg-white/10 border-white/20 text-white text-2xl"
                   />
                   <div className="flex gap-2 mt-3">
-                    {["USD", "SoFloCoin", "BTC", "ETH"].map((curr) => (
+                    {["USD", "SoFloCoin"].map((curr) => (
                       <button
                         key={curr}
                         onClick={() => setCurrency(curr)}
@@ -134,7 +243,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
 
                 <Button
                   onClick={handleSend}
-                  disabled={loading}
+                  disabled={loading || !recipient || !amount}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 py-6 text-lg"
                 >
                   {loading ? "Sending..." : `Send ${amount || "0"} ${currency}`}
@@ -147,9 +256,9 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-3">Money Sent!</h3>
                 <p className="text-gray-300 mb-6">
-                  ${amount} sent to {recipient}
+                  {amount} {currency} sent to {recipient}
                 </p>
-                <Button onClick={onClose} className="w-full bg-purple-600">
+                <Button onClick={() => { onClose(); window.location.reload(); }} className="w-full bg-purple-600">
                   Done
                 </Button>
               </div>
