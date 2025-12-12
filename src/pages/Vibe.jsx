@@ -182,8 +182,48 @@ export default function Vibe() {
     return matchesSearch;
   });
 
-  const handleTrackClick = (track) => {
+  const handleTrackClick = async (track) => {
     setPlayingTrack(track);
+    
+    // Update user's current music and notify followers
+    if (currentUser) {
+      await base44.auth.updateMe({
+        current_music: `${track.title || track.name} - ${track.artist_name || track.artist || 'Unknown'}`
+      });
+
+      // Notify followers about music listening
+      try {
+        const followers = await base44.entities.Follow.filter({ 
+          following_email: currentUser.email 
+        });
+
+        // Get notification preferences and send notifications
+        const notificationPromises = followers.map(async (follower) => {
+          const prefs = await base44.entities.NotificationPreferences.filter({
+            user_email: follower.follower_email
+          });
+          
+          const shouldNotify = !prefs[0] || prefs[0].push_notifications?.friend_listening !== false;
+          
+          if (shouldNotify) {
+            return base44.entities.Notification.create({
+              recipient_email: follower.follower_email,
+              type: "friend_listening",
+              title: "Friend is listening to music",
+              message: `${currentUser.full_name} is now listening to ${track.title || track.name}`,
+              sender_email: currentUser.email,
+              sender_name: currentUser.full_name,
+              sender_photo: currentUser.profile_photo,
+              action_url: `/vibe`
+            });
+          }
+        });
+
+        await Promise.all(notificationPromises);
+      } catch (error) {
+        console.log('Error notifying followers:', error);
+      }
+    }
   };
 
   const handleNext = () => {
