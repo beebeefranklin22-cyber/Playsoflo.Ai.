@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import TipButton from "../components/TipButton";
 import CommentSection from "../components/social/CommentSection";
+import FollowButton from "../components/social/FollowButton";
 import { trackPostCreated, trackPostLiked, trackPostShared } from "@/components/analytics/analytics";
 
 export default function Social() {
@@ -352,9 +353,19 @@ export default function Social() {
                   )}
                 </div>
               </button>
-              <button className="text-gray-400 hover:text-white">
-                <MoreHorizontal className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                {currentUser && post.created_by !== currentUser.email && (
+                  <FollowButton
+                    targetEmail={post.created_by}
+                    targetName={post.created_by}
+                    currentUser={currentUser}
+                    size="sm"
+                  />
+                )}
+                <button className="text-gray-400 hover:text-white">
+                  <MoreHorizontal className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             {/* Post Image */}
