@@ -155,30 +155,40 @@ export default function StripePaymentForm({
           }
         });
 
-        console.log('📦 Payment response received:', response?.data);
+        console.log('📦 Payment response received:', response);
 
         if (!mounted) {
           console.log('⚠️ Component unmounted, skipping state update');
           return;
         }
 
-        if (response?.data?.clientSecret && response?.data?.publishableKey) {
-          console.log('✅ Loading Stripe...');
-          const stripe = await loadStripe(response.data.publishableKey);
-          
-          if (!stripe) {
-            throw new Error('Failed to load Stripe');
-          }
-          
-          if (!mounted) return;
-          
-          console.log('✅ Stripe loaded successfully');
-          setStripePromise(stripe);
-          setClientSecret(response.data.clientSecret);
-          setLoading(false);
-        } else {
-          throw new Error('Missing payment credentials from response');
+        // Handle error responses
+        if (response?.error || !response?.data) {
+          const errorMsg = response?.error || 'Failed to initialize payment';
+          console.error('❌ Payment initialization error:', errorMsg);
+          throw new Error(errorMsg);
         }
+
+        const { clientSecret, publishableKey } = response.data;
+
+        if (!clientSecret || !publishableKey) {
+          console.error('❌ Missing credentials:', { clientSecret: !!clientSecret, publishableKey: !!publishableKey });
+          throw new Error('Missing payment credentials from server');
+        }
+
+        console.log('✅ Loading Stripe with publishable key...');
+        const stripe = await loadStripe(publishableKey);
+
+        if (!stripe) {
+          throw new Error('Failed to load Stripe');
+        }
+
+        if (!mounted) return;
+
+        console.log('✅ Stripe loaded successfully');
+        setStripePromise(stripe);
+        setClientSecret(clientSecret);
+        setLoading(false);
       } catch (error) {
         console.error('❌ Payment setup error:', error);
         if (!mounted) return;
