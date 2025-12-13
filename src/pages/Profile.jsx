@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import PortfolioSection from "../components/profile/PortfolioSection";
 import ReviewsSection from "../components/profile/ReviewsSection";
@@ -26,11 +26,26 @@ import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
 import RidePreferencesModal from "../components/ride/RidePreferencesModal";
 import VehicleInfoModal from "../components/ride/VehicleInfoModal";
+import FriendRequestsModal from "../components/friends/FriendRequestsModal";
+import FriendsListModal from "../components/friends/FriendsListModal";
 
 export default function Profile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+
+  const { data: friendships = [] } = useQuery({
+    queryKey: ['friendships', currentUser?.email],
+    queryFn: async () => {
+      const friendships = await base44.entities.Friendship.filter({ status: 'active' });
+      return friendships.filter(
+        f => f.user1_email === currentUser.email || f.user2_email === currentUser.email
+      );
+    },
+    enabled: !!currentUser
+  });
+
+  const friendshipsCount = friendships.length;
   const [isEditing, setIsEditing] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
@@ -40,6 +55,8 @@ export default function Profile() {
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRidePreferences, setShowRidePreferences] = useState(false);
   const [showVehicleInfo, setShowVehicleInfo] = useState(false);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
     full_name: "",
@@ -366,11 +383,43 @@ export default function Profile() {
                           <p className="text-gray-400 text-xs">Posts</p>
                         </div>
                         <FollowStats userEmail={currentUser?.email} currentUser={currentUser} />
+                        <button onClick={() => setShowFriends(true)} className="text-center">
+                          <p className="text-xl font-bold text-white">{friendshipsCount}</p>
+                          <p className="text-gray-400 text-xs">Friends</p>
+                        </button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
             )}
+
+            {/* Friend Management */}
+            <Card className="glass-effect border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Friends & Connections
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  onClick={() => setShowFriendRequests(true)}
+                  variant="outline"
+                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Friend Requests
+                </Button>
+                <Button
+                  onClick={() => setShowFriends(true)}
+                  variant="outline"
+                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  My Friends ({friendshipsCount})
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Interests Management */}
             <Card className="glass-effect border-white/10">
@@ -812,6 +861,22 @@ export default function Profile() {
           setCurrentUser(user);
         }}
       />
+
+      {/* Friend Requests Modal */}
+      {showFriendRequests && (
+        <FriendRequestsModal 
+          currentUser={currentUser}
+          onClose={() => setShowFriendRequests(false)}
+        />
+      )}
+
+      {/* Friends List Modal */}
+      {showFriends && (
+        <FriendsListModal 
+          currentUser={currentUser}
+          onClose={() => setShowFriends(false)}
+        />
+      )}
 
       {/* Interests Modal */}
       <AnimatePresence>
