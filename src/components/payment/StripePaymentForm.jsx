@@ -243,10 +243,18 @@ export default function StripePaymentForm({
   }, [amount]);
 
   if (initError) {
-    if (onError) {
-      onError(String(initError));
-    }
-    return null;
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+        <p className="text-red-400 font-semibold mb-2">Payment Setup Error</p>
+        <p className="text-red-300 text-sm mb-4">{initError}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="py-2 px-6 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium transition"
+        >
+          Refresh and Try Again
+        </button>
+      </div>
+    );
   }
 
   if (loading || !clientSecret || !stripePromise) {
