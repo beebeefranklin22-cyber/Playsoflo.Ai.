@@ -99,17 +99,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const handleContinue = () => {
     console.log('=== CONTINUE CLICKED ===');
     console.log('Amount:', amount);
+    console.log('Method:', method);
     console.log('Current step:', step);
     
     if (amount && parseFloat(amount) > 0) {
       console.log('✅ Valid amount, moving to step 2');
       setPaymentError(null);
-      setTimeout(() => {
-        console.log('Setting step to 2 NOW');
-        setStep(2);
-      }, 100);
+      setStep(2);
     } else {
       console.log('❌ Invalid amount');
+      toast.error('Please enter a valid amount');
     }
   };
 

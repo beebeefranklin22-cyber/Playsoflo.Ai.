@@ -160,18 +160,14 @@ export default function StripePaymentForm({
 }) {
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [initError, setInitError] = useState(null);
 
   useEffect(() => {
-    if (amount && amount > 0 && !clientSecret && !loading) {
+    if (amount && amount > 0 && !clientSecret && !loading && !stripePromise) {
       createPaymentIntent();
     }
-  }, [amount]);
-
-  useEffect(() => {
-    setLoading(false);
-  }, []);
+  }, [amount, clientSecret, loading, stripePromise]);
 
   const createPaymentIntent = async () => {
     try {
@@ -201,9 +197,14 @@ export default function StripePaymentForm({
         const stripe = await loadStripe(response.data.publishableKey);
         console.log('✅ Stripe loaded, setting state...');
         
+        if (!stripe) {
+          throw new Error('Failed to load Stripe');
+        }
+        
         // Set both at once to prevent race conditions
         setStripePromise(stripe);
         setClientSecret(response.data.clientSecret);
+        setLoading(false);
       } else {
         throw new Error('Missing payment credentials');
       }
@@ -211,9 +212,8 @@ export default function StripePaymentForm({
       console.error('❌ Error:', error);
       const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
       setInitError(new Error(errorMsg));
-      if (onError) onError(new Error(errorMsg));
-    } finally {
       setLoading(false);
+      if (onError) onError(new Error(errorMsg));
     }
   };
 
@@ -246,28 +246,33 @@ export default function StripePaymentForm({
     );
   }
 
-  if (clientSecret && stripePromise) {
+  if (loading || (!clientSecret || !stripePromise)) {
     return (
-      <Elements 
-        stripe={stripePromise} 
-        options={{ 
-          clientSecret,
-          appearance: { theme: 'night' }
-        }}
-      >
-        <CheckoutForm 
-          amount={amount} 
-          onSuccess={onSuccess} 
-          onError={onError} 
-        />
-      </Elements>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+        <p className="text-white text-sm">{loading ? 'Setting up payment...' : 'Loading...'}</p>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
-      <p className="text-white">Initializing...</p>
-    </div>
+    <Elements 
+      stripe={stripePromise} 
+      options={{ 
+        clientSecret,
+        appearance: { 
+          theme: 'night',
+          variables: {
+            colorPrimary: '#8b5cf6',
+          }
+        }
+      }}
+    >
+      <CheckoutForm 
+        amount={amount} 
+        onSuccess={onSuccess} 
+        onError={onError} 
+      />
+    </Elements>
   );
 }
