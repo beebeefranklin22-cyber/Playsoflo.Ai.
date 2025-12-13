@@ -87,7 +87,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
       }, 1500);
     } catch (error) {
       console.error("Error creating transfer:", error);
-      toast.error("Failed to initiate transfer");
+      const errorMsg = error?.message ? String(error.message) : "Failed to initiate transfer";
+      toast.error(errorMsg);
       setIsProcessing(false);
     }
   };
@@ -245,7 +246,10 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     onSuccess={handleSuccess}
                     onError={(error) => {
                       console.error("💥 Payment error:", error);
-                      toast.error(typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                      const errorMsg = typeof error === 'string' ? error : 
+                                      (error?.message ? String(error.message) : 
+                                      'Payment failed. Please try again.');
+                      toast.error(errorMsg);
                     }}
                   />
                 )}
