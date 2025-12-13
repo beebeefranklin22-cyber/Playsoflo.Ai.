@@ -9,24 +9,40 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { track_id, album_id, distribution_type, release_date, platforms, distributor } = await req.json();
+    const body = await req.json();
+    const { track_id, album_id, distribution_type, release_date, platforms, distributor } = body;
 
     if (!track_id || !distributor) {
       return Response.json({ error: 'track_id and distributor required' }, { status: 400 });
     }
 
+    // Validate distributor
+    const validDistributors = ['distrokid', 'tunecore', 'cdbaby'];
+    if (!validDistributors.includes(distributor)) {
+      return Response.json({ error: 'Invalid distributor' }, { status: 400 });
+    }
+
+    // Get track info
+    const tracks = await base44.entities.MusicTrack.filter({ id: track_id });
+    if (!tracks || tracks.length === 0) {
+      return Response.json({ error: 'Track not found' }, { status: 404 });
+    }
+    const track = tracks[0];
+
     const PLAYSO_FLO_FEE = 2.22;
 
     // Distributor pricing
     const distributorPricing = {
-      distrokid: { single: 22.99, album: 22.99 },
-      tunecore: { single: 9.99, album: 29.99 },
-      cdbaby: { single: 9.95, album: 29.00 }
+      distrokid: { single: 22.99, album: 22.99, ep: 22.99 },
+      tunecore: { single: 9.99, album: 29.99, ep: 19.99 },
+      cdbaby: { single: 9.95, album: 29.00, ep: 19.00 }
     };
 
     const distType = distribution_type || 'single';
-    const distributorFee = distributorPricing[distributor]?.[distType] || 9.99;
+    const distributorFee = distributorPricing[distributor][distType];
     const totalFee = distributorFee + PLAYSO_FLO_FEE;
+
+    console.log('Distribution request:', { track_id, distributor, distType, distributorFee, totalFee, userBalance: user.usd_balance });
 
     // Check user balance
     if (user.usd_balance < totalFee) {
@@ -71,21 +87,30 @@ Deno.serve(async (req) => {
     const isrc = `US-PSF-${Date.now().toString().slice(-7)}`;
     const upc = distribution_type !== 'single' ? `8${Date.now().toString().slice(-11)}` : null;
 
-    // Create distribution record
+    // Create distribution record with platform links initialized
+    const platformLinks = {};
+    const selectedPlatforms = platforms || ["spotify", "apple_music", "youtube_music", "amazon_music", "tidal", "deezer"];
+    selectedPlatforms.forEach(platform => {
+      platformLinks[platform] = null;
+    });
+
     const distribution = await base44.entities.MusicDistribution.create({
       artist_email: user.email,
       track_id: track_id,
       album_id: album_id,
       distribution_type: distribution_type || 'single',
-      platforms: platforms || ["spotify", "apple_music", "youtube_music", "amazon_music", "tidal", "deezer"],
+      platforms: selectedPlatforms,
       release_date: release_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       status: "processing",
       payment_id: platformPayment.id,
       distribution_fee: totalFee,
+      platform_links: platformLinks,
       isrc_code: isrc,
       upc_code: upc,
       submission_date: new Date().toISOString()
     });
+
+    console.log('Distribution created:', distribution.id);
 
     // Simulate distribution processing (in real app, this would call actual distribution API)
     // After 48 hours, status would change to "submitted"
