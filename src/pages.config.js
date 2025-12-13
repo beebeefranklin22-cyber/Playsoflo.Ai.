@@ -66,6 +66,7 @@ import EarningsDashboard from './pages/EarningsDashboard';
 import FleetManager from './pages/FleetManager';
 import CommunityHub from './pages/CommunityHub';
 import TestPayment from './pages/TestPayment';
+import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -138,6 +139,7 @@ export const PAGES = {
     "FleetManager": FleetManager,
     "CommunityHub": CommunityHub,
     "TestPayment": TestPayment,
+    "CollaboratorDashboard": CollaboratorDashboard,
 }
 
 export const pagesConfig = {
