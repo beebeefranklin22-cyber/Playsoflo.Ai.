@@ -145,43 +145,19 @@ export default function StripePaymentForm({
   description,
   onSuccess, 
   onError,
-  metadata = {},
-  publishableKey = null
+  metadata = {}
 }) {
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
   const [formReady, setFormReady] = useState(false);
-  const [renderAttempt, setRenderAttempt] = useState(0);
 
   useEffect(() => {
-    const initStripe = async () => {
-      try {
-        const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-        if (!key) {
-          throw new Error('Stripe publishable key not found');
-        }
-        console.log('🔑 Loading Stripe...');
-        const stripe = await loadStripe(key);
-        console.log('✅ Stripe loaded successfully');
-        setStripePromise(stripe);
-      } catch (error) {
-        console.error("❌ Stripe initialization error:", error);
-        setInitError(error);
-      }
-    };
-    
-    initStripe();
-  }, []);
-
-  useEffect(() => {
-    console.log('💰 Amount effect triggered:', amount, 'Has secret:', !!clientSecret, 'Has stripe:', !!stripePromise);
-    if (amount && amount > 0 && !clientSecret && stripePromise) {
-      console.log('🚀 Creating payment intent...');
+    if (amount && amount > 0 && !clientSecret) {
       createPaymentIntent();
     }
-  }, [amount, stripePromise]);
+  }, [amount]);
 
   const createPaymentIntent = async () => {
     try {
@@ -204,14 +180,16 @@ export default function StripePaymentForm({
 
       console.log('📦 Response:', response);
 
-      if (response?.data?.clientSecret) {
-        console.log('✅ Client secret received');
+      if (response?.data?.clientSecret && response?.data?.publishableKey) {
+        console.log('✅ Received client secret and publishable key');
+        
+        // Load Stripe with the key from backend
+        const stripe = await loadStripe(response.data.publishableKey);
+        setStripePromise(stripe);
         setClientSecret(response.data.clientSecret);
-        // Wait for Stripe to be ready before showing form
-        await new Promise(resolve => setTimeout(resolve, 500));
         setFormReady(true);
       } else {
-        throw new Error('No client secret received');
+        throw new Error('Missing payment credentials');
       }
     } catch (error) {
       console.error('❌ Error:', error);
@@ -223,11 +201,9 @@ export default function StripePaymentForm({
     }
   };
 
-  console.log('🎨 RENDER:', { loading, formReady, hasError: !!initError, hasSecret: !!clientSecret, hasStripe: !!stripePromise });
 
-  // Show error
+
   if (initError) {
-    console.log('🔴 ERROR:', initError.message);
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
         <p className="text-red-400 font-semibold mb-2">Setup failed</p>
@@ -245,9 +221,7 @@ export default function StripePaymentForm({
     );
   }
 
-  // Show loading
   if (loading || !stripePromise) {
-    console.log('⏳ LOADING');
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
@@ -256,9 +230,7 @@ export default function StripePaymentForm({
     );
   }
 
-  // Render form
   if (clientSecret && stripePromise) {
-    console.log('✅ Rendering form');
     return (
       <Elements 
         stripe={stripePromise} 
@@ -276,8 +248,6 @@ export default function StripePaymentForm({
     );
   }
 
-  // Waiting for setup
-  console.log('⏳ Waiting for payment setup...');
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
