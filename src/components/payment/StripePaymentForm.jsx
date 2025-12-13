@@ -167,7 +167,15 @@ export default function StripePaymentForm({
           }
         });
 
-        console.log('📦 Full response:', JSON.stringify(response, null, 2));
+        console.log('📦 Raw response type:', typeof response);
+        console.log('📦 Raw response:', response);
+
+        // Try to safely log the response
+        try {
+          console.log('📦 Full response JSON:', JSON.stringify(response, null, 2));
+        } catch (e) {
+          console.log('⚠️ Could not stringify response');
+        }
 
         if (!mounted) {
           console.log('⚠️ Component unmounted');
@@ -176,25 +184,58 @@ export default function StripePaymentForm({
 
         // Check for errors in response
         if (response?.error) {
-          const errorMsg = typeof response.error === 'string' 
-            ? response.error 
-            : (response.error?.message || JSON.stringify(response.error));
+          let errorMsg = 'Payment initialization failed';
+          try {
+            errorMsg = typeof response.error === 'string' 
+              ? response.error 
+              : (response.error?.message || JSON.stringify(response.error));
+          } catch {
+            errorMsg = 'Payment error occurred';
+          }
           console.error('❌ Error in response:', errorMsg);
           throw new Error(errorMsg);
         }
 
         // Get data from response - handle axios response structure
-        const data = response?.data?.data || response?.data || response;
-        console.log('📦 Extracted data:', JSON.stringify(data, null, 2));
+        let data = null;
 
-        if (!data?.clientSecret) {
-          console.error('❌ Missing clientSecret. Full data:', JSON.stringify(data, null, 2));
-          throw new Error('Payment initialization failed - no client secret received');
+        // Try multiple ways to extract data
+        if (response?.data?.data) {
+          data = response.data.data;
+          console.log('📦 Found data at response.data.data');
+        } else if (response?.data) {
+          data = response.data;
+          console.log('📦 Found data at response.data');
+        } else {
+          data = response;
+          console.log('📦 Using response as data');
         }
 
-        if (!data?.publishableKey) {
-          console.error('❌ Missing publishableKey. Full data:', JSON.stringify(data, null, 2));
-          throw new Error('Payment initialization failed - no publishable key received');
+        console.log('📦 Data type:', typeof data);
+        console.log('📦 Data keys:', data ? Object.keys(data) : 'null');
+
+        try {
+          console.log('📦 Extracted data JSON:', JSON.stringify(data, null, 2));
+        } catch {
+          console.log('⚠️ Could not stringify data');
+        }
+
+        // Validate we have the required credentials
+        const hasClientSecret = !!(data?.clientSecret);
+        const hasPublishableKey = !!(data?.publishableKey);
+
+        console.log('🔍 Validation:', { hasClientSecret, hasPublishableKey });
+
+        if (!hasClientSecret) {
+          console.error('❌ Missing clientSecret');
+          console.error('❌ Data structure:', data);
+          throw new Error('Payment initialization failed - no client secret received. Please try again or contact support.');
+        }
+
+        if (!hasPublishableKey) {
+          console.error('❌ Missing publishableKey');
+          console.error('❌ Data structure:', data);
+          throw new Error('Payment initialization failed - no publishable key received. Please try again or contact support.');
         }
 
         console.log('✅ Got clientSecret:', data.clientSecret.substring(0, 20) + '...');
