@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, CreditCard, Building, Wallet } from "lucide-react";
+import { X, Plus, CreditCard, Building, Wallet, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
@@ -37,6 +37,30 @@ export default function AddMoneyModal({ currentUser, onClose }) {
     setTimeout(() => {
       window.location.reload();
     }, 2000);
+  };
+
+  const handleBankTransfer = async () => {
+    setIsProcessing(true);
+    try {
+      // Create a pending payment record
+      await base44.entities.Payment.create({
+        amount_usd: parseFloat(amount),
+        amount_rri: 0,
+        method: "bank",
+        status: "pending",
+        reference_type: "deposit",
+        memo: "Bank transfer to wallet - awaiting confirmation"
+      });
+
+      toast.success("Bank transfer initiated! Mark it complete once transferred.");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Error creating transfer:", error);
+      toast.error("Failed to initiate transfer");
+      setIsProcessing(false);
+    }
   };
 
   const handleClose = () => {
@@ -169,7 +193,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
               </div>
             )}
 
-            {step === 2 && (
+            {step === 2 && method === "card" && (
               <div className="space-y-6">
                 <div className="text-center py-4">
                   <p className="text-gray-400 mb-2">Adding to wallet</p>
@@ -201,6 +225,78 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     setStep(1);
                     setPaymentError(null);
                   }}
+                  className="w-full text-gray-400 hover:text-white transition"
+                >
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {step === 2 && method === "bank" && (
+              <div className="space-y-6">
+                <div className="text-center py-4">
+                  <p className="text-gray-400 mb-2">Bank Transfer Amount</p>
+                  <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
+                </div>
+
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Building className="w-5 h-5 text-blue-400 flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="text-white font-semibold mb-2">Transfer Instructions</p>
+                      <p className="text-gray-300 text-sm mb-4">
+                        Please transfer ${parseFloat(amount).toFixed(2)} to our bank account:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-black/20 rounded-lg p-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Bank Name:</span>
+                      <span className="text-white font-mono">Chase Bank</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Account Name:</span>
+                      <span className="text-white font-mono">PlaySoFlo Inc</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Account Number:</span>
+                      <span className="text-white font-mono">1234567890</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Routing Number:</span>
+                      <span className="text-white font-mono">021000021</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Reference:</span>
+                      <span className="text-white font-mono">{currentUser?.email}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                    <p className="text-yellow-400 text-xs">
+                      ⚠️ Important: Include your email ({currentUser?.email}) as the transfer reference
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleBankTransfer}
+                  disabled={isProcessing}
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg"
+                >
+                  {isProcessing ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating...
+                    </div>
+                  ) : (
+                    "I've Initiated the Transfer"
+                  )}
+                </Button>
+
+                <button
+                  onClick={() => setStep(1)}
                   className="w-full text-gray-400 hover:text-white transition"
                 >
                   ← Back
