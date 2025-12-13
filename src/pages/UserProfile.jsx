@@ -7,6 +7,7 @@ import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizont
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import FollowButton from "../components/social/FollowButton";
+import AddFriendButton from "../components/friends/AddFriendButton";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -128,24 +129,27 @@ export default function UserProfile() {
             </div>
 
             {!isOwnProfile && currentUser && (
-              <div className="flex gap-2">
-                <FollowButton
-                  targetEmail={profileUser.email}
-                  targetName={profileUser.full_name}
-                  currentUser={currentUser}
-                  className="flex-1"
-                />
-                <Button 
-                  variant="outline" 
-                  className="bg-white/5 border-white/20 hover:bg-white/10"
-                  onClick={() => {
-                    const conversationId = [currentUser.email, profileUser.email].sort().join('_');
-                    navigate(`/messages?conversation=${conversationId}`);
-                  }}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Message
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <FollowButton
+                    targetEmail={profileUser.email}
+                    targetName={profileUser.full_name}
+                    currentUser={currentUser}
+                    className="flex-1"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="bg-white/5 border-white/20 hover:bg-white/10"
+                    onClick={() => {
+                      const conversationId = [currentUser.email, profileUser.email].sort().join('_');
+                      navigate(`/messages?conversation=${conversationId}`);
+                    }}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message
+                  </Button>
+                </div>
+                <AddFriendButton targetUser={profileUser} currentUser={currentUser} />
               </div>
             )}
           </div>
