@@ -113,10 +113,10 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-lg my-8 bg-gray-900 rounded-3xl shadow-2xl"
+          className="w-full max-w-lg max-h-[90vh] bg-gray-900 rounded-3xl shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 sticky top-0 z-10">
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Add Money - Step {step}</h2>
             {step !== 2 && (
