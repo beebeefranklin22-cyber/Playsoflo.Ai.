@@ -96,12 +96,21 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
           </div>
         </div>
 
-        <PaymentElement 
-          options={{
-            layout: "tabs",
-          }}
-          onReady={() => setElementsReady(true)}
-        />
+        {console.log('About to render PaymentElement')}
+        <div className="min-h-[200px]">
+          <PaymentElement 
+            options={{
+              layout: "tabs",
+            }}
+            onReady={() => {
+              console.log('✅ PaymentElement is READY');
+              setElementsReady(true);
+            }}
+            onLoadError={(error) => {
+              console.error('❌ PaymentElement load error:', error);
+            }}
+          />
+        </div>
       </div>
 
       {errorMessage && (
