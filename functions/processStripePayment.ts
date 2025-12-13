@@ -122,14 +122,25 @@ Deno.serve(async (req) => {
       }
     };
 
-    console.log('✅ Returning success response');
-    return Response.json(response, { status: 200 });
+    console.log('✅ Returning success response:', JSON.stringify(response, null, 2));
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
   } catch (error) {
-    console.error('❌ Unexpected error:', error.message);
-    console.error('Stack:', error.stack);
-    return Response.json({ 
-      error: error.message || 'An unexpected error occurred'
-    }, { status: 500 });
+    console.error('❌ Unexpected error:', error);
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error stack:', error.stack);
+    return new Response(JSON.stringify({ 
+      error: String(error.message || error || 'An unexpected error occurred')
+    }), { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 });

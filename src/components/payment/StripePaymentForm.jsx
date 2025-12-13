@@ -159,7 +159,7 @@ export default function StripePaymentForm({
           }
         });
 
-        console.log('📦 Response received:', response);
+        console.log('📦 Full response:', JSON.stringify(response, null, 2));
 
         if (!mounted) {
           console.log('⚠️ Component unmounted');
@@ -170,24 +170,27 @@ export default function StripePaymentForm({
         if (response?.error) {
           const errorMsg = typeof response.error === 'string' 
             ? response.error 
-            : response.error?.message || 'Payment initialization failed';
+            : (response.error?.message || JSON.stringify(response.error));
           console.error('❌ Error in response:', errorMsg);
-
-          // Don't allow navigation on auth errors
-          if (errorMsg.includes('Authentication') || errorMsg.includes('authenticated')) {
-            throw new Error('Please refresh the page and try again.');
-          }
           throw new Error(errorMsg);
         }
 
-        // Get data from response
-        const data = response?.data || response;
-        console.log('📦 Response data:', data);
+        // Get data from response - handle axios response structure
+        const data = response?.data?.data || response?.data || response;
+        console.log('📦 Extracted data:', JSON.stringify(data, null, 2));
 
-        if (!data?.clientSecret || !data?.publishableKey) {
-          console.error('❌ Missing credentials:', data);
-          throw new Error('Invalid response from payment server');
+        if (!data?.clientSecret) {
+          console.error('❌ Missing clientSecret. Full data:', JSON.stringify(data, null, 2));
+          throw new Error('Payment initialization failed - no client secret received');
         }
+
+        if (!data?.publishableKey) {
+          console.error('❌ Missing publishableKey. Full data:', JSON.stringify(data, null, 2));
+          throw new Error('Payment initialization failed - no publishable key received');
+        }
+
+        console.log('✅ Got clientSecret:', data.clientSecret.substring(0, 20) + '...');
+        console.log('✅ Got publishableKey:', data.publishableKey.substring(0, 20) + '...');
 
         console.log('✅ Credentials received, loading Stripe...');
         const stripe = await loadStripe(data.publishableKey);
