@@ -24,10 +24,19 @@ import PendingTransfersModal from "../components/wallet/PendingTransfersModal";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const { data: currentUser, isLoading: userLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      return user;
+    },
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  });
 
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
@@ -40,21 +49,10 @@ export default function Wallet() {
     }
   }, [searchParams, navigate]);
 
-  const { data: currentUser, isLoading: userLoading, refetch: refetchUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      return user;
-    },
-    refetchInterval: 10000,
-    refetchOnWindowFocus: true,
-  });
-
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkLowBalance = async () => {
+      if (!currentUser) return;
       try {
-        const user = await base44.auth.me();
-
         if (currentUser.usd_balance < 10) {
           const recentWarnings = await base44.entities.Notification.filter({
             recipient_email: currentUser.email,
