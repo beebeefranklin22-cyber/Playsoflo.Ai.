@@ -36,7 +36,17 @@ export default function PendingTransfersModal({ currentUser, onClose }) {
       
       return transfer.amount_usd;
     },
-    onSuccess: (addedAmount) => {
+    onSuccess: async (addedAmount) => {
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: currentUser.email,
+        type: "payment_received",
+        title: "Transfer Completed",
+        message: `$${addedAmount.toFixed(2)} has been added to your wallet`,
+        read: false,
+        action_url: "/Wallet"
+      });
+
       queryClient.invalidateQueries(['pending-transfers']);
       queryClient.invalidateQueries(['payments']);
       queryClient.invalidateQueries(['transactions']);

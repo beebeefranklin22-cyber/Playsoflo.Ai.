@@ -67,6 +67,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
         memo: "Bank transfer to wallet - awaiting confirmation"
       });
 
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: currentUser.email,
+        type: "payment_received",
+        title: "Bank Transfer Initiated",
+        message: `Your bank transfer of $${parseFloat(amount).toFixed(2)} is pending. Complete it in the Pending Transfers section.`,
+        read: false,
+        action_url: "/Wallet"
+      });
+
       toast.success("Bank transfer initiated! Mark it complete once transferred.");
       setTimeout(() => {
         window.location.reload();

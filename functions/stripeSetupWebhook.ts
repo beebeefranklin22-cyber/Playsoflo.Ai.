@@ -117,6 +117,17 @@ Deno.serve(async (req) => {
               created_by: userEmail
             });
             console.log('✓ Created payment record');
+
+            // Create notification for successful payment
+            await base44.asServiceRole.entities.Notification.create({
+              user_email: userEmail,
+              type: "payment_received",
+              title: "Payment Successful",
+              message: `$${baseAmount.toFixed(2)} has been added to your wallet`,
+              read: false,
+              action_url: "/Wallet"
+            });
+            console.log('✓ Created notification');
           } else {
             console.error('❌ User not found:', userEmail);
           }
@@ -127,10 +138,29 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Handle payment intent failure
+    if (event.type === 'payment_intent.payment_failed') {
+      const paymentIntent = event.data.object;
+      const userEmail = paymentIntent.metadata?.user_email;
+      const amount = parseFloat(paymentIntent.metadata?.base_amount || 0);
+
+      if (userEmail) {
+        await base44.asServiceRole.entities.Notification.create({
+          user_email: userEmail,
+          type: "payment_received",
+          title: "Payment Failed",
+          message: `Your payment of $${amount.toFixed(2)} failed. Please try again or use a different payment method.`,
+          read: false,
+          action_url: "/Wallet"
+        });
+        console.log('✓ Created failure notification');
+      }
+    }
+
     return Response.json({ received: true });
 
-  } catch (error) {
+    } catch (error) {
     console.error('Webhook error:', error);
     return Response.json({ error: error.message }, { status: 500 });
-  }
+    }
 });

@@ -45,9 +45,32 @@ export default function Wallet() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+
+        // Check for low balance warning (under $10)
+        if (user.usd_balance < 10) {
+          const recentWarnings = await base44.entities.Notification.filter({
+            user_email: user.email,
+            type: "payment_received",
+            title: "Low Balance Warning"
+          });
+
+          // Only send if no warning in last 24 hours
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const recentWarning = recentWarnings.find(n => new Date(n.created_date) > oneDayAgo);
+
+          if (!recentWarning) {
+            await base44.entities.Notification.create({
+              user_email: user.email,
+              type: "payment_received",
+              title: "Low Balance Warning",
+              message: `Your wallet balance is low ($${user.usd_balance.toFixed(2)}). Add funds to continue using services.`,
+              read: false,
+              action_url: "/Wallet"
+            });
+          }
+        }
       } catch (error) {
         console.log("User not authenticated or error fetching user:", error);
-        // Continue - guest users can still see the wallet UI
       }
     };
     fetchUser();
