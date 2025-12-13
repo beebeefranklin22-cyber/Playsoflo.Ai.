@@ -130,7 +130,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </div>
 
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1">
             {step === 1 && (
               <div className="space-y-6">
                 <div>
