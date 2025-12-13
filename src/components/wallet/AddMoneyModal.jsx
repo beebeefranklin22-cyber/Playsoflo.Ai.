@@ -235,23 +235,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
                 </div>
 
-                {paymentError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
-                    <p className="text-red-400 text-sm font-semibold mb-2">Payment Error</p>
-                    <p className="text-red-300 text-sm">{paymentError}</p>
-                    <button
-                      onClick={() => {
-                        setPaymentError(null);
-                        window.location.reload();
-                      }}
-                      className="mt-3 text-red-400 hover:text-red-300 text-sm underline"
-                    >
-                      Try Again
-                    </button>
-                  </div>
-                )}
-
-                {!paymentError && amount && parseFloat(amount) > 0 && (
+                {amount && parseFloat(amount) > 0 && (
                   <StripePaymentForm
                     key={`payment-${amount}-${Date.now()}`}
                     amount={parseFloat(amount)}
@@ -260,31 +244,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     description={`Add $${amount} to wallet`}
                     onSuccess={handleSuccess}
                     onError={(error) => {
-                      console.error("💥 Payment error caught:", error);
-                      console.error("💥 Error type:", typeof error);
-                      console.error("💥 Error keys:", Object.keys(error || {}));
-
-                      let errorMsg = 'Payment failed';
-
-                      try {
-                        if (typeof error === 'string') {
-                          errorMsg = error;
-                        } else if (error instanceof Error) {
-                          errorMsg = error.message;
-                        } else if (error?.message) {
-                          errorMsg = String(error.message);
-                        } else if (error?.error) {
-                          errorMsg = String(error.error);
-                        } else {
-                          errorMsg = 'Payment initialization failed. Please try again.';
-                        }
-                      } catch (e) {
-                        errorMsg = 'Unable to process payment. Please refresh and try again.';
-                      }
-
-                      console.error("💥 Final error message:", errorMsg);
-                      setPaymentError(errorMsg);
-                      toast.error(errorMsg);
+                      console.error("💥 Payment error:", error);
+                      toast.error(typeof error === 'string' ? error : 'Payment failed. Please try again.');
                     }}
                   />
                 )}
