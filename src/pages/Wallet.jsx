@@ -40,11 +40,20 @@ export default function Wallet() {
     }
   }, [searchParams, navigate]);
 
+  const { data: currentUser, isLoading: userLoading, refetch: refetchUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      return user;
+    },
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
+  });
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const user = await base44.auth.me();
-        setCurrentUser(user);
 
         // Check for low balance warning (under $10)
         if (user.usd_balance < 10) {
@@ -125,7 +134,8 @@ export default function Wallet() {
       });
       return payments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 20);
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000,
   });
 
   return (
