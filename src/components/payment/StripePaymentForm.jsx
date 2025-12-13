@@ -151,13 +151,16 @@ export default function StripePaymentForm({
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
-  const [formReady, setFormReady] = useState(false);
 
   useEffect(() => {
-    if (amount && amount > 0 && !clientSecret) {
+    if (amount && amount > 0 && !clientSecret && !loading) {
       createPaymentIntent();
     }
   }, [amount]);
+
+  useEffect(() => {
+    setLoading(false);
+  }, []);
 
   const createPaymentIntent = async () => {
     try {
@@ -181,13 +184,15 @@ export default function StripePaymentForm({
       console.log('📦 Response:', response);
 
       if (response?.data?.clientSecret && response?.data?.publishableKey) {
-        console.log('✅ Received client secret and publishable key');
+        console.log('✅ Received credentials, loading Stripe...');
         
         // Load Stripe with the key from backend
         const stripe = await loadStripe(response.data.publishableKey);
+        console.log('✅ Stripe loaded, setting state...');
+        
+        // Set both at once to prevent race conditions
         setStripePromise(stripe);
         setClientSecret(response.data.clientSecret);
-        setFormReady(true);
       } else {
         throw new Error('Missing payment credentials');
       }
@@ -221,7 +226,7 @@ export default function StripePaymentForm({
     );
   }
 
-  if (loading || !stripePromise) {
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
