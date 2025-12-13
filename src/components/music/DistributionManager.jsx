@@ -111,6 +111,16 @@ export default function DistributionManager({ tracks, currentUser }) {
   const [selectedDistributor, setSelectedDistributor] = useState(null);
   const [distributingTracks, setDistributingTracks] = useState({});
   const [showDistributeModal, setShowDistributeModal] = useState(false);
+  const [releaseDate, setReleaseDate] = useState('');
+  const [distributions, setDistributions] = useState([]);
+
+  React.useEffect(() => {
+    if (currentUser) {
+      base44.entities.MusicDistribution.filter({ artist_email: currentUser.email })
+        .then(setDistributions)
+        .catch(console.error);
+    }
+  }, [currentUser]);
 
   const handleDistribute = async () => {
     if (!selectedTrack || selectedPlatforms.length === 0) {
@@ -118,24 +128,39 @@ export default function DistributionManager({ tracks, currentUser }) {
       return;
     }
 
+    const DISTRIBUTION_FEE = 2.22;
+
+    if (!currentUser || currentUser.usd_balance < DISTRIBUTION_FEE) {
+      toast.error(`Insufficient balance. You need $${DISTRIBUTION_FEE} for distribution.`);
+      return;
+    }
+
     setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: true });
     
     try {
-      // In real app, this would integrate with distribution APIs
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      await base44.entities.MusicTrack.update(selectedTrack.id, {
-        distribution_platforms: [...(selectedTrack.distribution_platforms || []), ...selectedPlatforms],
-        distribution_status: 'distributed',
-        distributed_date: new Date().toISOString()
+      const response = await base44.functions.invoke('processMusicDistribution', {
+        track_id: selectedTrack.id,
+        distribution_type: 'single',
+        release_date: releaseDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        platforms: selectedPlatforms
       });
 
-      toast.success(`Track distributed to ${selectedPlatforms.length} platforms!`);
+      const data = response.data;
+      
+      toast.success(`Distribution started! Fee: $${DISTRIBUTION_FEE}. ISRC: ${data.isrc_code}`);
+      
+      // Refresh distributions list
+      const updatedDistributions = await base44.entities.MusicDistribution.filter({ 
+        artist_email: currentUser.email 
+      });
+      setDistributions(updatedDistributions);
+
       setShowDistributeModal(false);
       setSelectedTrack(null);
       setSelectedPlatforms([]);
+      setReleaseDate('');
     } catch (error) {
-      toast.error('Distribution failed. Please try again.');
+      toast.error(error.message || 'Distribution failed. Please try again.');
     } finally {
       setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: false });
     }
@@ -209,7 +234,7 @@ export default function DistributionManager({ tracks, currentUser }) {
         <h3 className="text-lg font-bold text-white mb-4">Your Tracks</h3>
         <div className="grid md:grid-cols-2 gap-4">
           {tracks.map((track) => {
-            const isDistributed = track.distribution_platforms?.length > 0;
+            const distribution = distributions.find(d => d.track_id === track.id);
             
             return (
               <Card key={track.id} className="bg-white/5 border-white/10">
@@ -225,16 +250,38 @@ export default function DistributionManager({ tracks, currentUser }) {
                       <h4 className="text-white font-bold mb-1">{track.title}</h4>
                       <p className="text-gray-400 text-sm mb-2">{track.genre?.replace('_', ' ')}</p>
                       
-                      {isDistributed ? (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge className="bg-green-500/20 text-green-400">
-                            Distributed
+                      {distribution ? (
+                        <div className="space-y-2">
+                          <Badge className={`${
+                            distribution.status === 'live' ? 'bg-green-500/20 text-green-400' :
+                            distribution.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
+                            distribution.status === 'processing' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {distribution.status === 'live' ? '🎉 Live' : 
+                             distribution.status === 'submitted' ? '📤 Submitted' :
+                             distribution.status === 'processing' ? '⏳ Processing' :
+                             distribution.status}
                           </Badge>
-                          {track.distribution_platforms?.map((platform) => (
-                            <span key={platform} className="text-xs">
-                              {platforms.find(p => p.id === platform)?.icon}
-                            </span>
-                          ))}
+                          {distribution.isrc_code && (
+                            <p className="text-gray-400 text-xs">ISRC: {distribution.isrc_code}</p>
+                          )}
+                          {distribution.status === 'live' && distribution.platform_links && (
+                            <div className="flex gap-2 flex-wrap">
+                              {Object.entries(distribution.platform_links).map(([platform, link]) => (
+                                <a
+                                  key={platform}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xl hover:scale-110 transition"
+                                  title={platform}
+                                >
+                                  {platforms.find(p => p.id === platform)?.icon}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <Button
@@ -243,11 +290,10 @@ export default function DistributionManager({ tracks, currentUser }) {
                             setSelectedTrack(track);
                             setShowDistributeModal(true);
                           }}
-                          disabled={!selectedDistributor}
                           className="bg-purple-600 hover:bg-purple-700"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          Distribute
+                          Distribute ($2.22)
                         </Button>
                       )}
                     </div>
@@ -258,6 +304,67 @@ export default function DistributionManager({ tracks, currentUser }) {
           })}
         </div>
       </div>
+
+      {/* Active Distributions */}
+      {distributions.length > 0 && (
+        <div>
+          <h3 className="text-lg font-bold text-white mb-4">Distribution Status</h3>
+          <div className="space-y-3">
+            {distributions.map((dist) => {
+              const track = tracks.find(t => t.id === dist.track_id);
+              return (
+                <Card key={dist.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="text-white font-bold mb-1">{track?.title || 'Unknown Track'}</h4>
+                        <div className="flex items-center gap-3 flex-wrap text-sm">
+                          <Badge className={`${
+                            dist.status === 'live' ? 'bg-green-500/20 text-green-400' :
+                            dist.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
+                            dist.status === 'processing' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {dist.status}
+                          </Badge>
+                          <span className="text-gray-400">
+                            {dist.platforms?.length || 0} platforms
+                          </span>
+                          {dist.isrc_code && (
+                            <span className="text-gray-400">ISRC: {dist.isrc_code}</span>
+                          )}
+                          {dist.release_date && (
+                            <span className="text-gray-400">
+                              Release: {new Date(dist.release_date).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        {dist.status === 'live' && dist.platform_links && (
+                          <div className="flex gap-2 mt-2">
+                            {Object.entries(dist.platform_links).map(([platform, link]) => (
+                              <a
+                                key={platform}
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 bg-white/10 rounded-lg hover:bg-white/20 transition text-sm text-white flex items-center gap-2"
+                              >
+                                {platforms.find(p => p.id === platform)?.icon}
+                                {platforms.find(p => p.id === platform)?.name}
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Platform Selection Modal */}
       <AnimatePresence>
@@ -277,9 +384,28 @@ export default function DistributionManager({ tracks, currentUser }) {
               className="w-full max-w-4xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
             >
               <h2 className="text-3xl font-bold text-white mb-2">Select Platforms</h2>
-              <p className="text-gray-400 mb-6">
+              <p className="text-gray-400 mb-4">
                 Distributing: <span className="text-white font-bold">{selectedTrack?.title}</span>
               </p>
+
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-white font-semibold">Distribution Fee</span>
+                  <span className="text-green-400 font-bold text-xl">$2.22</span>
+                </div>
+                <Input
+                  type="date"
+                  value={releaseDate ? new Date(releaseDate).toISOString().split('T')[0] : ''}
+                  onChange={(e) => setReleaseDate(e.target.value ? new Date(e.target.value).toISOString() : '')}
+                  placeholder="Release Date (optional)"
+                  className="bg-white/10 border-white/20 text-white"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-gray-400 text-xs mt-2">
+                  Your balance: ${currentUser?.usd_balance?.toFixed(2) || '0.00'}
+                  {!releaseDate && ' • Default: 14 days from now'}
+                </p>
+              </div>
 
               <div className="grid md:grid-cols-4 gap-4 mb-8">
                 {platforms.map((platform) => (
