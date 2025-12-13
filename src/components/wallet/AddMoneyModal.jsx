@@ -99,22 +99,24 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && step !== 2) {
-          handleModalClose();
-        }
-      }}
-    >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="w-full max-w-lg my-8 bg-gray-900 rounded-3xl shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+    <AnimatePresence mode="wait">
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && step !== 2) {
+            handleModalClose();
+          }
+        }}
       >
+        <motion.div
+          key={`step-${step}`}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="w-full max-w-lg my-8 bg-gray-900 rounded-3xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Add Money - Step {step}</h2>
@@ -222,19 +224,22 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   </div>
                 )}
 
-                <StripePaymentForm
-                  amount={parseFloat(amount)}
-                  referenceType="deposit"
-                  referenceId={currentUser?.id || 'wallet'}
-                  description={`Add $${amount} to wallet`}
-                  onSuccess={handleSuccess}
-                  onError={(error) => {
-                    console.error("Payment error:", error);
-                    const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
-                    setPaymentError(errorMsg);
-                    toast.error(errorMsg);
-                  }}
-                />
+                {amount && parseFloat(amount) > 0 && (
+                  <StripePaymentForm
+                    key={`payment-${amount}`}
+                    amount={parseFloat(amount)}
+                    referenceType="deposit"
+                    referenceId={currentUser?.id || 'wallet'}
+                    description={`Add $${amount} to wallet`}
+                    onSuccess={handleSuccess}
+                    onError={(error) => {
+                      console.error("Payment error:", error);
+                      const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                      setPaymentError(errorMsg);
+                      toast.error(errorMsg);
+                    }}
+                  />
+                )}
 
                 <button
                   onClick={() => {
@@ -337,5 +342,6 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </motion.div>
       </div>
-    );
-  }
+    </AnimatePresence>
+  );
+}
