@@ -50,8 +50,9 @@ export default function PendingTransfersModal({ currentUser, onClose }) {
       queryClient.invalidateQueries(['pending-transfers']);
       queryClient.invalidateQueries(['payments']);
       queryClient.invalidateQueries(['transactions']);
+      queryClient.invalidateQueries(['currentUser']);
       toast.success(`✓ Transfer completed! $${addedAmount.toFixed(2)} added to your wallet.`);
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => window.location.reload(), 2000);
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to complete transfer");

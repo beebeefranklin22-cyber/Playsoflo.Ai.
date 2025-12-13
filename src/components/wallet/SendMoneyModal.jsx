@@ -130,6 +130,11 @@ export default function SendMoneyModal({ currentUser, onClose }) {
       });
 
       setStep(2);
+      
+      // Reload after short delay to refresh balances
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       console.error("Send failed:", err);
       toast.error(err?.message || "Failed to send money");
