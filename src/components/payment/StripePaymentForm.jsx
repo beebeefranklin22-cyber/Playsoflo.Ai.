@@ -96,8 +96,15 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
           </div>
         </div>
 
-        {console.log('About to render PaymentElement')}
-        <div className="min-h-[200px]">
+        <div className="min-h-[200px] relative">
+          {!elementsReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/5 rounded-lg">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Loading payment form...</p>
+              </div>
+            </div>
+          )}
           <PaymentElement 
             options={{
               layout: "tabs",
@@ -108,6 +115,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
             }}
             onLoadError={(error) => {
               console.error('❌ PaymentElement load error:', error);
+              setErrorMessage('Failed to load payment form');
             }}
           />
         </div>
