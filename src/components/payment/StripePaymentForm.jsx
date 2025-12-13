@@ -149,6 +149,7 @@ export default function StripePaymentForm({
   const [clientSecret, setClientSecret] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
+  const [formReady, setFormReady] = useState(false);
 
   useEffect(() => {
     const initStripe = async () => {
@@ -158,7 +159,8 @@ export default function StripePaymentForm({
           key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51SFfJq2ORNyJCJkCOcqPJR27TkvEAThfkGkAkMaASgexCL3RSzqchqYWqA2LwnJEVJxiY8ID8tXGrBulPVEOrd9Z00L5wTr0p6";
         }
         console.log('Loading Stripe with key:', key.substring(0, 20) + '...');
-        setStripePromise(loadStripe(key));
+        const stripe = await loadStripe(key);
+        setStripePromise(stripe);
       } catch (error) {
         console.error("Stripe initialization error:", error);
         setInitError(error);
@@ -170,7 +172,7 @@ export default function StripePaymentForm({
 
   useEffect(() => {
     console.log('Amount changed:', amount);
-    if (amount && amount > 0) {
+    if (amount && amount > 0 && !clientSecret) {
       createPaymentIntent();
     }
   }, [amount]);
@@ -205,6 +207,7 @@ export default function StripePaymentForm({
       if (response?.data?.clientSecret) {
         console.log('✅ Client secret received, setting state');
         setClientSecret(response.data.clientSecret);
+        setFormReady(true);
       } else {
         console.error('❌ No client secret in response');
         throw new Error(response?.data?.error || 'No client secret received from server');
@@ -218,24 +221,28 @@ export default function StripePaymentForm({
       if (onError) onError(errorObj);
     } finally {
       console.log('=== PAYMENT INTENT CREATION COMPLETE ===');
-      console.log('Loading set to false');
       setLoading(false);
     }
   };
 
   console.log('=== RENDER CHECK ===');
   console.log('Loading:', loading);
+  console.log('Form ready:', formReady);
   console.log('Init error:', initError);
   console.log('Client secret exists:', !!clientSecret);
   console.log('Stripe promise exists:', !!stripePromise);
 
-  if (loading) {
-    console.log('Rendering loading state');
+  // Once form is ready, keep it rendered
+  if (formReady && clientSecret && stripePromise) {
+    console.log('✅ Rendering Stripe Elements form (stable)');
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-        <p className="text-white ml-3">Initializing payment...</p>
-      </div>
+      <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <CheckoutForm 
+          amount={amount} 
+          onSuccess={onSuccess} 
+          onError={onError} 
+        />
+      </Elements>
     );
   }
 
@@ -255,32 +262,21 @@ export default function StripePaymentForm({
     );
   }
 
-  if (!clientSecret) {
-    console.log('Missing client secret, showing waiting state');
+  if (loading) {
+    console.log('Rendering loading state');
     return (
-      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
-        <p className="text-yellow-400">Waiting for payment system...</p>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+        <p className="text-white ml-3">Initializing payment...</p>
       </div>
     );
   }
 
-  if (!stripePromise) {
-    console.log('Missing stripe promise, showing waiting state');
-    return (
-      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
-        <p className="text-yellow-400">Loading Stripe...</p>
-      </div>
-    );
-  }
-
-  console.log('✅ Rendering Stripe Elements form');
+  console.log('Waiting for initialization to complete');
   return (
-    <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <CheckoutForm 
-        amount={amount} 
-        onSuccess={onSuccess} 
-        onError={onError} 
-      />
-    </Elements>
+    <div className="flex items-center justify-center py-12">
+      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+      <p className="text-white ml-3">Setting up payment form...</p>
+    </div>
   );
 }
