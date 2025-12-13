@@ -67,11 +67,22 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         setIsProcessing(false);
         if (onError) onError(error);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        console.log('Payment succeeded:', paymentIntent);
+        console.log('✅ Payment succeeded:', paymentIntent);
         setIsProcessing(false);
-        if (onSuccess) onSuccess();
+
+        // Wait a moment for webhook to process
+        setTimeout(() => {
+          if (onSuccess) onSuccess(paymentIntent);
+        }, 1000);
+      } else if (paymentIntent && paymentIntent.status === 'processing') {
+        console.log('⏳ Payment processing:', paymentIntent);
+        setIsProcessing(false);
+        setErrorMessage('Payment is processing. Your balance will update shortly.');
+        setTimeout(() => {
+          if (onSuccess) onSuccess(paymentIntent);
+        }, 2000);
       } else {
-        console.error('Payment not completed:', paymentIntent);
+        console.error('❌ Payment not completed:', paymentIntent);
         const msg = 'Payment was not completed. Please try again.';
         setErrorMessage(msg);
         setIsProcessing(false);
