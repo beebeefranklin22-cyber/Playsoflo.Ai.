@@ -128,10 +128,23 @@ export default function DistributionManager({ tracks, currentUser }) {
       return;
     }
 
-    const DISTRIBUTION_FEE = 2.22;
+    if (!selectedDistributor) {
+      toast.error('Please select a distribution service first');
+      return;
+    }
 
-    if (!currentUser || currentUser.usd_balance < DISTRIBUTION_FEE) {
-      toast.error(`Insufficient balance. You need $${DISTRIBUTION_FEE} for distribution.`);
+    const distributorPricing = {
+      distrokid: { single: 22.99, album: 22.99 },
+      tunecore: { single: 9.99, album: 29.99 },
+      cdbaby: { single: 9.95, album: 29.00 }
+    };
+
+    const PLAYSO_FLO_FEE = 2.22;
+    const distributorFee = distributorPricing[selectedDistributor]?.single || 9.99;
+    const totalFee = distributorFee + PLAYSO_FLO_FEE;
+
+    if (!currentUser || currentUser.usd_balance < totalFee) {
+      toast.error(`Insufficient balance. Need $${totalFee.toFixed(2)} ($${distributorFee} + $${PLAYSO_FLO_FEE} service fee)`);
       return;
     }
 
@@ -142,12 +155,13 @@ export default function DistributionManager({ tracks, currentUser }) {
         track_id: selectedTrack.id,
         distribution_type: 'single',
         release_date: releaseDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        platforms: selectedPlatforms
+        platforms: selectedPlatforms,
+        distributor: selectedDistributor
       });
 
       const data = response.data;
       
-      toast.success(`Distribution started! Fee: $${DISTRIBUTION_FEE}. ISRC: ${data.isrc_code}`);
+      toast.success(`${data.message} • ISRC: ${data.isrc_code}`);
       
       // Refresh distributions list
       const updatedDistributions = await base44.entities.MusicDistribution.filter({ 
@@ -160,7 +174,7 @@ export default function DistributionManager({ tracks, currentUser }) {
       setSelectedPlatforms([]);
       setReleaseDate('');
     } catch (error) {
-      toast.error(error.message || 'Distribution failed. Please try again.');
+      toast.error(error?.response?.data?.error || error.message || 'Distribution failed. Please try again.');
     } finally {
       setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: false });
     }
@@ -183,7 +197,12 @@ export default function DistributionManager({ tracks, currentUser }) {
 
       {/* Choose Distributor */}
       <div>
-        <h3 className="text-lg font-bold text-white mb-4">Choose a Distribution Service</h3>
+        <h3 className="text-lg font-bold text-white mb-4">Choose a Distribution Service (Required)</h3>
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+          <p className="text-yellow-300 text-sm">
+            💰 PlaySoFlo adds a $2.22 service fee on top of the distributor's pricing
+          </p>
+        </div>
         <div className="grid md:grid-cols-3 gap-4">
           {distributors.map((dist) => (
             <Card 
@@ -287,13 +306,17 @@ export default function DistributionManager({ tracks, currentUser }) {
                         <Button
                           size="sm"
                           onClick={() => {
+                            if (!selectedDistributor) {
+                              toast.error('Please select a distribution service first');
+                              return;
+                            }
                             setSelectedTrack(track);
                             setShowDistributeModal(true);
                           }}
                           className="bg-purple-600 hover:bg-purple-700"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          Distribute ($2.22)
+                          Distribute
                         </Button>
                       )}
                     </div>
@@ -430,6 +453,36 @@ export default function DistributionManager({ tracks, currentUser }) {
                 ))}
               </div>
 
+              {selectedDistributor && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-4">
+                  <h4 className="text-white font-semibold mb-2">Payment Breakdown</h4>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between text-gray-300">
+                      <span>{distributors.find(d => d.id === selectedDistributor)?.name} Fee:</span>
+                      <span className="text-white font-semibold">
+                        ${(selectedDistributor === 'distrokid' ? 22.99 : 
+                           selectedDistributor === 'tunecore' ? 9.99 : 9.95).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>PlaySoFlo Service Fee:</span>
+                      <span className="text-white font-semibold">$2.22</span>
+                    </div>
+                    <div className="border-t border-white/20 pt-1 mt-1"></div>
+                    <div className="flex justify-between text-white font-bold">
+                      <span>Total:</span>
+                      <span className="text-green-400">
+                        ${((selectedDistributor === 'distrokid' ? 22.99 : 
+                            selectedDistributor === 'tunecore' ? 9.99 : 9.95) + 2.22).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-xs mt-2">
+                      Your balance: ${currentUser?.usd_balance?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -440,7 +493,7 @@ export default function DistributionManager({ tracks, currentUser }) {
                 </Button>
                 <Button
                   onClick={handleDistribute}
-                  disabled={selectedPlatforms.length === 0 || distributingTracks[selectedTrack?.id]}
+                  disabled={selectedPlatforms.length === 0 || distributingTracks[selectedTrack?.id] || !selectedDistributor}
                   className="flex-1 bg-purple-600 hover:bg-purple-700"
                 >
                   {distributingTracks[selectedTrack?.id] ? (
