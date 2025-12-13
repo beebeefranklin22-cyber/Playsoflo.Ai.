@@ -32,29 +32,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async () => {
-    try {
-      // Update user balance
-      const currentBalance = currentUser.usd_balance || 0;
-      await base44.auth.updateMe({
-        usd_balance: currentBalance + parseFloat(amount)
-      });
-
-      // Create transaction record
-      await base44.entities.Payment.create({
-        amount_usd: parseFloat(amount),
-        amount_rri: 0,
-        method: "stripe",
-        status: "completed",
-        reference_type: "deposit",
-        memo: "Added funds to wallet"
-      });
-
-      toast.success("Funds added successfully!");
-      setStep(3);
-    } catch (err) {
-      console.error("Failed to update balance:", err);
-      toast.error(err?.message || 'Failed to update balance');
-    }
+    // Payment succeeded - webhook will update balance
+    toast.success("Payment processed! Your balance will update shortly.");
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   const handleClose = () => {
