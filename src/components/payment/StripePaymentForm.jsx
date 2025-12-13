@@ -202,29 +202,34 @@ export default function StripePaymentForm({
         setLoading(false);
       } catch (error) {
           console.error('❌ Setup error:', error);
+          console.error('❌ Error type:', typeof error);
 
           if (!mounted) return;
 
           let errorMsg = 'Payment setup failed';
 
-          if (typeof error === 'string') {
-            errorMsg = error;
-          } else if (error?.message) {
-            errorMsg = error.message;
-          } else if (error?.data?.error) {
-            errorMsg = error.data.error;
-          } else {
-            try {
-              errorMsg = JSON.stringify(error);
-            } catch {
-              errorMsg = 'Unknown error occurred';
+          try {
+            if (typeof error === 'string') {
+              errorMsg = error;
+            } else if (error instanceof Error) {
+              errorMsg = error.message;
+            } else if (error?.message) {
+              errorMsg = String(error.message);
+            } else if (error?.data?.error) {
+              errorMsg = String(error.data.error);
+            } else if (error?.error) {
+              errorMsg = String(error.error);
+            } else {
+              errorMsg = 'Unable to initialize payment. Please try again.';
             }
+          } catch (stringifyError) {
+            errorMsg = 'Payment initialization error. Please refresh and try again.';
           }
 
-          console.error('Final error:', errorMsg);
+          console.error('❌ Final error message:', errorMsg);
           setInitError(errorMsg);
           setLoading(false);
-          if (onError) onError(new Error(errorMsg));
+          if (onError) onError(errorMsg);
       }
     };
 
