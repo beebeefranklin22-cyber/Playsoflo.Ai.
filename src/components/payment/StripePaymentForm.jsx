@@ -167,6 +167,7 @@ export default function StripePaymentForm({
   const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
   const [formReady, setFormReady] = useState(false);
+  const [renderAttempt, setRenderAttempt] = useState(0);
 
   useEffect(() => {
     const initStripe = async () => {
@@ -198,12 +199,11 @@ export default function StripePaymentForm({
     try {
       setLoading(true);
       setInitError(null);
+      setRenderAttempt(prev => prev + 1);
       
-      console.log('=== STARTING PAYMENT INTENT CREATION ===');
+      console.log('🔄 ATTEMPT', renderAttempt + 1, '- STARTING PAYMENT INTENT CREATION');
       console.log('Amount:', amount);
       console.log('Description:', description);
-      console.log('Reference Type:', referenceType);
-      console.log('Reference ID:', referenceId);
       
       const { base44 } = await import("@/api/base44Client");
       
@@ -217,54 +217,32 @@ export default function StripePaymentForm({
         }
       });
 
-      console.log('=== PAYMENT INTENT RESPONSE ===');
-      console.log('Full response:', response);
-      console.log('Client secret:', response?.data?.clientSecret);
+      console.log('📦 PAYMENT INTENT RESPONSE:', response);
 
       if (response?.data?.clientSecret) {
-        console.log('✅ Client secret received, setting state');
+        console.log('✅ SUCCESS - Client secret received:', response.data.clientSecret.substring(0, 20) + '...');
         setClientSecret(response.data.clientSecret);
-        setFormReady(true);
+        setTimeout(() => setFormReady(true), 50);
       } else {
-        console.error('❌ No client secret in response');
+        console.error('❌ FAILED - No client secret in response:', response);
         throw new Error(response?.data?.error || 'No client secret received from server');
       }
     } catch (error) {
-      console.error('❌ Payment intent creation error:', error);
-      console.error('Error details:', error.response?.data || error);
-      const errorMsg = error?.response?.data?.error || error?.message || error?.error || 'Failed to initialize payment';
-      const errorObj = new Error(errorMsg);
-      setInitError(errorObj);
-      if (onError) onError(errorObj);
+      console.error('❌ PAYMENT INTENT ERROR:', error);
+      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
+      setInitError(new Error(errorMsg));
+      if (onError) onError(new Error(errorMsg));
     } finally {
-      console.log('=== PAYMENT INTENT CREATION COMPLETE ===');
       setLoading(false);
     }
   };
 
-  console.log('=== RENDER CHECK ===');
-  console.log('Loading:', loading);
-  console.log('Form ready:', formReady);
-  console.log('Init error:', initError);
-  console.log('Client secret exists:', !!clientSecret);
-  console.log('Stripe promise exists:', !!stripePromise);
+  console.log('🎨 RENDER CHECK - Attempt:', renderAttempt);
+  console.log('State:', { loading, formReady, hasError: !!initError, hasSecret: !!clientSecret, hasStripe: !!stripePromise });
 
-  // Once form is ready, keep it rendered
-  if (formReady && clientSecret && stripePromise) {
-    console.log('✅ Rendering Stripe Elements form (stable)');
-    return (
-      <Elements stripe={stripePromise} options={{ clientSecret }}>
-        <CheckoutForm 
-          amount={amount} 
-          onSuccess={onSuccess} 
-          onError={onError} 
-        />
-      </Elements>
-    );
-  }
-
+  // Priority 1: Show error
   if (initError) {
-    console.log('Rendering error state');
+    console.log('🔴 RENDERING ERROR STATE');
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
         <p className="text-red-400 font-semibold mb-2">Payment initialization failed</p>
@@ -273,27 +251,55 @@ export default function StripePaymentForm({
           onClick={createPaymentIntent}
           className="mt-4 bg-red-600 hover:bg-red-700"
         >
-          Retry
+          <Loader2 className="w-4 h-4 mr-2" />
+          Retry Payment Setup
         </Button>
       </div>
     );
   }
 
+  // Priority 2: Show loading
   if (loading) {
-    console.log('Rendering loading state');
+    console.log('⏳ RENDERING LOADING STATE');
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex flex-col items-center justify-center py-12 space-y-3">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-        <p className="text-white ml-3">Initializing payment...</p>
+        <div className="text-center">
+          <p className="text-white font-medium">Setting up secure payment...</p>
+          <p className="text-gray-400 text-sm">This usually takes 2-3 seconds</p>
+        </div>
       </div>
     );
   }
 
-  console.log('Waiting for initialization to complete');
+  // Priority 3: Render form if ready
+  if (formReady && clientSecret && stripePromise) {
+    console.log('✅ RENDERING PAYMENT FORM - All conditions met');
+    return (
+      <div key={`stripe-form-${renderAttempt}`}>
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <CheckoutForm 
+            amount={amount} 
+            onSuccess={onSuccess} 
+            onError={onError} 
+          />
+        </Elements>
+      </div>
+    );
+  }
+
+  // Fallback: Something is wrong
+  console.log('⚠️ FALLBACK STATE - Something went wrong');
   return (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-      <p className="text-white ml-3">Setting up payment form...</p>
+    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+      <p className="text-yellow-400 font-semibold mb-2">Payment form not ready</p>
+      <p className="text-yellow-400 text-sm">Please refresh and try again</p>
+      <Button 
+        onClick={() => window.location.reload()}
+        className="mt-4 bg-yellow-600 hover:bg-yellow-700"
+      >
+        Refresh Page
+      </Button>
     </div>
   );
 }
