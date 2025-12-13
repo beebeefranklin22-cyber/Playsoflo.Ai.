@@ -48,9 +48,14 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async (paymentIntent) => {
-    console.log('💰 Payment completed:', paymentIntent);
-    setStep(3);
-    toast.success("Payment successful!");
+    try {
+      console.log('💰 Payment completed:', paymentIntent);
+      setStep(3);
+      toast.success("Payment successful!");
+    } catch (err) {
+      console.error('Success handler error:', err);
+      toast.error(String(err?.message || 'Error processing success'));
+    }
   };
 
   const handleBankTransfer = async () => {

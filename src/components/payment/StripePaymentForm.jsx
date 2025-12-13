@@ -21,7 +21,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     if (!stripe || !elements) {
       const msg = "Payment system is still loading. Please wait a moment.";
       setErrorMessage(msg);
-      if (onError) onError(new Error(msg));
+      if (onError) onError(msg);
       return;
     }
 
@@ -31,9 +31,10 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     try {
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        setErrorMessage(submitError.message);
+        const msg = String(submitError.message || 'Submission error');
+        setErrorMessage(msg);
         setIsProcessing(false);
-        if (onError) onError(submitError);
+        if (onError) onError(msg);
         return;
       }
 
@@ -47,9 +48,10 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
       if (error) {
         console.error('Payment error:', error);
-        setErrorMessage(error.message);
+        const msg = String(error.message || 'Payment failed');
+        setErrorMessage(msg);
         setIsProcessing(false);
-        if (onError) onError(error);
+        if (onError) onError(msg);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         console.log('✅ Payment succeeded');
         if (onSuccess) onSuccess(paymentIntent);
@@ -60,14 +62,14 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         const msg = 'Payment was not completed. Please try again.';
         setErrorMessage(msg);
         setIsProcessing(false);
-        if (onError) onError(new Error(msg));
+        if (onError) onError(msg);
       }
     } catch (err) {
         console.error('Payment submission error:', err);
-        const msg = err.message || "An error occurred during payment";
+        const msg = String(err?.message || "An error occurred during payment");
         setErrorMessage(msg);
         setIsProcessing(false);
-        if (onError) onError(err);
+        if (onError) onError(msg);
     }
   };
 
@@ -242,7 +244,7 @@ export default function StripePaymentForm({
 
   if (initError) {
     if (onError) {
-      onError(new Error(initError));
+      onError(String(initError));
     }
     return null;
   }
