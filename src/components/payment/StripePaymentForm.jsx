@@ -201,23 +201,25 @@ export default function StripePaymentForm({
   }
 
   return (
-    <Elements 
-      stripe={stripePromise} 
-      options={{ 
-        clientSecret,
-        appearance: { 
-          theme: 'night',
-          variables: {
-            colorPrimary: '#8b5cf6',
+    <div key={clientSecret}>
+      <Elements 
+        stripe={stripePromise} 
+        options={{ 
+          clientSecret,
+          appearance: { 
+            theme: 'night',
+            variables: {
+              colorPrimary: '#8b5cf6',
+            }
           }
-        }
-      }}
-    >
-      <CheckoutForm 
-        amount={amount} 
-        onSuccess={onSuccess} 
-        onError={onError} 
-      />
-    </Elements>
+        }}
+      >
+        <CheckoutForm 
+          amount={amount} 
+          onSuccess={onSuccess} 
+          onError={onError} 
+        />
+      </Elements>
+    </div>
   );
 }
