@@ -2,9 +2,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.4.0';
 
 Deno.serve(async (req) => {
+  console.log('🔔 Webhook received');
   try {
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
+
+    console.log('✓ Keys present:', { 
+      hasSecretKey: !!stripeSecretKey, 
+      hasWebhookSecret: !!webhookSecret 
+    });
 
     if (!stripeSecretKey) {
       return Response.json({ error: 'Stripe not configured' }, { status: 500 });
@@ -17,19 +23,24 @@ Deno.serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get('stripe-signature');
 
+    console.log('📝 Webhook body length:', body.length);
+    console.log('📝 Has signature:', !!signature);
+
     let event;
-    if (webhookSecret) {
+    if (webhookSecret && signature) {
       try {
         event = await stripe.webhooks.constructEventAsync(
           body,
           signature,
           webhookSecret
         );
+        console.log('✅ Signature verified, event type:', event.type);
       } catch (err) {
-        console.error('Webhook signature verification failed:', err);
+        console.error('❌ Webhook signature verification failed:', err.message);
         return Response.json({ error: 'Invalid signature' }, { status: 400 });
       }
     } else {
+      console.log('⚠️ No webhook secret or signature, parsing without verification');
       event = JSON.parse(body);
     }
 
@@ -68,12 +79,13 @@ Deno.serve(async (req) => {
 
     // Handle payment intent success
     if (event.type === 'payment_intent.succeeded') {
+      console.log('💰 Processing payment_intent.succeeded event');
       const paymentIntent = event.data.object;
       const userEmail = paymentIntent.metadata?.user_email;
       const referenceType = paymentIntent.metadata?.reference_type;
       const baseAmount = parseFloat(paymentIntent.metadata?.base_amount || 0);
       
-      console.log('💰 Payment succeeded:', {
+      console.log('💰 Payment details:', {
         paymentIntentId: paymentIntent.id,
         userEmail,
         referenceType,
@@ -157,10 +169,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log('✅ Webhook processed successfully');
     return Response.json({ received: true });
 
-    } catch (error) {
-    console.error('Webhook error:', error);
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
     return Response.json({ error: error.message }, { status: 500 });
-    }
+  }
 });
