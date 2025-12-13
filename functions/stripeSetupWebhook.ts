@@ -69,6 +69,9 @@ Deno.serve(async (req) => {
     // Handle payment intent success
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object;
+      const userEmail = paymentIntent.metadata?.user_email;
+      const referenceType = paymentIntent.metadata?.reference_type;
+      const baseAmount = parseFloat(paymentIntent.metadata?.base_amount || 0);
       
       // Update payment record
       const payments = await base44.asServiceRole.entities.StripePayment.filter({
@@ -80,6 +83,28 @@ Deno.serve(async (req) => {
           status: 'succeeded',
           payment_method_type: paymentIntent.payment_method_types?.[0]
         });
+      }
+
+      // If this is a deposit, update user balance
+      if (userEmail && referenceType === 'deposit' && baseAmount > 0) {
+        const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+        if (users && users.length > 0) {
+          const currentBalance = users[0].usd_balance || 0;
+          await base44.asServiceRole.entities.User.update(users[0].id, {
+            usd_balance: currentBalance + baseAmount
+          });
+
+          // Create payment transaction record
+          await base44.asServiceRole.entities.Payment.create({
+            amount_usd: baseAmount,
+            amount_rri: 0,
+            method: "stripe",
+            status: "completed",
+            reference_type: "deposit",
+            memo: "Added funds to wallet via Stripe",
+            created_by: userEmail
+          });
+        }
       }
     }
 
