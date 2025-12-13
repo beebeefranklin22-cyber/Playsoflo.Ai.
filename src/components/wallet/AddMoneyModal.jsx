@@ -126,7 +126,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden shadow-2xl"
+        className="w-full max-w-lg max-h-[90vh] bg-gray-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
@@ -143,7 +143,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </div>
 
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1">
             {step === 1 && (
               <div className="space-y-6">
                 <div>
