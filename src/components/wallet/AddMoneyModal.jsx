@@ -52,6 +52,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
       console.log('💰 Payment completed:', paymentIntent);
       setStep(3);
       toast.success("Payment successful!");
+
+      // Trigger immediate balance refresh
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     } catch (err) {
       console.error('Success handler error:', err);
       toast.error(String(err?.message || 'Error processing success'));
@@ -84,7 +89,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
       toast.success("Bank transfer initiated! Mark it complete once transferred.");
       setTimeout(() => {
         window.location.reload();
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error("Error creating transfer:", error);
       const errorMsg = error?.message ? String(error.message) : "Failed to initiate transfer";
