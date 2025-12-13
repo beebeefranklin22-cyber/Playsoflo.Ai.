@@ -33,11 +33,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
   const handleSuccess = async (paymentIntent) => {
     console.log('💰 Payment completed:', paymentIntent);
-    toast.success("Payment successful! Updating your balance...");
-    
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
+    setStep(3);
+    toast.success("Payment successful!");
   };
 
   const handleBankTransfer = async () => {
@@ -218,35 +215,42 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                 </div>
 
                 {paymentError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                    <p className="text-red-400 text-sm">{paymentError}</p>
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
+                    <p className="text-red-400 text-sm font-semibold mb-2">Payment Error</p>
+                    <p className="text-red-300 text-sm">{paymentError}</p>
+                    <button
+                      onClick={() => {
+                        setPaymentError(null);
+                        window.location.reload();
+                      }}
+                      className="mt-3 text-red-400 hover:text-red-300 text-sm underline"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 )}
 
-                {amount && parseFloat(amount) > 0 && (
+                {!paymentError && amount && parseFloat(amount) > 0 && (
                   <StripePaymentForm
-                    key={`payment-${amount}`}
+                    key={`payment-${amount}-${Date.now()}`}
                     amount={parseFloat(amount)}
                     referenceType="deposit"
                     referenceId={currentUser?.id || 'wallet'}
                     description={`Add $${amount} to wallet`}
                     onSuccess={handleSuccess}
                     onError={(error) => {
-                      console.error("Payment error:", error);
-                      let errorMsg = 'Payment failed. Please try again.';
+                      console.error("💥 Payment error caught:", error);
+                      let errorMsg = 'Payment failed';
 
                       if (typeof error === 'string') {
                         errorMsg = error;
                       } else if (error?.message) {
                         errorMsg = error.message;
-                      } else if (error?.error) {
-                        errorMsg = typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
                       } else {
                         errorMsg = 'Payment initialization failed';
                       }
 
                       setPaymentError(errorMsg);
-                      toast.error(errorMsg);
                     }}
                   />
                 )}
@@ -337,15 +341,18 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
             {step === 3 && (
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                   <Plus className="w-10 h-10 text-green-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Money Added!</h3>
+                <h3 className="text-2xl font-bold text-white mb-3">Payment Successful!</h3>
                 <p className="text-gray-300 mb-6">
-                  ${amount} has been added to your wallet
+                  ${parseFloat(amount).toFixed(2)} has been added to your wallet
                 </p>
-                <Button onClick={handleClose} className="w-full bg-green-600">
-                  Done
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  View Balance
                 </Button>
               </div>
             )}
