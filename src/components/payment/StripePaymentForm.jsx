@@ -156,32 +156,26 @@ export default function StripePaymentForm({
           }
         });
 
-        console.log('📦 Payment response received:', response);
-        console.log('📦 Response data:', response?.data);
-        console.log('📦 Response error:', response?.error);
+        console.log('📦 Raw response:', JSON.stringify(response, null, 2));
 
         if (!mounted) {
           console.log('⚠️ Component unmounted, skipping state update');
           return;
         }
 
-        // Handle error responses
-        if (!response?.data || response?.error) {
-          let errorMsg = 'Failed to initialize payment';
+        // Handle error responses - check multiple possible error locations
+        let errorMsg = null;
 
-          if (response?.error) {
-            if (typeof response.error === 'string') {
-              errorMsg = response.error;
-            } else if (response.error?.message) {
-              errorMsg = response.error.message;
-            } else {
-              errorMsg = JSON.stringify(response.error);
-            }
-          } else if (response?.data?.error) {
-            errorMsg = response.data.error;
-          }
+        if (response?.error) {
+          errorMsg = typeof response.error === 'string' ? response.error : response.error?.message || JSON.stringify(response.error);
+        } else if (response?.data?.error) {
+          errorMsg = response.data.error;
+        } else if (!response?.data?.clientSecret || !response?.data?.publishableKey) {
+          errorMsg = 'Invalid payment response - missing credentials';
+        }
 
-          console.error('❌ Payment initialization error:', errorMsg);
+        if (errorMsg) {
+          console.error('❌ Payment initialization failed:', errorMsg);
           throw new Error(errorMsg);
         }
 
@@ -207,20 +201,30 @@ export default function StripePaymentForm({
         setLoading(false);
       } catch (error) {
           console.error('❌ Payment setup error:', error);
+          console.error('Error type:', typeof error);
+          console.error('Error object keys:', error ? Object.keys(error) : 'null');
+
           if (!mounted) return;
 
-          let errorMsg = 'Failed to initialize payment';
+          let errorMsg = 'Payment initialization failed';
 
-          // Handle different error formats
-          if (error?.data?.error) {
-              errorMsg = error.data.error;
-          } else if (error?.message) {
-              errorMsg = error.message;
-          } else if (typeof error === 'string') {
+          try {
+            if (typeof error === 'string') {
               errorMsg = error;
+            } else if (error?.message) {
+              errorMsg = error.message;
+            } else if (error?.data?.error) {
+              errorMsg = error.data.error;
+            } else if (error?.error) {
+              errorMsg = typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
+            } else {
+              errorMsg = `Payment setup failed: ${JSON.stringify(error)}`;
+            }
+          } catch (stringifyError) {
+            errorMsg = 'Payment initialization failed - unable to parse error';
           }
 
-          console.error('Error message:', errorMsg);
+          console.error('Final error message:', errorMsg);
           setInitError(errorMsg);
           setLoading(false);
           if (onError) onError(new Error(errorMsg));
