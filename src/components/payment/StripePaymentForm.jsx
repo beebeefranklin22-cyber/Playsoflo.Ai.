@@ -134,55 +134,77 @@ export default function StripePaymentForm({
   const [initError, setInitError] = useState(null);
 
   useEffect(() => {
-    createPaymentIntent();
-  }, []);
-
-  const createPaymentIntent = async () => {
-    try {
-      setLoading(true);
-      setInitError(null);
-      
-      const { base44 } = await import("@/api/base44Client");
-      
-      const response = await base44.functions.invoke('processStripePayment', {
-        amount,
-        description: description || `Payment of $${amount}`,
-        metadata: {
-          reference_type: referenceType || 'deposit',
-          reference_id: referenceId || 'wallet',
-          ...metadata
-        }
-      });
-
-      if (response?.data?.clientSecret && response?.data?.publishableKey) {
-        const stripe = await loadStripe(response.data.publishableKey);
+    let mounted = true;
+    
+    const createPaymentIntent = async () => {
+      try {
+        setLoading(true);
+        setInitError(null);
         
-        if (!stripe) {
-          throw new Error('Failed to load Stripe');
-        }
+        console.log('🔄 Starting payment intent creation for $' + amount);
         
-        setStripePromise(stripe);
-        setClientSecret(response.data.clientSecret);
-      } else {
-        throw new Error('Missing payment credentials');
+        const { base44 } = await import("@/api/base44Client");
+        
+        const response = await base44.functions.invoke('processStripePayment', {
+          amount,
+          description: description || `Payment of $${amount}`,
+          metadata: {
+            reference_type: referenceType || 'deposit',
+            reference_id: referenceId || 'wallet',
+            ...metadata
+          }
+        });
+
+        console.log('📦 Payment response received:', response?.data);
+
+        if (!mounted) {
+          console.log('⚠️ Component unmounted, skipping state update');
+          return;
+        }
+
+        if (response?.data?.clientSecret && response?.data?.publishableKey) {
+          console.log('✅ Loading Stripe...');
+          const stripe = await loadStripe(response.data.publishableKey);
+          
+          if (!stripe) {
+            throw new Error('Failed to load Stripe');
+          }
+          
+          if (!mounted) return;
+          
+          console.log('✅ Stripe loaded successfully');
+          setStripePromise(stripe);
+          setClientSecret(response.data.clientSecret);
+          setLoading(false);
+        } else {
+          throw new Error('Missing payment credentials from response');
+        }
+      } catch (error) {
+        console.error('❌ Payment setup error:', error);
+        if (!mounted) return;
+        
+        const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
+        console.error('Error message:', errorMsg);
+        setInitError(errorMsg);
+        setLoading(false);
+        if (onError) onError(new Error(errorMsg));
       }
-    } catch (error) {
-      console.error('Payment setup error:', error);
-      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
-      setInitError(new Error(errorMsg));
-      if (onError) onError(new Error(errorMsg));
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    createPaymentIntent();
+    
+    return () => {
+      mounted = false;
+    };
+  }, [amount]);
 
   if (initError) {
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
         <p className="text-red-400 font-semibold mb-2">Setup failed</p>
-        <p className="text-red-400 text-sm mb-4">{initError.message}</p>
+        <p className="text-red-400 text-sm mb-4">{typeof initError === 'string' ? initError : initError.message}</p>
         <Button 
-          onClick={createPaymentIntent}
+          onClick={() => window.location.reload()}
           className="w-full bg-red-600 hover:bg-red-700"
         >
           Retry
