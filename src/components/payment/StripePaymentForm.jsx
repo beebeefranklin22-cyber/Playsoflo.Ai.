@@ -170,6 +170,11 @@ export default function StripePaymentForm({
             ? response.error 
             : response.error?.message || 'Payment initialization failed';
           console.error('❌ Error in response:', errorMsg);
+
+          // Don't allow navigation on auth errors
+          if (errorMsg.includes('Authentication') || errorMsg.includes('authenticated')) {
+            throw new Error('Please refresh the page and try again.');
+          }
           throw new Error(errorMsg);
         }
 

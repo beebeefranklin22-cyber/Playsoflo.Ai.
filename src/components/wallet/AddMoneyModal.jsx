@@ -14,11 +14,27 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
 
-  console.log('=== ADD MONEY MODAL RENDER ===');
-  console.log('Current step:', step);
-  console.log('Amount:', amount);
-  console.log('Current user:', currentUser?.email);
-  console.log('Modal mounting/rendering');
+  // Block any navigation while modal is open
+  React.useEffect(() => {
+    const preventNavigation = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    
+    window.addEventListener('beforeunload', preventNavigation);
+    return () => window.removeEventListener('beforeunload', preventNavigation);
+  }, []);
+
+  if (!currentUser) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+        <div className="w-full max-w-lg bg-gray-900 rounded-3xl p-6 text-center">
+          <p className="text-white text-lg mb-4">Please log in to add money</p>
+          <Button onClick={onClose} className="bg-purple-600">Close</Button>
+        </div>
+      </div>
+    );
+  }
 
   // Prevent accidental closes during payment
   const handleModalClose = () => {

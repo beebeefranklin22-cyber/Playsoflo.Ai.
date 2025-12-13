@@ -11,13 +11,14 @@ Deno.serve(async (req) => {
     try {
       user = await base44.auth.me();
       console.log('✅ User authenticated:', user.email);
+      
+      if (!user) {
+        console.error('❌ No user object returned');
+        return Response.json({ error: 'Not authenticated. Please refresh and try again.' }, { status: 401 });
+      }
     } catch (authError) {
       console.error('❌ Auth failed:', authError.message);
-      return Response.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 401 });
+      return Response.json({ error: 'Authentication error. Please refresh and try again.' }, { status: 401 });
     }
 
     let body;
