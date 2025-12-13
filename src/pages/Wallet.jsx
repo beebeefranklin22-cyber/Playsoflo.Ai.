@@ -54,38 +54,38 @@ export default function Wallet() {
 
   const cryptoAssets = [
     { 
-      name: "SoFloCoin", // Renamed from "Ronron Reserve Index"
-      symbol: "SFC",     // Renamed from "RRI"
+      name: "SoFloCoin",
+      symbol: "SFC",
       balance: currentUser?.soflo_coins || 0, 
       value: ((currentUser?.soflo_coins || 0) * 2.45).toFixed(2),
-      change: "+12.5%",
+      change: "+0.0%",
       color: "purple",
       icon: Sparkles
     },
     { 
       name: "Bitcoin", 
       symbol: "BTC", 
-      balance: 0.0234, 
-      value: "1,458.90",
-      change: "+8.2%",
+      balance: 0, 
+      value: "0.00",
+      change: "+0.0%",
       color: "orange",
       icon: Bitcoin
     },
     { 
-      name: "Ethereum", // New asset added
+      name: "Ethereum",
       symbol: "ETH",
-      balance: 0.856,
-      value: "1,672.30",
-      change: "+5.4%",
+      balance: 0,
+      value: "0.00",
+      change: "+0.0%",
       color: "blue",
       icon: Zap
     },
     { 
       name: "USD Balance", 
       symbol: "USD", 
-      balance: 5420.50, 
-      value: "5,420.50",
-      change: "+0.1%",
+      balance: currentUser?.usd_balance || 0, 
+      value: (currentUser?.usd_balance || 0).toFixed(2),
+      change: "+0.0%",
       color: "green",
       icon: DollarSign
     },
@@ -129,11 +129,11 @@ export default function Wallet() {
           <div className="relative">
             <p className="text-gray-400 mb-2">Total Portfolio Value</p>
             <h2 className="text-5xl font-bold text-white mb-4">
-              {showBalance ? "$7,329.40" : "••••••"}
+              {showBalance ? `$${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)}` : "••••••"}
             </h2>
-            <div className="flex items-center gap-2 text-green-400">
+            <div className="flex items-center gap-2 text-gray-400">
               <TrendingUp className="w-5 h-5" />
-              <span className="font-semibold">+15.8%</span>
+              <span className="font-semibold">+0.0%</span>
               <span className="text-gray-400 text-sm">this month</span>
             </div>
           </div>
