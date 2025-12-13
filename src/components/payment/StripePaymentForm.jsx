@@ -31,7 +31,8 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     try {
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        const msg = String(submitError.message || 'Submission error');
+        const msg = submitError.message || 'Could not submit payment form';
+        console.error('Submit error:', msg);
         setErrorMessage(msg);
         setIsProcessing(false);
         if (onError) onError(msg);
@@ -48,7 +49,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
       if (error) {
         console.error('Payment error:', error);
-        const msg = String(error.message || 'Payment failed');
+        const msg = error.message || error.type || 'Payment failed';
         setErrorMessage(msg);
         setIsProcessing(false);
         if (onError) onError(msg);
@@ -66,7 +67,14 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       }
     } catch (err) {
         console.error('Payment submission error:', err);
-        const msg = String(err?.message || "An error occurred during payment");
+        let msg = "An error occurred during payment";
+        if (err instanceof Error) {
+          msg = err.message;
+        } else if (err?.message) {
+          msg = String(err.message);
+        } else if (typeof err === 'string') {
+          msg = err;
+        }
         setErrorMessage(msg);
         setIsProcessing(false);
         if (onError) onError(msg);
@@ -208,26 +216,39 @@ export default function StripePaymentForm({
       } catch (error) {
           console.error('❌ Setup error:', error);
           console.error('❌ Error type:', typeof error);
+          console.error('❌ Error keys:', error ? Object.keys(error) : 'null');
 
           if (!mounted) return;
 
           let errorMsg = 'Payment setup failed';
 
           try {
+            // Try different ways to extract error message
             if (typeof error === 'string') {
               errorMsg = error;
             } else if (error instanceof Error) {
-              errorMsg = error.message;
-            } else if (error?.message) {
-              errorMsg = String(error.message);
+              errorMsg = error.message || 'Unknown error';
+            } else if (error?.response?.data?.error) {
+              errorMsg = String(error.response.data.error);
             } else if (error?.data?.error) {
               errorMsg = String(error.data.error);
             } else if (error?.error) {
-              errorMsg = String(error.error);
-            } else {
-              errorMsg = 'Unable to initialize payment. Please try again.';
+              errorMsg = typeof error.error === 'string' ? error.error : String(error.error);
+            } else if (error?.message) {
+              errorMsg = String(error.message);
+            } else if (error) {
+              // Last resort: try to JSON stringify
+              try {
+                const jsonStr = JSON.stringify(error);
+                if (jsonStr && jsonStr !== '{}') {
+                  errorMsg = 'Error: ' + jsonStr;
+                }
+              } catch {
+                errorMsg = 'Unable to initialize payment. Please refresh and try again.';
+              }
             }
           } catch (stringifyError) {
+            console.error('Error stringifying error:', stringifyError);
             errorMsg = 'Payment initialization error. Please refresh and try again.';
           }
 
