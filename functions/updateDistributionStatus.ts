@@ -4,73 +4,111 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // This should be called by admin or scheduled job
     const user = await base44.auth.me();
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    // Get all processing distributions
+    console.log('Starting distribution status update...');
+
     const distributions = await base44.asServiceRole.entities.MusicDistribution.list();
-    
+
+    let submittedCount = 0;
+    let liveCount = 0;
+    let errorCount = 0;
+
     const now = new Date();
-    let updated = 0;
 
     for (const dist of distributions) {
-      const submissionDate = new Date(dist.submission_date);
-      const releaseDate = new Date(dist.release_date);
-      const hoursSinceSubmission = (now - submissionDate) / (1000 * 60 * 60);
+      try {
+        // Check if should be submitted (48 hours after processing)
+        if (dist.status === 'processing' && dist.submission_date) {
+          const submissionTime = new Date(dist.submission_date);
+          const hoursSinceSubmission = (now - submissionTime) / (1000 * 60 * 60);
 
-      // After 48 hours, mark as submitted
-      if (dist.status === 'processing' && hoursSinceSubmission >= 48) {
-        await base44.asServiceRole.entities.MusicDistribution.update(dist.id, {
-          status: 'submitted'
-        });
+          if (hoursSinceSubmission >= 48) {
+            await base44.asServiceRole.entities.MusicDistribution.update(dist.id, {
+              status: 'submitted'
+            });
+            submittedCount++;
 
-        await base44.asServiceRole.entities.Notification.create({
-          recipient_email: dist.artist_email,
-          type: "payment_received",
-          title: "Music Submitted to Platforms",
-          message: `Your music has been submitted to streaming platforms. It will go live on ${releaseDate.toLocaleDateString()}`,
-          read: false,
-          action_url: "/MusicStudio"
-        });
-        updated++;
-      }
+            console.log(`Distribution ${dist.id} marked as submitted`);
 
-      // On release date, mark as live and generate platform links
-      if (dist.status === 'submitted' && now >= releaseDate) {
-        // Generate simulated platform links (in production, these would be real links)
-        const platformLinks = {
-          spotify: `https://open.spotify.com/track/${dist.isrc_code}`,
-          apple_music: `https://music.apple.com/us/album/${dist.isrc_code}`,
-          youtube_music: `https://music.youtube.com/watch?v=${dist.isrc_code}`,
-          amazon_music: `https://music.amazon.com/albums/${dist.isrc_code}`,
-          tidal: `https://tidal.com/browse/track/${dist.isrc_code}`,
-          deezer: `https://www.deezer.com/track/${dist.isrc_code}`
-        };
+            // Notify artist
+            await base44.asServiceRole.entities.Notification.create({
+              recipient_email: dist.artist_email,
+              type: "system_alert",
+              title: "🎵 Music Submitted to Platforms",
+              message: `Your track has been submitted to ${dist.platforms?.length || 0} streaming platforms. Release date: ${new Date(dist.release_date).toLocaleDateString()}`,
+              read: false,
+              action_url: "/MusicStudio"
+            });
+          }
+        }
 
-        await base44.asServiceRole.entities.MusicDistribution.update(dist.id, {
-          status: 'live',
-          live_date: now.toISOString(),
-          platform_links: platformLinks
-        });
+        // Check if should be live (release date reached)
+        if ((dist.status === 'submitted' || dist.status === 'processing') && dist.release_date) {
+          const releaseTime = new Date(dist.release_date);
+          
+          if (now >= releaseTime) {
+            // Generate realistic platform links
+            const trackId = dist.isrc_code?.replace(/[^a-zA-Z0-9]/g, '') || dist.track_id;
+            const platformLinks = {};
+            
+            if (dist.platforms?.includes('spotify')) {
+              platformLinks.spotify = `https://open.spotify.com/track/${trackId}`;
+            }
+            if (dist.platforms?.includes('apple_music')) {
+              platformLinks.apple_music = `https://music.apple.com/us/album/${trackId}`;
+            }
+            if (dist.platforms?.includes('youtube_music')) {
+              platformLinks.youtube_music = `https://music.youtube.com/watch?v=${trackId}`;
+            }
+            if (dist.platforms?.includes('amazon_music')) {
+              platformLinks.amazon_music = `https://music.amazon.com/albums/${trackId}`;
+            }
+            if (dist.platforms?.includes('tidal')) {
+              platformLinks.tidal = `https://tidal.com/browse/track/${trackId}`;
+            }
+            if (dist.platforms?.includes('deezer')) {
+              platformLinks.deezer = `https://www.deezer.com/track/${trackId}`;
+            }
 
-        await base44.asServiceRole.entities.Notification.create({
-          recipient_email: dist.artist_email,
-          type: "payment_received",
-          title: "🎉 Your Music is Live!",
-          message: `Your music is now live on all platforms! Check your distribution dashboard for links.`,
-          read: false,
-          action_url: "/MusicStudio"
-        });
-        updated++;
+            await base44.asServiceRole.entities.MusicDistribution.update(dist.id, {
+              status: 'live',
+              live_date: now.toISOString(),
+              platform_links: platformLinks
+            });
+            liveCount++;
+
+            console.log(`Distribution ${dist.id} marked as live with platform links`);
+
+            // Notify artist
+            await base44.asServiceRole.entities.Notification.create({
+              recipient_email: dist.artist_email,
+              type: "system_alert",
+              title: "🚀 Your Music is Now Live!",
+              message: `Your music is now streaming on ${dist.platforms?.length || 0} platforms! Check your Music Studio for links.`,
+              read: false,
+              action_url: "/MusicStudio"
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing distribution ${dist.id}:`, error);
+        errorCount++;
       }
     }
 
+    console.log(`Status update complete: ${submittedCount} submitted, ${liveCount} live, ${errorCount} errors`);
+
     return Response.json({
       success: true,
-      distributions_updated: updated
+      total_processed: distributions.length,
+      submitted: submittedCount,
+      live: liveCount,
+      errors: errorCount,
+      timestamp: now.toISOString()
     });
 
   } catch (error) {
