@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import AdvancedAnalytics from "../components/music/AdvancedAnalytics";
 import FanPoolManager from "../components/music/FanPoolManager";
 import DistributionManager from "../components/music/DistributionManager";
+import AIMasteringStudio from "../components/music/AIMasteringStudio";
 
 export default function MusicStudio() {
   const navigate = useNavigate();
@@ -387,10 +388,11 @@ Make it legally sound, fair, and industry-standard.`;
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 bg-white/10 border border-white/20">
+          <TabsList className="grid w-full grid-cols-7 bg-white/10 border border-white/20">
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="tracks">Tracks</TabsTrigger>
             <TabsTrigger value="pools">Fan Pools</TabsTrigger>
+            <TabsTrigger value="mastering">Mastering</TabsTrigger>
             <TabsTrigger value="distribution">Distribution</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="deals">Deal Apps</TabsTrigger>
@@ -398,6 +400,10 @@ Make it legally sound, fair, and industry-standard.`;
 
           <TabsContent value="analytics" className="mt-6">
             <AdvancedAnalytics tracks={myTracks} fanPools={myPools} />
+          </TabsContent>
+
+          <TabsContent value="mastering" className="mt-6">
+            <AIMasteringStudio currentUser={currentUser} tracks={myTracks} />
           </TabsContent>
 
           <TabsContent value="distribution" className="mt-6">
