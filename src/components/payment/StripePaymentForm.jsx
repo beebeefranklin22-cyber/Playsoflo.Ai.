@@ -176,11 +176,12 @@ export default function StripePaymentForm({
   }, []);
 
   useEffect(() => {
-    console.log('Amount changed:', amount);
-    if (amount && amount > 0 && !clientSecret) {
+    console.log('💰 Amount effect triggered:', amount, 'Has secret:', !!clientSecret, 'Has stripe:', !!stripePromise);
+    if (amount && amount > 0 && !clientSecret && stripePromise) {
+      console.log('🚀 Creating payment intent...');
       createPaymentIntent();
     }
-  }, [amount]);
+  }, [amount, stripePromise]);
 
   const createPaymentIntent = async () => {
     try {
@@ -222,52 +223,48 @@ export default function StripePaymentForm({
     }
   };
 
-  console.log('🎨 RENDER CHECK - Attempt:', renderAttempt);
-  console.log('State:', { loading, formReady, hasError: !!initError, hasSecret: !!clientSecret, hasStripe: !!stripePromise });
+  console.log('🎨 RENDER:', { loading, formReady, hasError: !!initError, hasSecret: !!clientSecret, hasStripe: !!stripePromise });
 
-  // Priority 1: Show error
+  // Show error
   if (initError) {
-    console.log('🔴 RENDERING ERROR STATE');
+    console.log('🔴 ERROR:', initError.message);
     return (
       <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
-        <p className="text-red-400 font-semibold mb-2">Payment initialization failed</p>
-        <p className="text-red-400 text-sm">{initError.message}</p>
+        <p className="text-red-400 font-semibold mb-2">Setup failed</p>
+        <p className="text-red-400 text-sm mb-4">{initError.message}</p>
         <Button 
-          onClick={createPaymentIntent}
-          className="mt-4 bg-red-600 hover:bg-red-700"
+          onClick={() => {
+            setInitError(null);
+            createPaymentIntent();
+          }}
+          className="w-full bg-red-600 hover:bg-red-700"
         >
-          <Loader2 className="w-4 h-4 mr-2" />
-          Retry Payment Setup
+          Retry
         </Button>
       </div>
     );
   }
 
-  // Priority 2: Show loading
-  if (loading) {
-    console.log('⏳ RENDERING LOADING STATE');
+  // Show loading
+  if (loading || !stripePromise) {
+    console.log('⏳ LOADING');
     return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-3">
-        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-        <div className="text-center">
-          <p className="text-white font-medium">Setting up secure payment...</p>
-          <p className="text-gray-400 text-sm">This usually takes 2-3 seconds</p>
-        </div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+        <p className="text-white">Setting up payment...</p>
       </div>
     );
   }
 
-  // Priority 3: Render form if ready
-  if (formReady && clientSecret && stripePromise) {
-    console.log('✅ Rendering payment form');
+  // Render form
+  if (clientSecret && stripePromise) {
+    console.log('✅ Rendering form');
     return (
       <Elements 
         stripe={stripePromise} 
         options={{ 
           clientSecret,
-          appearance: {
-            theme: 'night',
-          }
+          appearance: { theme: 'night' }
         }}
       >
         <CheckoutForm 
@@ -279,18 +276,12 @@ export default function StripePaymentForm({
     );
   }
 
-  // Fallback: Something is wrong
-  console.log('⚠️ FALLBACK STATE - Something went wrong');
+  // Waiting for setup
+  console.log('⏳ Waiting for payment setup...');
   return (
-    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
-      <p className="text-yellow-400 font-semibold mb-2">Payment form not ready</p>
-      <p className="text-yellow-400 text-sm">Please refresh and try again</p>
-      <Button 
-        onClick={() => window.location.reload()}
-        className="mt-4 bg-yellow-600 hover:bg-yellow-700"
-      >
-        Refresh Page
-      </Button>
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
+      <p className="text-white">Initializing...</p>
     </div>
   );
 }
