@@ -145,7 +145,7 @@ export default function StripePaymentForm({
         console.log('🔄 Starting payment intent creation for $' + amount);
         
         const { base44 } = await import("@/api/base44Client");
-        
+
         const response = await base44.functions.invoke('processStripePayment', {
           amount,
           description: description || `Payment of $${amount}`,
@@ -157,6 +157,8 @@ export default function StripePaymentForm({
         });
 
         console.log('📦 Payment response received:', response);
+        console.log('📦 Response data:', response?.data);
+        console.log('📦 Response error:', response?.error);
 
         if (!mounted) {
           console.log('⚠️ Component unmounted, skipping state update');
@@ -164,8 +166,21 @@ export default function StripePaymentForm({
         }
 
         // Handle error responses
-        if (response?.error || !response?.data) {
-          const errorMsg = response?.error || 'Failed to initialize payment';
+        if (!response?.data || response?.error) {
+          let errorMsg = 'Failed to initialize payment';
+
+          if (response?.error) {
+            if (typeof response.error === 'string') {
+              errorMsg = response.error;
+            } else if (response.error?.message) {
+              errorMsg = response.error.message;
+            } else {
+              errorMsg = JSON.stringify(response.error);
+            }
+          } else if (response?.data?.error) {
+            errorMsg = response.data.error;
+          }
+
           console.error('❌ Payment initialization error:', errorMsg);
           throw new Error(errorMsg);
         }

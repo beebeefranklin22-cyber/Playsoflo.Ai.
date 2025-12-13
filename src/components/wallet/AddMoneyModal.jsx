@@ -233,7 +233,18 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     onSuccess={handleSuccess}
                     onError={(error) => {
                       console.error("Payment error:", error);
-                      const errorMsg = error?.message || error?.error || (typeof error === 'string' ? error : 'Payment failed. Please try again.');
+                      let errorMsg = 'Payment failed. Please try again.';
+
+                      if (typeof error === 'string') {
+                        errorMsg = error;
+                      } else if (error?.message) {
+                        errorMsg = error.message;
+                      } else if (error?.error) {
+                        errorMsg = typeof error.error === 'string' ? error.error : JSON.stringify(error.error);
+                      } else {
+                        errorMsg = 'Payment initialization failed';
+                      }
+
                       setPaymentError(errorMsg);
                       toast.error(errorMsg);
                     }}
