@@ -18,6 +18,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   console.log('Current step:', step);
   console.log('Amount:', amount);
   console.log('Current user:', currentUser?.email);
+  console.log('Modal mounting/rendering');
+
+  // Prevent accidental closes during payment
+  const handleModalClose = () => {
+    if (step === 2) {
+      console.log('⚠️ Prevented close during payment step');
+      return;
+    }
+    onClose();
+  };
 
   const quickAmounts = [50, 100, 250, 500, 1000];
 
@@ -63,27 +73,38 @@ export default function AddMoneyModal({ currentUser, onClose }) {
     if (amount && parseFloat(amount) > 0) {
       console.log('✅ Valid amount, moving to step 2');
       setPaymentError(null);
-      setStep(2);
+      setTimeout(() => {
+        console.log('Setting step to 2 NOW');
+        setStep(2);
+      }, 100);
     } else {
       console.log('❌ Invalid amount');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && step !== 2) {
+          handleModalClose();
+        }
+      }}
+    >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
         className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Add Money</h2>
+            <h2 className="text-2xl font-bold text-white">Add Money - Step {step}</h2>
             {step !== 2 && (
               <button 
-                onClick={handleClose}
+                onClick={handleModalClose}
                 className="p-2 hover:bg-white/10 rounded-full transition"
               >
                 <X className="w-6 h-6 text-white" />
@@ -92,9 +113,9 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </div>
 
-          <div className="p-6">
-            {step === 1 && (
-              <div className="space-y-6">
+          <div className="p-6">{step === 1 ? '(Step 1 Content)' : step === 2 ? '(Step 2 Payment)' : '(Step 3 Success)'}
+            {step === 1 ? (
+              <div className="space-y-6">{console.log('📍 Rendering Step 1')}
                 <div>
                   <label className="text-white font-semibold mb-3 block">Amount to Add</label>
                   <Input
@@ -166,8 +187,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
               </div>
             )}
 
-            {step === 2 && (
-              <div className="space-y-6">
+            {step === 2 ? (
+              <div className="space-y-6">{console.log('📍 Rendering Step 2 - PAYMENT FORM')}
                 <div className="text-center py-4">
                   <p className="text-gray-400 mb-2">Adding to wallet</p>
                   <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
@@ -205,8 +226,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
               </div>
             )}
 
-            {step === 3 && (
-              <div className="text-center py-8">
+            {step === 3 ? (
+              <div className="text-center py-8">{console.log('📍 Rendering Step 3 - SUCCESS')}
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Plus className="w-10 h-10 text-green-400" />
                 </div>
@@ -216,11 +237,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                 </p>
                 <Button onClick={handleClose} className="w-full bg-green-600">
                   Done
-                </Button>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
-  );
-}
+                  </Button>
+                  </div>
+                  ) : null}
+                  </div>
+                  </motion.div>
+                  </div>
+                  );
+                  }
