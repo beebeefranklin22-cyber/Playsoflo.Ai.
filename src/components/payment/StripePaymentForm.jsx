@@ -96,29 +96,15 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
           </div>
         </div>
 
-        <div className="min-h-[200px] relative">
-          {!elementsReady && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/5 rounded-lg">
-              <div className="text-center">
-                <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Loading payment form...</p>
-              </div>
-            </div>
-          )}
-          <PaymentElement 
-            options={{
-              layout: "tabs",
-            }}
-            onReady={() => {
-              console.log('✅ PaymentElement is READY');
-              setElementsReady(true);
-            }}
-            onLoadError={(error) => {
-              console.error('❌ PaymentElement load error:', error);
-              setErrorMessage('Failed to load payment form');
-            }}
-          />
-        </div>
+        <PaymentElement 
+          options={{
+            layout: "tabs",
+          }}
+          onReady={() => {
+            console.log('✅ PaymentElement ready');
+            setElementsReady(true);
+          }}
+        />
       </div>
 
       {errorMessage && (
@@ -172,21 +158,22 @@ export default function StripePaymentForm({
   useEffect(() => {
     const initStripe = async () => {
       try {
-        let key = publishableKey;
+        const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
         if (!key) {
-          key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51SFfJq2ORNyJCJkCOcqPJR27TkvEAThfkGkAkMaASgexCL3RSzqchqYWqA2LwnJEVJxiY8ID8tXGrBulPVEOrd9Z00L5wTr0p6";
+          throw new Error('Stripe publishable key not found');
         }
-        console.log('Loading Stripe with key:', key.substring(0, 20) + '...');
+        console.log('🔑 Loading Stripe...');
         const stripe = await loadStripe(key);
+        console.log('✅ Stripe loaded successfully');
         setStripePromise(stripe);
       } catch (error) {
-        console.error("Stripe initialization error:", error);
+        console.error("❌ Stripe initialization error:", error);
         setInitError(error);
       }
     };
     
     initStripe();
-  }, [publishableKey]);
+  }, []);
 
   useEffect(() => {
     console.log('Amount changed:', amount);
@@ -199,11 +186,8 @@ export default function StripePaymentForm({
     try {
       setLoading(true);
       setInitError(null);
-      setRenderAttempt(prev => prev + 1);
       
-      console.log('🔄 ATTEMPT', renderAttempt + 1, '- STARTING PAYMENT INTENT CREATION');
-      console.log('Amount:', amount);
-      console.log('Description:', description);
+      console.log('💳 Creating payment intent for $' + amount);
       
       const { base44 } = await import("@/api/base44Client");
       
@@ -217,18 +201,19 @@ export default function StripePaymentForm({
         }
       });
 
-      console.log('📦 PAYMENT INTENT RESPONSE:', response);
+      console.log('📦 Response:', response);
 
       if (response?.data?.clientSecret) {
-        console.log('✅ SUCCESS - Client secret received:', response.data.clientSecret.substring(0, 20) + '...');
+        console.log('✅ Client secret received');
         setClientSecret(response.data.clientSecret);
-        setTimeout(() => setFormReady(true), 50);
+        // Wait for Stripe to be ready before showing form
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setFormReady(true);
       } else {
-        console.error('❌ FAILED - No client secret in response:', response);
-        throw new Error(response?.data?.error || 'No client secret received from server');
+        throw new Error('No client secret received');
       }
     } catch (error) {
-      console.error('❌ PAYMENT INTENT ERROR:', error);
+      console.error('❌ Error:', error);
       const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
       setInitError(new Error(errorMsg));
       if (onError) onError(new Error(errorMsg));
@@ -274,17 +259,23 @@ export default function StripePaymentForm({
 
   // Priority 3: Render form if ready
   if (formReady && clientSecret && stripePromise) {
-    console.log('✅ RENDERING PAYMENT FORM - All conditions met');
+    console.log('✅ Rendering payment form');
     return (
-      <div key={`stripe-form-${renderAttempt}`}>
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
-          <CheckoutForm 
-            amount={amount} 
-            onSuccess={onSuccess} 
-            onError={onError} 
-          />
-        </Elements>
-      </div>
+      <Elements 
+        stripe={stripePromise} 
+        options={{ 
+          clientSecret,
+          appearance: {
+            theme: 'night',
+          }
+        }}
+      >
+        <CheckoutForm 
+          amount={amount} 
+          onSuccess={onSuccess} 
+          onError={onError} 
+        />
+      </Elements>
     );
   }
 
