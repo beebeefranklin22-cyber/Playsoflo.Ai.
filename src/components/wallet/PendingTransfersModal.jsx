@@ -33,11 +33,15 @@ export default function PendingTransfersModal({ currentUser, onClose }) {
       await base44.auth.updateMe({
         usd_balance: currentBalance + transfer.amount_usd
       });
+      
+      return transfer.amount_usd;
     },
-    onSuccess: () => {
+    onSuccess: (addedAmount) => {
       queryClient.invalidateQueries(['pending-transfers']);
       queryClient.invalidateQueries(['payments']);
-      toast.success("Transfer completed! Balance updated.");
+      queryClient.invalidateQueries(['transactions']);
+      toast.success(`✓ Transfer completed! $${addedAmount.toFixed(2)} added to your wallet.`);
+      setTimeout(() => window.location.reload(), 1000);
     },
     onError: (error) => {
       toast.error(error?.message || "Failed to complete transfer");

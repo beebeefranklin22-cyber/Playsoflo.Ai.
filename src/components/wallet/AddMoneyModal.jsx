@@ -159,7 +159,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                         <CreditCard className="w-6 h-6 text-white" />
                         <div className="text-left">
                           <p className="text-white font-semibold">Debit/Credit Card</p>
-                          <p className="text-gray-400 text-sm">Instant</p>
+                          <p className="text-gray-400 text-sm">Instant • Stripe secured</p>
                         </div>
                       </div>
                     </button>
@@ -175,11 +175,17 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                       <div className="flex items-center gap-3">
                         <Building className="w-6 h-6 text-white" />
                         <div className="text-left">
-                          <p className="text-white font-semibold">Bank Transfer</p>
-                          <p className="text-gray-400 text-sm">1-3 business days</p>
+                          <p className="text-white font-semibold">Bank Transfer (ACH)</p>
+                          <p className="text-gray-400 text-sm">1-3 business days • No fees</p>
                         </div>
                       </div>
                     </button>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-blue-400 text-xs">
+                      💳 More payment methods (Apple Pay, Google Pay, Cash App) available through saved payment methods
+                    </p>
                   </div>
                 </div>
 

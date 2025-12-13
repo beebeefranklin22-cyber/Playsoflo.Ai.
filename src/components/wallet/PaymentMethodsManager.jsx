@@ -136,25 +136,44 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         </div>
 
         {/* Add Payment Method Options */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="space-y-3 mb-6">
           <Button
             onClick={handleAddStripePayment}
             disabled={addingPayment}
-            className="bg-purple-600 hover:bg-purple-700"
+            className="w-full bg-purple-600 hover:bg-purple-700 h-14"
           >
-            <CreditCard className="w-4 h-4 mr-2" />
-            {addingPayment ? "Loading..." : "Add Card/Bank"}
+            <CreditCard className="w-5 h-5 mr-2" />
+            {addingPayment ? "Loading..." : "Add Card or Bank Account"}
           </Button>
-          <Button
-            onClick={() => {
-              setExternalType('cashapp');
-              setShowAddExternal(true);
-            }}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <DollarSign className="w-4 h-4 mr-2" />
-            CashApp/Venmo
-          </Button>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => {
+                setExternalType('cashapp');
+                setShowAddExternal(true);
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Cash App
+            </Button>
+            <Button
+              onClick={() => {
+                setExternalType('venmo');
+                setShowAddExternal(true);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Venmo
+            </Button>
+          </div>
+
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+            <p className="text-green-400 text-xs">
+              ✓ All payment methods are encrypted and secure. Apple Pay & Google Pay available at checkout.
+            </p>
+          </div>
         </div>
 
         {/* Add External Account Form */}
