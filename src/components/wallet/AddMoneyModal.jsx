@@ -114,7 +114,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget && step !== 2) {
           handleModalClose();
@@ -126,10 +126,10 @@ export default function AddMoneyModal({ currentUser, onClose }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-lg max-h-[90vh] bg-gray-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+        className="w-full max-w-lg my-8 bg-gray-900 rounded-3xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Add Money - Step {step}</h2>
             {step !== 2 && (
@@ -143,7 +143,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </div>
 
-          <div className="p-6 overflow-y-auto flex-1">
+          <div className="p-6">
             {step === 1 && (
               <div className="space-y-6">
                 <div>
