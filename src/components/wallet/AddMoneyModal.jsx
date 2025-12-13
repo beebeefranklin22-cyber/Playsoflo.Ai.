@@ -33,25 +33,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
   const handleSuccess = async (paymentIntent) => {
     console.log('💰 Payment completed:', paymentIntent);
-    
-    // Show success message
     toast.success("Payment successful! Updating your balance...");
     
-    // Wait for webhook to process (3 seconds should be enough)
-    setTimeout(async () => {
-      try {
-        // Fetch updated user data
-        const updatedUser = await base44.auth.me();
-        console.log('Updated balance:', updatedUser.usd_balance);
-        
-        // Reload to show new balance
-        window.location.reload();
-      } catch (error) {
-        console.error('Error fetching updated balance:', error);
-        // Reload anyway
-        window.location.reload();
-      }
-    }, 3000);
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   const handleBankTransfer = async () => {

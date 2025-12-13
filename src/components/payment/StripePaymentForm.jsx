@@ -14,13 +14,6 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [elementsReady, setElementsReady] = useState(false);
-
-  console.log('=== CHECKOUT FORM RENDER ===');
-  console.log('Stripe loaded:', !!stripe);
-  console.log('Elements loaded:', !!elements);
-  console.log('Elements ready:', elementsReady);
-  console.log('Amount:', amount);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,18 +25,10 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       return;
     }
 
-    if (!elementsReady) {
-      const msg = "Please wait for payment form to load completely.";
-      setErrorMessage(msg);
-      if (onError) onError(new Error(msg));
-      return;
-    }
-
     setIsProcessing(true);
     setErrorMessage(null);
 
     try {
-      // First, ensure the payment element is ready
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setErrorMessage(submitError.message);
@@ -52,7 +37,6 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         return;
       }
 
-      // Then confirm the payment WITHOUT redirect
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: "if_required",
@@ -62,27 +46,17 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       });
 
       if (error) {
-        console.error('Payment confirmation error:', error);
+        console.error('Payment error:', error);
         setErrorMessage(error.message);
         setIsProcessing(false);
         if (onError) onError(error);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        console.log('✅ Payment succeeded:', paymentIntent);
-        setIsProcessing(false);
-
-        // Wait a moment for webhook to process
-        setTimeout(() => {
-          if (onSuccess) onSuccess(paymentIntent);
-        }, 1000);
+        console.log('✅ Payment succeeded');
+        if (onSuccess) onSuccess(paymentIntent);
       } else if (paymentIntent && paymentIntent.status === 'processing') {
-        console.log('⏳ Payment processing:', paymentIntent);
-        setIsProcessing(false);
-        setErrorMessage('Payment is processing. Your balance will update shortly.');
-        setTimeout(() => {
-          if (onSuccess) onSuccess(paymentIntent);
-        }, 2000);
+        console.log('⏳ Payment processing');
+        if (onSuccess) onSuccess(paymentIntent);
       } else {
-        console.error('❌ Payment not completed:', paymentIntent);
         const msg = 'Payment was not completed. Please try again.';
         setErrorMessage(msg);
         setIsProcessing(false);
@@ -111,10 +85,6 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
           options={{
             layout: "tabs",
           }}
-          onReady={() => {
-            console.log('✅ PaymentElement ready');
-            setElementsReady(true);
-          }}
         />
       </div>
 
@@ -126,7 +96,7 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
       <Button
         type="submit"
-        disabled={!stripe || !elementsReady || isProcessing}
+        disabled={!stripe || !elements || isProcessing}
         className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 py-6 text-lg font-bold"
       >
         {isProcessing ? (
@@ -160,21 +130,17 @@ export default function StripePaymentForm({
 }) {
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [initError, setInitError] = useState(null);
 
   useEffect(() => {
-    if (amount && amount > 0 && !clientSecret && !loading && !stripePromise) {
-      createPaymentIntent();
-    }
-  }, [amount, clientSecret, loading, stripePromise]);
+    createPaymentIntent();
+  }, []);
 
   const createPaymentIntent = async () => {
     try {
       setLoading(true);
       setInitError(null);
-      
-      console.log('💳 Creating payment intent for $' + amount);
       
       const { base44 } = await import("@/api/base44Client");
       
@@ -188,36 +154,27 @@ export default function StripePaymentForm({
         }
       });
 
-      console.log('📦 Response:', response);
-
       if (response?.data?.clientSecret && response?.data?.publishableKey) {
-        console.log('✅ Received credentials, loading Stripe...');
-        
-        // Load Stripe with the key from backend
         const stripe = await loadStripe(response.data.publishableKey);
-        console.log('✅ Stripe loaded, setting state...');
         
         if (!stripe) {
           throw new Error('Failed to load Stripe');
         }
         
-        // Set both at once to prevent race conditions
         setStripePromise(stripe);
         setClientSecret(response.data.clientSecret);
-        setLoading(false);
       } else {
         throw new Error('Missing payment credentials');
       }
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error('Payment setup error:', error);
       const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
       setInitError(new Error(errorMsg));
-      setLoading(false);
       if (onError) onError(new Error(errorMsg));
+    } finally {
+      setLoading(false);
     }
   };
-
-
 
   if (initError) {
     return (
@@ -225,10 +182,7 @@ export default function StripePaymentForm({
         <p className="text-red-400 font-semibold mb-2">Setup failed</p>
         <p className="text-red-400 text-sm mb-4">{initError.message}</p>
         <Button 
-          onClick={() => {
-            setInitError(null);
-            createPaymentIntent();
-          }}
+          onClick={createPaymentIntent}
           className="w-full bg-red-600 hover:bg-red-700"
         >
           Retry
@@ -237,20 +191,11 @@ export default function StripePaymentForm({
     );
   }
 
-  if (loading) {
+  if (loading || !clientSecret || !stripePromise) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
-        <p className="text-white">Setting up payment...</p>
-      </div>
-    );
-  }
-
-  if (loading || (!clientSecret || !stripePromise)) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-purple-400 animate-spin mb-3" />
-        <p className="text-white text-sm">{loading ? 'Setting up payment...' : 'Loading...'}</p>
+        <p className="text-white text-sm">Setting up payment...</p>
       </div>
     );
   }
