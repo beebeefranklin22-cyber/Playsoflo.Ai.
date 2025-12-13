@@ -19,6 +19,7 @@ import AdvancedAnalytics from "../components/music/AdvancedAnalytics";
 import FanPoolManager from "../components/music/FanPoolManager";
 import DistributionManager from "../components/music/DistributionManager";
 import AIMasteringStudio from "../components/music/AIMasteringStudio";
+import RoyaltySplitManager from "../components/music/RoyaltySplitManager";
 
 export default function MusicStudio() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function MusicStudio() {
   });
   const [showPoolModal, setShowPoolModal] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
+  const [selectedTrackForSplit, setSelectedTrackForSplit] = useState(null);
 
   const [trackForm, setTrackForm] = useState({
     title: "",
@@ -422,28 +424,63 @@ Make it legally sound, fair, and industry-standard.`;
                 </Button>
               </div>
             ) : (
-              <div className="grid md:grid-cols-3 gap-6">
-                {myTracks.map((track) => (
-                <Card key={track.id} className="bg-white/5 border-white/10">
-                  <CardContent className="p-4">
-                    <h3 className="text-white font-bold mb-2">{track.title}</h3>
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="text-center">
-                        <p className="text-white font-bold">{track.stream_count || 0}</p>
-                        <p className="text-gray-400">Streams</p>
+              <div className="space-y-6">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {myTracks.map((track) => (
+                  <Card key={track.id} className="bg-white/5 border-white/10">
+                    <CardContent className="p-4">
+                      <h3 className="text-white font-bold mb-2">{track.title}</h3>
+                      <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                        <div className="text-center">
+                          <p className="text-white font-bold">{track.stream_count || 0}</p>
+                          <p className="text-gray-400">Streams</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-white font-bold">{track.download_count || 0}</p>
+                          <p className="text-gray-400">Downloads</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-green-400 font-bold">${(track.revenue_generated || 0).toFixed(0)}</p>
+                          <p className="text-gray-400">Revenue</p>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <p className="text-white font-bold">{track.download_count || 0}</p>
-                        <p className="text-gray-400">Downloads</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-green-400 font-bold">${(track.revenue_generated || 0).toFixed(0)}</p>
-                        <p className="text-gray-400">Revenue</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedTrackForSplit(track)}
+                        className="w-full bg-purple-600"
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Manage Splits
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+                </div>
+
+                {selectedTrackForSplit && (
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+                      onClick={() => setSelectedTrackForSplit(null)}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.9 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+                      >
+                        <RoyaltySplitManager 
+                          track={selectedTrackForSplit} 
+                          currentUser={currentUser}
+                        />
+                      </motion.div>
+                    </motion.div>
+                  </AnimatePresence>
+                )}
               </div>
             )}
           </TabsContent>
