@@ -110,13 +110,23 @@ export default function SendMoneyModal({ currentUser, onClose }) {
         memo: message || `Transfer from ${currentUser.full_name || currentUser.email}`
       });
 
-      // Notify recipient
+      // Create notifications
       await base44.entities.Notification.create({
-        recipient_email: recipient,
+        user_email: currentUser.email,
+        type: "payment_received",
+        title: "Money Sent",
+        message: `You sent $${sendAmount.toFixed(2)} to ${recipientUser.full_name}`,
+        read: false,
+        action_url: "/Wallet"
+      });
+
+      await base44.entities.Notification.create({
+        user_email: recipient,
         type: "payment_received",
         title: "Money Received",
-        message: `${currentUser.full_name} sent you ${sendAmount} ${currency}${message ? ': ' + message : ''}`,
-        reference_type: "transaction"
+        message: `${currentUser.full_name} sent you $${sendAmount.toFixed(2)}${message ? `: "${message}"` : ''}`,
+        read: false,
+        action_url: "/Wallet"
       });
 
       setStep(2);

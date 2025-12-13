@@ -57,6 +57,16 @@ export default function WithdrawModal({ currentUser, onClose }) {
         usd_balance: availableBalance - parseFloat(amount)
       });
 
+      // Create notification
+      await base44.entities.Notification.create({
+        user_email: currentUser.email,
+        type: "payment_received",
+        title: "Withdrawal Initiated",
+        message: `Your withdrawal of $${parseFloat(amount).toFixed(2)} is being processed`,
+        read: false,
+        action_url: "/Wallet"
+      });
+
       alert(`Withdrawal of $${amount} initiated. ${
         method === "instant" 
           ? "Funds will arrive within minutes." 
