@@ -63,10 +63,11 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         if (onError) onError(new Error(msg));
       }
     } catch (err) {
-      const msg = err.message || "An error occurred during payment";
-      setErrorMessage(msg);
-      setIsProcessing(false);
-      if (onError) onError(err);
+        console.error('Payment submission error:', err);
+        const msg = err.message || "An error occurred during payment";
+        setErrorMessage(msg);
+        setIsProcessing(false);
+        if (onError) onError(err);
     }
   };
 
@@ -190,14 +191,24 @@ export default function StripePaymentForm({
         setClientSecret(clientSecret);
         setLoading(false);
       } catch (error) {
-        console.error('❌ Payment setup error:', error);
-        if (!mounted) return;
-        
-        const errorMsg = error?.response?.data?.error || error?.message || 'Failed to initialize payment';
-        console.error('Error message:', errorMsg);
-        setInitError(errorMsg);
-        setLoading(false);
-        if (onError) onError(new Error(errorMsg));
+          console.error('❌ Payment setup error:', error);
+          if (!mounted) return;
+
+          let errorMsg = 'Failed to initialize payment';
+
+          // Handle different error formats
+          if (error?.data?.error) {
+              errorMsg = error.data.error;
+          } else if (error?.message) {
+              errorMsg = error.message;
+          } else if (typeof error === 'string') {
+              errorMsg = error;
+          }
+
+          console.error('Error message:', errorMsg);
+          setInitError(errorMsg);
+          setLoading(false);
+          if (onError) onError(new Error(errorMsg));
       }
     };
     
