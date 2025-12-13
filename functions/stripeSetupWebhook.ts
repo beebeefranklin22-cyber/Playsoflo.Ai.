@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
             // Create notification for successful payment
             await base44.asServiceRole.entities.Notification.create({
-              user_email: userEmail,
+              recipient_email: userEmail,
               type: "payment_received",
               title: "Payment Successful",
               message: `$${baseAmount.toFixed(2)} has been added to your wallet`,
@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
 
       if (userEmail) {
         await base44.asServiceRole.entities.Notification.create({
-          user_email: userEmail,
+          recipient_email: userEmail,
           type: "payment_received",
           title: "Payment Failed",
           message: `Your payment of $${amount.toFixed(2)} failed. Please try again or use a different payment method.`,
