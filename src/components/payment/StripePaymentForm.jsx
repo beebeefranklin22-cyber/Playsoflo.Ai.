@@ -14,6 +14,50 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [suggestedAction, setSuggestedAction] = useState(null);
+
+  const getErrorDetails = (error) => {
+    const errorCode = error.code || error.decline_code;
+    let message = 'Payment failed. Please try again.';
+    let action = 'Try again or contact support if the issue persists.';
+
+    // Card-specific errors
+    if (errorCode === 'card_declined' || error.decline_code) {
+      message = 'Your card was declined.';
+      action = 'Please try a different payment method or contact your bank.';
+    } else if (errorCode === 'insufficient_funds') {
+      message = 'Your card has insufficient funds.';
+      action = 'Please use a different card or add funds to your account.';
+    } else if (errorCode === 'expired_card') {
+      message = 'Your card has expired.';
+      action = 'Please update your card information or use a different card.';
+    } else if (errorCode === 'incorrect_cvc' || errorCode === 'invalid_cvc') {
+      message = 'The security code (CVC) is incorrect.';
+      action = 'Please check your card and re-enter the correct CVC.';
+    } else if (errorCode === 'incorrect_number' || errorCode === 'invalid_number') {
+      message = 'The card number is incorrect.';
+      action = 'Please check your card number and try again.';
+    } else if (errorCode === 'processing_error') {
+      message = 'An error occurred while processing your card.';
+      action = 'Please try again in a few moments.';
+    } else if (errorCode === 'lost_card' || errorCode === 'stolen_card') {
+      message = 'This card has been reported as lost or stolen.';
+      action = 'Please contact your bank or use a different card.';
+    } else if (errorCode === 'fraudulent') {
+      message = 'This transaction was flagged as potentially fraudulent.';
+      action = 'Please contact your bank to authorize this transaction.';
+    } else if (errorCode === 'authentication_required') {
+      message = 'Additional authentication is required.';
+      action = 'Please complete the authentication with your bank.';
+    } else if (error.type === 'validation_error') {
+      message = 'Please check your payment information.';
+      action = 'Ensure all fields are filled out correctly.';
+    } else if (error.message) {
+      message = error.message;
+    }
+
+    return { message, action };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,10 +93,11 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
       if (error) {
         console.error('Payment error:', error);
-        const msg = error.message || error.type || 'Payment failed';
-        setErrorMessage(msg);
+        const errorDetails = getErrorDetails(error);
+        setErrorMessage(errorDetails.message);
+        setSuggestedAction(errorDetails.action);
         setIsProcessing(false);
-        if (onError) onError(msg);
+        if (onError) onError(errorDetails.message);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         console.log('✅ Payment succeeded');
         if (onSuccess) onSuccess(paymentIntent);
@@ -67,17 +112,11 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       }
     } catch (err) {
         console.error('Payment submission error:', err);
-        let msg = "An error occurred during payment";
-        if (err instanceof Error) {
-          msg = err.message;
-        } else if (err?.message) {
-          msg = String(err.message);
-        } else if (typeof err === 'string') {
-          msg = err;
-        }
-        setErrorMessage(msg);
+        const errorDetails = getErrorDetails(err);
+        setErrorMessage(errorDetails.message);
+        setSuggestedAction(errorDetails.action);
         setIsProcessing(false);
-        if (onError) onError(msg);
+        if (onError) onError(errorDetails.message);
     }
   };
 
@@ -100,8 +139,18 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       </div>
 
       {errorMessage && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-          <p className="text-red-400 text-sm">{errorMessage}</p>
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-2">
+          <div className="flex items-start gap-2">
+            <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-white text-xs font-bold">!</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-red-400 font-semibold text-sm">{errorMessage}</p>
+              {suggestedAction && (
+                <p className="text-red-300 text-xs mt-1">{suggestedAction}</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

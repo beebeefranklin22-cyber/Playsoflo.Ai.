@@ -154,17 +154,72 @@ Deno.serve(async (req) => {
       const paymentIntent = event.data.object;
       const userEmail = paymentIntent.metadata?.user_email;
       const amount = parseFloat(paymentIntent.metadata?.base_amount || 0);
+      const errorCode = paymentIntent.last_payment_error?.code;
+      const errorMessage = paymentIntent.last_payment_error?.message || 'Payment failed';
+      const declineCode = paymentIntent.last_payment_error?.decline_code;
 
+      // Generate user-friendly message
+      let userMessage = 'Your payment failed. Please try again or use a different payment method.';
+      let suggestedAction = 'Try again or contact support.';
+
+      if (declineCode === 'insufficient_funds' || errorCode === 'insufficient_funds') {
+        userMessage = 'Your card has insufficient funds.';
+        suggestedAction = 'Please use a different card or add funds.';
+      } else if (declineCode === 'card_declined' || errorCode === 'card_declined') {
+        userMessage = 'Your card was declined.';
+        suggestedAction = 'Please try a different payment method or contact your bank.';
+      } else if (errorCode === 'expired_card') {
+        userMessage = 'Your card has expired.';
+        suggestedAction = 'Please update your card or use a different one.';
+      }
+
+      // Log failed payment for admin review
+      try {
+        await base44.asServiceRole.entities.FailedPayment.create({
+          user_email: userEmail,
+          amount,
+          currency: paymentIntent.currency,
+          payment_method_type: paymentIntent.payment_method_types?.[0],
+          error_code: errorCode || declineCode,
+          error_message: errorMessage,
+          user_friendly_message: userMessage,
+          suggested_action: suggestedAction,
+          stripe_payment_intent_id: paymentIntent.id,
+          reference_type: paymentIntent.metadata?.reference_type,
+          reference_id: paymentIntent.metadata?.reference_id,
+          metadata: {
+            decline_code: declineCode,
+            payment_error: paymentIntent.last_payment_error
+          }
+        });
+        console.log('✓ Logged failed payment for admin review');
+      } catch (logError) {
+        console.error('Failed to log payment failure:', logError);
+      }
+
+      // Notify user
       if (userEmail) {
         await base44.asServiceRole.entities.Notification.create({
           recipient_email: userEmail,
           type: "payment_received",
           title: "Payment Failed",
-          message: `Your payment of $${amount.toFixed(2)} failed. Please try again or use a different payment method.`,
+          message: `${userMessage} Amount: $${amount.toFixed(2)}. ${suggestedAction}`,
           read: false,
           action_url: "/Wallet"
         });
         console.log('✓ Created failure notification');
+      }
+
+      // Update payment record if exists
+      const payments = await base44.asServiceRole.entities.StripePayment.filter({
+        stripe_payment_intent_id: paymentIntent.id
+      });
+
+      if (payments.length > 0) {
+        await base44.asServiceRole.entities.StripePayment.update(payments[0].id, {
+          status: 'failed',
+          error_message: userMessage
+        });
       }
     }
 
