@@ -113,9 +113,9 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </div>
 
-          <div className="p-6">{step === 1 ? '(Step 1 Content)' : step === 2 ? '(Step 2 Payment)' : '(Step 3 Success)'}
-            {step === 1 ? (
-              <div className="space-y-6">{console.log('📍 Rendering Step 1')}
+          <div className="p-6">
+            {step === 1 && (
+              <div className="space-y-6">
                 <div>
                   <label className="text-white font-semibold mb-3 block">Amount to Add</label>
                   <Input
@@ -187,8 +187,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
               </div>
             )}
 
-            {step === 2 ? (
-              <div className="space-y-6">{console.log('📍 Rendering Step 2 - PAYMENT FORM')}
+            {step === 2 && (
+              <div className="space-y-6">
                 <div className="text-center py-4">
                   <p className="text-gray-400 mb-2">Adding to wallet</p>
                   <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
@@ -226,8 +226,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
               </div>
             )}
 
-            {step === 3 ? (
-              <div className="text-center py-8">{console.log('📍 Rendering Step 3 - SUCCESS')}
+            {step === 3 && (
+              <div className="text-center py-8">
                 <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Plus className="w-10 h-10 text-green-400" />
                 </div>
@@ -237,11 +237,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                 </p>
                 <Button onClick={handleClose} className="w-full bg-green-600">
                   Done
-                  </Button>
-                  </div>
-                  ) : null}
-                  </div>
-                  </motion.div>
-                  </div>
-                  );
-                  }
+                </Button>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
