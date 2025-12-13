@@ -70,6 +70,7 @@ Deno.serve(async (req) => {
       success: true,
       clientSecret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
+      publishableKey: Deno.env.get("STRIPE_PUBLISHABLE_KEY"),
       amount_breakdown: {
         base_amount: amount,
         platform_fee: platformFee,
