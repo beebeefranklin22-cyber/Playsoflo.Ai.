@@ -125,8 +125,7 @@ Deno.serve(async (req) => {
               method: "stripe",
               status: "completed",
               reference_type: "deposit",
-              memo: `Added $${baseAmount.toFixed(2)} to wallet via Stripe`,
-              created_by: userEmail
+              memo: `Added $${baseAmount.toFixed(2)} to wallet via Stripe`
             });
             console.log('✓ Created payment record');
 
