@@ -59,6 +59,23 @@ export default function CollaboratorDashboard() {
     enabled: !!currentUser,
   });
 
+  const checkStatusMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('checkStripeConnectStatus', {});
+      return response.data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries(['royalty-earnings']);
+      if (data.fully_onboarded) {
+        toast.success('Bank account verified and ready for payouts!');
+      } else if (data.needs_onboarding) {
+        toast.error('Please connect your bank account first');
+      } else {
+        toast.info('Account setup incomplete. Please complete onboarding.');
+      }
+    },
+  });
+
   const connectBankMutation = useMutation({
     mutationFn: async () => {
       const response = await base44.functions.invoke('createStripeConnectAccount', {});
@@ -203,10 +220,20 @@ export default function CollaboratorDashboard() {
                     <p className="text-gray-400 text-sm mb-4">
                       Your bank account is connected and ready for payouts.
                     </p>
-                    <Badge className="bg-green-500/20 text-green-400">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Active
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-green-500/20 text-green-400">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Active
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => checkStatusMutation.mutate()}
+                        disabled={checkStatusMutation.isPending}
+                      >
+                        {checkStatusMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Verify'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
