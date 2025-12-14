@@ -56,7 +56,7 @@ Best regards,
 The Property Team
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await base44.asServiceRole.integrations.Core.SendEmail({
         to: booking.created_by,
         subject,
         body
@@ -86,7 +86,7 @@ Best regards,
 The Property Team
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await base44.asServiceRole.integrations.Core.SendEmail({
         to: booking.provider_email,
         subject: hostSubject,
         body: hostBody
@@ -114,7 +114,7 @@ Best regards,
 The Property Team
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await base44.asServiceRole.integrations.Core.SendEmail({
         to: booking.created_by,
         subject,
         body
@@ -141,7 +141,7 @@ Best regards,
 The Property Team
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await base44.asServiceRole.integrations.Core.SendEmail({
         to: booking.created_by,
         subject,
         body
@@ -163,7 +163,7 @@ Best regards,
 The Property Team
       `;
 
-      await base44.integrations.Core.SendEmail({
+      await base44.asServiceRole.integrations.Core.SendEmail({
         to: booking.provider_email,
         subject: `Booking Cancelled - ${booking.experience_title}`,
         body: hostBody
