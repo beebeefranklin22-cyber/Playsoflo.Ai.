@@ -8,17 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronLeft, Calendar, MapPin, Users, DollarSign,
-  MessageCircle, Star, Home
+  MessageCircle, Star, Home, XCircle
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
+import UserBookingsCalendar from "../components/property/UserBookingsCalendar";
+import BookingCancellationModal from "../components/property/BookingCancellationModal";
 
 export default function MyPropertyBookings() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
+  const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
+  const [cancelProperty, setCancelProperty] = useState(null);
+  const [activeTab, setActiveTab] = useState("upcoming");
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -62,8 +68,14 @@ export default function MyPropertyBookings() {
           </div>
         </div>
 
-        <div className="space-y-8">
-          {/* Upcoming Bookings */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="bg-white/10 border border-white/20 mb-6">
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="past">Past</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar View</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="upcoming" className="space-y-8">
           <div>
             <h2 className="text-2xl font-bold text-white mb-4">
               Upcoming ({upcomingBookings.length})
@@ -122,23 +134,38 @@ export default function MyPropertyBookings() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedBookingForChat(booking)}
-                            className="flex-1"
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
-                            Message Host
+                            Message
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${booking.provider_email}`)}
                           >
-                            <Home className="w-4 h-4" />
+                            <Home className="w-4 h-4 mr-2" />
+                            Host
                           </Button>
+                          {booking.booking_status === "confirmed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                const properties = await base44.entities.Property.filter({ id: booking.experience_id });
+                                setCancelProperty(properties[0]);
+                                setSelectedBookingForCancel(booking);
+                              }}
+                              className="col-span-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                            >
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Cancel Booking
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -147,8 +174,9 @@ export default function MyPropertyBookings() {
               </div>
             )}
           </div>
+          </TabsContent>
 
-          {/* Past Bookings */}
+          <TabsContent value="past" className="space-y-8">
           <div>
             <h2 className="text-2xl font-bold text-white mb-4">
               Past Stays ({pastBookings.length})
@@ -218,7 +246,12 @@ export default function MyPropertyBookings() {
               </div>
             )}
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="calendar" className="space-y-6">
+            <UserBookingsCalendar bookings={bookings} />
+          </TabsContent>
+        </Tabs>
 
         {/* Chat Modal */}
         {selectedBookingForChat && (
@@ -253,6 +286,18 @@ export default function MyPropertyBookings() {
             booking={selectedBookingForReview}
             onClose={() => setSelectedBookingForReview(null)}
             isHost={false}
+          />
+        )}
+
+        {/* Cancellation Modal */}
+        {selectedBookingForCancel && cancelProperty && (
+          <BookingCancellationModal
+            booking={selectedBookingForCancel}
+            property={cancelProperty}
+            onClose={() => {
+              setSelectedBookingForCancel(null);
+              setCancelProperty(null);
+            }}
           />
         )}
       </div>
