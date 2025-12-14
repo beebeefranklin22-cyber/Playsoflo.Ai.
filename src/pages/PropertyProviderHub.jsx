@@ -81,18 +81,7 @@ export default function PropertyProviderHub() {
 
   const createPropertyMutation = useMutation({
     mutationFn: async (data) => {
-      const property = await base44.entities.Property.create(data);
-      
-      // Sync to marketplace
-      try {
-        await base44.functions.invoke('syncPropertyToMarketplace', {
-          property_id: property.id
-        });
-      } catch (error) {
-        console.error('Failed to sync to marketplace:', error);
-      }
-      
-      return property;
+      return await base44.entities.Property.create(data);
     },
     onSuccess: () => {
       qc.invalidateQueries(["my-properties"]);
@@ -159,18 +148,7 @@ export default function PropertyProviderHub() {
 
   const updatePropertyMutation = useMutation({
     mutationFn: async (data) => {
-      const property = await base44.entities.Property.update(data.id, data);
-      
-      // Sync to marketplace
-      try {
-        await base44.functions.invoke('syncPropertyToMarketplace', {
-          property_id: data.id
-        });
-      } catch (error) {
-        console.error('Failed to sync to marketplace:', error);
-      }
-      
-      return property;
+      return await base44.entities.Property.update(data.id, data);
     },
     onSuccess: () => {
       qc.invalidateQueries(["my-properties"]);
