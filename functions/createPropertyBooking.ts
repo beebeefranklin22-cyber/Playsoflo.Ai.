@@ -87,6 +87,17 @@ Deno.serve(async (req) => {
       created_by: user.email
     });
 
+    // Send booking confirmation emails
+    try {
+      await base44.asServiceRole.functions.invoke('sendBookingEmails', {
+        booking_id: booking.id,
+        email_type: 'confirmation'
+      });
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError);
+      // Don't fail the booking if email fails
+    }
+
     // Notify host
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: host_email,
