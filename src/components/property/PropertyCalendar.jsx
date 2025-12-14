@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar as CalendarIcon, Check, Clock, X } from "lucide-react";
+import { Calendar as CalendarIcon, Check, Clock, X, Users, DollarSign } from "lucide-react";
 
 export default function PropertyCalendar({ bookings, properties }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
