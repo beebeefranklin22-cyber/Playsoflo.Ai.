@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";
-import { useNavigate } from "react-router-dom";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
