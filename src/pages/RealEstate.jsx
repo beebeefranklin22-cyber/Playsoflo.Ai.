@@ -12,6 +12,7 @@ import { createPageUrl } from "@/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import PropertyBookingModal from "../components/property/PropertyBookingModal";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -37,6 +38,13 @@ export default function RealEstate() {
   const [selectedListingType, setSelectedListingType] = useState("all");
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [searchLocation, setSearchLocation] = useState("");
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [bookingProperty, setBookingProperty] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  React.useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
@@ -215,10 +223,12 @@ export default function RealEstate() {
                     </div>
                   )}
 
-                  <div className="absolute top-4 right-4 px-3 py-1 bg-yellow-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    Coming Soon
-                  </div>
+                  {property.instant_book && (
+                    <div className="absolute top-4 right-4 px-3 py-1 bg-green-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Instant Book
+                    </div>
+                  )}
 
                   <div className="absolute bottom-4 left-4 right-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -279,14 +289,18 @@ export default function RealEstate() {
                     </div>
 
                     <button 
-                      className={`px-6 py-2 rounded-full font-semibold transition ${
-                        property.listing_type === "short_term" 
-                          ? "bg-yellow-500 text-white cursor-not-allowed" 
-                          : "bg-emerald-500 text-white hover:bg-emerald-600"
-                      }`}
-                      disabled={property.listing_type === "short_term"}
+                      className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (property.listing_type === "short_term") {
+                          setBookingProperty(property);
+                          setShowBookingModal(true);
+                        } else {
+                          toast.info('Contact functionality coming soon');
+                        }
+                      }}
                     >
-                      {property.listing_type === "short_term" ? "Coming Soon" : 
+                      {property.listing_type === "short_term" ? "Book" : 
                        property.listing_type === "for_rent" ? "Apply" : "Contact"}
                     </button>
                   </div>
@@ -456,14 +470,18 @@ export default function RealEstate() {
                   </div>
 
                   <button 
-                    className={`px-8 py-4 rounded-2xl text-xl font-bold transition-transform ${
-                      selectedProperty.listing_type === "short_term"
-                        ? "bg-yellow-500 text-white cursor-not-allowed"
-                        : "bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:scale-105 glow-effect"
-                    }`}
-                    disabled={selectedProperty.listing_type === "short_term"}
+                    className="px-8 py-4 rounded-2xl text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:scale-105 transition-transform glow-effect"
+                    onClick={() => {
+                      if (selectedProperty.listing_type === "short_term") {
+                        setBookingProperty(selectedProperty);
+                        setShowBookingModal(true);
+                        setSelectedProperty(null);
+                      } else {
+                        toast.info('Contact functionality coming soon');
+                      }
+                    }}
                   >
-                    {selectedProperty.listing_type === "short_term" ? "Coming Soon" : 
+                    {selectedProperty.listing_type === "short_term" ? "Book Now" : 
                      selectedProperty.listing_type === "for_rent" ? "Apply Now" : "Contact Agent"}
                   </button>
                 </div>

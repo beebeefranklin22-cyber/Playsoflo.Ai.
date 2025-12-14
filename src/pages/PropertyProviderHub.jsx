@@ -17,6 +17,7 @@ import {
   Clock, TrendingUp, Users, Inbox
 } from "lucide-react";
 import { toast } from "sonner";
+import PropertyCalendar from "../components/property/PropertyCalendar";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -195,6 +196,7 @@ export default function PropertyProviderHub() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/10 border border-white/20">
             <TabsTrigger value="properties">Properties</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
           </TabsList>
 
@@ -288,6 +290,10 @@ export default function PropertyProviderHub() {
             )}
           </TabsContent>
 
+          <TabsContent value="calendar" className="mt-6">
+            <PropertyCalendar bookings={bookings} properties={myProperties} />
+          </TabsContent>
+
           <TabsContent value="bookings" className="space-y-4 mt-6">
             {bookings.length === 0 ? (
               <div className="text-center py-20">
@@ -299,13 +305,17 @@ export default function PropertyProviderHub() {
               bookings.map((booking) => (
                 <Card key={booking.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <h4 className="text-white font-bold text-lg mb-1">
                           {booking.experience_title}
                         </h4>
                         <p className="text-gray-400 text-sm mb-2">
-                          {new Date(booking.booking_date).toLocaleDateString()} • {booking.number_of_guests} guest{booking.number_of_guests > 1 ? 's' : ''}
+                          Check-in: {new Date(booking.booking_date).toLocaleDateString()}
+                          {booking.checkout_date && ` • Check-out: ${new Date(booking.checkout_date).toLocaleDateString()}`}
+                        </p>
+                        <p className="text-gray-400 text-sm mb-2">
+                          {booking.number_of_guests} guest{booking.number_of_guests > 1 ? 's' : ''}
                         </p>
                         <Badge className={
                           booking.booking_status === "confirmed"
@@ -324,6 +334,44 @@ export default function PropertyProviderHub() {
                         <p className="text-gray-400 text-sm">{booking.payment_status}</p>
                       </div>
                     </div>
+
+                    {booking.booking_status === "pending" && (
+                      <div className="flex gap-2 pt-4 border-t border-white/10">
+                        <Button
+                          onClick={async () => {
+                            await base44.entities.Booking.update(booking.id, {
+                              booking_status: "confirmed"
+                            });
+                            qc.invalidateQueries(["property-bookings"]);
+                            toast.success("Booking confirmed!");
+                          }}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <Check className="w-4 h-4 mr-2" />
+                          Approve
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            await base44.entities.Booking.update(booking.id, {
+                              booking_status: "cancelled"
+                            });
+                            qc.invalidateQueries(["property-bookings"]);
+                            toast.success("Booking declined");
+                          }}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+
+                    {booking.special_requests && (
+                      <div className="mt-4 bg-white/5 rounded-lg p-3">
+                        <p className="text-gray-400 text-sm mb-1">Special Requests:</p>
+                        <p className="text-white text-sm">{booking.special_requests}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
