@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";
 import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
+import PropertyEditModal from "../components/property/PropertyEditModal";
+import HostDashboardOverview from "../components/property/HostDashboardOverview";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ export default function PropertyProviderHub() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
+  const [editingProperty, setEditingProperty] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -199,11 +202,16 @@ export default function PropertyProviderHub() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/10 border border-white/20">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
             <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6 mt-6">
+            <HostDashboardOverview bookings={bookings} properties={myProperties} />
+          </TabsContent>
 
           <TabsContent value="properties" className="space-y-6 mt-6">
             <div className="grid md:grid-cols-3 gap-6">
@@ -275,14 +283,24 @@ export default function PropertyProviderHub() {
                       </div>
                     )}
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${currentUser.email}`)}
-                      className="w-full mt-2"
-                    >
-                      View Public Profile
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setEditingProperty(property)}
+                        className="flex-1"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${currentUser.email}`)}
+                        className="flex-1"
+                      >
+                        View
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -482,6 +500,14 @@ export default function PropertyProviderHub() {
             booking={selectedBookingForReview}
             onClose={() => setSelectedBookingForReview(null)}
             isHost={true}
+          />
+        )}
+
+        {/* Edit Property Modal */}
+        {editingProperty && (
+          <PropertyEditModal
+            property={editingProperty}
+            onClose={() => setEditingProperty(null)}
           />
         )}
 
