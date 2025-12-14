@@ -69,6 +69,7 @@ import TestPayment from './pages/TestPayment';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
 import PropertyProviderHub from './pages/PropertyProviderHub';
+import PropertyHostProfile from './pages/PropertyHostProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -144,6 +145,7 @@ export const PAGES = {
     "CollaboratorDashboard": CollaboratorDashboard,
     "SyncLicensingAdmin": SyncLicensingAdmin,
     "PropertyProviderHub": PropertyProviderHub,
+    "PropertyHostProfile": PropertyHostProfile,
 }
 
 export const pagesConfig = {

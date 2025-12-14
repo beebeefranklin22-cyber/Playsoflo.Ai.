@@ -269,6 +269,15 @@ export default function PropertyProviderHub() {
                         <span>Verified</span>
                       </div>
                     )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${currentUser.email}`)}
+                      className="w-full mt-2"
+                    >
+                      View Public Profile
+                    </Button>
                   </CardContent>
                 </Card>
               ))}

@@ -359,7 +359,7 @@ export default function RealEstate() {
                   {selectedProperty.title}
                 </h2>
 
-                <div className="flex items-center gap-4 text-gray-300 mb-6">
+                <div className="flex items-center gap-4 text-gray-300 mb-6 flex-wrap">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5" />
                     {selectedProperty.location}
@@ -370,6 +370,15 @@ export default function RealEstate() {
                       <span className="font-semibold">{selectedProperty.rating}</span>
                       <span>({selectedProperty.reviews_count} reviews)</span>
                     </div>
+                  )}
+                  {selectedProperty.host_name && (
+                    <button
+                      onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${selectedProperty.created_by}`)}
+                      className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 rounded-full hover:bg-emerald-500/30 transition"
+                    >
+                      <Home className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-400 font-semibold">Hosted by {selectedProperty.host_name}</span>
+                    </button>
                   )}
                 </div>
 
