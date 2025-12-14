@@ -20,6 +20,7 @@ import FanPoolManager from "../components/music/FanPoolManager";
 import DistributionManager from "../components/music/DistributionManager";
 import AIMasteringStudio from "../components/music/AIMasteringStudio";
 import RoyaltySplitManager from "../components/music/RoyaltySplitManager";
+import SyncLicensingManager from "../components/music/SyncLicensingManager";
 
 export default function MusicStudio() {
   const navigate = useNavigate();
@@ -390,12 +391,13 @@ Make it legally sound, fair, and industry-standard.`;
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7 bg-white/10 border border-white/20">
+          <TabsList className="grid w-full grid-cols-8 bg-white/10 border border-white/20">
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="tracks">Tracks</TabsTrigger>
             <TabsTrigger value="pools">Fan Pools</TabsTrigger>
             <TabsTrigger value="mastering">Mastering</TabsTrigger>
             <TabsTrigger value="distribution">Distribution</TabsTrigger>
+            <TabsTrigger value="sync">Sync</TabsTrigger>
             <TabsTrigger value="contracts">Contracts</TabsTrigger>
             <TabsTrigger value="deals">Deal Apps</TabsTrigger>
           </TabsList>
@@ -410,6 +412,10 @@ Make it legally sound, fair, and industry-standard.`;
 
           <TabsContent value="distribution" className="mt-6">
             <DistributionManager tracks={myTracks} currentUser={currentUser} />
+          </TabsContent>
+
+          <TabsContent value="sync" className="mt-6">
+            <SyncLicensingManager tracks={myTracks} currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="tracks" className="mt-6">
