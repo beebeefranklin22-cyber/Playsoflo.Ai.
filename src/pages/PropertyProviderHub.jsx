@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";
+import PropertyMessaging from "../components/property/PropertyMessaging";
+import PropertyReviewModal from "../components/property/PropertyReviewModal";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -25,6 +27,8 @@ export default function PropertyProviderHub() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("properties");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -198,6 +202,7 @@ export default function PropertyProviderHub() {
             <TabsTrigger value="properties">Properties</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="messages">Messages</TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties" className="space-y-6 mt-6">
@@ -381,12 +386,104 @@ export default function PropertyProviderHub() {
                         <p className="text-white text-sm">{booking.special_requests}</p>
                       </div>
                     )}
+
+                    <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedBookingForChat(booking)}
+                        className="flex-1"
+                      >
+                        Message Guest
+                      </Button>
+                      {booking.booking_status === "completed" && !booking.rating && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedBookingForReview(booking)}
+                          className="flex-1"
+                        >
+                          Leave Review
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))
             )}
           </TabsContent>
+
+          <TabsContent value="messages" className="space-y-4 mt-6">
+            {bookings.length === 0 ? (
+              <div className="text-center py-20">
+                <Inbox className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No conversations yet</h3>
+                <p className="text-gray-400">Messages with guests will appear here</p>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-6">
+                {bookings
+                  .filter(b => b.booking_status !== "cancelled")
+                  .map((booking) => (
+                    <Card key={booking.id} className="bg-white/5 border-white/10 cursor-pointer hover:bg-white/10 transition"
+                      onClick={() => setSelectedBookingForChat(booking)}>
+                      <CardContent className="p-4">
+                        <h4 className="text-white font-bold mb-1">{booking.experience_title}</h4>
+                        <p className="text-gray-400 text-sm mb-2">
+                          {new Date(booking.booking_date).toLocaleDateString()}
+                        </p>
+                        <Badge className={
+                          booking.booking_status === "confirmed"
+                            ? "bg-green-500/20 text-green-400"
+                            : booking.booking_status === "pending"
+                            ? "bg-yellow-500/20 text-yellow-400"
+                            : "bg-blue-500/20 text-blue-400"
+                        }>
+                          {booking.booking_status}
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
+
+        {/* Chat Modal */}
+        {selectedBookingForChat && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90"
+            onClick={() => setSelectedBookingForChat(null)}
+          >
+            <div
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                variant="ghost"
+                onClick={() => setSelectedBookingForChat(null)}
+                className="mb-4"
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <PropertyMessaging
+                booking={selectedBookingForChat}
+                currentUser={currentUser}
+                isHost={true}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Review Modal */}
+        {selectedBookingForReview && (
+          <PropertyReviewModal
+            booking={selectedBookingForReview}
+            onClose={() => setSelectedBookingForReview(null)}
+            isHost={true}
+          />
+        )}
 
         {/* Add Property Modal */}
         {showAddModal && (

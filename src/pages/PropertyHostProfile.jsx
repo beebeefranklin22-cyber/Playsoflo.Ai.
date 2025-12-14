@@ -53,10 +53,23 @@ export default function PropertyHostProfile() {
     enabled: !!hostEmail,
   });
 
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["host-reviews", hostEmail],
+    queryFn: async () => {
+      if (!hostEmail) return [];
+      return await base44.entities.UserReview.filter({ 
+        reviewed_email: hostEmail,
+        review_type: "host"
+      });
+    },
+    enabled: !!hostEmail,
+  });
+
   const completedBookings = bookings.filter(b => b.booking_status === "completed");
-  const ratedBookings = completedBookings.filter(b => b.rating && b.rating > 0);
-  const avgRating = ratedBookings.length > 0
-    ? ratedBookings.reduce((sum, b) => sum + b.rating, 0) / ratedBookings.length
+  
+  // Calculate average from reviews
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
 
   const getPrice = (property) => {
@@ -282,23 +295,35 @@ export default function PropertyHostProfile() {
         </div>
 
         {/* Reviews Section */}
-        {ratedBookings.length > 0 && (
+        {reviews.length > 0 && (
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Guest Reviews</h2>
+              <h2 className="text-xl font-bold text-white mb-4">
+                Guest Reviews ({reviews.length})
+              </h2>
               <div className="space-y-4">
-                {ratedBookings.slice(0, 10).map((booking) => (
-                  <div key={booking.id} className="bg-white/5 rounded-lg p-4">
+                {reviews.slice(0, 10).map((review) => (
+                  <div key={review.id} className="bg-white/5 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-white font-bold">{booking.rating}/5</span>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${
+                              star <= review.rating
+                                ? "text-yellow-400 fill-yellow-400"
+                                : "text-gray-600"
+                            }`}
+                          />
+                        ))}
                       </div>
                       <span className="text-gray-400 text-sm">
-                        {new Date(booking.booking_date).toLocaleDateString()}
+                        {new Date(review.created_date).toLocaleDateString()}
                       </span>
                     </div>
-                    <p className="text-gray-300 text-sm">{booking.experience_title}</p>
+                    {review.comment && (
+                      <p className="text-gray-300 text-sm mt-2">{review.comment}</p>
+                    )}
                   </div>
                 ))}
               </div>

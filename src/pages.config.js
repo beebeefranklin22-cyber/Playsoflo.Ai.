@@ -70,6 +70,7 @@ import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
 import PropertyProviderHub from './pages/PropertyProviderHub';
 import PropertyHostProfile from './pages/PropertyHostProfile';
+import MyPropertyBookings from './pages/MyPropertyBookings';
 import __Layout from './Layout.jsx';
 
 
@@ -146,6 +147,7 @@ export const PAGES = {
     "SyncLicensingAdmin": SyncLicensingAdmin,
     "PropertyProviderHub": PropertyProviderHub,
     "PropertyHostProfile": PropertyHostProfile,
+    "MyPropertyBookings": MyPropertyBookings,
 }
 
 export const pagesConfig = {
