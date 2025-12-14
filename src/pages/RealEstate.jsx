@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { 
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
-  Search, Loader2
+  Search, Loader2, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -215,12 +215,10 @@ export default function RealEstate() {
                     </div>
                   )}
 
-                  {property.instant_book && (
-                    <div className="absolute top-4 right-4 px-3 py-1 bg-green-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Instant Book
-                    </div>
-                  )}
+                  <div className="absolute top-4 right-4 px-3 py-1 bg-yellow-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Coming Soon
+                  </div>
 
                   <div className="absolute bottom-4 left-4 right-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -280,8 +278,15 @@ export default function RealEstate() {
                       )}
                     </div>
 
-                    <button className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition">
-                      {property.listing_type === "short_term" ? "Book" : 
+                    <button 
+                      className={`px-6 py-2 rounded-full font-semibold transition ${
+                        property.listing_type === "short_term" 
+                          ? "bg-yellow-500 text-white cursor-not-allowed" 
+                          : "bg-emerald-500 text-white hover:bg-emerald-600"
+                      }`}
+                      disabled={property.listing_type === "short_term"}
+                    >
+                      {property.listing_type === "short_term" ? "Coming Soon" : 
                        property.listing_type === "for_rent" ? "Apply" : "Contact"}
                     </button>
                   </div>
@@ -450,8 +455,15 @@ export default function RealEstate() {
                     )}
                   </div>
 
-                  <button className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl text-white text-xl font-bold hover:scale-105 transition-transform glow-effect">
-                    {selectedProperty.listing_type === "short_term" ? "Book Now" : 
+                  <button 
+                    className={`px-8 py-4 rounded-2xl text-xl font-bold transition-transform ${
+                      selectedProperty.listing_type === "short_term"
+                        ? "bg-yellow-500 text-white cursor-not-allowed"
+                        : "bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:scale-105 glow-effect"
+                    }`}
+                    disabled={selectedProperty.listing_type === "short_term"}
+                  >
+                    {selectedProperty.listing_type === "short_term" ? "Coming Soon" : 
                      selectedProperty.listing_type === "for_rent" ? "Apply Now" : "Contact Agent"}
                   </button>
                 </div>
