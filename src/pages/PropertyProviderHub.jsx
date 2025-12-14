@@ -20,18 +20,18 @@ import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";
 import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
-import PropertyEditModal from "../components/property/PropertyEditModal";
-import HostDashboardOverview from "../components/property/HostDashboardOverview";
+import QuickEditPropertyModal from "../components/property/QuickEditPropertyModal";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
-  const [activeTab, setActiveTab] = useState("properties");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -132,7 +132,31 @@ export default function PropertyProviderHub() {
 
   const upcomingBookings = bookings.filter(
     b => new Date(b.booking_date) >= new Date() && b.booking_status === "confirmed"
-  ).length;
+  );
+
+  const todaysCheckIns = bookings.filter(b => {
+    const today = new Date().toDateString();
+    return new Date(b.booking_date).toDateString() === today && b.booking_status === "confirmed";
+  });
+
+  const todaysCheckOuts = bookings.filter(b => {
+    const today = new Date().toDateString();
+    return b.checkout_date && new Date(b.checkout_date).toDateString() === today && b.booking_status === "confirmed";
+  });
+
+  const pendingBookings = bookings.filter(b => b.booking_status === "pending").length;
+
+  const updatePropertyMutation = useMutation({
+    mutationFn: async (data) => {
+      return await base44.entities.Property.update(data.id, data);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries(["my-properties"]);
+      setShowEditModal(false);
+      setEditingProperty(null);
+      toast.success("Property updated successfully!");
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 p-6 pb-20">
@@ -165,7 +189,7 @@ export default function PropertyProviderHub() {
                 <Building className="w-8 h-8 text-emerald-400" />
               </div>
               <div className="text-3xl font-bold text-white mb-1">{myProperties.length}</div>
-              <div className="text-emerald-300 text-sm">Total Properties</div>
+              <div className="text-emerald-300 text-sm">Active Properties</div>
             </CardContent>
           </Card>
 
@@ -174,7 +198,7 @@ export default function PropertyProviderHub() {
               <div className="flex items-center justify-between mb-2">
                 <Calendar className="w-8 h-8 text-blue-400" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{upcomingBookings}</div>
+              <div className="text-3xl font-bold text-white mb-1">{upcomingBookings.length}</div>
               <div className="text-blue-300 text-sm">Upcoming Bookings</div>
             </CardContent>
           </Card>
@@ -185,17 +209,17 @@ export default function PropertyProviderHub() {
                 <DollarSign className="w-8 h-8 text-green-400" />
               </div>
               <div className="text-3xl font-bold text-white mb-1">${totalRevenue.toFixed(0)}</div>
-              <div className="text-green-300 text-sm">Total Revenue</div>
+              <div className="text-green-300 text-sm">Total Earnings</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border-purple-500/30">
+          <Card className="bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 border-yellow-500/30">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-2">
-                <Inbox className="w-8 h-8 text-purple-400" />
+                <Clock className="w-8 h-8 text-yellow-400" />
               </div>
-              <div className="text-3xl font-bold text-white mb-1">{bookings.length}</div>
-              <div className="text-purple-300 text-sm">Total Bookings</div>
+              <div className="text-3xl font-bold text-white mb-1">{pendingBookings}</div>
+              <div className="text-yellow-300 text-sm">Pending Requests</div>
             </CardContent>
           </Card>
         </div>
@@ -210,7 +234,118 @@ export default function PropertyProviderHub() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
-            <HostDashboardOverview bookings={bookings} properties={myProperties} />
+            {/* Today's Activity */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="bg-white/5 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-400" />
+                    Today's Check-ins ({todaysCheckIns.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {todaysCheckIns.length === 0 ? (
+                    <p className="text-gray-400 text-center py-4">No check-ins today</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {todaysCheckIns.map(booking => (
+                        <div key={booking.id} className="bg-white/5 rounded-lg p-3">
+                          <h4 className="text-white font-semibold">{booking.experience_title}</h4>
+                          <p className="text-gray-400 text-sm">{booking.number_of_guests} guest(s)</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/5 border-white/10">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-orange-400" />
+                    Today's Check-outs ({todaysCheckOuts.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {todaysCheckOuts.length === 0 ? (
+                    <p className="text-gray-400 text-center py-4">No check-outs today</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {todaysCheckOuts.map(booking => (
+                        <div key={booking.id} className="bg-white/5 rounded-lg p-3">
+                          <h4 className="text-white font-semibold">{booking.experience_title}</h4>
+                          <p className="text-gray-400 text-sm">{booking.number_of_guests} guest(s)</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Upcoming Bookings */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white">Next 7 Days</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {upcomingBookings.length === 0 ? (
+                  <p className="text-gray-400 text-center py-8">No upcoming bookings</p>
+                ) : (
+                  <div className="space-y-3">
+                    {upcomingBookings.slice(0, 5).map(booking => (
+                      <div key={booking.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between">
+                        <div>
+                          <h4 className="text-white font-bold">{booking.experience_title}</h4>
+                          <p className="text-gray-400 text-sm">
+                            {new Date(booking.booking_date).toLocaleDateString()} - {booking.checkout_date ? new Date(booking.checkout_date).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold">${booking.total_price_usd}</p>
+                          <p className="text-gray-400 text-sm">{booking.number_of_guests} guests</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Revenue Overview */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-green-400" />
+                  Revenue Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-white/5 rounded-lg p-4 text-center">
+                    <p className="text-gray-400 text-sm mb-1">This Month</p>
+                    <p className="text-2xl font-bold text-white">
+                      ${bookings.filter(b => 
+                        b.booking_status === "completed" && 
+                        new Date(b.created_date).getMonth() === new Date().getMonth()
+                      ).reduce((sum, b) => sum + (b.total_price_usd || 0), 0).toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 text-center">
+                    <p className="text-gray-400 text-sm mb-1">All Time</p>
+                    <p className="text-2xl font-bold text-white">${totalRevenue.toFixed(0)}</p>
+                  </div>
+                  <div className="bg-white/5 rounded-lg p-4 text-center">
+                    <p className="text-gray-400 text-sm mb-1">Avg per Booking</p>
+                    <p className="text-2xl font-bold text-white">
+                      ${bookings.filter(b => b.booking_status === "completed").length > 0 
+                        ? (totalRevenue / bookings.filter(b => b.booking_status === "completed").length).toFixed(0)
+                        : 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="properties" className="space-y-6 mt-6">
@@ -283,12 +418,14 @@ export default function PropertyProviderHub() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2 mt-2">
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setEditingProperty(property)}
-                        className="flex-1"
+                        onClick={() => {
+                          setEditingProperty(property);
+                          setShowEditModal(true);
+                        }}
                       >
                         Edit
                       </Button>
@@ -296,7 +433,6 @@ export default function PropertyProviderHub() {
                         size="sm"
                         variant="outline"
                         onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${currentUser.email}`)}
-                        className="flex-1"
                       >
                         View
                       </Button>
@@ -504,10 +640,14 @@ export default function PropertyProviderHub() {
         )}
 
         {/* Edit Property Modal */}
-        {editingProperty && (
-          <PropertyEditModal
+        {showEditModal && editingProperty && (
+          <QuickEditPropertyModal
             property={editingProperty}
-            onClose={() => setEditingProperty(null)}
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingProperty(null);
+            }}
+            onSave={(data) => updatePropertyMutation.mutate(data)}
           />
         )}
 
