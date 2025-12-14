@@ -3,33 +3,29 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    
     const { booking_id, email_type } = await req.json();
 
-    // Fetch booking details
-    const bookings = await base44.entities.Booking.filter({ id: booking_id });
-    if (bookings.length === 0) {
+    if (!booking_id || !email_type) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Use service role to fetch all data
+    const allBookings = await base44.asServiceRole.entities.Booking.list();
+    const booking = allBookings.find(b => b.id === booking_id);
+    
+    if (!booking) {
       return Response.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    const booking = bookings[0];
-
     // Fetch property details
-    const properties = await base44.entities.Property.filter({ id: booking.experience_id });
-    const property = properties[0];
+    const allProperties = await base44.asServiceRole.entities.Property.list();
+    const property = allProperties.find(p => p.id === booking.experience_id);
 
     // Fetch host details
-    const hosts = await base44.entities.User.filter({ email: booking.provider_email });
-    const host = hosts[0];
-
-    // Fetch guest details
-    const guests = await base44.entities.User.filter({ email: booking.created_by });
-    const guest = guests[0];
+    const allUsers = await base44.asServiceRole.entities.User.list();
+    const host = allUsers.find(u => u.email === booking.provider_email);
+    const guest = allUsers.find(u => u.email === booking.created_by);
 
     let subject = '';
     let body = '';

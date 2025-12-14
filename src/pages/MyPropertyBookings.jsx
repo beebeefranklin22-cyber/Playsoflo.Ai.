@@ -156,9 +156,18 @@ export default function MyPropertyBookings() {
                               size="sm"
                               variant="outline"
                               onClick={async () => {
-                                const properties = await base44.entities.Property.filter({ id: booking.experience_id });
-                                setCancelProperty(properties[0]);
-                                setSelectedBookingForCancel(booking);
+                                try {
+                                  const allProperties = await base44.entities.Property.list();
+                                  const prop = allProperties.find(p => p.id === booking.experience_id);
+                                  if (prop) {
+                                    setCancelProperty(prop);
+                                    setSelectedBookingForCancel(booking);
+                                  } else {
+                                    toast.error("Property not found");
+                                  }
+                                } catch (error) {
+                                  toast.error("Failed to load property details");
+                                }
                               }}
                               className="col-span-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
                             >

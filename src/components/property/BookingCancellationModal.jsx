@@ -58,11 +58,16 @@ export default function BookingCancellationModal({ booking, property, onClose })
         cancelled_at: new Date().toISOString()
       });
 
-      // Send cancellation emails
-      await base44.functions.invoke('sendBookingEmails', {
-        booking_id: booking.id,
-        email_type: 'cancellation'
-      });
+      // Send cancellation emails (async, don't block)
+      try {
+        await base44.functions.invoke('sendBookingEmails', {
+          booking_id: booking.id,
+          email_type: 'cancellation'
+        });
+      } catch (error) {
+        console.error('Email notification failed:', error);
+        // Don't block the cancellation if email fails
+      }
 
       return { success: true };
     },
