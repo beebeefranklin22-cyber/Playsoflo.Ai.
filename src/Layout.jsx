@@ -80,6 +80,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: TrendingUp, label: "Menu", path: "FoodDelivery" },
     { icon: DollarSign, label: "Earnings", path: "RestaurantOwnerHub" },
     { icon: MessageCircle, label: "Messages", path: "Messages" },
+    { icon: Home, label: "My Bookings", path: "MyPropertyBookings" },
   ];
 
   const breadcrumbMap = {
