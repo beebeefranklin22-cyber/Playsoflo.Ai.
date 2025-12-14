@@ -75,6 +75,7 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const sidebarSections = [
+    { icon: Store, label: "Marketplace", path: "Marketplace" },
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
     { icon: Package, label: "Orders", path: "FoodOrderTracking" },
     { icon: TrendingUp, label: "Menu", path: "FoodDelivery" },
