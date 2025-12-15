@@ -53,18 +53,18 @@ export default function MyPropertyBookings() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 p-6 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 p-4 sm:p-6 pb-20 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 sm:gap-4 mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition"
+            className="p-2 sm:p-3 bg-white/10 rounded-full hover:bg-white/20 transition flex-shrink-0"
           >
-            <ChevronLeft className="w-6 h-6 text-white" />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-white">My Bookings</h1>
-            <p className="text-gray-300">View and manage your property bookings</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">My Bookings</h1>
+            <p className="text-gray-300 text-sm sm:text-base">View and manage your property bookings</p>
           </div>
         </div>
 
@@ -88,7 +88,7 @@ export default function MyPropertyBookings() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 {upcomingBookings.map((booking) => (
                   <motion.div
                     key={booking.id}
@@ -96,8 +96,8 @@ export default function MyPropertyBookings() {
                     animate={{ opacity: 1, y: 0 }}
                   >
                     <Card className="bg-white/5 border-white/10">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-3">
                           <div>
                             <h3 className="text-white font-bold text-lg mb-2">
                               {booking.experience_title}
@@ -134,11 +134,12 @@ export default function MyPropertyBookings() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedBookingForChat(booking)}
+                            className="w-full"
                           >
                             <MessageCircle className="w-4 h-4 mr-2" />
                             Message
@@ -147,6 +148,7 @@ export default function MyPropertyBookings() {
                             size="sm"
                             variant="outline"
                             onClick={() => navigate(createPageUrl("PropertyHostProfile") + `?host=${booking.provider_email}`)}
+                            className="w-full"
                           >
                             <Home className="w-4 h-4 mr-2" />
                             Host
@@ -169,7 +171,7 @@ export default function MyPropertyBookings() {
                                   toast.error("Failed to load property details");
                                 }
                               }}
-                              className="col-span-2 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                              className="col-span-1 sm:col-span-2 border-red-500/30 text-red-400 hover:bg-red-500/10 w-full"
                             >
                               <XCircle className="w-4 h-4 mr-2" />
                               Cancel Booking

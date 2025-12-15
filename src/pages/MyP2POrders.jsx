@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowUpRight, Clock, CheckCircle, XCircle, AlertCircle, Star } from "lucide-react";
+import { ArrowUpRight, Clock, CheckCircle, XCircle, AlertCircle, Star, ChevronLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import P2POrderDetails from "../components/wallet/P2POrderDetails";
 import P2PRatingModal from "../components/wallet/P2PRatingModal";
 
 export default function MyP2POrders() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -87,20 +89,30 @@ export default function MyP2POrders() {
   }
 
   return (
-    <div className="min-h-screen pb-24 px-4 sm:px-6">
+    <div className="min-h-screen pb-24 px-4 sm:px-6 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">My P2P Orders</h1>
-          <p className="text-gray-400">Track and manage your peer-to-peer trades</p>
+          <div className="flex items-center gap-4 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 sm:p-3 bg-white/10 rounded-full hover:bg-white/20 transition flex-shrink-0"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">My P2P Orders</h1>
+              <p className="text-gray-400 text-sm sm:text-base">Track and manage your peer-to-peer trades</p>
+            </div>
+          </div>
         </div>
 
         {/* Status Filters */}
-        <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar">
+        <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {['all', 'active', 'matched', 'in_escrow', 'completed', 'cancelled'].map(status => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm transition whitespace-nowrap flex-shrink-0 ${
                 filterStatus === status
                   ? 'bg-purple-600 text-white'
                   : 'bg-white/5 text-gray-300 hover:bg-white/10'
@@ -135,27 +147,27 @@ export default function MyP2POrders() {
                   animate={{ opacity: 1, y: 0 }}
                 >
                   <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition cursor-pointer">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row items-start justify-between mb-4 gap-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${status.color} rounded-lg flex items-center justify-center`}>
+                          <div className={`w-10 h-10 ${status.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
                             <StatusIcon className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-white font-bold text-lg">
+                            <h3 className="text-white font-bold text-base sm:text-lg">
                               {order.order_type === 'sell' ? 'Sell' : 'Buy'} {order.crypto_amount} {order.crypto_currency}
                             </h3>
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-gray-400 text-xs sm:text-sm">
                               {isSeller ? 'You are selling' : 'You are buying'}
                             </p>
                           </div>
                         </div>
-                        <Badge className={`${status.color} text-white`}>
+                        <Badge className={`${status.color} text-white flex-shrink-0`}>
                           {status.text}
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
                         <div>
                           <p className="text-gray-400 text-xs mb-1">Amount</p>
                           <p className="text-white font-semibold">{order.crypto_amount} {order.crypto_currency}</p>
@@ -176,10 +188,10 @@ export default function MyP2POrders() {
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           onClick={() => setSelectedOrder(order)}
-                          className="bg-purple-600 hover:bg-purple-700"
+                          className="bg-purple-600 hover:bg-purple-700 flex-1 sm:flex-none"
                           size="sm"
                         >
                           View Details
@@ -189,21 +201,21 @@ export default function MyP2POrders() {
                           <Button
                             onClick={() => completeOrderMutation.mutate(order.id)}
                             disabled={completeOrderMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
                             size="sm"
                           >
-                            Complete Order
+                            Complete
                           </Button>
                         )}
 
                         {order.status === 'completed' && !order.rated && (
                           <Button
                             onClick={() => setRatingOrder(order)}
-                            className="bg-yellow-600 hover:bg-yellow-700"
+                            className="bg-yellow-600 hover:bg-yellow-700 flex-1 sm:flex-none"
                             size="sm"
                           >
                             <Star className="w-4 h-4 mr-1" />
-                            Rate Trade
+                            Rate
                           </Button>
                         )}
 
@@ -212,7 +224,7 @@ export default function MyP2POrders() {
                             onClick={() => cancelOrderMutation.mutate(order.id)}
                             disabled={cancelOrderMutation.isPending}
                             variant="outline"
-                            className="border-red-500/30 text-red-400 hover:bg-red-500/20"
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/20 flex-1 sm:flex-none"
                             size="sm"
                           >
                             Cancel

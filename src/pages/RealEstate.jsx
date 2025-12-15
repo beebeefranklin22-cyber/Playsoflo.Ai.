@@ -99,8 +99,8 @@ export default function RealEstate() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 pb-20">
-      <div className="relative h-64 flex items-end">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 pb-20 overflow-x-hidden">
+      <div className="relative h-48 sm:h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/50 to-transparent" />
         <div className="absolute top-6 left-6">
           <button
@@ -110,29 +110,29 @@ export default function RealEstate() {
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
         </div>
-        <div className="relative z-10 w-full px-6 pb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+        <div className="relative z-10 w-full px-4 sm:px-6 pb-6 sm:pb-8">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2">
             Real Estate & Stays
           </h1>
-          <p className="text-gray-300 text-lg mb-4">
+          <p className="text-gray-300 text-sm sm:text-lg mb-4">
             Millions of properties nationwide - Find your perfect space
           </p>
           
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex gap-3 max-w-2xl">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 value={searchLocation}
                 onChange={(e) => setSearchLocation(e.target.value)}
-                placeholder="Search by city, state, or zip code (e.g., Miami FL, 33101)"
-                className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
+                placeholder="Search by city, state, or zip code"
+                className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400 h-10 sm:h-12 text-sm sm:text-base"
               />
             </div>
             <Button 
               type="submit"
               disabled={fetchPropertiesMutation.isPending}
-              className="bg-emerald-500 hover:bg-emerald-600 h-12 px-6"
+              className="bg-emerald-500 hover:bg-emerald-600 h-10 sm:h-12 px-4 sm:px-6 w-full sm:w-auto"
             >
               {fetchPropertiesMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -148,13 +148,13 @@ export default function RealEstate() {
       </div>
 
       {/* Listing Type Filter */}
-      <div className="px-6 mb-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+      <div className="px-4 sm:px-6 mb-4">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {listingTypes.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedListingType(type.id)}
-              className={`flex-shrink-0 px-6 py-3 rounded-full font-medium transition ${
+              className={`flex-shrink-0 px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-xs sm:text-base transition ${
                 selectedListingType === type.id
                   ? "bg-emerald-500 text-white"
                   : "bg-white/10 text-gray-300 hover:bg-white/20"
@@ -167,28 +167,29 @@ export default function RealEstate() {
       </div>
 
       {/* Category Filter */}
-      <div className="px-6 mb-8">
-        <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
+      <div className="px-4 sm:px-6 mb-8">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-4 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
+              className={`flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-full font-medium text-xs sm:text-base transition ${
                 selectedCategory === cat.id
                   ? "bg-emerald-500 text-white"
                   : "bg-white/10 text-gray-300 hover:bg-white/20"
               }`}
             >
-              <cat.icon className="w-4 h-4" />
-              {cat.label}
+              <cat.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{cat.label}</span>
+              <span className="sm:hidden">{cat.label.split(' ')[0]}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="px-6">
+      <div className="px-4 sm:px-6">
         <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-300">
+          <p className="text-gray-300 text-sm sm:text-base">
             {filteredProperties.length} propert{filteredProperties.length !== 1 ? 'ies' : 'y'} available
             {properties.length > 0 && properties[0]?.data_source && (
               <span className="ml-2 text-emerald-400">• Powered by {properties[0].data_source}</span>
@@ -500,9 +501,21 @@ export default function RealEstate() {
         )}
       </AnimatePresence>
 
+      {showBookingModal && bookingProperty && currentUser && (
+        <PropertyBookingModal
+          property={bookingProperty}
+          onClose={() => {
+            setShowBookingModal(false);
+            setBookingProperty(null);
+          }}
+        />
+      )}
+
       <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-width: 640px) {
+          body { overflow-x: hidden; }
         }
       `}</style>
     </div>
