@@ -168,13 +168,13 @@ export default function Wallet() {
   });
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-24 overflow-x-hidden">
       {/* Header */}
-      <div className="sticky top-16 z-30 bg-gradient-to-b from-gray-950 via-gray-950/95 to-transparent px-6 pt-6 pb-4 backdrop-blur-xl">
-        <div className="flex items-center justify-between mb-6">
+      <div className="sticky top-16 z-30 bg-gray-950/98 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 pt-4 pb-3">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Wallet</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage your digital assets</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Wallet</h1>
+            <p className="text-gray-400 text-xs sm:text-sm mt-1">Manage your digital assets</p>
           </div>
           <button
             onClick={() => setShowBalance(!showBalance)}
@@ -188,14 +188,14 @@ export default function Wallet() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative glass-effect rounded-2xl p-6 border border-white/10"
+          className="relative glass-effect rounded-xl p-4 sm:p-6 border border-white/10"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-purple-500/10 rounded-full blur-2xl" />
           
           <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm mb-1">Total Balance</p>
-              <h2 className="text-4xl font-bold text-white mb-2">
+              <p className="text-gray-400 text-xs sm:text-sm mb-1">Total Balance</p>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">
                 {showBalance ? `$${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)}` : "••••••"}
               </h2>
               <div className="flex items-center gap-2">
@@ -220,48 +220,48 @@ export default function Wallet() {
         </motion.div>
 
         {/* Quick Actions - Streamlined */}
-        <div className="mt-4 flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+        <div className="mt-3 flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-1 px-1">
           <button 
             onClick={() => setActiveModal('add')}
-            className="flex items-center gap-3 px-5 py-3 bg-green-500/10 border border-green-500/30 rounded-xl hover:bg-green-500/20 transition-all flex-shrink-0"
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-green-500/10 border border-green-500/30 rounded-xl hover:bg-green-500/20 transition-all flex-shrink-0"
           >
-            <Plus className="w-5 h-5 text-green-400" />
+            <Plus className="w-4 sm:w-5 h-4 sm:h-5 text-green-400" />
             <div className="text-left">
-              <p className="text-white text-sm font-semibold">Add Money</p>
-              <p className="text-green-400 text-xs">Deposit funds</p>
+              <p className="text-white text-xs sm:text-sm font-semibold">Add Money</p>
+              <p className="text-green-400 text-[10px] sm:text-xs hidden sm:block">Deposit funds</p>
             </div>
           </button>
 
           <button 
             onClick={() => setActiveModal('send')}
-            className="flex items-center gap-3 px-5 py-3 bg-purple-500/10 border border-purple-500/30 rounded-xl hover:bg-purple-500/20 transition-all flex-shrink-0"
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-purple-500/10 border border-purple-500/30 rounded-xl hover:bg-purple-500/20 transition-all flex-shrink-0"
           >
-            <Send className="w-5 h-5 text-purple-400" />
+            <Send className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400" />
             <div className="text-left">
-              <p className="text-white text-sm font-semibold">Send</p>
-              <p className="text-purple-400 text-xs">Transfer</p>
+              <p className="text-white text-xs sm:text-sm font-semibold">Send</p>
+              <p className="text-purple-400 text-[10px] sm:text-xs hidden sm:block">Transfer</p>
             </div>
           </button>
 
           <button 
             onClick={() => setActiveModal('withdraw')}
-            className="flex items-center gap-3 px-5 py-3 bg-blue-500/10 border border-blue-500/30 rounded-xl hover:bg-blue-500/20 transition-all flex-shrink-0"
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-blue-500/10 border border-blue-500/30 rounded-xl hover:bg-blue-500/20 transition-all flex-shrink-0"
           >
-            <Download className="w-5 h-5 text-blue-400" />
+            <Download className="w-4 sm:w-5 h-4 sm:h-5 text-blue-400" />
             <div className="text-left">
-              <p className="text-white text-sm font-semibold">Withdraw</p>
-              <p className="text-blue-400 text-xs">Cash out</p>
+              <p className="text-white text-xs sm:text-sm font-semibold">Withdraw</p>
+              <p className="text-blue-400 text-[10px] sm:text-xs hidden sm:block">Cash out</p>
             </div>
           </button>
 
           <button 
             onClick={() => setActiveModal('exchange')}
-            className="flex items-center gap-3 px-5 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl hover:bg-cyan-500/20 transition-all flex-shrink-0"
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl hover:bg-cyan-500/20 transition-all flex-shrink-0"
           >
-            <ArrowDownUp className="w-5 h-5 text-cyan-400" />
+            <ArrowDownUp className="w-4 sm:w-5 h-4 sm:h-5 text-cyan-400" />
             <div className="text-left">
-              <p className="text-white text-sm font-semibold">Exchange</p>
-              <p className="text-cyan-400 text-xs">Swap crypto</p>
+              <p className="text-white text-xs sm:text-sm font-semibold">Exchange</p>
+              <p className="text-cyan-400 text-[10px] sm:text-xs hidden sm:block">Swap crypto</p>
             </div>
           </button>
         </div>
@@ -306,22 +306,22 @@ export default function Wallet() {
       </div>
 
       {/* Crypto Wallet Section */}
-      <div className="px-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="px-4 sm:px-6 mb-6">
+        <div className="flex items-center justify-between mb-4 gap-2">
           <div>
-            <h3 className="text-xl font-bold text-white">Crypto Assets</h3>
-            <p className="text-gray-400 text-sm">Digital currencies & tokens</p>
+            <h3 className="text-lg sm:text-xl font-bold text-white">Crypto Assets</h3>
+            <p className="text-gray-400 text-xs sm:text-sm hidden sm:block">Digital currencies & tokens</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => setActiveModal('crypto-deposit')}
-              className="px-3 py-2 bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 rounded-lg text-green-400 text-sm font-medium transition-all"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 rounded-lg text-green-400 text-xs sm:text-sm font-medium transition-all"
             >
               Deposit
             </button>
             <button
               onClick={() => setActiveModal('crypto-withdraw')}
-              className="px-3 py-2 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 rounded-lg text-orange-400 text-sm font-medium transition-all"
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 rounded-lg text-orange-400 text-xs sm:text-sm font-medium transition-all"
             >
               Withdraw
             </button>
@@ -396,8 +396,8 @@ export default function Wallet() {
       </div>
 
       {/* USD Balance Section */}
-      <div className="px-6 mb-6">
-        <h3 className="text-xl font-bold text-white mb-4">Fiat Balance</h3>
+      <div className="px-4 sm:px-6 mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-4">Fiat Balance</h3>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -425,7 +425,7 @@ export default function Wallet() {
       </div>
 
       {/* Utilities & Premium Banners */}
-      <div className="px-6 space-y-4 mb-6">
+      <div className="px-4 sm:px-6 space-y-3 mb-6">
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -478,11 +478,11 @@ export default function Wallet() {
       </div>
 
       {/* Recent Activity */}
-      <div className="px-6 mb-6">
+      <div className="px-4 sm:px-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold text-white">Recent Activity</h3>
-            <p className="text-gray-400 text-sm">Latest {transactions.length} transactions</p>
+            <h3 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h3>
+            <p className="text-gray-400 text-xs sm:text-sm">Latest {transactions.length} transactions</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -547,7 +547,7 @@ export default function Wallet() {
       </div>
 
       {/* Info Sections */}
-      <div className="px-6 space-y-3 mb-6">
+      <div className="px-4 sm:px-6 space-y-3 mb-8">
         <details className="glass-effect rounded-xl p-4 border border-white/5 group">
           <summary className="cursor-pointer text-white font-semibold flex items-center justify-between">
             <span className="flex items-center gap-2">
@@ -632,6 +632,11 @@ export default function Wallet() {
         }
         details summary::-webkit-details-marker {
           display: none;
+        }
+        @media (max-width: 640px) {
+          body {
+            overflow-x: hidden;
+          }
         }
       `}</style>
     </div>
