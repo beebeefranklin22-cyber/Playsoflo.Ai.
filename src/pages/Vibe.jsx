@@ -31,64 +31,125 @@ export default function Vibe() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  // Fetch music from SoundCloud + user uploads
+  // Sample tracks for fallback
+  const sampleTracks = [
+    {
+      id: 'sample_1',
+      title: 'Summer Vibes',
+      name: 'Summer Vibes',
+      artist_name: 'Demo Artist',
+      artist: 'Demo Artist',
+      genre: 'pop',
+      cover_art_url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400',
+      image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400',
+      popularity: 95,
+      source: 'demo'
+    },
+    {
+      id: 'sample_2',
+      title: 'City Nights',
+      name: 'City Nights',
+      artist_name: 'Urban Sound',
+      artist: 'Urban Sound',
+      genre: 'electronic',
+      cover_art_url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
+      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
+      popularity: 88,
+      source: 'demo'
+    },
+    {
+      id: 'sample_3',
+      title: 'Midnight Drive',
+      name: 'Midnight Drive',
+      artist_name: 'Night Rider',
+      artist: 'Night Rider',
+      genre: 'r_n_b',
+      cover_art_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
+      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
+      popularity: 82,
+      source: 'demo'
+    },
+    {
+      id: 'sample_4',
+      title: 'Tropical Sunset',
+      name: 'Tropical Sunset',
+      artist_name: 'Island Beats',
+      artist: 'Island Beats',
+      genre: 'reggae',
+      cover_art_url: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
+      image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
+      popularity: 79,
+      source: 'demo'
+    },
+    {
+      id: 'sample_5',
+      title: 'Rock Anthem',
+      name: 'Rock Anthem',
+      artist_name: 'Electric Storm',
+      artist: 'Electric Storm',
+      genre: 'rock',
+      cover_art_url: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400',
+      image: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400',
+      popularity: 91,
+      source: 'demo'
+    }
+  ];
+
+  // Fetch music from SoundCloud + user uploads + samples
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['music-discovery', selectedGenre, searchQuery],
     queryFn: async () => {
       console.log('Fetching music - Genre:', selectedGenre, 'Search:', searchQuery);
       
+      // First, always load user-uploaded tracks
+      let userTracks = [];
       try {
-        // Build query - use search if available, otherwise use genre
-        const query = searchQuery?.trim() || selectedGenre !== 'all' ? selectedGenre : 'popular music';
-        
+        userTracks = await base44.entities.MusicTrack.filter({
+          status: "published"
+        });
+        console.log('User tracks found:', userTracks.length);
+      } catch (error) {
+        console.error('User tracks error:', error);
+      }
+      
+      // Try to fetch from SoundCloud
+      let soundcloudTracks = [];
+      try {
+        const query = searchQuery?.trim() || (selectedGenre !== 'all' ? selectedGenre : 'popular music');
         console.log('Calling fetchSoundCloudMusic with query:', query);
         
-        // Fetch from SoundCloud
         const soundcloudResponse = await base44.functions.invoke('fetchSoundCloudMusic', { 
           query: query,
           genre: selectedGenre !== 'all' ? selectedGenre : undefined
         });
         
-        console.log('SoundCloud response:', soundcloudResponse);
-        
-        const soundcloudTracks = soundcloudResponse?.data?.tracks || [];
-        
+        soundcloudTracks = soundcloudResponse?.data?.tracks || [];
         console.log('SoundCloud tracks found:', soundcloudTracks.length);
-        
-        // Also fetch user-uploaded tracks
-        const userTracks = await base44.entities.MusicTrack.filter({
-          status: "published"
-        });
-        
-        console.log('User tracks found:', userTracks.length);
-        
-        // Combine both sources
-        const combinedTracks = [...soundcloudTracks, ...userTracks];
-        
-        if (combinedTracks.length > 0) {
-          // Shuffle for variety
-          return { 
-            tracks: combinedTracks.sort(() => Math.random() - 0.5), 
-            source: soundcloudTracks.length > 0 ? 'streaming' : 'user' 
-          };
-        }
-        
-        return { tracks: [], source: 'none' };
       } catch (error) {
-        console.error('Music fetch error:', error);
-        
-        // Try to load user tracks as fallback
-        try {
-          const userTracks = await base44.entities.MusicTrack.filter({
-            status: "published"
-          });
-          return { tracks: userTracks, source: 'user' };
-        } catch {
-          return { tracks: [], source: 'none' };
-        }
+        console.error('SoundCloud fetch error:', error);
       }
+      
+      // Combine all sources
+      const combinedTracks = [...soundcloudTracks, ...userTracks];
+      
+      // If we have tracks, return them
+      if (combinedTracks.length > 0) {
+        return { 
+          tracks: combinedTracks.sort(() => Math.random() - 0.5), 
+          source: soundcloudTracks.length > 0 ? 'streaming' : 'user' 
+        };
+      }
+      
+      // Fallback to sample tracks if nothing else works
+      console.log('Using sample tracks as fallback');
+      return { 
+        tracks: sampleTracks.filter(t => 
+          selectedGenre === 'all' || t.genre === selectedGenre
+        ), 
+        source: 'demo' 
+      };
     },
-    initialData: { tracks: [], source: 'none' },
+    initialData: { tracks: sampleTracks, source: 'demo' },
     retry: 1,
     staleTime: 2 * 60 * 1000
   });
@@ -347,7 +408,11 @@ export default function Vibe() {
                     <Sparkles className="w-6 h-6 text-purple-400" />
                     <div>
                       <p className="text-white font-bold">
-                        {filteredTracks.length.toLocaleString()} Songs • {musicData?.source === 'streaming' ? '🎵 SoundCloud' : '👤 User Uploads'}
+                        {filteredTracks.length.toLocaleString()} Songs • {
+                          musicData?.source === 'streaming' ? '🎵 SoundCloud' : 
+                          musicData?.source === 'user' ? '👤 User Uploads' : 
+                          '🎵 Demo Tracks'
+                        }
                       </p>
                       <p className="text-gray-400 text-sm">
                         {isLoading ? 'Loading...' : queryError ? 'Error loading songs' : 'Ready to play'}
