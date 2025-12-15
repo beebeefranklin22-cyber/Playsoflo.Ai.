@@ -27,6 +27,7 @@ import StakingManager from "../components/wallet/StakingManager";
 import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings";
 import TaxReportingModal from "../components/wallet/TaxReportingModal";
 import DeFiTracker from "../components/wallet/DeFiTracker";
+import CurrencySelector from "../components/wallet/CurrencySelector";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -53,6 +54,16 @@ export default function Wallet() {
     },
     refetchInterval: 30000, // Update every 30 seconds
     staleTime: 20000,
+  });
+
+  const { data: exchangeRates = {} } = useQuery({
+    queryKey: ['exchange-rates'],
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke('getExchangeRates');
+      return data.rates;
+    },
+    refetchInterval: 5 * 60 * 1000, // Update every 5 minutes
+    staleTime: 3 * 60 * 1000,
   });
 
   useEffect(() => {
@@ -179,12 +190,21 @@ export default function Wallet() {
             <h1 className="text-2xl sm:text-3xl font-bold text-white">Wallet</h1>
             <p className="text-gray-400 text-xs sm:text-sm mt-1">Manage your digital assets</p>
           </div>
-          <button
-            onClick={() => setShowBalance(!showBalance)}
-            className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all hover:scale-105"
-          >
-            {showBalance ? <Eye className="w-5 h-5 text-white" /> : <EyeOff className="w-5 h-5 text-white" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveModal('currency-settings')}
+              className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all hover:scale-105"
+              title="Currency Settings"
+            >
+              <Globe className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={() => setShowBalance(!showBalance)}
+              className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all hover:scale-105"
+            >
+              {showBalance ? <Eye className="w-5 h-5 text-white" /> : <EyeOff className="w-5 h-5 text-white" />}
+            </button>
+          </div>
         </div>
 
         {/* Total Balance Card - Compact */}
@@ -199,8 +219,13 @@ export default function Wallet() {
             <div>
               <p className="text-gray-400 text-xs sm:text-sm mb-1">Total Balance</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                {showBalance ? `$${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)}` : "••••••"}
+                {showBalance ? formatCurrency((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)) : "••••••"}
               </h2>
+              {currentUser?.show_dual_currency && currentUser?.primary_currency !== 'USD' && showBalance && (
+                <p className="text-gray-400 text-sm">
+                  ≈ ${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)} USD
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-green-400" />
                 <span className="text-green-400 font-semibold text-sm">+0.0%</span>
@@ -210,12 +235,12 @@ export default function Wallet() {
             
             <div className="hidden md:flex flex-col gap-2">
               <div className="text-right">
-                <p className="text-gray-400 text-xs">USD</p>
-                <p className="text-white font-semibold">${(currentUser?.usd_balance || 0).toFixed(2)}</p>
+                <p className="text-gray-400 text-xs">USD Balance</p>
+                <p className="text-white font-semibold">{formatCurrency(currentUser?.usd_balance || 0)}</p>
               </div>
               <div className="text-right">
-                <p className="text-gray-400 text-xs">Crypto</p>
-                <p className="text-purple-400 font-semibold">${((currentUser?.soflo_coins || 0) * 2.45).toFixed(2)}</p>
+                <p className="text-gray-400 text-xs">Crypto Value</p>
+                <p className="text-purple-400 font-semibold">{formatCurrency((currentUser?.soflo_coins || 0) * 2.45)}</p>
               </div>
             </div>
           </div>
@@ -788,6 +813,9 @@ export default function Wallet() {
       )}
       {activeModal === 'defi-tracker' && currentUser && (
         <DeFiTracker currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'currency-settings' && currentUser && (
+        <CurrencySelector currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`

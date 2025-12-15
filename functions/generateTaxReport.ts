@@ -12,6 +12,12 @@ Deno.serve(async (req) => {
     const { taxYear } = await req.json();
     const year = taxYear || new Date().getFullYear() - 1;
 
+    // Fetch exchange rates for user's currency
+    const userCurrency = user.primary_currency || 'USD';
+    const exchangeRateResponse = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const exchangeData = await exchangeRateResponse.json();
+    const exchangeRate = exchangeData.rates[userCurrency] || 1;
+
     // Fetch all crypto transactions for the year
     const transactions = await base44.asServiceRole.entities.CryptoTransaction.filter({
       user_email: user.email
@@ -63,8 +69,11 @@ Deno.serve(async (req) => {
         to_amount: tx.to_amount,
         fee: tx.fee || 0,
         gain_loss: gainLoss,
+        gain_loss_user_currency: gainLoss * exchangeRate,
         cost_basis: tx.from_amount,
-        proceeds: tx.to_amount
+        proceeds: tx.to_amount,
+        user_currency: userCurrency,
+        exchange_rate_used: exchangeRate
       };
     });
 
@@ -81,14 +90,14 @@ Deno.serve(async (req) => {
       total_income: totalIncome
     };
 
-    // Create tax report
+    // Create tax report with multi-currency support
     const report = await base44.asServiceRole.entities.TaxReport.create({
       user_email: user.email,
       tax_year: year,
       report_type: 'comprehensive',
-      total_capital_gains: totalGains,
-      total_capital_losses: totalLosses,
-      total_income: totalIncome,
+      total_capital_gains: totalGains * exchangeRate,
+      total_capital_losses: totalLosses * exchangeRate,
+      total_income: totalIncome * exchangeRate,
       transactions_analyzed: yearTransactions.length,
       transaction_details: transactionDetails,
       form_8949_data: form8949Data,
