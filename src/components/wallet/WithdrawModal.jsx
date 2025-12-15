@@ -24,14 +24,28 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
   const availableBalance = currentUser?.usd_balance || 0;
 
+  const getFeeAmount = () => {
+    if (method === "instant") return 0.50;
+    if (method === "card") {
+      const stripeFee = parseFloat(amount) * 0.01;
+      return stripeFee + 0.50;
+    }
+    return 0;
+  };
+
+  const getTotalAmount = () => {
+    return parseFloat(amount || 0) + getFeeAmount();
+  };
+
   const handleWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       alert("Please enter a valid amount");
       return;
     }
 
-    if (parseFloat(amount) > availableBalance) {
-      alert("Insufficient balance");
+    const totalWithFees = getTotalAmount();
+    if (totalWithFees > availableBalance) {
+      alert(`Insufficient balance. You need $${totalWithFees.toFixed(2)} (includes fees)`);
       return;
     }
 
@@ -42,34 +56,38 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
     setLoading(true);
     try {
+      const feeAmount = getFeeAmount();
+      
       // Create payout record
       await base44.entities.Payment.create({
         amount_usd: parseFloat(amount),
         amount_rri: 0,
-        method: method === "instant" ? "instant_payout" : "bank_transfer",
+        method: method === "instant" ? "instant_payout" : method === "card" ? "card" : "bank_transfer",
         status: "pending",
         reference_type: "withdrawal",
-        memo: `Withdraw to ${method}`
+        memo: `Withdraw to ${method} (Fee: $${feeAmount.toFixed(2)})`
       });
 
-      // Update user balance
+      // Update user balance (deduct withdrawal amount + fees)
       await base44.auth.updateMe({
-        usd_balance: availableBalance - parseFloat(amount)
+        usd_balance: availableBalance - totalWithFees
       });
 
       // Create notification
       await base44.entities.Notification.create({
-        user_email: currentUser.email,
+        recipient_email: currentUser.email,
         type: "payment_received",
         title: "Withdrawal Initiated",
-        message: `Your withdrawal of $${parseFloat(amount).toFixed(2)} is being processed`,
+        message: `Your withdrawal of $${parseFloat(amount).toFixed(2)} is being processed. Fee: $${feeAmount.toFixed(2)}`,
         read: false,
         action_url: "/Wallet"
       });
 
-      alert(`Withdrawal of $${amount} initiated. ${
+      alert(`Withdrawal of $${amount} initiated (Total: $${totalWithFees.toFixed(2)}). ${
         method === "instant" 
           ? "Funds will arrive within minutes." 
+          : method === "card"
+          ? "Funds will arrive within 30 minutes."
           : "Funds will arrive in 1-3 business days."
       }`);
       
@@ -192,7 +210,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
                         <p className="text-gray-400 text-sm">Within 30 minutes</p>
                       </div>
                     </div>
-                    <p className="text-blue-400 text-sm">1% fee</p>
+                    <p className="text-blue-400 text-sm">1% + $0.50 fee</p>
                   </div>
                 </button>
               </div>
@@ -206,13 +224,32 @@ export default function WithdrawModal({ currentUser, onClose }) {
               </div>
             )}
 
+            {amount && parseFloat(amount) > 0 && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Withdrawal Amount</span>
+                  <span className="text-white">${parseFloat(amount).toFixed(2)}</span>
+                </div>
+                {getFeeAmount() > 0 && (
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-400">Processing Fee</span>
+                    <span className="text-yellow-400">${getFeeAmount().toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold pt-2 border-t border-white/10">
+                  <span className="text-white">Total Deducted</span>
+                  <span className="text-white">${getTotalAmount().toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
             <Button
               onClick={handleWithdraw}
               disabled={loading || !amount || parseFloat(amount) <= 0}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg"
             >
               <Download className="w-5 h-5 mr-2" />
-              {loading ? "Processing..." : `Withdraw $${amount || "0.00"}`}
+              {loading ? "Processing..." : amount && parseFloat(amount) > 0 ? `Withdraw $${getTotalAmount().toFixed(2)}` : "Withdraw"}
             </Button>
           </div>
         </motion.div>
