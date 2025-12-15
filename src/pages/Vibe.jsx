@@ -96,13 +96,13 @@ export default function Vibe() {
     }
   ];
 
-  // Fetch music from SoundCloud + user uploads + samples
+  // Fetch trending tracks from the app
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['music-discovery', selectedGenre, searchQuery],
     queryFn: async () => {
       console.log('Fetching music - Genre:', selectedGenre, 'Search:', searchQuery);
       
-      // First, always load user-uploaded tracks
+      // Load user-uploaded tracks with streaming data
       let userTracks = [];
       try {
         userTracks = await base44.entities.MusicTrack.filter({
@@ -112,42 +112,56 @@ export default function Vibe() {
       } catch (error) {
         console.error('User tracks error:', error);
       }
-      
-      // Try to fetch from YouTube Music
-      let youtubeTracks = [];
+
+      // Get listening history to calculate trending
+      let allHistory = [];
       try {
-        const query = searchQuery?.trim() || (selectedGenre !== 'all' ? selectedGenre : 'popular music');
-        console.log('Calling fetchYouTubeMusic with query:', query);
-        
-        const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
-          query: query,
-          maxResults: 50
-        });
-        
-        youtubeTracks = youtubeResponse?.data?.tracks || [];
-        console.log('YouTube tracks found:', youtubeTracks.length);
+        allHistory = await base44.entities.ListeningHistory.filter({});
       } catch (error) {
-        console.error('YouTube fetch error:', error);
+        console.error('History fetch error:', error);
+      }
+
+      // Calculate play counts for each track
+      const playCounts = {};
+      allHistory.forEach(h => {
+        const trackId = h.track_id || h.video_id;
+        playCounts[trackId] = (playCounts[trackId] || 0) + 1;
+      });
+
+      // Enhance user tracks with play counts
+      const enhancedTracks = userTracks.map(track => ({
+        ...track,
+        popularity: (track.stream_count || 0) + (playCounts[track.id] || 0) * 10
+      }));
+
+      // Try to fetch from YouTube Music only for search queries
+      let youtubeTracks = [];
+      if (searchQuery?.trim()) {
+        try {
+          const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
+            query: searchQuery,
+            maxResults: 20
+          });
+          
+          youtubeTracks = youtubeResponse?.data?.tracks || [];
+          console.log('YouTube tracks found:', youtubeTracks.length);
+        } catch (error) {
+          console.error('YouTube fetch error:', error);
+        }
       }
       
-      // Combine all sources
-      const combinedTracks = [...youtubeTracks, ...userTracks];
+      // Combine and sort by popularity
+      const combinedTracks = [...enhancedTracks, ...youtubeTracks];
+      const sorted = combinedTracks.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
       
-      // If we have tracks, return them
-      if (combinedTracks.length > 0) {
-        return { 
-          tracks: combinedTracks.sort(() => Math.random() - 0.5), 
-          source: youtubeTracks.length > 0 ? 'youtube' : 'user' 
-        };
-      }
+      // Apply genre filter
+      const filtered = selectedGenre !== 'all' 
+        ? sorted.filter(t => t.genre === selectedGenre)
+        : sorted;
       
-      // Fallback to sample tracks if nothing else works
-      console.log('Using sample tracks as fallback');
       return { 
-        tracks: sampleTracks.filter(t => 
-          selectedGenre === 'all' || t.genre === selectedGenre
-        ), 
-        source: 'demo' 
+        tracks: filtered.length > 0 ? filtered : sampleTracks, 
+        source: filtered.length > 0 ? 'trending' : 'demo' 
       };
     },
     initialData: { tracks: sampleTracks, source: 'demo' },
