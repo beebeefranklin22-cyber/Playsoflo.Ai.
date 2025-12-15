@@ -71,6 +71,7 @@ import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
 import PropertyProviderHub from './pages/PropertyProviderHub';
 import PropertyHostProfile from './pages/PropertyHostProfile';
 import MyPropertyBookings from './pages/MyPropertyBookings';
+import MyP2POrders from './pages/MyP2POrders';
 import __Layout from './Layout.jsx';
 
 
@@ -148,6 +149,7 @@ export const PAGES = {
     "PropertyProviderHub": PropertyProviderHub,
     "PropertyHostProfile": PropertyHostProfile,
     "MyPropertyBookings": MyPropertyBookings,
+    "MyP2POrders": MyP2POrders,
 }
 
 export const pagesConfig = {

@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
+import { X, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function CreateP2POrderModal({ currentUser, onClose }) {
@@ -22,6 +22,24 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
     time_limit_minutes: 30,
     terms: ''
   });
+
+  // Fetch real-time crypto prices
+  const { data: cryptoPrices = {}, refetch: refetchPrices } = useQuery({
+    queryKey: ['crypto-prices'],
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke('getCryptoPrices');
+      return data.prices;
+    },
+    refetchInterval: 30000, // Auto-update every 30 seconds
+  });
+
+  // Auto-fill market price when currency changes
+  useEffect(() => {
+    const marketPrice = cryptoPrices?.[formData.crypto_currency]?.usd;
+    if (marketPrice && !formData.price_per_unit) {
+      setFormData(prev => ({ ...prev, price_per_unit: marketPrice.toString() }));
+    }
+  }, [formData.crypto_currency, cryptoPrices]);
 
   const createOrderMutation = useMutation({
     mutationFn: async (data) => {
@@ -132,7 +150,17 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
             </div>
 
             <div>
-              <label className="text-white font-semibold mb-2 block">Price per Unit (USD)</label>
+              <label className="text-white font-semibold mb-2 flex items-center justify-between">
+                <span>Price per Unit (USD)</span>
+                <button
+                  type="button"
+                  onClick={() => refetchPrices()}
+                  className="text-blue-400 hover:text-blue-300"
+                  title="Refresh price"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </label>
               <Input
                 type="number"
                 step="any"
@@ -141,6 +169,19 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
                 placeholder="0.00"
                 className="bg-white/10 border-white/20 text-white"
               />
+              {cryptoPrices?.[formData.crypto_currency] && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Market: ${cryptoPrices[formData.crypto_currency].usd.toLocaleString()} 
+                  <span className={`ml-2 ${
+                    cryptoPrices[formData.crypto_currency].change_24h >= 0 
+                      ? 'text-green-400' 
+                      : 'text-red-400'
+                  }`}>
+                    {cryptoPrices[formData.crypto_currency].change_24h >= 0 ? '+' : ''}
+                    {cryptoPrices[formData.crypto_currency].change_24h.toFixed(2)}%
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 

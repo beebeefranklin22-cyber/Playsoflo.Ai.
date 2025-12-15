@@ -31,6 +31,7 @@ import DeFiTracker from "../components/wallet/DeFiTracker";
 import CurrencySelector from "../components/wallet/CurrencySelector";
 import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
+import TransactionHistoryFilter from "../components/wallet/TransactionHistoryFilter";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -701,6 +702,15 @@ export default function Wallet() {
             <h3 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h3>
             <p className="text-gray-400 text-xs sm:text-sm">Latest {transactions.length} transactions</p>
           </div>
+          <Button
+            onClick={() => setActiveModal('transaction-filter')}
+            variant="outline"
+            size="sm"
+            className="border-white/20 text-white hover:bg-white/10"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Filter & Export
+          </Button>
         </div>
         <div className="space-y-2">
           {transactions.length > 0 ? transactions.slice(0, 10).map((tx, index) => {
@@ -855,6 +865,9 @@ export default function Wallet() {
       )}
       {activeModal === 'p2p-trading' && currentUser && (
         <P2PTradingMarketplace currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'transaction-filter' && currentUser && (
+        <TransactionHistoryFilter transactions={transactions} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
