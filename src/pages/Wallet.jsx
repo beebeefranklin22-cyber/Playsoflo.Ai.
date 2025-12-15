@@ -29,6 +29,8 @@ import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings"
 import TaxReportingModal from "../components/wallet/TaxReportingModal";
 import DeFiTracker from "../components/wallet/DeFiTracker";
 import CurrencySelector from "../components/wallet/CurrencySelector";
+import RewardsProgram from "../components/wallet/RewardsProgram";
+import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -336,6 +338,20 @@ export default function Wallet() {
             >
               <Shield className="w-4 h-4 text-purple-400" />
               <span className="text-white text-xs font-semibold">Security</span>
+            </button>
+            <button 
+              onClick={() => setActiveModal('rewards')}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/20 hover:to-pink-500/20 transition text-left"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span className="text-white text-xs font-semibold">Rewards</span>
+            </button>
+            <button 
+              onClick={() => setActiveModal('p2p-trading')}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg hover:from-green-500/20 hover:to-emerald-500/20 transition text-left"
+            >
+              <ArrowDownUp className="w-4 h-4 text-green-400" />
+              <span className="text-white text-xs font-semibold">P2P Trade</span>
             </button>
           </div>
         </details>
@@ -817,6 +833,12 @@ export default function Wallet() {
       )}
       {activeModal === 'currency-settings' && currentUser && (
         <CurrencySelector currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'rewards' && currentUser && (
+        <RewardsProgram currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'p2p-trading' && currentUser && (
+        <P2PTradingMarketplace currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
