@@ -447,6 +447,36 @@ export default function Wallet() {
           </div>
         </motion.div>
 
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative glass-effect rounded-xl p-5 overflow-hidden border border-purple-500/20 hover:border-purple-500/40 transition-all"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-2xl" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg flex items-center justify-center">
+                <Crown className="w-6 h-6 text-purple-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-purple-400 font-bold text-xs uppercase tracking-wide">Elite</span>
+                </div>
+                <h4 className="text-white font-bold text-lg">Upgrade Account</h4>
+                <p className="text-gray-400 text-sm">Private banking & higher limits</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setActiveModal('subscription')}
+              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg text-white text-sm font-medium transition-all hover:scale-105"
+            >
+              Learn More
+            </button>
+          </div>
+        </motion.div>
+      </div>
+
       {/* Recent Activity */}
       <div className="px-6 mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -516,55 +546,37 @@ export default function Wallet() {
         </div>
       </div>
 
-      {/* Premium Upgrade Banner */}
-      <div className="px-6 mt-8">
-        <div className="relative glass-effect rounded-3xl p-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-30" />
-          <div className="relative">
-            <div className="flex items-center gap-2 mb-2">
-              <PiggyBank className="w-5 h-5 text-purple-400" />
-              <span className="text-purple-400 font-semibold text-sm">ELITE ACCESS</span>
+      {/* Info Sections */}
+      <div className="px-6 space-y-3 mb-6">
+        <details className="glass-effect rounded-xl p-4 border border-white/5 group">
+          <summary className="cursor-pointer text-white font-semibold flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              About SoFloCoin
+            </span>
+            <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div className="mt-3 pt-3 border-t border-white/5">
+            <p className="text-gray-400 text-sm mb-2">Ronron Reserve Index Backed</p>
+            <div className="space-y-1 text-sm text-gray-300">
+              <div className="flex justify-between"><span>• USD (T-bills)</span><span className="text-gray-400">40%</span></div>
+              <div className="flex justify-between"><span>• Tokenized gold</span><span className="text-gray-400">25%</span></div>
+              <div className="flex justify-between"><span>• Bitcoin</span><span className="text-gray-400">15%</span></div>
+              <div className="flex justify-between"><span>• Ethereum</span><span className="text-gray-400">10%</span></div>
+              <div className="flex justify-between"><span>• Foreign currencies</span><span className="text-gray-400">10%</span></div>
             </div>
-            <h4 className="text-2xl font-bold text-white mb-2">
-              Upgrade to Elite
-            </h4>
-            <p className="text-gray-300 mb-4">
-              Get private banking, higher limits, and exclusive experiences
-            </p>
-            <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-semibold hover:scale-105 transition-transform">
-              Learn More
-            </button>
           </div>
-        </div>
-      </div>
+        </details>
 
-      {/* SoFloCoin Breakdown Section */}
-      <div className="px-6 mt-8">
-        <div className="relative glass-effect rounded-3xl p-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl opacity-30" />
-          <div className="relative">
-            <h4 className="text-2xl font-bold text-white mb-2">SoFloCoin (Ronron Reserve Index Backed)</h4> {/* Updated title */}
-            <ul className="text-gray-300 space-y-1 text-sm">
-              <li>• 40% USD (short-term T-bills)</li>
-              <li>• 25% tokenized gold</li>
-              <li>• 15% BTC</li>
-              <li>• 10% ETH</li>
-              <li>• 10% diversified foreign currencies (EUR, JPY, GBP)</li>
-            </ul>
-            <p className="text-gray-400 text-sm mt-3">SoFloCoin is a hybrid reserve-backed stable asset for PlaySoFlo.</p> {/* Updated description */}
-          </div>
-        </div>
-      </div>
-
-      {/* Security Notice */}
-      <div className="px-6 mt-8">
-        <div className="relative glass-effect rounded-3xl p-6 overflow-hidden border border-green-500/30">
-          <div className="relative">
-            <h4 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <PiggyBank className="w-5 h-5 text-green-400" />
-              Bank-Grade Security
-            </h4>
-            <p className="text-gray-300 text-sm">Your wallet is protected by military-grade encryption, multi-factor authentication, and anti-bot technology. All transactions are monitored 24/7 for fraudulent activity.</p>
+        <div className="glass-effect rounded-xl p-4 border border-green-500/20">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+              <PiggyBank className="w-4 h-4 text-green-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-semibold text-sm mb-1">Bank-Grade Security</h4>
+              <p className="text-gray-400 text-xs">Military-grade encryption, 2FA, and 24/7 fraud monitoring protect your assets.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -609,6 +621,19 @@ export default function Wallet() {
       {activeModal === 'staking' && currentUser && (
         <StakingManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        details summary::-webkit-details-marker {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 }
