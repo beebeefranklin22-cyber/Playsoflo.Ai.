@@ -21,6 +21,7 @@ import PropertyCalendar from "../components/property/PropertyCalendar";
 import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
 import QuickEditPropertyModal from "../components/property/QuickEditPropertyModal";
+import BulkPropertyUpload from "../components/provider/BulkPropertyUpload";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export default function PropertyProviderHub() {
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -172,13 +174,23 @@ export default function PropertyProviderHub() {
             <h1 className="text-3xl font-bold text-white">Property Provider Hub</h1>
             <p className="text-gray-300">Manage your real estate listings</p>
           </div>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-emerald-600 hover:bg-emerald-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Property
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setShowBulkUpload(true)}
+              variant="outline"
+              className="bg-white/5 border-white/20 text-white"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Bulk Upload
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Property
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -648,6 +660,14 @@ export default function PropertyProviderHub() {
               setEditingProperty(null);
             }}
             onSave={(data) => updatePropertyMutation.mutate(data)}
+          />
+        )}
+
+        {/* Bulk Upload Modal */}
+        {showBulkUpload && (
+          <BulkPropertyUpload
+            currentUser={currentUser}
+            onClose={() => setShowBulkUpload(false)}
           />
         )}
 

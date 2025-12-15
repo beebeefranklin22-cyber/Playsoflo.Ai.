@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import AddCarModal from "../components/car/AddCarModal";
 import EditCarModal from "../components/car/EditCarModal";
 import BulkUploadModal from "../components/car/BulkUploadModal";
+import BulkCarUpload from "../components/car/BulkCarUpload";
 import FleetAnalytics from "../components/car/FleetAnalytics";
 import AvailabilityCalendar from "../components/car/AvailabilityCalendar";
 import MaintenanceAlert from "../components/car/MaintenanceAlert";
@@ -354,14 +355,12 @@ export default function FleetManager() {
         />
       )}
 
-      <BulkUploadModal
-        open={showBulkUpload}
-        onClose={() => setShowBulkUpload(false)}
-        onSuccess={() => {
-          setShowBulkUpload(false);
-          queryClient.invalidateQueries(['my-fleet']);
-        }}
-      />
+      {showBulkUpload && (
+        <BulkCarUpload
+          currentUser={currentUser}
+          onClose={() => setShowBulkUpload(false)}
+        />
+      )}
 
       <FleetAIAssistant
         open={showAIAssistant}
