@@ -22,49 +22,11 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
   const isYouTube = track?.source === 'youtube' && track?.video_id;
 
   useEffect(() => {
-    // Load YouTube Player API
-    if (isYouTube && !window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(tag);
-    }
-    
     if (isYouTube) {
-      // Initialize YouTube player
-      const initPlayer = () => {
-        if (window.YT && window.YT.Player) {
-          playerRef.current = new window.YT.Player(`youtube-player-${track.video_id}`, {
-            videoId: track.video_id,
-            playerVars: {
-              autoplay: 1,
-              controls: 1,
-              modestbranding: 1,
-            },
-            events: {
-              onReady: (event) => {
-                setIsPlaying(true);
-                setError(null);
-              },
-              onStateChange: (event) => {
-                if (event.data === window.YT.PlayerState.PLAYING) {
-                  setIsPlaying(true);
-                } else if (event.data === window.YT.PlayerState.PAUSED) {
-                  setIsPlaying(false);
-                } else if (event.data === window.YT.PlayerState.ENDED) {
-                  setIsPlaying(false);
-                  if (onNext) onNext();
-                }
-              }
-            }
-          });
-        }
-      };
-      
-      if (window.YT && window.YT.Player) {
-        initPlayer();
-      } else {
-        window.onYouTubeIframeAPIReady = initPlayer;
-      }
+      // For YouTube tracks, just show the video player
+      setShowVideo(true);
+      setIsPlaying(true);
+      setError(null);
     } else if (track && audioRef.current) {
       try {
         const audioUrl = track.preview_url || track.audio_file_url;
@@ -95,12 +57,6 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
         setError('Audio setup failed');
       }
     }
-    
-    return () => {
-      if (playerRef.current && playerRef.current.destroy) {
-        playerRef.current.destroy();
-      }
-    };
   }, [track, isYouTube]);
 
   useEffect(() => {
@@ -148,16 +104,8 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
   }, [onNext]);
 
   const togglePlay = () => {
-    if (isYouTube && playerRef.current) {
-      try {
-        if (isPlaying) {
-          playerRef.current.pauseVideo();
-        } else {
-          playerRef.current.playVideo();
-        }
-      } catch (err) {
-        console.error('YouTube toggle error:', err);
-      }
+    if (isYouTube) {
+      setShowVideo(!showVideo);
     } else if (audioRef.current) {
       try {
         if (isPlaying) {
@@ -246,7 +194,12 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
             {/* YouTube Video Player */}
             {isYouTube && showVideo && (
               <div className="mb-4 relative aspect-video bg-black rounded-lg overflow-hidden">
-                <div id={`youtube-player-${track.video_id}`} className="w-full h-full" />
+                <iframe
+                  src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
             )}
             
