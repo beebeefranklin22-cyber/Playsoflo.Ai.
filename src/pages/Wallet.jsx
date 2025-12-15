@@ -23,6 +23,7 @@ import PaymentMethodsManager from "../components/wallet/PaymentMethodsManager";
 import PendingTransfersModal from "../components/wallet/PendingTransfersModal";
 import CryptoDepositModal from "../components/wallet/CryptoDepositModal";
 import CryptoWithdrawModal from "../components/wallet/CryptoWithdrawModal";
+import StakingManager from "../components/wallet/StakingManager";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -314,6 +315,16 @@ export default function Wallet() {
               </div>
               <span className="text-white text-xs font-medium">Send Crypto</span>
             </button>
+
+            <button 
+              onClick={() => setActiveModal('staking')}
+              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
+            >
+              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-purple-400" />
+              </div>
+              <span className="text-white text-xs font-medium">Staking</span>
+            </button>
           </div>
         </motion.div>
       </div>
@@ -514,6 +525,9 @@ export default function Wallet() {
       )}
       {activeModal === 'crypto-withdraw' && currentUser && (
         <CryptoWithdrawModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'staking' && currentUser && (
+        <StakingManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
     </div>
   );
