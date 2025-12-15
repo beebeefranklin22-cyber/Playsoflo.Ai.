@@ -14,45 +14,47 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-function StripePaymentForm({ onSuccess, onCancel }) {
+function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      toast.error("Payment form not ready");
+      return;
+    }
 
     setProcessing(true);
     toast.loading("Securing your payment method...");
 
     try {
-      // Get SetupIntent
-      const { data: intentData } = await base44.functions.invoke('createSetupIntent');
-      
       // Confirm card setup
-      const { error, setupIntent } = await stripe.confirmCardSetup(
-        intentData.client_secret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement),
-          }
+      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement),
         }
-      );
+      });
 
       if (error) {
         throw new Error(error.message);
       }
 
       // Save to database
-      await base44.functions.invoke('savePaymentMethod', {
+      const response = await base44.functions.invoke('savePaymentMethod', {
         payment_method_id: setupIntent.payment_method
       });
+
+      if (!response?.data?.success) {
+        throw new Error("Failed to save payment method");
+      }
 
       toast.dismiss();
       toast.success("✅ Payment method added!");
       onSuccess();
     } catch (error) {
+      console.error('Payment error:', error);
       toast.dismiss();
       toast.error(error.message || "Failed to add payment method");
       setProcessing(false);
@@ -113,21 +115,36 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const [showAddExternal, setShowAddExternal] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
   const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
   const [externalType, setExternalType] = useState(null);
   const [externalUsername, setExternalUsername] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [loadingStripe, setLoadingStripe] = useState(false);
 
-  // Initialize Stripe
-  React.useEffect(() => {
-    const initStripe = async () => {
+  const handleOpenCardForm = async () => {
+    setLoadingStripe(true);
+    toast.loading("Loading payment form...");
+    
+    try {
       const { data } = await base44.functions.invoke('createSetupIntent');
+      
+      if (!data?.client_secret || !data?.publishable_key) {
+        throw new Error("Invalid response from server");
+      }
+
       const stripe = await loadStripe(data.publishable_key);
       setStripePromise(stripe);
-    };
-    if (currentUser && !stripePromise) {
-      initStripe();
+      setClientSecret(data.client_secret);
+      setShowAddCard(true);
+      toast.dismiss();
+    } catch (error) {
+      console.error('Stripe init error:', error);
+      toast.dismiss();
+      toast.error("Failed to load payment form");
+    } finally {
+      setLoadingStripe(false);
     }
-  }, [currentUser]);
+  };
 
   const { data: paymentMethods = [], isLoading } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
@@ -280,11 +297,21 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                 </h3>
                 
                 <Button
-                  onClick={() => setShowAddCard(true)}
+                  onClick={handleOpenCardForm}
+                  disabled={loadingStripe}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-lg font-semibold"
                 >
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Add Card or Bank Account
+                  {loadingStripe ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      Add Card or Bank Account
+                    </>
+                  )}
                 </Button>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -340,7 +367,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
               {/* Add Card Form */}
               <AnimatePresence>
-                {showAddCard && stripePromise && (
+                {showAddCard && stripePromise && clientSecret && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -348,14 +375,22 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                   >
                     <Card className="bg-white/5 border-white/10">
                       <CardContent className="p-6">
-                        <h3 className="text-white font-semibold mb-4">Add Card</h3>
+                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-green-400" />
+                          Add Card (Secure)
+                        </h3>
                         <Elements stripe={stripePromise}>
                           <StripePaymentForm
+                            clientSecret={clientSecret}
                             onSuccess={() => {
                               setShowAddCard(false);
+                              setClientSecret(null);
                               queryClient.invalidateQueries(['payment-methods']);
                             }}
-                            onCancel={() => setShowAddCard(false)}
+                            onCancel={() => {
+                              setShowAddCard(false);
+                              setClientSecret(null);
+                            }}
                           />
                         </Elements>
                       </CardContent>
