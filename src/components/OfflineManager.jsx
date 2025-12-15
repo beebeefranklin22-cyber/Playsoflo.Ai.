@@ -7,6 +7,13 @@ export default function OfflineManager() {
   const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
+    // Register service worker for offline caching
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        console.log('Service worker registration not available');
+      });
+    }
+
     const handleOnline = () => {
       setIsOnline(true);
       setShowNotification(true);

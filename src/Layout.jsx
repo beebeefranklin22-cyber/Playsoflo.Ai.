@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import OfflineManager from "./components/OfflineManager";
+import OfflineDataCache from "./components/OfflineDataCache";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -117,6 +118,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <PostHogProvider user={currentUser}>
       <OfflineManager />
+      <OfflineDataCache />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {

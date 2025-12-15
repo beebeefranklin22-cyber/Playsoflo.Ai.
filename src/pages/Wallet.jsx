@@ -6,6 +6,7 @@ import {
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
   Plus, Crown, Building2, Clock, Shield, FileText, Droplet
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
