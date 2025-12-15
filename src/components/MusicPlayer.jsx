@@ -194,6 +194,13 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
             {/* YouTube Video Player */}
             {isYouTube && showVideo && (
               <div className="mb-4 relative aspect-video bg-black rounded-lg overflow-hidden">
+                <Button
+                  onClick={() => setShowVideo(false)}
+                  className="absolute top-2 right-2 z-10 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
+                  size="sm"
+                >
+                  ✕
+                </Button>
                 <iframe
                   src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1`}
                   className="w-full h-full"
