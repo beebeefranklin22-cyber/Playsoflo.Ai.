@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Download, Calendar, Filter } from "lucide-react";
+import { X, Download, Calendar, Filter, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
