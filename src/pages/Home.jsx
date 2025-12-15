@@ -271,7 +271,7 @@ export default function Home() {
             {/* Post Header */}
             <div className="flex items-center justify-between px-4 py-3">
               <button
-                onClick={() => navigate(createPageUrl("UserProfile") + `?email=${post.created_by}`)}
+                onClick={() => navigate(createPageUrl("UserProfile") + `?user=${post.created_by}`)}
                 className="flex items-center gap-3"
               >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">

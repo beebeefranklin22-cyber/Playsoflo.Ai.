@@ -152,8 +152,7 @@ export default function UserProfile() {
                     variant="outline" 
                     className="bg-white/5 border-white/20 hover:bg-white/10"
                     onClick={() => {
-                      const conversationId = [currentUser.email, profileUser.email].sort().join('_');
-                      navigate(`/messages?conversation=${conversationId}`);
+                      navigate(createPageUrl("Messages") + `?user=${profileUser.email}`);
                     }}
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
