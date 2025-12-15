@@ -4,7 +4,7 @@ import {
   Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
-  Plus, Crown, Building2, Clock, Shield, FileText, Droplet
+  Plus, Crown, Building2, Clock, Shield, FileText, Droplet, Globe, Gift
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
