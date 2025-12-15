@@ -5,12 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   X, TrendingUp, Lock, Unlock, DollarSign, 
-  Calendar, Percent, RefreshCw, Plus, AlertCircle 
+  Calendar, Percent, RefreshCw, Plus, AlertCircle, Shield 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import Crypto2FAModal from "./Crypto2FAModal";
 
 export default function StakingManager({ currentUser, onClose }) {
   const queryClient = useQueryClient();
@@ -18,6 +19,8 @@ export default function StakingManager({ currentUser, onClose }) {
   const [selectedCrypto, setSelectedCrypto] = useState("ETH");
   const [stakeAmount, setStakeAmount] = useState("");
   const [lockPeriod, setLockPeriod] = useState(30);
+  const [show2FA, setShow2FA] = useState(false);
+  const [pendingStake, setPendingStake] = useState(null);
 
   // Fetch crypto wallets
   const { data: wallets = [] } = useQuery({
@@ -64,7 +67,7 @@ export default function StakingManager({ currentUser, onClose }) {
   ];
 
   const stakeMutation = useMutation({
-    mutationFn: async ({ currency, amount, lockDays }) => {
+    mutationFn: async ({ currency, amount, lockDays, valueUSD }) => {
       const wallet = wallets.find(w => w.currency === currency);
       const sfcBalance = currency === 'SoFloCoin' ? (currentUser.soflo_coins || 0) : 0;
       const availableBalance = currency === 'SoFloCoin' ? sfcBalance : (wallet?.balance || 0);
@@ -77,14 +80,18 @@ export default function StakingManager({ currentUser, onClose }) {
         throw new Error('Amount must be greater than 0');
       }
 
-      // Deduct from wallet
+      // Deduct from wallet and update daily staking usage
       if (currency === 'SoFloCoin') {
         await base44.auth.updateMe({
-          soflo_coins: sfcBalance - amount
+          soflo_coins: sfcBalance - amount,
+          daily_staking_used: (currentUser.daily_staking_used || 0) + (valueUSD || 0)
         });
       } else {
         await base44.entities.CryptoWallet.update(wallet.id, {
           balance: wallet.balance - amount
+        });
+        await base44.auth.updateMe({
+          daily_staking_used: (currentUser.daily_staking_used || 0) + (valueUSD || 0)
         });
       }
 
@@ -167,6 +174,52 @@ export default function StakingManager({ currentUser, onClose }) {
   const activeStakes = stakes.filter(s => s.status === 'active');
   const totalStaked = activeStakes.reduce((sum, s) => sum + s.amount, 0);
   const totalRewards = activeStakes.reduce((sum, s) => sum + (s.earned_rewards || 0), 0);
+
+  const handleStake = () => {
+    if (!stakeAmount || parseFloat(stakeAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    const dailyLimit = currentUser?.daily_crypto_staking_limit || 50000;
+    const dailyUsed = currentUser?.daily_staking_used || 0;
+    const valueUSD = parseFloat(stakeAmount) * 2; // Simplified calculation
+
+    if (dailyUsed + valueUSD > dailyLimit) {
+      toast.error(`Daily staking limit exceeded. Remaining: $${(dailyLimit - dailyUsed).toFixed(2)}`);
+      return;
+    }
+
+    if (currentUser?.crypto_2fa_enabled) {
+      setPendingStake({
+        currency: selectedCrypto,
+        amount: parseFloat(stakeAmount),
+        lockDays: lockPeriod,
+        valueUSD
+      });
+      setShow2FA(true);
+      return;
+    }
+
+    stakeMutation.mutate({
+      currency: selectedCrypto,
+      amount: parseFloat(stakeAmount),
+      lockDays: lockPeriod,
+      valueUSD
+    });
+  };
+
+  const handle2FAVerified = (verified) => {
+    setShow2FA(false);
+    if (verified && pendingStake) {
+      stakeMutation.mutate(pendingStake);
+    }
+    setPendingStake(null);
+  };
+
+  if (show2FA) {
+    return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="staking" />;
+  }
 
   return (
     <motion.div
@@ -457,11 +510,7 @@ export default function StakingManager({ currentUser, onClose }) {
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => stakeMutation.mutate({
-                        currency: selectedCrypto,
-                        amount: parseFloat(stakeAmount),
-                        lockDays: lockPeriod
-                      })}
+                      onClick={handleStake}
                       disabled={!stakeAmount || parseFloat(stakeAmount) <= 0 || stakeMutation.isPending}
                       className="flex-1 bg-purple-600 hover:bg-purple-700"
                     >
