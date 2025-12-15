@@ -57,6 +57,17 @@ export default function UserProfile() {
     enabled: !!profileUser?.email
   });
 
+  const { data: listeningHistory = [] } = useQuery({
+    queryKey: ['user-history', profileUser?.email],
+    queryFn: async () => {
+      const history = await base44.entities.ListeningHistory.filter({
+        user_email: profileUser.email
+      });
+      return history.sort((a, b) => new Date(b.played_at) - new Date(a.played_at)).slice(0, 20);
+    },
+    enabled: !!profileUser?.email && (profileUser?.is_public_history || isOwnProfile)
+  });
+
   const isOwnProfile = currentUser?.email === profileUser?.email;
 
   if (loadingProfile) {
@@ -176,6 +187,17 @@ export default function UserProfile() {
           <Video className="w-5 h-5" />
           Videos
         </button>
+        {(profileUser.is_public_history || isOwnProfile) && (
+          <button
+            onClick={() => setActiveTab("music")}
+            className={`flex-1 py-3 flex items-center justify-center gap-2 ${
+              activeTab === "music" ? "border-b-2 border-purple-500 text-white" : "text-gray-400"
+            }`}
+          >
+            <Play className="w-5 h-5" />
+            Music
+          </button>
+        )}
       </div>
 
       {/* Content Grid */}
@@ -236,7 +258,30 @@ export default function UserProfile() {
         ))}
       </div>
 
-      {posts.length === 0 && (
+      {activeTab === "music" && (
+        <div className="p-4 space-y-3">
+          {listeningHistory.map((item, idx) => (
+            <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition">
+              <img
+                src={item.cover_art_url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=100"}
+                alt={item.track_title}
+                className="w-14 h-14 rounded object-cover"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold truncate">{item.track_title}</p>
+                <p className="text-gray-400 text-sm truncate">{item.artist_name}</p>
+                <p className="text-gray-500 text-xs">{new Date(item.played_at).toLocaleDateString()}</p>
+              </div>
+              <Play className="w-5 h-5 text-purple-400" />
+            </div>
+          ))}
+          {listeningHistory.length === 0 && (
+            <div className="text-center py-10 text-gray-400">No listening history</div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "posts" && posts.length === 0 && (
         <div className="text-center py-20">
           <p className="text-gray-400">No posts yet</p>
         </div>
