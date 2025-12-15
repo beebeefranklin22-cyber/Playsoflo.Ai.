@@ -26,6 +26,7 @@ export default function Vibe() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [loadingMore, setLoadingMore] = useState(false);
+  const [recommendations, setRecommendations] = useState([]);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -187,6 +188,48 @@ export default function Vibe() {
     enabled: !!currentUser,
     initialData: []
   });
+
+  const { data: listeningHistory = [] } = useQuery({
+    queryKey: ['listening-history', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      try {
+        const history = await base44.entities.ListeningHistory.filter({
+          user_email: currentUser.email
+        });
+        return history.sort((a, b) => new Date(b.played_at) - new Date(a.played_at));
+      } catch (error) {
+        console.error('History fetch error:', error);
+        return [];
+      }
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  // Generate smart recommendations based on history
+  useEffect(() => {
+    if (listeningHistory.length > 0 && allTracks.length > 0) {
+      const historyGenres = listeningHistory.map(h => h.genre).filter(Boolean);
+      const historyArtists = listeningHistory.map(h => h.artist_name).filter(Boolean);
+      const historyIds = listeningHistory.map(h => h.track_id);
+
+      const scored = allTracks
+        .filter(t => !historyIds.includes(t.id || t.video_id))
+        .map(track => {
+          let score = 0;
+          if (historyGenres.includes(track.genre)) score += 3;
+          if (historyArtists.includes(track.artist_name || track.artist)) score += 2;
+          score += Math.random(); // Add randomness
+          return { track, score };
+        })
+        .sort((a, b) => b.score - a.score)
+        .map(item => item.track)
+        .slice(0, 20);
+
+      setRecommendations(scored);
+    }
+  }, [listeningHistory, allTracks]);
 
   const contributeToPoolMutation = useMutation({
     mutationFn: async ({ pool_id, amount, tier }) => {
@@ -380,8 +423,9 @@ export default function Vibe() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-xl border border-white/20 mb-6">
+          <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20 mb-6">
             <TabsTrigger value="discover">Discover</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="fan-pools">Fan Pools</TabsTrigger>
             <TabsTrigger value="charts">Charts</TabsTrigger>
             <TabsTrigger value="my-music">My Music</TabsTrigger>
@@ -622,6 +666,68 @@ export default function Vibe() {
             </div>
           </TabsContent>
 
+          <TabsContent value="history">
+            {listeningHistory.length > 0 ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-white">Recently Played</h2>
+                  <p className="text-gray-400 text-sm">{listeningHistory.length} tracks</p>
+                </div>
+                <div className="space-y-3">
+                  {listeningHistory.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => {
+                        const track = {
+                          id: item.track_id,
+                          video_id: item.video_id,
+                          title: item.track_title,
+                          name: item.track_title,
+                          artist_name: item.artist_name,
+                          artist: item.artist_name,
+                          cover_art_url: item.cover_art_url,
+                          image: item.cover_art_url,
+                          genre: item.genre,
+                          source: item.source
+                        };
+                        handleTrackClick(track);
+                      }}
+                      className="flex items-center gap-4 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition cursor-pointer"
+                    >
+                      <div className="text-gray-400 font-mono text-sm w-8">
+                        #{idx + 1}
+                      </div>
+                      <img
+                        src={item.cover_art_url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=100"}
+                        alt={item.track_title}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold truncate">{item.track_title}</p>
+                        <p className="text-gray-400 text-sm truncate">{item.artist_name}</p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {new Date(item.played_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <Badge className="bg-purple-500/20 text-purple-400 capitalize">
+                        {item.source}
+                      </Badge>
+                      <button className="p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition">
+                        <Play className="w-5 h-5 text-white ml-0.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No listening history yet</h3>
+                <p className="text-gray-400">Start playing some music to see your history</p>
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="charts">
             <div className="space-y-6">
               <Card className="bg-white/5 border-white/10">
@@ -750,9 +856,13 @@ export default function Vibe() {
           onNext={handleNext}
           onPrevious={handlePrevious}
           onClose={() => setPlayingTrack(null)}
-          upcomingTracks={filteredTracks.slice(
-            filteredTracks.findIndex(t => t.id === playingTrack.id) + 1
-          )}
+          upcomingTracks={
+            recommendations.length > 0 
+              ? recommendations 
+              : filteredTracks.slice(
+                  filteredTracks.findIndex(t => t.id === playingTrack.id) + 1
+                )
+          }
         />
       )}
 

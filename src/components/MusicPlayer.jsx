@@ -33,6 +33,49 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // Track listening history
+  useEffect(() => {
+    const saveToHistory = async () => {
+      if (track && currentUser && isPlaying) {
+        try {
+          // Save to listening history
+          await base44.entities.ListeningHistory.create({
+            user_email: currentUser.email,
+            track_id: track.id || track.video_id,
+            track_title: track.title || track.name,
+            artist_name: track.artist_name || track.artist,
+            cover_art_url: track.cover_art_url || track.image,
+            genre: track.genre,
+            source: track.source || 'demo',
+            video_id: track.video_id,
+            played_at: new Date().toISOString()
+          });
+
+          // Keep only last 20 entries per user
+          const history = await base44.entities.ListeningHistory.filter({ 
+            user_email: currentUser.email 
+          });
+          if (history.length > 20) {
+            const toDelete = history.sort((a, b) => 
+              new Date(a.played_at) - new Date(b.played_at)
+            ).slice(0, history.length - 20);
+            for (const item of toDelete) {
+              await base44.entities.ListeningHistory.delete(item.id);
+            }
+          }
+        } catch (err) {
+          console.log('Failed to save history:', err);
+        }
+      }
+    };
+
+    if (isPlaying && track) {
+      // Save after 5 seconds of play to avoid accidental skips
+      const timer = setTimeout(saveToHistory, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [track, currentUser, isPlaying]);
+
   useEffect(() => {
     if (isYouTube) {
       // For YouTube tracks, just show the video player
