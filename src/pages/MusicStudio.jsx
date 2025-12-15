@@ -343,64 +343,131 @@ Make it legally sound, fair, and industry-standard.`;
         </div>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white/5 border-white/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 hover:border-purple-500/40 transition">
             <CardContent className="p-6">
-              <p className="text-3xl font-bold text-white">{totalStreams.toLocaleString()}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <Play className="w-8 h-8 text-purple-400" />
+              </div>
+              <p className="text-3xl font-bold text-white">{(totalStreams || 0).toLocaleString()}</p>
               <p className="text-gray-400 text-sm">Total Streams</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20 hover:border-green-500/40 transition">
             <CardContent className="p-6">
-              <p className="text-3xl font-bold text-white">${totalRevenue.toFixed(2)}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <DollarSign className="w-8 h-8 text-green-400" />
+              </div>
+              <p className="text-3xl font-bold text-white">${(totalRevenue || 0).toFixed(2)}</p>
               <p className="text-gray-400 text-sm">Revenue</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:border-blue-500/40 transition">
             <CardContent className="p-6">
-              <p className="text-3xl font-bold text-white">{myTracks.length}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <Music className="w-8 h-8 text-blue-400" />
+              </div>
+              <p className="text-3xl font-bold text-white">{myTracks?.length || 0}</p>
               <p className="text-gray-400 text-sm">Tracks</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border-yellow-500/20 hover:border-yellow-500/40 transition">
             <CardContent className="p-6">
-              <p className="text-3xl font-bold text-white">{myPools.length}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <Users className="w-8 h-8 text-yellow-400" />
+              </div>
+              <p className="text-3xl font-bold text-white">{myPools?.length || 0}</p>
               <p className="text-gray-400 text-sm">Fan Pools</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600 hover:bg-purple-700 py-6">
-            <Upload className="w-5 h-5 mr-2" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Button 
+            onClick={() => setShowUploadModal(true)} 
+            className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 py-8 text-lg font-bold shadow-lg hover:shadow-purple-500/50 transition-all"
+          >
+            <Upload className="w-6 h-6 mr-3" />
             Upload Music
           </Button>
-          <Button onClick={() => setShowPoolModal(true)} className="bg-blue-600 hover:bg-blue-700 py-6">
-            <Users className="w-5 h-5 mr-2" />
+          <Button 
+            onClick={() => setShowPoolModal(true)} 
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 py-8 text-lg font-bold shadow-lg hover:shadow-blue-500/50 transition-all"
+          >
+            <Users className="w-6 h-6 mr-3" />
             Create Fan Pool
           </Button>
-          <Button onClick={() => setShowContractModal(true)} className="bg-green-600 hover:bg-green-700 py-6">
-            <FileSignature className="w-5 h-5 mr-2" />
+          <Button 
+            onClick={() => setShowContractModal(true)} 
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 py-8 text-lg font-bold shadow-lg hover:shadow-green-500/50 transition-all"
+          >
+            <FileSignature className="w-6 h-6 mr-3" />
             AI Contract
           </Button>
-          <Button onClick={() => setShowDealModal(true)} className="bg-yellow-600 hover:bg-yellow-700 py-6">
-            <Briefcase className="w-5 h-5 mr-2" />
+          <Button 
+            onClick={() => setShowDealModal(true)} 
+            className="bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 py-8 text-lg font-bold shadow-lg hover:shadow-yellow-500/50 transition-all"
+          >
+            <Briefcase className="w-6 h-6 mr-3" />
             Apply for Deals
           </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="flex flex-wrap gap-3 bg-white/10 border border-white/20 p-4 justify-center">
-            <TabsTrigger value="analytics" className="text-base font-semibold px-6 py-4 min-w-[120px]">Analytics</TabsTrigger>
-            <TabsTrigger value="tracks" className="text-base font-semibold px-6 py-4 min-w-[120px]">Tracks</TabsTrigger>
-            <TabsTrigger value="pools" className="text-base font-semibold px-6 py-4 min-w-[120px]">Fan Pools</TabsTrigger>
-            <TabsTrigger value="mastering" className="text-base font-semibold px-6 py-4 min-w-[120px]">Mastering</TabsTrigger>
-            <TabsTrigger value="distribution" className="text-base font-semibold px-6 py-4 min-w-[120px]">Distribution</TabsTrigger>
-            <TabsTrigger value="sync" className="text-base font-semibold px-6 py-4 min-w-[120px]">Sync</TabsTrigger>
-            <TabsTrigger value="contracts" className="text-base font-semibold px-6 py-4 min-w-[120px]">Contracts</TabsTrigger>
-            <TabsTrigger value="deals" className="text-base font-semibold px-6 py-4 min-w-[120px]">Deal Apps</TabsTrigger>
-          </TabsList>
+          {/* Mobile: Horizontal Scroll Tabs */}
+          <div className="mb-6">
+            <TabsList className="flex md:grid md:grid-cols-4 lg:grid-cols-8 gap-2 overflow-x-auto pb-2 md:pb-0 bg-transparent md:bg-white/10 md:border md:border-white/20 md:p-3">
+              <TabsTrigger 
+                value="analytics" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-purple-500"
+              >
+                📊 Analytics
+              </TabsTrigger>
+              <TabsTrigger 
+                value="tracks" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-purple-600 data-[state=active]:text-white data-[state=active]:border-purple-500"
+              >
+                🎵 Tracks
+              </TabsTrigger>
+              <TabsTrigger 
+                value="pools" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-500"
+              >
+                👥 Fan Pools
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mastering" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-pink-600 data-[state=active]:text-white data-[state=active]:border-pink-500"
+              >
+                🎚️ Mastering
+              </TabsTrigger>
+              <TabsTrigger 
+                value="distribution" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-green-600 data-[state=active]:text-white data-[state=active]:border-green-500"
+              >
+                🚀 Distribution
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sync" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:border-indigo-500"
+              >
+                🎬 Sync
+              </TabsTrigger>
+              <TabsTrigger 
+                value="contracts" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:border-emerald-500"
+              >
+                📄 Contracts
+              </TabsTrigger>
+              <TabsTrigger 
+                value="deals" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-yellow-600 data-[state=active]:text-white data-[state=active]:border-yellow-500"
+              >
+                💼 Deals
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="analytics" className="mt-6">
             <AdvancedAnalytics tracks={myTracks} fanPools={myPools} />
@@ -419,41 +486,49 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsContent>
 
           <TabsContent value="tracks" className="mt-6">
-            {myTracks.length === 0 ? (
+            {!myTracks || myTracks.length === 0 ? (
               <div className="text-center py-20">
                 <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">No tracks yet</h3>
                 <p className="text-gray-400 mb-6">Upload your first track to start sharing your music</p>
-                <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600">
+                <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600 hover:bg-purple-700">
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Track
                 </Button>
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {myTracks.map((track) => (
-                  <Card key={track.id} className="bg-white/5 border-white/10">
+                  <Card key={track.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
                     <CardContent className="p-4">
-                      <h3 className="text-white font-bold mb-2">{track.title}</h3>
+                      {track.cover_art_url && (
+                        <img 
+                          src={track.cover_art_url} 
+                          alt={track.title}
+                          className="w-full h-48 object-cover rounded-lg mb-4"
+                        />
+                      )}
+                      <h3 className="text-white font-bold mb-2 text-lg">{track.title || 'Untitled Track'}</h3>
+                      <p className="text-gray-400 text-sm mb-3 capitalize">{track.genre || 'Unknown'}</p>
                       <div className="grid grid-cols-3 gap-2 text-xs mb-3">
-                        <div className="text-center">
-                          <p className="text-white font-bold">{track.stream_count || 0}</p>
+                        <div className="text-center bg-white/5 rounded-lg p-2">
+                          <p className="text-white font-bold text-lg">{track.stream_count || 0}</p>
                           <p className="text-gray-400">Streams</p>
                         </div>
-                        <div className="text-center">
-                          <p className="text-white font-bold">{track.download_count || 0}</p>
+                        <div className="text-center bg-white/5 rounded-lg p-2">
+                          <p className="text-white font-bold text-lg">{track.download_count || 0}</p>
                           <p className="text-gray-400">Downloads</p>
                         </div>
-                        <div className="text-center">
-                          <p className="text-green-400 font-bold">${(track.revenue_generated || 0).toFixed(0)}</p>
+                        <div className="text-center bg-white/5 rounded-lg p-2">
+                          <p className="text-green-400 font-bold text-lg">${(track.revenue_generated || 0).toFixed(0)}</p>
                           <p className="text-gray-400">Revenue</p>
                         </div>
                       </div>
                       <Button
                         size="sm"
                         onClick={() => setSelectedTrackForSplit(track)}
-                        className="w-full bg-purple-600"
+                        className="w-full bg-purple-600 hover:bg-purple-700"
                       >
                         <Users className="w-4 h-4 mr-2" />
                         Manage Splits
@@ -496,90 +571,120 @@ Make it legally sound, fair, and industry-standard.`;
           </TabsContent>
 
           <TabsContent value="contracts" className="mt-6">
-            <div className="space-y-4">
-              {myContracts.map((contract) => (
-                <Card key={contract.id} className="bg-white/5 border-white/10">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h3 className="text-white font-bold text-xl mb-1 capitalize">
-                          {contract.contract_type.replace('_', ' ')}
-                        </h3>
-                        <p className="text-gray-400 text-sm">
-                          {contract.parties?.length || 0} parties involved
-                        </p>
-                      </div>
-                      <Badge className={
-                        contract.status === 'all_signed' ? 'bg-green-500/20 text-green-400' :
-                        contract.status === 'pending_admin_review' ? 'bg-yellow-500/20 text-yellow-400' :
-                        contract.status === 'under_negotiation' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }>
-                        {contract.status.replace('_', ' ')}
-                      </Badge>
-                    </div>
-
-                    {contract.status === 'pending_admin_review' && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
-                        <p className="text-yellow-400 text-sm flex items-center gap-2">
-                          <AlertCircle className="w-4 h-4" />
-                          AI contract awaiting admin review & approval
-                        </p>
-                      </div>
-                    )}
-
-                    {contract.negotiation_history && contract.negotiation_history.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-gray-400 text-sm mb-2">Recent Activity:</p>
-                        <div className="bg-white/5 rounded-lg p-3">
-                          <p className="text-white text-sm">
-                            {contract.negotiation_history[contract.negotiation_history.length - 1].proposed_changes}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {myContracts && myContracts.length > 0 ? (
+                myContracts.map((contract) => (
+                  <Card key={contract.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-white font-bold text-xl mb-1 capitalize">
+                            {(contract.contract_type || 'contract').replace('_', ' ')}
+                          </h3>
+                          <p className="text-gray-400 text-sm">
+                            {contract.parties?.length || 0} parties involved
                           </p>
                         </div>
+                        <Badge className={
+                          contract.status === 'all_signed' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                          contract.status === 'pending_admin_review' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                          contract.status === 'under_negotiation' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                          'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                        }>
+                          {(contract.status || 'pending').replace('_', ' ')}
+                        </Badge>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
 
-              {myContracts.length === 0 && (
-                <div className="text-center py-20">
+                      {contract.status === 'pending_admin_review' && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                          <p className="text-yellow-400 text-sm flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            AI contract awaiting admin review
+                          </p>
+                        </div>
+                      )}
+
+                      {contract.negotiation_history && contract.negotiation_history.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-gray-400 text-sm mb-2">Recent Activity:</p>
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-white text-sm line-clamp-3">
+                              {contract.negotiation_history[contract.negotiation_history.length - 1].proposed_changes}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {contract.parties && contract.parties.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-gray-400 text-xs mb-2">Parties:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {contract.parties.map((party, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {party.name || party.email || 'Party ' + (idx + 1)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-20">
                   <FileSignature className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-bold text-white mb-2">No contracts yet</h3>
-                  <p className="text-gray-400">Generate AI-powered smart contracts for deals</p>
+                  <p className="text-gray-400 mb-6">Generate AI-powered smart contracts for deals</p>
+                  <Button onClick={() => setShowContractModal(true)} className="bg-green-600 hover:bg-green-700">
+                    <FileSignature className="w-4 h-4 mr-2" />
+                    Generate Contract
+                  </Button>
                 </div>
               )}
             </div>
           </TabsContent>
 
           <TabsContent value="deals" className="mt-6">
-            {myDealApplications.length === 0 ? (
+            {!myDealApplications || myDealApplications.length === 0 ? (
               <div className="text-center py-20">
                 <Briefcase className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">No deal applications yet</h3>
                 <p className="text-gray-400 mb-6">Apply for record labels, distribution, or sponsorships</p>
-                <Button onClick={() => setShowDealModal(true)} className="bg-yellow-600">
+                <Button onClick={() => setShowDealModal(true)} className="bg-yellow-600 hover:bg-yellow-700">
                   <Briefcase className="w-4 h-4 mr-2" />
                   Apply for Deals
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {myDealApplications.map((deal) => (
-                <Card key={deal.id} className="bg-white/5 border-white/10">
+                <Card key={deal.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
                   <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-white font-bold text-xl">{deal.artist_name}</h3>
-                        <p className="text-gray-400 capitalize">{deal.deal_type.replace('_', ' ')}</p>
+                        <h3 className="text-white font-bold text-xl mb-1">{deal.artist_name || currentUser?.full_name || 'Artist'}</h3>
+                        <p className="text-gray-400 capitalize text-sm">{(deal.deal_type || 'deal').replace('_', ' ')}</p>
                       </div>
                       <Badge className={
-                        deal.status === 'offer_made' ? 'bg-green-500/20 text-green-400' :
-                        'bg-yellow-500/20 text-yellow-400'
+                        deal.status === 'offer_made' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                        deal.status === 'accepted' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                        'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                       }>
-                        {deal.status.replace('_', ' ')}
+                        {(deal.status || 'pending').replace('_', ' ')}
                       </Badge>
                     </div>
+                    {deal.monthly_listeners && (
+                      <div className="bg-white/5 rounded-lg p-3 mb-3">
+                        <p className="text-gray-400 text-xs mb-1">Monthly Listeners</p>
+                        <p className="text-white font-bold text-lg">{deal.monthly_listeners.toLocaleString()}</p>
+                      </div>
+                    )}
+                    {deal.career_goals && (
+                      <div className="mt-3">
+                        <p className="text-gray-400 text-xs mb-1">Career Goals</p>
+                        <p className="text-white text-sm line-clamp-2">{deal.career_goals}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
