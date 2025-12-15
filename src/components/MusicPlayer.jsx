@@ -8,6 +8,7 @@ import {
   VolumeX, Repeat, Shuffle, Heart, ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { base44 } from "@/api/base44Client";
 
 export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomingTracks = [] }) {
   const audioRef = useRef(null);
@@ -23,8 +24,14 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const isYouTube = track?.source === 'youtube' && track?.video_id;
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isYouTube) {
@@ -190,7 +197,12 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      setComments([...comments, { text: newComment, date: new Date().toISOString() }]);
+      const userName = isAnonymous ? 'Anonymous' : (currentUser?.full_name || 'User');
+      setComments([...comments, { 
+        text: newComment, 
+        date: new Date().toISOString(),
+        author: userName
+      }]);
       setNewComment('');
     }
   };
@@ -253,24 +265,39 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
                 <div className="bg-white/5 rounded-xl p-4 backdrop-blur-xl">
                   <h4 className="text-white font-bold mb-4">Comments</h4>
                   
-                  <div className="flex gap-2 mb-4">
-                    <Input
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                      placeholder="Add a comment..."
-                      className="bg-white/10 border-white/20 text-white flex-1"
-                    />
-                    <Button onClick={handleAddComment} className="bg-purple-600">Post</Button>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex gap-2">
+                      <Input
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleAddComment()}
+                        placeholder="Add a comment..."
+                        className="bg-white/10 border-white/20 text-white flex-1"
+                      />
+                      <Button onClick={handleAddComment} className="bg-purple-600">Post</Button>
+                    </div>
+                    <label className="flex items-center gap-2 text-gray-300 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isAnonymous}
+                        onChange={(e) => setIsAnonymous(e.target.checked)}
+                        className="w-4 h-4 rounded border-white/20 bg-white/10"
+                      />
+                      Comment anonymously
+                    </label>
                   </div>
 
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {comments.map((comment, idx) => (
                       <div key={idx} className="bg-white/5 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-purple-400 text-sm font-semibold">{comment.author || 'User'}</p>
+                          <span className="text-gray-500 text-xs">•</span>
+                          <p className="text-gray-400 text-xs">
+                            {new Date(comment.date).toLocaleString()}
+                          </p>
+                        </div>
                         <p className="text-white text-sm">{comment.text}</p>
-                        <p className="text-gray-400 text-xs mt-1">
-                          {new Date(comment.date).toLocaleString()}
-                        </p>
                       </div>
                     ))}
                     {comments.length === 0 && (
