@@ -20,13 +20,19 @@ export default function OfflineDataCache() {
           
           // Also cache in IndexedDB if available
           if ('indexedDB' in window) {
-            const db = await openDB();
-            return new Promise((resolve) => {
-              const tx = db.transaction('cache', 'readwrite');
-              tx.objectStore('cache').put(state, 'query-cache');
-              tx.oncomplete = () => resolve();
-              tx.onerror = () => resolve();
-            });
+            try {
+              const db = await openDB();
+              if (db.objectStoreNames.contains('cache')) {
+                return new Promise((resolve) => {
+                  const tx = db.transaction('cache', 'readwrite');
+                  tx.objectStore('cache').put(state, 'query-cache');
+                  tx.oncomplete = () => resolve();
+                  tx.onerror = () => resolve();
+                });
+              }
+            } catch (err) {
+              console.error('IndexedDB cache error:', err);
+            }
           }
         } catch (err) {
           console.error('Cache persist error:', err);
@@ -47,23 +53,29 @@ export default function OfflineDataCache() {
           
           // Fallback to IndexedDB
           if ('indexedDB' in window) {
-            const db = await openDB();
-            return new Promise((resolve) => {
-              const tx = db.transaction('cache', 'readonly');
-              const request = tx.objectStore('cache').get('query-cache');
-              
-              request.onsuccess = () => {
-                const state = request.result;
-                if (state) {
-                  state.forEach(query => {
-                    queryClient.setQueryData(query.queryKey, query.state.data);
-                  });
-                }
-                resolve();
-              };
-              
-              request.onerror = () => resolve();
-            });
+            try {
+              const db = await openDB();
+              if (db.objectStoreNames.contains('cache')) {
+                return new Promise((resolve) => {
+                  const tx = db.transaction('cache', 'readonly');
+                  const request = tx.objectStore('cache').get('query-cache');
+                  
+                  request.onsuccess = () => {
+                    const state = request.result;
+                    if (state) {
+                      state.forEach(query => {
+                        queryClient.setQueryData(query.queryKey, query.state.data);
+                      });
+                    }
+                    resolve();
+                  };
+                  
+                  request.onerror = () => resolve();
+                });
+              }
+            } catch (err) {
+              console.error('IndexedDB restore error:', err);
+            }
           }
         } catch (err) {
           console.error('Cache restore error:', err);

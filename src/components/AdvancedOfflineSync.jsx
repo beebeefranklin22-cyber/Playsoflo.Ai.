@@ -30,6 +30,12 @@ export default function AdvancedOfflineSync() {
     try {
       const db = await openDB();
       
+      // Check if stores exist before accessing
+      if (!db.objectStoreNames.contains('pending_messages') || !db.objectStoreNames.contains('pending_payments')) {
+        console.log('IndexedDB stores not ready yet');
+        return;
+      }
+      
       // Sync pending messages
       const pendingMessages = await getFromStore(db, 'pending_messages');
       if (pendingMessages.length > 0) {
@@ -95,10 +101,18 @@ async function openDB() {
 
 async function getFromStore(db, storeName) {
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly');
-    const request = tx.objectStore(storeName).getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    try {
+      if (!db.objectStoreNames.contains(storeName)) {
+        resolve([]);
+        return;
+      }
+      const tx = db.transaction(storeName, 'readonly');
+      const request = tx.objectStore(storeName).getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve([]);
+    } catch (err) {
+      resolve([]);
+    }
   });
 }
 
@@ -119,6 +133,10 @@ async function deleteFromStore(db, storeName, id) {
 export async function cacheForOffline(storeName, data) {
   try {
     const db = await openDB();
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`Store ${storeName} does not exist`);
+      return;
+    }
     return new Promise((resolve) => {
       const tx = db.transaction(storeName, 'readwrite');
       tx.objectStore(storeName).put(data);
@@ -133,6 +151,10 @@ export async function cacheForOffline(storeName, data) {
 export async function queueForSync(storeName, data) {
   try {
     const db = await openDB();
+    if (!db.objectStoreNames.contains(storeName)) {
+      console.warn(`Store ${storeName} does not exist`);
+      return;
+    }
     return new Promise((resolve) => {
       const tx = db.transaction(storeName, 'readwrite');
       tx.objectStore(storeName).add({ data, timestamp: Date.now() });
