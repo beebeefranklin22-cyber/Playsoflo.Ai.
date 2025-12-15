@@ -95,23 +95,33 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     }
 
     setAddingPayment(true);
+    toast.loading("Preparing secure checkout...");
+    
     try {
-      const successUrl = `${window.location.origin}${window.location.pathname}?payment=success&action=add_card`;
-      const cancelUrl = `${window.location.origin}${window.location.pathname}?payment=cancelled`;
+      const baseUrl = window.location.origin;
+      const appPath = window.location.pathname.split('/')[1]; // Get app slug
+      const successUrl = `${baseUrl}/${appPath}#Wallet?payment=success`;
+      const cancelUrl = `${baseUrl}/${appPath}#Wallet?payment=cancelled`;
 
-      const { data } = await base44.functions.invoke('createStripeSetupSession', {
+      const response = await base44.functions.invoke('createStripeSetupSession', {
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
 
-      if (data?.setup_url) {
-        window.location.href = data.setup_url;
+      if (response?.data?.setup_url) {
+        toast.dismiss();
+        toast.success("Redirecting to secure payment setup...");
+        // Small delay to show success message
+        setTimeout(() => {
+          window.location.href = response.data.setup_url;
+        }, 500);
       } else {
-        throw new Error('No setup URL received from server');
+        throw new Error('No setup URL received');
       }
     } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error(error?.message || "Failed to start checkout");
+      console.error('Setup error:', error);
+      toast.dismiss();
+      toast.error(error?.response?.data?.error || error?.message || "Failed to start payment setup. Please try again.");
       setAddingPayment(false);
     }
   };

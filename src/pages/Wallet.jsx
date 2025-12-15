@@ -40,14 +40,21 @@ export default function Wallet() {
 
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
+    const action = searchParams.get('action');
+    
     if (paymentStatus === 'success') {
-      toast.success('Payment completed successfully!');
-      navigate(createPageUrl("Wallet"), { replace: true });
+      if (action === 'add_card') {
+        toast.success('✅ Payment method added successfully!');
+      } else {
+        toast.success('Payment completed successfully!');
+      }
+      // Clean URL without page reload
+      window.history.replaceState({}, '', createPageUrl("Wallet"));
     } else if (paymentStatus === 'cancelled') {
-      toast.error('Payment cancelled');
-      navigate(createPageUrl("Wallet"), { replace: true });
+      toast.error('Payment setup cancelled');
+      window.history.replaceState({}, '', createPageUrl("Wallet"));
     }
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   useEffect(() => {
     const checkLowBalance = async () => {
