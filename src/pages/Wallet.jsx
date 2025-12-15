@@ -405,27 +405,7 @@ export default function Wallet() {
             </div>
           </div>
 
-          <div className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-white font-semibold text-sm">Tax Reports</p>
-                  <p className="text-gray-400 text-xs">AI-powered</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActiveModal('tax-reports')}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-white text-xs font-medium transition-all hover:scale-105"
-              >
-                View
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl sm:col-span-2">
+          <div className="p-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
@@ -445,7 +425,134 @@ export default function Wallet() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+
+        {/* Tax Reporting Section */}
+        <div className="px-4 sm:px-6 mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          Tax Reporting (Optional)
+        </h3>
+
+        {/* Legal Disclaimer */}
+        <div className="bg-red-500/10 border-2 border-red-500/30 rounded-xl p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <Shield className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-300 font-semibold text-sm mb-2">⚠️ LEGAL DISCLAIMER</p>
+              <p className="text-red-200 text-xs leading-relaxed">
+                <strong>IMPORTANT:</strong> Tax reporting is provided as a convenience tool only. You are solely responsible for the accuracy of all tax information submitted to authorities. 
+                Submitting false or misleading tax information is against the law and may result in penalties. 
+                <strong className="block mt-2">PlaysoFlo and its affiliates are NOT tax advisors and are NOT legally liable for any errors, omissions, or false returns you may submit using these features.</strong>
+                <strong className="block mt-1">Always consult with a qualified tax professional before filing.</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl hover:border-green-500/40 transition-all cursor-pointer group"
+            onClick={() => setActiveModal('tax-reports')}
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <FileText className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h4 className="text-white font-bold text-lg">Generate Tax Report</h4>
+                <p className="text-gray-400 text-xs">AI-powered categorization</p>
+              </div>
+            </div>
+            <ul className="space-y-1 text-sm text-gray-300 mb-3">
+              <li>• Capital gains & losses</li>
+              <li>• IRS Form 8949 & Schedule D ready</li>
+              <li>• Export to CSV/PDF formats</li>
+            </ul>
+            <div className="flex items-center justify-between">
+              <Badge className="bg-green-500/20 text-green-400">Optional Feature</Badge>
+              <span className="text-green-400 text-sm font-medium group-hover:underline">Get Started →</span>
+            </div>
+          </motion.div>
+
+          <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
+            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-blue-400" />
+              What's Included
+            </h4>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 flex-shrink-0">✓</span>
+                <span>Automatic transaction analysis</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 flex-shrink-0">✓</span>
+                <span>AI transaction categorization</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 flex-shrink-0">✓</span>
+                <span>Cost basis calculations</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-400 flex-shrink-0">✓</span>
+                <span>Multiple format exports</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-400 flex-shrink-0">!</span>
+                <span className="text-yellow-300">Not tax advice - consult CPA</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        </div>
+
+        {/* DeFi Portfolio Section */}
+        <div className="px-4 sm:px-6 mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Droplet className="w-5 h-5" />
+          DeFi Portfolio Tracking
+        </h3>
+
+        <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <div className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl">
+            <p className="text-gray-400 text-xs mb-1">Liquidity Pools</p>
+            <p className="text-white text-xl font-bold">Track & Monitor</p>
+            <p className="text-purple-300 text-xs mt-1">Uniswap, Curve & more</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl">
+            <p className="text-gray-400 text-xs mb-1">Yield Farming</p>
+            <p className="text-white text-xl font-bold">APY Alerts</p>
+            <p className="text-blue-300 text-xs mt-1">Real-time monitoring</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
+            <p className="text-gray-400 text-xs mb-1">Lending Protocols</p>
+            <p className="text-white text-xl font-bold">Aave, Compound</p>
+            <p className="text-green-300 text-xs mt-1">Track earnings</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveModal('defi-tracker')}
+          className="w-full p-5 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border-2 border-pink-500/30 rounded-xl hover:border-pink-500/50 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-left">
+              <div className="w-12 h-12 bg-pink-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Droplet className="w-6 h-6 text-pink-400" />
+              </div>
+              <div>
+                <h4 className="text-white font-bold text-lg mb-1">Open DeFi Dashboard</h4>
+                <p className="text-gray-400 text-sm">View all your DeFi positions, rewards & impermanent loss</p>
+              </div>
+            </div>
+            <div className="text-pink-400 font-semibold group-hover:translate-x-1 transition-transform">
+              View Dashboard →
+            </div>
+          </div>
+        </button>
+        </div>
 
       {/* USD Balance Section */}
       <div className="px-4 sm:px-6 mb-6">
