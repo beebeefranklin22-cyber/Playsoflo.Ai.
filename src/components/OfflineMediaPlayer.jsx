@@ -39,14 +39,16 @@ export async function cacheMediaFile(url, trackId) {
     
     // Store metadata in IndexedDB
     const db = await openMusicDB();
-    const tx = db.transaction('cached_music', 'readwrite');
-    await tx.objectStore('cached_music').put({
-      id: trackId,
-      url,
-      cachedAt: Date.now()
+    return new Promise((resolve) => {
+      const tx = db.transaction('cached_music', 'readwrite');
+      tx.objectStore('cached_music').put({
+        id: trackId,
+        url,
+        cachedAt: Date.now()
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
     });
-    
-    console.log('✓ Media cached:', trackId);
   } catch (err) {
     console.error('Media cache error:', err);
   }

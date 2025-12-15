@@ -35,16 +35,21 @@ export default function RealtimeDataManager() {
 async function cachePrices(prices) {
   try {
     const db = await openPriceDB();
-    const tx = db.transaction('cached_crypto_prices', 'readwrite');
-    const store = tx.objectStore('cached_crypto_prices');
-    
-    for (const [currency, data] of Object.entries(prices)) {
-      await store.put({
-        currency,
-        data,
-        cachedAt: Date.now()
-      });
-    }
+    return new Promise((resolve) => {
+      const tx = db.transaction('cached_crypto_prices', 'readwrite');
+      const store = tx.objectStore('cached_crypto_prices');
+      
+      for (const [currency, data] of Object.entries(prices)) {
+        store.put({
+          currency,
+          data,
+          cachedAt: Date.now()
+        });
+      }
+      
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
   } catch (err) {
     console.error('Price cache error:', err);
   }
@@ -53,18 +58,26 @@ async function cachePrices(prices) {
 async function getCachedPrices() {
   try {
     const db = await openPriceDB();
-    const tx = db.transaction('cached_crypto_prices', 'readonly');
-    const items = await tx.objectStore('cached_crypto_prices').getAll();
-    
-    const prices = {};
-    items.forEach(item => {
-      // Only use prices less than 5 minutes old
-      if (Date.now() - item.cachedAt < 5 * 60 * 1000) {
-        prices[item.currency] = item.data;
-      }
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('cached_crypto_prices', 'readonly');
+      const request = tx.objectStore('cached_crypto_prices').getAll();
+      
+      request.onsuccess = () => {
+        const items = request.result || [];
+        const prices = {};
+        
+        items.forEach(item => {
+          // Only use prices less than 5 minutes old
+          if (Date.now() - item.cachedAt < 5 * 60 * 1000) {
+            prices[item.currency] = item.data;
+          }
+        });
+        
+        resolve(Object.keys(prices).length > 0 ? prices : null);
+      };
+      
+      request.onerror = () => resolve(null);
     });
-    
-    return Object.keys(prices).length > 0 ? prices : null;
   } catch (err) {
     console.error('Price retrieval error:', err);
     return null;

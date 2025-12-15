@@ -12,13 +12,18 @@ export default function AdvancedOfflineSync() {
     }, 60000); // Every minute
 
     // Sync on visibility change
-    document.addEventListener('visibilitychange', () => {
+    const handleVisibility = () => {
       if (!document.hidden && navigator.onLine) {
         syncOfflineData();
       }
-    });
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibility);
 
-    return () => clearInterval(syncInterval);
+    return () => {
+      clearInterval(syncInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const syncOfflineData = async () => {
@@ -98,11 +103,15 @@ async function getFromStore(db, storeName) {
 }
 
 async function deleteFromStore(db, storeName, id) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite');
-    const request = tx.objectStore(storeName).delete(id);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(storeName, 'readwrite');
+      const request = tx.objectStore(storeName).delete(id);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+    } catch (err) {
+      resolve();
+    }
   });
 }
 
@@ -110,8 +119,12 @@ async function deleteFromStore(db, storeName, id) {
 export async function cacheForOffline(storeName, data) {
   try {
     const db = await openDB();
-    const tx = db.transaction(storeName, 'readwrite');
-    await tx.objectStore(storeName).put(data);
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).put(data);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
   } catch (err) {
     console.error('Cache error:', err);
   }
@@ -120,9 +133,15 @@ export async function cacheForOffline(storeName, data) {
 export async function queueForSync(storeName, data) {
   try {
     const db = await openDB();
-    const tx = db.transaction(storeName, 'readwrite');
-    await tx.objectStore(storeName).add({ data, timestamp: Date.now() });
-    toast.info('Action queued for sync when online');
+    return new Promise((resolve) => {
+      const tx = db.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).add({ data, timestamp: Date.now() });
+      tx.oncomplete = () => {
+        toast.info('Action queued for sync when online');
+        resolve();
+      };
+      tx.onerror = () => resolve();
+    });
   } catch (err) {
     console.error('Queue error:', err);
   }

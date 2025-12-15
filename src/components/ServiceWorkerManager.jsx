@@ -4,8 +4,8 @@ import { toast } from 'sonner';
 export default function ServiceWorkerManager() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      // Register service worker
-      navigator.serviceWorker.register('/sw-advanced.js')
+      // Register service worker (will be created by build process)
+      navigator.serviceWorker.register('/sw.js')
         .then(registration => {
           console.log('✓ Service Worker registered');
           
@@ -34,11 +34,11 @@ export default function ServiceWorkerManager() {
       });
 
       // Handle background sync
-      if ('sync' in registration) {
-        navigator.serviceWorker.ready.then(swRegistration => {
-          return swRegistration.sync.register('sync-queue');
-        });
-      }
+      navigator.serviceWorker.ready.then(swRegistration => {
+        if ('sync' in swRegistration) {
+          return swRegistration.sync.register('sync-queue').catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     // Enable background fetch for large files (music/video)
