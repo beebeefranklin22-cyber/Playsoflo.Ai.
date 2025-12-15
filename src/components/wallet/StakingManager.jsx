@@ -237,14 +237,22 @@ export default function StakingManager({ currentUser, onClose }) {
         className="w-full max-w-6xl bg-gray-900 rounded-3xl overflow-hidden my-8"
       >
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-white">Crypto Staking</h2>
-              <p className="text-purple-100">Earn passive income on your crypto</p>
-            </div>
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Back to Wallet
+            </Button>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
               <X className="w-6 h-6 text-white" />
             </button>
+          </div>
+          <div>
+            <h2 className="text-3xl font-bold text-white">Crypto Staking</h2>
+            <p className="text-purple-100">Earn passive income on your crypto</p>
           </div>
 
           {/* Stats */}
