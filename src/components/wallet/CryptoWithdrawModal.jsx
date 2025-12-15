@@ -65,6 +65,10 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
     setConfirming(true);
     try {
       // Update wallet balance
+      if (!currentWallet) {
+        throw new Error(`No ${selectedCrypto} wallet found`);
+      }
+      
       await base44.entities.CryptoWallet.update(currentWallet.id, {
         balance: availableBalance - totalAmount
       });

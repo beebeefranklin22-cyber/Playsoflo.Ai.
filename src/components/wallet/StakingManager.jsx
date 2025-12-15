@@ -70,7 +70,11 @@ export default function StakingManager({ currentUser, onClose }) {
       const availableBalance = currency === 'SoFloCoin' ? sfcBalance : (wallet?.balance || 0);
 
       if (amount > availableBalance) {
-        throw new Error('Insufficient balance');
+        throw new Error(`Insufficient balance. Available: ${availableBalance.toFixed(4)} ${currency}`);
+      }
+
+      if (amount <= 0) {
+        throw new Error('Amount must be greater than 0');
       }
 
       // Deduct from wallet

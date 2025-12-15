@@ -296,50 +296,45 @@ export default function Wallet() {
               <span className="text-white text-xs font-medium">Wire</span>
             </button>
 
-            <button 
-              onClick={() => setActiveModal('crypto-deposit')}
-              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
-            >
-              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                <ArrowDownLeft className="w-6 h-6 text-green-400" />
-              </div>
-              <span className="text-white text-xs font-medium">Deposit</span>
-            </button>
 
-            <button 
-              onClick={() => setActiveModal('crypto-withdraw')}
-              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
-            >
-              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                <ArrowUpRight className="w-6 h-6 text-red-400" />
-              </div>
-              <span className="text-white text-xs font-medium">Send Crypto</span>
-            </button>
-
-            <button 
-              onClick={() => setActiveModal('staking')}
-              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
-            >
-              <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-400" />
-              </div>
-              <span className="text-white text-xs font-medium">Staking</span>
-            </button>
           </div>
         </motion.div>
       </div>
 
-      {/* Assets */}
+      {/* Crypto Wallet Section */}
       <div className="px-6 mb-8">
-        <h3 className="text-xl font-bold text-white mb-4">Your Assets</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-white">Crypto Wallet</h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveModal('crypto-deposit')}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm font-medium transition"
+            >
+              Deposit
+            </button>
+            <button
+              onClick={() => setActiveModal('crypto-withdraw')}
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white text-sm font-medium transition"
+            >
+              Withdraw
+            </button>
+            <button
+              onClick={() => setActiveModal('exchange')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition"
+            >
+              Exchange
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-3">
-          {cryptoAssets.map((asset, index) => (
+          {cryptoAssets.filter(a => a.symbol !== 'USD').map((asset, index) => (
             <motion.div
               key={asset.symbol}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="glass-effect rounded-2xl p-5 hover:bg-white/10 transition cursor-pointer"
+              className="glass-effect rounded-2xl p-5 hover:bg-white/10 transition"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -349,7 +344,7 @@ export default function Wallet() {
                   <div>
                     <h4 className="text-white font-semibold">{asset.name}</h4>
                     <p className="text-gray-400 text-sm">
-                      {showBalance ? `${asset.balance} ${asset.symbol}` : "••••"}
+                      {showBalance ? `${asset.balance.toFixed(8)} ${asset.symbol}` : "••••"}
                     </p>
                   </div>
                 </div>
@@ -366,6 +361,68 @@ export default function Wallet() {
             </motion.div>
           ))}
         </div>
+
+        {/* Crypto Quick Actions */}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <button
+            onClick={() => setActiveModal('staking')}
+            className="glass-effect rounded-xl p-4 hover:bg-white/10 transition text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-white font-semibold">Staking</p>
+                <p className="text-gray-400 text-xs">Earn up to 12% APY</p>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate(createPageUrl("Wallet"))}
+            className="glass-effect rounded-xl p-4 hover:bg-white/10 transition text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <Bitcoin className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-white font-semibold">Portfolio</p>
+                <p className="text-gray-400 text-xs">Manage assets</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* USD Balance Section */}
+      <div className="px-6 mb-8">
+        <h3 className="text-xl font-bold text-white mb-4">Fiat Balance</h3>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="glass-effect rounded-2xl p-5 hover:bg-white/10 transition"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h4 className="text-white font-semibold">USD Balance</h4>
+                <p className="text-gray-400 text-sm">
+                  {showBalance ? `${(currentUser?.usd_balance || 0).toFixed(2)} USD` : "••••"}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <p className="text-white font-semibold">
+                {showBalance ? `$${(currentUser?.usd_balance || 0).toFixed(2)}` : "••••"}
+              </p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Manage Utilities CTA */}

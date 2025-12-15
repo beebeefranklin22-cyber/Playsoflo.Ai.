@@ -77,7 +77,8 @@ export default function CryptoDepositModal({ currentUser, onClose }) {
         exchange_rate: 1,
         fee: 0,
         status: "completed",
-        blockchain_tx_hash: `0x${Math.random().toString(16).substring(2, 66)}`
+        blockchain_tx_hash: `0x${Math.random().toString(16).substring(2, 66)}`,
+        recipient_address: walletAddress
       });
 
       // Notification
