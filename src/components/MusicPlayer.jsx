@@ -26,6 +26,7 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
   const [newComment, setNewComment] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isMinimized, setIsMinimized] = useState(false);
   
   const isYouTube = track?.source === 'youtube' && track?.video_id;
 
@@ -252,8 +253,46 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
 
   return (
     <AnimatePresence>
+      {/* Minimized Mini Player */}
+      {isMinimized && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          className="fixed bottom-20 right-4 z-40"
+        >
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-900/95 to-pink-900/95 border border-white/20 backdrop-blur-xl rounded-full shadow-2xl hover:scale-105 transition-transform"
+          >
+            <img
+              src={track.cover_art_url || track.album?.images?.[0]?.url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=100"}
+              alt={track.title || track.name || "Music"}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="max-w-[150px]">
+              <p className="text-white font-semibold text-sm truncate">{track.title || track.name}</p>
+              <p className="text-gray-300 text-xs truncate">{track.artist_name || track.artist}</p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4 text-purple-900" />
+              ) : (
+                <Play className="w-4 h-4 text-purple-900 ml-0.5" />
+              )}
+            </button>
+          </button>
+        </motion.div>
+      )}
+
       {/* Full Screen Video Modal */}
-      {isYouTube && showVideo && (
+      {!isMinimized && isYouTube && showVideo && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -385,15 +424,28 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
         </motion.div>
       )}
 
-      {/* Mini Player */}
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-20 left-0 right-0 z-40"
-      >
+      {/* Full Player */}
+      {!isMinimized && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          drag="y"
+          dragConstraints={{ top: 0, bottom: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(e, info) => {
+            if (info.offset.y > 100) {
+              setIsMinimized(true);
+            }
+          }}
+          className="fixed bottom-20 left-0 right-0 z-40"
+        >
         <Card className="mx-4 bg-gradient-to-r from-purple-900/95 to-pink-900/95 border-white/20 backdrop-blur-xl">
           <CardContent className="p-4">
+            {/* Drag Handle */}
+            <div className="flex justify-center mb-2">
+              <div className="w-12 h-1 bg-white/30 rounded-full" />
+            </div>
             {!isYouTube && <audio ref={audioRef} preload="auto" />}
             
             {error && (
@@ -451,6 +503,14 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
                     <ExternalLink className="w-5 h-5" />
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => setIsMinimized(true)}
+                >
+                  <span className="text-lg">↓</span>
+                </Button>
               </div>
             </div>
 
@@ -546,6 +606,7 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
           </CardContent>
         </Card>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }
