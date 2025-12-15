@@ -16,8 +16,18 @@ Deno.serve(async (req) => {
 
     const { payment_method_id } = await req.json();
 
+    if (!payment_method_id) {
+      return Response.json({ error: 'Payment method ID required' }, { status: 400 });
+    }
+
+    console.log('Saving payment method:', payment_method_id, 'for user:', user.email);
+
     // Get payment method details from Stripe
     const paymentMethod = await stripe.paymentMethods.retrieve(payment_method_id);
+
+    if (!paymentMethod) {
+      return Response.json({ error: 'Invalid payment method' }, { status: 400 });
+    }
 
     // Check if this is the first payment method
     const existingMethods = await base44.entities.PaymentMethod.filter({
@@ -25,8 +35,10 @@ Deno.serve(async (req) => {
       status: 'active'
     });
 
+    console.log('Existing payment methods:', existingMethods.length);
+
     // Save to database
-    await base44.entities.PaymentMethod.create({
+    const savedMethod = await base44.entities.PaymentMethod.create({
       user_email: user.email,
       type: paymentMethod.type,
       stripe_payment_method_id: paymentMethod.id,
@@ -45,10 +57,14 @@ Deno.serve(async (req) => {
       status: 'active'
     });
 
-    return Response.json({ success: true });
+    console.log('Payment method saved successfully:', savedMethod.id);
+
+    return Response.json({ success: true, method: savedMethod });
 
   } catch (error) {
     console.error('Save payment method error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ 
+      error: error.message || 'Failed to save payment method' 
+    }, { status: 500 });
   }
 });

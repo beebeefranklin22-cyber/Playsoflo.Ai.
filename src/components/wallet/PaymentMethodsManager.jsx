@@ -63,21 +63,26 @@ function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+      <div className="bg-white rounded-xl p-4 border border-gray-300">
         <CardElement
           options={{
             style: {
               base: {
                 fontSize: '16px',
-                color: '#fff',
-                '::placeholder': { color: '#aab7c4' },
+                color: '#000',
+                '::placeholder': { color: '#6b7280' },
+                fontFamily: 'system-ui, -apple-system, sans-serif',
               },
-              invalid: { color: '#fa755a' },
+              invalid: { color: '#ef4444' },
             },
             hidePostalCode: false
           }}
         />
       </div>
+      <p className="text-gray-400 text-xs">
+        <Shield className="w-3 h-3 inline mr-1" />
+        Your card details are encrypted and secure
+      </p>
       <div className="flex gap-3">
         <Button
           type="button"
@@ -90,7 +95,7 @@ function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
         </Button>
         <Button
           type="submit"
-          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600"
+          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
           disabled={!stripe || processing}
         >
           {processing ? (

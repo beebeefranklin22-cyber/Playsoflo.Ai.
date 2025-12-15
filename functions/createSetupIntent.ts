@@ -14,10 +14,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('Creating setup intent for user:', user.email);
+
     // Create or get Stripe customer
     let customerId = user.stripe_customer_id;
     
     if (!customerId) {
+      console.log('Creating new Stripe customer...');
       const customer = await stripe.customers.create({
         email: user.email,
         name: user.full_name,
@@ -25,22 +28,33 @@ Deno.serve(async (req) => {
       });
       customerId = customer.id;
       await base44.auth.updateMe({ stripe_customer_id: customerId });
+      console.log('Stripe customer created:', customerId);
     }
 
     // Create SetupIntent for in-app payment method collection
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ['card', 'us_bank_account'],
+      payment_method_types: ['card'],
       metadata: { user_email: user.email }
     });
 
+    console.log('Setup intent created:', setupIntent.id);
+
+    const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY');
+    
+    if (!publishableKey) {
+      throw new Error('Stripe publishable key not configured');
+    }
+
     return Response.json({
       client_secret: setupIntent.client_secret,
-      publishable_key: Deno.env.get('STRIPE_PUBLISHABLE_KEY')
+      publishable_key: publishableKey
     });
 
   } catch (error) {
     console.error('Setup intent error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ 
+      error: error.message || 'Failed to create setup intent'
+    }, { status: 500 });
   }
 });
