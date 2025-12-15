@@ -2,15 +2,17 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Gift, TrendingUp, Users, Lock, DollarSign, Award, Calendar, Sparkles } from "lucide-react";
+import { X, Gift, TrendingUp, Users, Lock, DollarSign, Award, Calendar, Sparkles, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import HelpModal from "../onboarding/HelpModal";
 
 export default function RewardsProgram({ currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
+  const [showHelp, setShowHelp] = useState(false);
 
   const { data: rewards = [] } = useQuery({
     queryKey: ['crypto-rewards', currentUser.email],
@@ -69,6 +71,10 @@ export default function RewardsProgram({ currentUser, onClose }) {
     { icon: DollarSign, label: 'Trading Volume', desc: 'Trade to earn', reward: '0.05% cashback' },
   ];
 
+  if (showHelp) {
+    return <HelpModal topic="rewards" onClose={() => setShowHelp(false)} />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -93,9 +99,20 @@ export default function RewardsProgram({ currentUser, onClose }) {
               </h2>
               <p className="text-purple-100">Earn crypto for your activity</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
-              <X className="w-6 h-6 text-white" />
-            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setShowHelp(true)}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white"
+                size="sm"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                How Rewards Work
+              </Button>
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">

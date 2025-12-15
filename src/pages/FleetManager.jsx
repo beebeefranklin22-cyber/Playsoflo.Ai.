@@ -23,6 +23,9 @@ import FleetAIAssistant from "../components/fleet/FleetAIAssistant";
 import FleetDisputeResolution from "../components/fleet/FleetDisputeResolution";
 import FleetInsightsModule from "../components/fleet/FleetInsightsModule";
 import FleetDashboard from "../components/fleet/FleetDashboard";
+import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingFlow";
+import FeatureTooltip from "../components/onboarding/FeatureTooltip";
+import HelpModal from "../components/onboarding/HelpModal";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -32,11 +35,30 @@ export default function FleetManager() {
   const [selectedCar, setSelectedCar] = useState(null);
   const [selectedCarForCalendar, setSelectedCarForCalendar] = useState(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHelp, setShowHelp] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  // Check if onboarding needed
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!currentUser) return;
+      
+      const onboarding = await base44.entities.ProviderOnboarding.filter({
+        user_email: currentUser.email,
+        provider_type: 'car_rental'
+      });
+
+      if (onboarding.length === 0 || !onboarding[0].onboarding_completed) {
+        setShowOnboarding(true);
+      }
+    };
+    checkOnboarding();
+  }, [currentUser]);
 
   const { data: myCars = [] } = useQuery({
     queryKey: ['my-fleet', currentUser?.email],
@@ -94,21 +116,37 @@ export default function FleetManager() {
             <p className="text-gray-300 text-lg">Manage your rental car fleet efficiently</p>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={() => setShowAIAssistant(true)}
-              className="bg-purple-600 hover:bg-purple-700"
+            <FeatureTooltip
+              id="fleet-ai-assistant"
+              title="AI Fleet Assistant"
+              description="Get AI-powered insights on pricing, maintenance scheduling, and customer inquiries. Ask questions about your fleet performance."
+              currentUser={currentUser}
             >
-              <Brain className="w-4 h-4 mr-2" />
-              AI Assistant
-            </Button>
-            <Button
-              onClick={() => setShowBulkUpload(true)}
-              variant="outline"
-              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              <Button
+                onClick={() => setShowAIAssistant(true)}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Brain className="w-4 h-4 mr-2" />
+                AI Assistant
+              </Button>
+            </FeatureTooltip>
+
+            <FeatureTooltip
+              id="fleet-bulk-upload"
+              title="Bulk Upload"
+              description="Upload multiple vehicles at once using a CSV file. Download the template, fill it out, and upload your entire fleet in seconds."
+              currentUser={currentUser}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Bulk Upload
-            </Button>
+              <Button
+                onClick={() => setShowBulkUpload(true)}
+                variant="outline"
+                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Bulk Upload
+              </Button>
+            </FeatureTooltip>
+
             <Button
               onClick={() => setShowAddModal(true)}
               className="bg-green-600 hover:bg-green-700"
@@ -383,6 +421,19 @@ export default function FleetManager() {
           pendingDisputes: myRentals.filter(r => r.status === 'disputed')
         }}
       />
+
+      {showOnboarding && currentUser && (
+        <ProviderOnboardingFlow
+          currentUser={currentUser}
+          providerType="car_rental"
+          onComplete={() => setShowOnboarding(false)}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
+
+      {showHelp && (
+        <HelpModal topic={showHelp} onClose={() => setShowHelp(null)} />
+      )}
     </div>
   );
 }

@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, ArrowRightLeft, Plus, Filter, Star, Shield, Clock, MessageCircle } from "lucide-react";
+import { X, ArrowRightLeft, Plus, Filter, Star, Shield, Clock, MessageCircle, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CreateP2POrderModal from "./CreateP2POrderModal";
 import P2POrderDetails from "./P2POrderDetails";
+import HelpModal from "../onboarding/HelpModal";
 
 export default function P2PTradingMarketplace({ currentUser, onClose }) {
   const queryClient = useQueryClient();
@@ -17,6 +18,7 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [filterCrypto, setFilterCrypto] = useState('all');
+  const [showHelp, setShowHelp] = useState(false);
 
   const { data: orders = [] } = useQuery({
     queryKey: ['p2p-orders', filterType, filterCrypto],
@@ -73,6 +75,10 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
 
   const cryptos = ['all', 'BTC', 'ETH', 'SoFloCoin', 'USDT', 'SOL'];
 
+  if (showHelp) {
+    return <HelpModal topic="p2p_trading" onClose={() => setShowHelp(false)} />;
+  }
+
   if (showCreateOrder) {
     return <CreateP2POrderModal currentUser={currentUser} onClose={() => setShowCreateOrder(false)} />;
   }
@@ -112,6 +118,14 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
               <p className="text-green-100">Trade crypto peer-to-peer with escrow protection</p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setShowHelp(true)}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                How P2P Works
+              </Button>
               <Button
                 onClick={() => setShowCreateOrder(true)}
                 className="bg-white text-green-600 hover:bg-gray-100"

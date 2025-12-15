@@ -5,13 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   X, TrendingUp, Lock, Unlock, DollarSign, 
-  Calendar, Percent, RefreshCw, Plus, AlertCircle, Shield 
+  Calendar, Percent, RefreshCw, Plus, AlertCircle, Shield, HelpCircle 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import Crypto2FAModal from "./Crypto2FAModal";
+import HelpModal from "../onboarding/HelpModal";
 
 export default function StakingManager({ currentUser, onClose }) {
   const queryClient = useQueryClient();
@@ -21,6 +22,7 @@ export default function StakingManager({ currentUser, onClose }) {
   const [lockPeriod, setLockPeriod] = useState(30);
   const [show2FA, setShow2FA] = useState(false);
   const [pendingStake, setPendingStake] = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Fetch crypto wallets
   const { data: wallets = [] } = useQuery({
@@ -217,6 +219,10 @@ export default function StakingManager({ currentUser, onClose }) {
     setPendingStake(null);
   };
 
+  if (showHelp) {
+    return <HelpModal topic="staking" onClose={() => setShowHelp(false)} />;
+  }
+
   if (show2FA) {
     return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="staking" />;
   }
@@ -238,14 +244,24 @@ export default function StakingManager({ currentUser, onClose }) {
       >
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
           <div className="flex items-center justify-between mb-2">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              className="border-white/30 text-white hover:bg-white/10"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Back to Wallet
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Back to Wallet
+              </Button>
+              <Button
+                onClick={() => setShowHelp(true)}
+                variant="outline"
+                className="border-white/30 text-white hover:bg-white/10"
+              >
+                <HelpCircle className="w-4 h-4 mr-2" />
+                How Staking Works
+              </Button>
+            </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
               <X className="w-6 h-6 text-white" />
             </button>

@@ -23,6 +23,9 @@ import PropertyReviewModal from "../components/property/PropertyReviewModal";
 import QuickEditPropertyModal from "../components/property/QuickEditPropertyModal";
 import BulkPropertyUpload from "../components/provider/BulkPropertyUpload";
 import PropertyDashboard from "../components/property/PropertyDashboard";
+import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingFlow";
+import FeatureTooltip from "../components/onboarding/FeatureTooltip";
+import HelpModal from "../components/onboarding/HelpModal";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -35,10 +38,29 @@ export default function PropertyProviderHub() {
   const [editingProperty, setEditingProperty] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHelp, setShowHelp] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  // Check if onboarding needed
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!currentUser) return;
+      
+      const onboarding = await base44.entities.ProviderOnboarding.filter({
+        user_email: currentUser.email,
+        provider_type: 'property'
+      });
+
+      if (onboarding.length === 0 || !onboarding[0].onboarding_completed) {
+        setShowOnboarding(true);
+      }
+    };
+    checkOnboarding();
+  }, [currentUser]);
 
   const [form, setForm] = useState({
     title: "",
@@ -176,14 +198,21 @@ export default function PropertyProviderHub() {
             <p className="text-gray-300">Manage your real estate listings</p>
           </div>
           <div className="flex gap-3">
-            <Button
-              onClick={() => setShowBulkUpload(true)}
-              variant="outline"
-              className="bg-white/5 border-white/20 text-white"
+            <FeatureTooltip
+              id="property-bulk-upload"
+              title="Bulk Property Upload"
+              description="List multiple properties at once using CSV. Perfect for landlords with multiple units or property managers with large portfolios."
+              currentUser={currentUser}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Bulk Upload
-            </Button>
+              <Button
+                onClick={() => setShowBulkUpload(true)}
+                variant="outline"
+                className="bg-white/5 border-white/20 text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Bulk Upload
+              </Button>
+            </FeatureTooltip>
             <Button
               onClick={() => setShowAddModal(true)}
               className="bg-emerald-600 hover:bg-emerald-700"
@@ -672,6 +701,19 @@ export default function PropertyProviderHub() {
             currentUser={currentUser}
             onClose={() => setShowBulkUpload(false)}
           />
+        )}
+
+        {showOnboarding && currentUser && (
+          <ProviderOnboardingFlow
+            currentUser={currentUser}
+            providerType="property"
+            onComplete={() => setShowOnboarding(false)}
+            onSkip={() => setShowOnboarding(false)}
+          />
+        )}
+
+        {showHelp && (
+          <HelpModal topic={showHelp} onClose={() => setShowHelp(null)} />
         )}
 
         {/* Add Property Modal */}
