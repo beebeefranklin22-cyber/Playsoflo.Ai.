@@ -11,14 +11,123 @@ import {
   Check, Trash2, Star, X, Shield, Wallet, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+function StripePaymentForm({ onSuccess, onCancel }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+    toast.loading("Securing your payment method...");
+
+    try {
+      // Get SetupIntent
+      const { data: intentData } = await base44.functions.invoke('createSetupIntent');
+      
+      // Confirm card setup
+      const { error, setupIntent } = await stripe.confirmCardSetup(
+        intentData.client_secret,
+        {
+          payment_method: {
+            card: elements.getElement(CardElement),
+          }
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Save to database
+      await base44.functions.invoke('savePaymentMethod', {
+        payment_method_id: setupIntent.payment_method
+      });
+
+      toast.dismiss();
+      toast.success("✅ Payment method added!");
+      onSuccess();
+    } catch (error) {
+      toast.dismiss();
+      toast.error(error.message || "Failed to add payment method");
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#fff',
+                '::placeholder': { color: '#aab7c4' },
+              },
+              invalid: { color: '#fa755a' },
+            },
+            hidePostalCode: false
+          }}
+        />
+      </div>
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="outline"
+          className="flex-1 border-white/20 text-white"
+          disabled={processing}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600"
+          disabled={!stripe || processing}
+        >
+          {processing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Shield className="w-4 h-4 mr-2" />
+              Add Card
+            </>
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function PaymentMethodsManager({ currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [showAddExternal, setShowAddExternal] = useState(false);
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
   const [externalType, setExternalType] = useState(null);
   const [externalUsername, setExternalUsername] = useState("");
-  const [addingPayment, setAddingPayment] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  // Initialize Stripe
+  React.useEffect(() => {
+    const initStripe = async () => {
+      const { data } = await base44.functions.invoke('createSetupIntent');
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+    };
+    if (currentUser && !stripePromise) {
+      initStripe();
+    }
+  }, [currentUser]);
 
   const { data: paymentMethods = [], isLoading } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
@@ -88,43 +197,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     }
   });
 
-  const handleAddStripePayment = async () => {
-    if (!currentUser) {
-      toast.error("Please log in to add payment methods");
-      return;
-    }
 
-    setAddingPayment(true);
-    toast.loading("Preparing secure checkout...");
-    
-    try {
-      const baseUrl = window.location.origin;
-      const appPath = window.location.pathname.split('/')[1]; // Get app slug
-      const successUrl = `${baseUrl}/${appPath}#Wallet?payment=success`;
-      const cancelUrl = `${baseUrl}/${appPath}#Wallet?payment=cancelled`;
-
-      const response = await base44.functions.invoke('createStripeSetupSession', {
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-      });
-
-      if (response?.data?.setup_url) {
-        toast.dismiss();
-        toast.success("Redirecting to secure payment setup...");
-        // Small delay to show success message
-        setTimeout(() => {
-          window.location.href = response.data.setup_url;
-        }, 500);
-      } else {
-        throw new Error('No setup URL received');
-      }
-    } catch (error) {
-      console.error('Setup error:', error);
-      toast.dismiss();
-      toast.error(error?.response?.data?.error || error?.message || "Failed to start payment setup. Please try again.");
-      setAddingPayment(false);
-    }
-  };
 
   const getIcon = (type) => {
     switch (type) {
@@ -207,21 +280,11 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                 </h3>
                 
                 <Button
-                  onClick={handleAddStripePayment}
-                  disabled={addingPayment}
+                  onClick={() => setShowAddCard(true)}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-lg font-semibold"
                 >
-                  {addingPayment ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Redirecting...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      Add Card or Bank Account
-                    </>
-                  )}
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Add Card or Bank Account
                 </Button>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -274,6 +337,32 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                   </p>
                 </div>
               </div>
+
+              {/* Add Card Form */}
+              <AnimatePresence>
+                {showAddCard && stripePromise && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <Card className="bg-white/5 border-white/10">
+                      <CardContent className="p-6">
+                        <h3 className="text-white font-semibold mb-4">Add Card</h3>
+                        <Elements stripe={stripePromise}>
+                          <StripePaymentForm
+                            onSuccess={() => {
+                              setShowAddCard(false);
+                              queryClient.invalidateQueries(['payment-methods']);
+                            }}
+                            onCancel={() => setShowAddCard(false)}
+                          />
+                        </Elements>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Add External Account Form */}
               <AnimatePresence>

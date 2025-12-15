@@ -1,0 +1,46 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import Stripe from 'npm:stripe@17.5.0';
+
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
+  apiVersion: '2024-12-18.acacia',
+});
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    
+    const user = await base44.auth.me();
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Create or get Stripe customer
+    let customerId = user.stripe_customer_id;
+    
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.full_name,
+        metadata: { user_id: user.id, user_email: user.email }
+      });
+      customerId = customer.id;
+      await base44.auth.updateMe({ stripe_customer_id: customerId });
+    }
+
+    // Create SetupIntent for in-app payment method collection
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card', 'us_bank_account'],
+      metadata: { user_email: user.email }
+    });
+
+    return Response.json({
+      client_secret: setupIntent.client_secret,
+      publishable_key: Deno.env.get('STRIPE_PUBLISHABLE_KEY')
+    });
+
+  } catch (error) {
+    console.error('Setup intent error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
