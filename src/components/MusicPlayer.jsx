@@ -10,54 +10,69 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
   const audioRef = useRef(null);
+  const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
+  const [showVideo, setShowVideo] = useState(false);
+  
+  const hasVideo = track?.video_id && track?.source === 'youtube';
+  const mediaRef = hasVideo ? videoRef : audioRef;
 
   useEffect(() => {
-    if (track && audioRef.current) {
+    if (track && mediaRef.current) {
       try {
-        // Use preview URL from Spotify or actual audio file URL
-        const audioUrl = track.preview_url || track.audio_file_url;
-        
-        if (audioUrl) {
-          audioRef.current.src = audioUrl;
-          audioRef.current.load();
-          
-          const playPromise = audioRef.current.play();
-          
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                setIsPlaying(true);
-                setError(null);
-              })
-              .catch(err => {
-                console.log('Playback failed:', err);
-                setIsPlaying(false);
-                setError('Unable to play audio. Try another track.');
-              });
+        if (hasVideo) {
+          // YouTube video - load iframe API if needed
+          if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            document.body.appendChild(tag);
           }
+          setError(null);
         } else {
-          setError('No audio available for this track');
+          // Audio playback
+          const audioUrl = track.preview_url || track.audio_file_url;
+          
+          if (audioUrl) {
+            audioRef.current.src = audioUrl;
+            audioRef.current.load();
+            
+            const playPromise = audioRef.current.play();
+            
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  setIsPlaying(true);
+                  setError(null);
+                })
+                .catch(err => {
+                  console.log('Playback failed:', err);
+                  setIsPlaying(false);
+                  setError('Unable to play audio. Try another track.');
+                });
+            }
+          } else {
+            setError('No audio available for this track');
+          }
         }
       } catch (err) {
-        console.error('Audio setup error:', err);
-        setError('Audio setup failed');
+        console.error('Media setup error:', err);
+        setError('Media setup failed');
       }
     }
-  }, [track]);
+  }, [track, hasVideo]);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const media = mediaRef.current;
+    if (!media || hasVideo) return;
 
     const updateTime = () => {
       try {
-        setCurrentTime(audio.currentTime || 0);
+        setCurrentTime(media.currentTime || 0);
       } catch (err) {
         console.error('Time update error:', err);
       }
@@ -65,7 +80,7 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
     
     const updateDuration = () => {
       try {
-        setDuration(audio.duration || 0);
+        setDuration(media.duration || 0);
       } catch (err) {
         console.error('Duration update error:', err);
       }
@@ -77,26 +92,29 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
     };
 
     const handleError = (e) => {
-      console.error('Audio playback error:', e);
+      console.error('Media playback error:', e);
       setError('Playback error occurred');
       setIsPlaying(false);
     };
 
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
+    media.addEventListener('timeupdate', updateTime);
+    media.addEventListener('loadedmetadata', updateDuration);
+    media.addEventListener('ended', handleEnded);
+    media.addEventListener('error', handleError);
 
     return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
+      media.removeEventListener('timeupdate', updateTime);
+      media.removeEventListener('loadedmetadata', updateDuration);
+      media.removeEventListener('ended', handleEnded);
+      media.removeEventListener('error', handleError);
     };
-  }, [onNext]);
+  }, [onNext, hasVideo]);
 
   const togglePlay = () => {
-    if (audioRef.current) {
+    if (hasVideo) {
+      setShowVideo(!showVideo);
+      setIsPlaying(!showVideo);
+    } else if (audioRef.current) {
       try {
         if (isPlaying) {
           audioRef.current.pause();
@@ -171,6 +189,32 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
 
   return (
     <AnimatePresence>
+      {showVideo && hasVideo && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          className="fixed inset-4 z-50 flex items-center justify-center bg-black/95"
+          onClick={() => setShowVideo(false)}
+        >
+          <div className="relative w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
+            <iframe
+              ref={videoRef}
+              src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1&controls=1`}
+              className="w-full h-full rounded-lg"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+            <Button
+              onClick={() => setShowVideo(false)}
+              className="absolute -top-12 right-0 bg-white/20 hover:bg-white/30"
+            >
+              Close Video
+            </Button>
+          </div>
+        </motion.div>
+      )}
+      
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -290,6 +334,14 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
               />
             </div>
 
+            {hasVideo && (
+              <div className="mt-3 text-center">
+                <p className="text-gray-400 text-xs">
+                  🎥 Click play to watch music video
+                </p>
+              </div>
+            )}
+            
             {track.source === 'spotify' && track.preview_url && (
               <div className="mt-3 text-center">
                 <p className="text-gray-400 text-xs">
