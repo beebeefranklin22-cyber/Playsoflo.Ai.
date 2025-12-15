@@ -21,6 +21,8 @@ import SubscriptionManagementModal from "../components/wallet/SubscriptionManage
 import WireTransferModal from "../components/wallet/WireTransferModal";
 import PaymentMethodsManager from "../components/wallet/PaymentMethodsManager";
 import PendingTransfersModal from "../components/wallet/PendingTransfersModal";
+import CryptoDepositModal from "../components/wallet/CryptoDepositModal";
+import CryptoWithdrawModal from "../components/wallet/CryptoWithdrawModal";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -269,6 +271,26 @@ export default function Wallet() {
               </div>
               <span className="text-white text-xs font-medium">Wire</span>
             </button>
+
+            <button 
+              onClick={() => setActiveModal('crypto-deposit')}
+              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
+            >
+              <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                <ArrowDownLeft className="w-6 h-6 text-green-400" />
+              </div>
+              <span className="text-white text-xs font-medium">Deposit</span>
+            </button>
+
+            <button 
+              onClick={() => setActiveModal('crypto-withdraw')}
+              className="flex flex-col items-center gap-2 p-4 bg-white/10 rounded-2xl hover:bg-white/20 transition"
+            >
+              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                <ArrowUpRight className="w-6 h-6 text-red-400" />
+              </div>
+              <span className="text-white text-xs font-medium">Send Crypto</span>
+            </button>
           </div>
         </motion.div>
       </div>
@@ -461,6 +483,12 @@ export default function Wallet() {
       )}
       {activeModal === 'pending' && currentUser && (
         <PendingTransfersModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'crypto-deposit' && currentUser && (
+        <CryptoDepositModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'crypto-withdraw' && currentUser && (
+        <CryptoWithdrawModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
     </div>
   );
