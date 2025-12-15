@@ -34,7 +34,7 @@ export default function RonronAI() {
     }).catch(() => {
       setMessages([{
         role: "assistant",
-        content: "Hey! I'm Ronron, your AI assistant. Please log in to get personalized help with bookings, payments, and more!"
+        content: "Hey! I'm Ronron, your AI assistant. I can help with general questions, but you'll need to sign in for personalized features!"
       }]);
     });
 
