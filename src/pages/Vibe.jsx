@@ -31,42 +31,65 @@ export default function Vibe() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  // Fetch music from Deezer + SoundCloud + user uploads
+  // Fetch music from SoundCloud + user uploads
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
     queryKey: ['music-discovery', selectedGenre, searchQuery],
     queryFn: async () => {
-      console.log('Fetching music for genre:', selectedGenre);
+      console.log('Fetching music - Genre:', selectedGenre, 'Search:', searchQuery);
       
       try {
-        const query = searchQuery || selectedGenre || 'popular';
+        // Build query - use search if available, otherwise use genre
+        const query = searchQuery?.trim() || selectedGenre !== 'all' ? selectedGenre : 'popular music';
+        
+        console.log('Calling fetchSoundCloudMusic with query:', query);
         
         // Fetch from SoundCloud
-        const soundcloudResponse = await base44.functions.invoke('fetchSoundCloudMusic', { query, genre: selectedGenre });
+        const soundcloudResponse = await base44.functions.invoke('fetchSoundCloudMusic', { 
+          query: query,
+          genre: selectedGenre !== 'all' ? selectedGenre : undefined
+        });
+        
+        console.log('SoundCloud response:', soundcloudResponse);
         
         const soundcloudTracks = soundcloudResponse?.data?.tracks || [];
         
-        console.log('SoundCloud tracks:', soundcloudTracks.length);
+        console.log('SoundCloud tracks found:', soundcloudTracks.length);
         
-        const allTracks = soundcloudTracks;
-        
-        if (allTracks.length > 0) {
-          // Shuffle for variety
-          return { tracks: allTracks.sort(() => Math.random() - 0.5), source: 'streaming' };
-        }
-        
-        // Fallback to user tracks if both APIs fail
+        // Also fetch user-uploaded tracks
         const userTracks = await base44.entities.MusicTrack.filter({
           status: "published"
         });
         
-        return { tracks: userTracks, source: 'user' };
+        console.log('User tracks found:', userTracks.length);
+        
+        // Combine both sources
+        const combinedTracks = [...soundcloudTracks, ...userTracks];
+        
+        if (combinedTracks.length > 0) {
+          // Shuffle for variety
+          return { 
+            tracks: combinedTracks.sort(() => Math.random() - 0.5), 
+            source: soundcloudTracks.length > 0 ? 'streaming' : 'user' 
+          };
+        }
+        
+        return { tracks: [], source: 'none' };
       } catch (error) {
         console.error('Music fetch error:', error);
-        return { tracks: [], source: 'none' };
+        
+        // Try to load user tracks as fallback
+        try {
+          const userTracks = await base44.entities.MusicTrack.filter({
+            status: "published"
+          });
+          return { tracks: userTracks, source: 'user' };
+        } catch {
+          return { tracks: [], source: 'none' };
+        }
       }
     },
     initialData: { tracks: [], source: 'none' },
-    retry: 2,
+    retry: 1,
     staleTime: 2 * 60 * 1000
   });
 
@@ -268,21 +291,21 @@ export default function Vibe() {
           </div>
 
           {/* Search */}
-          <form onSubmit={(e) => { e.preventDefault(); refetch(); }} className="relative">
+          <form onSubmit={(e) => { e.preventDefault(); console.log('Search submitted:', searchQuery); refetch(); }} className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && refetch()}
               placeholder="Search songs, artists, albums..."
-              className="pl-12 pr-24 bg-white/10 border-white/20 text-white placeholder-gray-400"
+              className="pl-12 pr-24 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
             />
             <Button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-purple-600 hover:bg-purple-700"
+              disabled={isLoading}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-purple-600 hover:bg-purple-700 h-9"
               size="sm"
             >
-              Search
+              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Search'}
             </Button>
           </form>
         </div>
