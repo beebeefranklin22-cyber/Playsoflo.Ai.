@@ -450,37 +450,7 @@ export default function Vibe() {
               ))}
             </div>
 
-            {/* Stats Banner */}
-            <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30 mb-6">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-6 h-6 text-purple-400" />
-                    <div>
-                      <p className="text-white font-bold">
-                        {filteredTracks.length.toLocaleString()} Songs • {
-                          musicData?.source === 'youtube' ? '🎵 YouTube Music' : 
-                          musicData?.source === 'user' ? '👤 User Uploads' : 
-                          '🎵 Demo Tracks'
-                        }
-                      </p>
-                      <p className="text-gray-400 text-sm">
-                        {isLoading ? 'Loading...' : queryError ? 'Error loading songs' : 'Ready to play'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={loadMoreSongs}
-                    disabled={loadingMore || isLoading}
-                    size="sm"
-                    className="bg-purple-600 hover:bg-purple-700"
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loadingMore ? 'animate-spin' : ''}`} />
-                    {loadingMore ? 'Loading...' : 'Refresh'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+
 
             {/* Debug info for troubleshooting */}
             {filteredTracks.length === 0 && !isLoading && queryError && (
