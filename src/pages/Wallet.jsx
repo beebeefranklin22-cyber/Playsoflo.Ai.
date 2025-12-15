@@ -4,7 +4,7 @@ import {
   Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
-  Plus, Crown, Building2, Clock, Shield
+  Plus, Crown, Building2, Clock, Shield, FileText, Droplet
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -25,6 +25,8 @@ import CryptoDepositModal from "../components/wallet/CryptoDepositModal";
 import CryptoWithdrawModal from "../components/wallet/CryptoWithdrawModal";
 import StakingManager from "../components/wallet/StakingManager";
 import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings";
+import TaxReportingModal from "../components/wallet/TaxReportingModal";
+import DeFiTracker from "../components/wallet/DeFiTracker";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -382,23 +384,65 @@ export default function Wallet() {
         </div>
 
         {/* Crypto Quick Actions */}
-        <div className="mt-4 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">Crypto Staking</p>
+                  <p className="text-gray-400 text-xs">Up to 12% APY</p>
+                </div>
               </div>
-              <div>
-                <p className="text-white font-semibold text-sm">Crypto Staking</p>
-                <p className="text-gray-400 text-xs">Earn passive income up to 12% APY</p>
-              </div>
+              <button
+                onClick={() => setActiveModal('staking')}
+                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-xs font-medium transition-all hover:scale-105"
+              >
+                Stake
+              </button>
             </div>
-            <button
-              onClick={() => setActiveModal('staking')}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm font-medium transition-all hover:scale-105"
-            >
-              Stake Now
-            </button>
+          </div>
+
+          <div className="p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">Tax Reports</p>
+                  <p className="text-gray-400 text-xs">AI-powered</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveModal('tax-reports')}
+                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-white text-xs font-medium transition-all hover:scale-105"
+              >
+                View
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 rounded-xl sm:col-span-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
+                  <Droplet className="w-5 h-5 text-pink-400" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">DeFi Portfolio</p>
+                  <p className="text-gray-400 text-xs">Track liquidity pools, farms & lending</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveModal('defi-tracker')}
+                className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 rounded-lg text-white text-xs font-medium transition-all hover:scale-105"
+              >
+                Track DeFi
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -631,6 +675,12 @@ export default function Wallet() {
       )}
       {activeModal === 'crypto-security' && currentUser && (
         <CryptoSecuritySettings currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'tax-reports' && currentUser && (
+        <TaxReportingModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'defi-tracker' && currentUser && (
+        <DeFiTracker currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
