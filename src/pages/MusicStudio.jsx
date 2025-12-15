@@ -391,15 +391,15 @@ Make it legally sound, fair, and industry-standard.`;
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-8 bg-white/10 border border-white/20">
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="tracks">Tracks</TabsTrigger>
-            <TabsTrigger value="pools">Fan Pools</TabsTrigger>
-            <TabsTrigger value="mastering">Mastering</TabsTrigger>
-            <TabsTrigger value="distribution">Distribution</TabsTrigger>
-            <TabsTrigger value="sync">Sync</TabsTrigger>
-            <TabsTrigger value="contracts">Contracts</TabsTrigger>
-            <TabsTrigger value="deals">Deal Apps</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-8 gap-2 bg-white/10 border border-white/20 p-2">
+            <TabsTrigger value="analytics" className="text-sm px-4 py-3">Analytics</TabsTrigger>
+            <TabsTrigger value="tracks" className="text-sm px-4 py-3">Tracks</TabsTrigger>
+            <TabsTrigger value="pools" className="text-sm px-4 py-3">Fan Pools</TabsTrigger>
+            <TabsTrigger value="mastering" className="text-sm px-4 py-3">Mastering</TabsTrigger>
+            <TabsTrigger value="distribution" className="text-sm px-4 py-3">Distribution</TabsTrigger>
+            <TabsTrigger value="sync" className="text-sm px-4 py-3">Sync</TabsTrigger>
+            <TabsTrigger value="contracts" className="text-sm px-4 py-3">Contracts</TabsTrigger>
+            <TabsTrigger value="deals" className="text-sm px-4 py-3">Deal Apps</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics" className="mt-6">
