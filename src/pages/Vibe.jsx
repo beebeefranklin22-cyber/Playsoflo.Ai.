@@ -112,31 +112,31 @@ export default function Vibe() {
         console.error('User tracks error:', error);
       }
       
-      // Try to fetch from SoundCloud
-      let soundcloudTracks = [];
+      // Try to fetch from YouTube Music
+      let youtubeTracks = [];
       try {
         const query = searchQuery?.trim() || (selectedGenre !== 'all' ? selectedGenre : 'popular music');
-        console.log('Calling fetchSoundCloudMusic with query:', query);
+        console.log('Calling fetchYouTubeMusic with query:', query);
         
-        const soundcloudResponse = await base44.functions.invoke('fetchSoundCloudMusic', { 
+        const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
           query: query,
-          genre: selectedGenre !== 'all' ? selectedGenre : undefined
+          maxResults: 50
         });
         
-        soundcloudTracks = soundcloudResponse?.data?.tracks || [];
-        console.log('SoundCloud tracks found:', soundcloudTracks.length);
+        youtubeTracks = youtubeResponse?.data?.tracks || [];
+        console.log('YouTube tracks found:', youtubeTracks.length);
       } catch (error) {
-        console.error('SoundCloud fetch error:', error);
+        console.error('YouTube fetch error:', error);
       }
       
       // Combine all sources
-      const combinedTracks = [...soundcloudTracks, ...userTracks];
+      const combinedTracks = [...youtubeTracks, ...userTracks];
       
       // If we have tracks, return them
       if (combinedTracks.length > 0) {
         return { 
           tracks: combinedTracks.sort(() => Math.random() - 0.5), 
-          source: soundcloudTracks.length > 0 ? 'streaming' : 'user' 
+          source: youtubeTracks.length > 0 ? 'youtube' : 'user' 
         };
       }
       
@@ -409,7 +409,7 @@ export default function Vibe() {
                     <div>
                       <p className="text-white font-bold">
                         {filteredTracks.length.toLocaleString()} Songs • {
-                          musicData?.source === 'streaming' ? '🎵 SoundCloud' : 
+                          musicData?.source === 'youtube' ? '🎵 YouTube Music' : 
                           musicData?.source === 'user' ? '👤 User Uploads' : 
                           '🎵 Demo Tracks'
                         }
@@ -494,9 +494,9 @@ export default function Vibe() {
                         <button className="p-1 hover:bg-white/10 rounded transition">
                           <Heart className="w-4 h-4 text-gray-400 hover:text-red-400" />
                         </button>
-                        {track.source === 'soundcloud' && (
-                          <Badge className="bg-orange-500/20 text-orange-400 text-xs">
-                            SoundCloud
+                        {track.source === 'youtube' && (
+                          <Badge className="bg-red-500/20 text-red-400 text-xs">
+                            YouTube
                           </Badge>
                         )}
                         {track.pricing_model && track.pricing_model !== 'free' && (
