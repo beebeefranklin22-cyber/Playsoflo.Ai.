@@ -35,6 +35,10 @@ export default function RealtimeDataManager() {
 async function cachePrices(prices) {
   try {
     const db = await openPriceDB();
+    if (!db.objectStoreNames.contains('cached_crypto_prices')) {
+      console.warn('cached_crypto_prices store not available');
+      return;
+    }
     return new Promise((resolve) => {
       const tx = db.transaction('cached_crypto_prices', 'readwrite');
       const store = tx.objectStore('cached_crypto_prices');
@@ -58,6 +62,9 @@ async function cachePrices(prices) {
 async function getCachedPrices() {
   try {
     const db = await openPriceDB();
+    if (!db.objectStoreNames.contains('cached_crypto_prices')) {
+      return null;
+    }
     return new Promise((resolve, reject) => {
       const tx = db.transaction('cached_crypto_prices', 'readonly');
       const request = tx.objectStore('cached_crypto_prices').getAll();

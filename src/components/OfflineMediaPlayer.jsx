@@ -39,6 +39,10 @@ export async function cacheMediaFile(url, trackId) {
     
     // Store metadata in IndexedDB
     const db = await openMusicDB();
+    if (!db.objectStoreNames.contains('cached_music')) {
+      console.warn('cached_music store not available');
+      return;
+    }
     return new Promise((resolve) => {
       const tx = db.transaction('cached_music', 'readwrite');
       tx.objectStore('cached_music').put({
