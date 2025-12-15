@@ -49,32 +49,135 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
   };
 
   const handleExchange = async () => {
-    if (!fromAmount) {
-      alert("Please enter an amount");
+    if (!fromAmount || parseFloat(fromAmount) <= 0) {
+      toast.error("Please enter a valid amount");
       return;
     }
 
     setLoading(true);
     try {
       const rate = getExchangeRate();
-      
+      const toAmount = parseFloat(getToAmount());
+      const fee = parseFloat(fromAmount) * 0.01;
+
+      // Handle buying crypto with USD
+      if (fromCurrency === 'USD') {
+        const usdBalance = currentUser.usd_balance || 0;
+        if (parseFloat(fromAmount) > usdBalance) {
+          toast.error("Insufficient USD balance");
+          setLoading(false);
+          return;
+        }
+
+        // Deduct USD from balance
+        await base44.auth.updateMe({
+          usd_balance: usdBalance - parseFloat(fromAmount)
+        });
+
+        // Get or create crypto wallet
+        const existingWallets = await base44.entities.CryptoWallet.filter({
+          user_email: currentUser.email,
+          currency: toCurrency,
+          is_active: true
+        });
+
+        if (existingWallets.length > 0) {
+          await base44.entities.CryptoWallet.update(existingWallets[0].id, {
+            balance: (existingWallets[0].balance || 0) + toAmount
+          });
+        } else {
+          await base44.entities.CryptoWallet.create({
+            user_email: currentUser.email,
+            currency: toCurrency,
+            balance: toAmount,
+            wallet_address: `${toCurrency}${currentUser.email.slice(0, 8)}${Math.random().toString(36).substring(7)}`,
+            is_active: true
+          });
+        }
+      } 
+      // Handle selling crypto for USD
+      else if (toCurrency === 'USD') {
+        const wallets = await base44.entities.CryptoWallet.filter({
+          user_email: currentUser.email,
+          currency: fromCurrency,
+          is_active: true
+        });
+
+        if (wallets.length === 0 || (wallets[0].balance || 0) < parseFloat(fromAmount)) {
+          toast.error(`Insufficient ${fromCurrency} balance`);
+          setLoading(false);
+          return;
+        }
+
+        // Deduct crypto
+        await base44.entities.CryptoWallet.update(wallets[0].id, {
+          balance: (wallets[0].balance || 0) - parseFloat(fromAmount)
+        });
+
+        // Add USD
+        await base44.auth.updateMe({
+          usd_balance: (currentUser.usd_balance || 0) + toAmount - fee
+        });
+      }
+      // Handle crypto to crypto exchange
+      else {
+        const fromWallets = await base44.entities.CryptoWallet.filter({
+          user_email: currentUser.email,
+          currency: fromCurrency,
+          is_active: true
+        });
+
+        if (fromWallets.length === 0 || (fromWallets[0].balance || 0) < parseFloat(fromAmount)) {
+          toast.error(`Insufficient ${fromCurrency} balance`);
+          setLoading(false);
+          return;
+        }
+
+        // Deduct from currency
+        await base44.entities.CryptoWallet.update(fromWallets[0].id, {
+          balance: (fromWallets[0].balance || 0) - parseFloat(fromAmount)
+        });
+
+        // Add to currency
+        const toWallets = await base44.entities.CryptoWallet.filter({
+          user_email: currentUser.email,
+          currency: toCurrency,
+          is_active: true
+        });
+
+        if (toWallets.length > 0) {
+          await base44.entities.CryptoWallet.update(toWallets[0].id, {
+            balance: (toWallets[0].balance || 0) + toAmount
+          });
+        } else {
+          await base44.entities.CryptoWallet.create({
+            user_email: currentUser.email,
+            currency: toCurrency,
+            balance: toAmount,
+            wallet_address: `${toCurrency}${currentUser.email.slice(0, 8)}${Math.random().toString(36).substring(7)}`,
+            is_active: true
+          });
+        }
+      }
+
+      // Record transaction
       await base44.entities.CryptoTransaction.create({
         user_email: currentUser.email,
-        transaction_type: "exchange",
+        transaction_type: fromCurrency === 'USD' ? 'buy' : (toCurrency === 'USD' ? 'sell' : 'exchange'),
         from_currency: fromCurrency,
         to_currency: toCurrency,
         from_amount: parseFloat(fromAmount),
-        to_amount: parseFloat(getToAmount()),
+        to_amount: toAmount,
         exchange_rate: rate,
-        fee: parseFloat(fromAmount) * 0.01,
+        fee: fee,
         status: "completed"
       });
 
-      alert(`Successfully exchanged ${fromAmount} ${fromCurrency} for ${getToAmount()} ${toCurrency}`);
+      toast.success(`✅ Exchanged ${fromAmount} ${fromCurrency} for ${toAmount.toFixed(8)} ${toCurrency}`);
       onClose();
     } catch (err) {
       console.error("Exchange failed:", err);
-      alert("Failed to exchange: " + err.message);
+      toast.error("Exchange failed: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -83,14 +186,13 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
   const cryptos = ["USD", "BTC", "ETH", "SoFloCoin", "USDT", "SOL"];
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-        onClick={onClose}
-      >
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+      onClick={onClose}
+    >
         <motion.div
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
@@ -216,6 +318,5 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }
