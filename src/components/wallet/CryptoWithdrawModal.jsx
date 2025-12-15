@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, ArrowUp, Wallet, AlertTriangle, CheckCircle } from "lucide-react";
+import { X, ArrowUp, Wallet, AlertTriangle, CheckCircle, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import Crypto2FAModal from "./Crypto2FAModal";
 
 export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const [selectedCrypto, setSelectedCrypto] = useState("BTC");
@@ -13,6 +14,8 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [pendingWithdrawal, setPendingWithdrawal] = useState(null);
 
   const { data: wallets = [] } = useQuery({
     queryKey: ['crypto-wallets', currentUser.email],
@@ -58,6 +61,23 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
       return;
     }
 
+    // Check daily limit
+    const dailyLimit = currentUser?.daily_crypto_withdrawal_limit || 10000;
+    const dailyUsed = currentUser?.daily_withdrawal_used || 0;
+    const priceUSD = (cryptoPrices?.[selectedCrypto]?.usd || 1) * totalAmount;
+
+    if (dailyUsed + priceUSD > dailyLimit) {
+      toast.error(`Daily withdrawal limit exceeded. Remaining: $${(dailyLimit - dailyUsed).toFixed(2)}`);
+      return;
+    }
+
+    // Check if 2FA is enabled
+    if (currentUser?.crypto_2fa_enabled) {
+      setPendingWithdrawal({ amount: totalAmount, address: recipientAddress, priceUSD });
+      setShow2FA(true);
+      return;
+    }
+
     setShowConfirmation(true);
   };
 
@@ -73,7 +93,16 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
         balance: availableBalance - totalAmount
       });
 
-      // Record transaction
+      // Update daily usage
+      const priceUSD = (cryptoPrices?.[selectedCrypto]?.usd || 1) * totalAmount;
+      await base44.auth.updateMe({
+        usd_balance: (currentUser.usd_balance || 0) - platformFee,
+        daily_withdrawal_used: (currentUser.daily_withdrawal_used || 0) + priceUSD
+      });
+
+      // Record transaction with pending status if email confirmation required
+      const status = currentUser?.withdrawal_confirmations_required !== false ? "pending_confirmation" : "processing";
+      
       await base44.entities.CryptoTransaction.create({
         user_email: currentUser.email,
         transaction_type: "send",
@@ -83,27 +112,38 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
         to_amount: youWillReceive,
         exchange_rate: 1,
         fee: networkFee + platformFee,
-        status: "processing",
+        status: status,
         blockchain_tx_hash: `0x${Math.random().toString(16).substring(2, 66)}`,
         recipient_address: recipientAddress
       });
 
-      // Deduct platform fee from USD balance
-      await base44.auth.updateMe({
-        usd_balance: (currentUser.usd_balance || 0) - platformFee
-      });
+      // Send confirmation email if required
+      if (currentUser?.withdrawal_confirmations_required !== false) {
+        await base44.integrations.Core.SendEmail({
+          to: currentUser.email,
+          subject: "Confirm Your Crypto Withdrawal",
+          body: `Please confirm your withdrawal of ${withdrawAmount} ${selectedCrypto} to ${recipientAddress}. Click here to confirm: [Confirmation Link]`
+        });
+
+        toast.success("📧 Confirmation email sent! Check your inbox to complete withdrawal.");
+      } else {
+        toast.success("Withdrawal initiated! Check your external wallet shortly.");
+      }
 
       // Notification
       await base44.entities.Notification.create({
         recipient_email: currentUser.email,
         type: "payment_sent",
-        title: "Crypto Withdrawal Initiated",
-        message: `${withdrawAmount} ${selectedCrypto} withdrawal is being processed`,
+        title: currentUser?.withdrawal_confirmations_required !== false 
+          ? "Confirm Crypto Withdrawal" 
+          : "Crypto Withdrawal Initiated",
+        message: currentUser?.withdrawal_confirmations_required !== false
+          ? `Please check your email to confirm ${withdrawAmount} ${selectedCrypto} withdrawal`
+          : `${withdrawAmount} ${selectedCrypto} withdrawal is being processed`,
         read: false,
         action_url: "/Wallet"
       });
 
-      toast.success("Withdrawal initiated! Check your external wallet shortly.");
       onClose();
     } catch (err) {
       console.error("Withdrawal failed:", err);
@@ -113,7 +153,19 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
     }
   };
 
+  const handle2FAVerified = (verified) => {
+    setShow2FA(false);
+    if (verified && pendingWithdrawal) {
+      setShowConfirmation(true);
+    }
+    setPendingWithdrawal(null);
+  };
+
   if (showConfirmation) {
+    if (show2FA) {
+      return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="withdrawal" />;
+    }
+
     return (
       <AnimatePresence>
         <motion.div

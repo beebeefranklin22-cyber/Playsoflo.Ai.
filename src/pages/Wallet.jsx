@@ -4,7 +4,7 @@ import {
   Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
-  Plus, Crown, Building2, Clock
+  Plus, Crown, Building2, Clock, Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -24,6 +24,7 @@ import PendingTransfersModal from "../components/wallet/PendingTransfersModal";
 import CryptoDepositModal from "../components/wallet/CryptoDepositModal";
 import CryptoWithdrawModal from "../components/wallet/CryptoWithdrawModal";
 import StakingManager from "../components/wallet/StakingManager";
+import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings";
 
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
@@ -300,6 +301,13 @@ export default function Wallet() {
             >
               <Building2 className="w-4 h-4 text-indigo-400" />
               <span className="text-white text-xs">Wire</span>
+            </button>
+            <button 
+              onClick={() => setActiveModal('crypto-security')}
+              className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition text-left"
+            >
+              <Shield className="w-4 h-4 text-purple-400" />
+              <span className="text-white text-xs font-semibold">Security</span>
             </button>
           </div>
         </details>
@@ -620,6 +628,9 @@ export default function Wallet() {
       )}
       {activeModal === 'staking' && currentUser && (
         <StakingManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'crypto-security' && currentUser && (
+        <CryptoSecuritySettings currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
