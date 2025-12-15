@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
+export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomingTracks = [] }) {
   const audioRef = useRef(null);
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,6 +18,10 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
   const [isMuted, setIsMuted] = useState(false);
   const [error, setError] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
   
   const isYouTube = track?.source === 'youtube' && track?.video_id;
 
@@ -179,8 +183,138 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
 
   if (!track) return null;
 
+  const handleLike = () => {
+    setIsLiked(!isLiked);
+  };
+
+  const handleAddComment = () => {
+    if (newComment.trim()) {
+      setComments([...comments, { text: newComment, date: new Date().toISOString() }]);
+      setNewComment('');
+    }
+  };
+
   return (
     <AnimatePresence>
+      {/* Full Screen Video Modal */}
+      {isYouTube && showVideo && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/95 overflow-y-auto"
+        >
+          <div className="min-h-screen p-4 pb-24">
+            <Button
+              onClick={() => setShowVideo(false)}
+              className="fixed top-4 right-4 z-50 bg-white/20 hover:bg-white/30 backdrop-blur-xl"
+            >
+              Minimize ↓
+            </Button>
+
+            {/* Video Player */}
+            <div className="max-w-4xl mx-auto mb-6">
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <iframe
+                  src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+
+            {/* Video Info & Actions */}
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="bg-white/5 rounded-xl p-4 backdrop-blur-xl">
+                <h3 className="text-white font-bold text-xl mb-2">{track.title || track.name}</h3>
+                <p className="text-gray-300 mb-4">{track.artist_name || track.artist}</p>
+                
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={handleLike}
+                    className={`${isLiked ? 'bg-red-500' : 'bg-white/10'} hover:bg-red-600`}
+                  >
+                    <Heart className={`w-5 h-5 mr-2 ${isLiked ? 'fill-white' : ''}`} />
+                    {isLiked ? 'Liked' : 'Like'}
+                  </Button>
+                  <Button
+                    onClick={() => setShowComments(!showComments)}
+                    className="bg-white/10 hover:bg-white/20"
+                  >
+                    💬 Comments ({comments.length})
+                  </Button>
+                </div>
+              </div>
+
+              {/* Comments Section */}
+              {showComments && (
+                <div className="bg-white/5 rounded-xl p-4 backdrop-blur-xl">
+                  <h4 className="text-white font-bold mb-4">Comments</h4>
+                  
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
+                      placeholder="Add a comment..."
+                      className="bg-white/10 border-white/20 text-white flex-1"
+                    />
+                    <Button onClick={handleAddComment} className="bg-purple-600">Post</Button>
+                  </div>
+
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {comments.map((comment, idx) => (
+                      <div key={idx} className="bg-white/5 rounded-lg p-3">
+                        <p className="text-white text-sm">{comment.text}</p>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {new Date(comment.date).toLocaleString()}
+                        </p>
+                      </div>
+                    ))}
+                    {comments.length === 0 && (
+                      <p className="text-gray-400 text-center py-4">No comments yet. Be the first!</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Up Next */}
+              {upcomingTracks.length > 0 && (
+                <div className="bg-white/5 rounded-xl p-4 backdrop-blur-xl">
+                  <h4 className="text-white font-bold mb-4">Up Next</h4>
+                  <div className="space-y-2">
+                    {upcomingTracks.slice(0, 5).map((upcomingTrack, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => onNext && onNext()}
+                        className="flex items-center gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer transition"
+                      >
+                        <img
+                          src={upcomingTrack.cover_art_url || upcomingTrack.image}
+                          alt={upcomingTrack.title || upcomingTrack.name}
+                          className="w-12 h-12 rounded object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium truncate">
+                            {upcomingTrack.title || upcomingTrack.name}
+                          </p>
+                          <p className="text-gray-400 text-xs truncate">
+                            {upcomingTrack.artist_name || upcomingTrack.artist}
+                          </p>
+                        </div>
+                        <Play className="w-5 h-5 text-gray-400" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Mini Player */}
       <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -190,25 +324,6 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
         <Card className="mx-4 bg-gradient-to-r from-purple-900/95 to-pink-900/95 border-white/20 backdrop-blur-xl">
           <CardContent className="p-4">
             {!isYouTube && <audio ref={audioRef} preload="auto" />}
-            
-            {/* YouTube Video Player */}
-            {isYouTube && showVideo && (
-              <div className="mb-4 relative aspect-video bg-black rounded-lg overflow-hidden">
-                <Button
-                  onClick={() => setShowVideo(false)}
-                  className="absolute top-2 right-2 z-10 bg-black/70 hover:bg-black/90 text-white rounded-full w-8 h-8 p-0"
-                  size="sm"
-                >
-                  ✕
-                </Button>
-                <iframe
-                  src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1`}
-                  className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            )}
             
             {error && (
               <div className="mb-2 text-yellow-400 text-xs text-center">
@@ -244,11 +359,16 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose }) {
                     className="text-gray-400 hover:text-white"
                     onClick={() => setShowVideo(!showVideo)}
                   >
-                    <span className="text-xs">{showVideo ? '🎵' : '🎬'}</span>
+                    <span className="text-xs">🎬</span>
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" className="text-gray-400 hover:text-white">
-                  <Heart className="w-5 h-5" />
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className={`${isLiked ? 'text-red-400' : 'text-gray-400'} hover:text-white`}
+                  onClick={handleLike}
+                >
+                  <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-400' : ''}`} />
                 </Button>
                 {track.external_url && (
                   <Button

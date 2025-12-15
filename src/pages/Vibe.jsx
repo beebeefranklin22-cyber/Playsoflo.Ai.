@@ -750,6 +750,9 @@ export default function Vibe() {
           onNext={handleNext}
           onPrevious={handlePrevious}
           onClose={() => setPlayingTrack(null)}
+          upcomingTracks={filteredTracks.slice(
+            filteredTracks.findIndex(t => t.id === playingTrack.id) + 1
+          )}
         />
       )}
 
