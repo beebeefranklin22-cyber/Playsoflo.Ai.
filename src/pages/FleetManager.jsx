@@ -22,6 +22,7 @@ import PricingOptimizer from "../components/car/PricingOptimizer";
 import FleetAIAssistant from "../components/fleet/FleetAIAssistant";
 import FleetDisputeResolution from "../components/fleet/FleetDisputeResolution";
 import FleetInsightsModule from "../components/fleet/FleetInsightsModule";
+import FleetDashboard from "../components/fleet/FleetDashboard";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -173,13 +174,18 @@ export default function FleetManager() {
           <PricingOptimizer cars={myCars} rentals={myRentals} />
         </div>
 
-        <Tabs defaultValue="fleet" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-xl border border-white/20">
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="fleet">My Fleet</TabsTrigger>
             <TabsTrigger value="insights">AI Insights</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard">
+            <FleetDashboard cars={myCars} rentals={myRentals} />
+          </TabsContent>
 
           <TabsContent value="fleet" className="space-y-4">
             {myCars.length === 0 ? (

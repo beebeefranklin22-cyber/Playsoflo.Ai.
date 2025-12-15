@@ -22,6 +22,7 @@ import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
 import QuickEditPropertyModal from "../components/property/QuickEditPropertyModal";
 import BulkPropertyUpload from "../components/provider/BulkPropertyUpload";
+import PropertyDashboard from "../components/property/PropertyDashboard";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -246,7 +247,9 @@ export default function PropertyProviderHub() {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6 mt-6">
-            {/* Today's Activity */}
+            <PropertyDashboard properties={myProperties} bookings={bookings} />
+
+            {/* Additional Today's Activity */}
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="bg-white/5 border-white/10">
                 <CardHeader>
