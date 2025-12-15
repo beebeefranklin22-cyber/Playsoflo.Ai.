@@ -9,6 +9,10 @@ import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import OfflineManager from "./components/OfflineManager";
 import OfflineDataCache from "./components/OfflineDataCache";
+import ServiceWorkerManager from "./components/ServiceWorkerManager";
+import AdvancedOfflineSync from "./components/AdvancedOfflineSync";
+import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
+import RealtimeDataManager from "./components/RealtimeDataManager";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -117,8 +121,12 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <PostHogProvider user={currentUser}>
+      <ServiceWorkerManager />
       <OfflineManager />
       <OfflineDataCache />
+      <AdvancedOfflineSync />
+      <OfflineMediaPlayer />
+      <RealtimeDataManager />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
