@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SendMoneyModal from "../components/wallet/SendMoneyModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
 import CardManagementModal from "../components/wallet/CardManagementModal";
@@ -29,6 +29,7 @@ export default function Wallet() {
   const [activeModal, setActiveModal] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
 
   const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -38,6 +39,16 @@ export default function Wallet() {
     },
     refetchInterval: 10000,
     refetchOnWindowFocus: true,
+  });
+
+  const { data: cryptoPrices = {} } = useQuery({
+    queryKey: ['crypto-prices'],
+    queryFn: async () => {
+      const { data } = await base44.functions.invoke('getCryptoPrices');
+      return data.prices;
+    },
+    refetchInterval: 30000, // Update every 30 seconds
+    staleTime: 20000,
   });
 
   useEffect(() => {
@@ -90,31 +101,43 @@ export default function Wallet() {
     checkLowBalance();
   }, [currentUser]);
 
+  const { data: cryptoWallets = [] } = useQuery({
+    queryKey: ['crypto-wallets', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.CryptoWallet.filter({
+        user_email: currentUser.email,
+        is_active: true
+      });
+    },
+    enabled: !!currentUser,
+  });
+
   const cryptoAssets = [
     { 
       name: "SoFloCoin",
       symbol: "SFC",
       balance: currentUser?.soflo_coins || 0, 
-      value: ((currentUser?.soflo_coins || 0) * 2.45).toFixed(2),
-      change: "+0.0%",
+      value: ((currentUser?.soflo_coins || 0) * (cryptoPrices?.SoFloCoin?.usd || 2.45)).toFixed(2),
+      change: `${(cryptoPrices?.SoFloCoin?.change_24h || 0) >= 0 ? '+' : ''}${(cryptoPrices?.SoFloCoin?.change_24h || 0).toFixed(2)}%`,
       color: "purple",
       icon: Sparkles
     },
     { 
       name: "Bitcoin", 
       symbol: "BTC", 
-      balance: 0, 
-      value: "0.00",
-      change: "+0.0%",
+      balance: cryptoWallets.find(w => w.currency === 'BTC')?.balance || 0, 
+      value: ((cryptoWallets.find(w => w.currency === 'BTC')?.balance || 0) * (cryptoPrices?.BTC?.usd || 0)).toFixed(2),
+      change: `${(cryptoPrices?.BTC?.change_24h || 0) >= 0 ? '+' : ''}${(cryptoPrices?.BTC?.change_24h || 0).toFixed(2)}%`,
       color: "orange",
       icon: Bitcoin
     },
     { 
       name: "Ethereum",
       symbol: "ETH",
-      balance: 0,
-      value: "0.00",
-      change: "+0.0%",
+      balance: cryptoWallets.find(w => w.currency === 'ETH')?.balance || 0,
+      value: ((cryptoWallets.find(w => w.currency === 'ETH')?.balance || 0) * (cryptoPrices?.ETH?.usd || 0)).toFixed(2),
+      change: `${(cryptoPrices?.ETH?.change_24h || 0) >= 0 ? '+' : ''}${(cryptoPrices?.ETH?.change_24h || 0).toFixed(2)}%`,
       color: "blue",
       icon: Zap
     },
@@ -324,7 +347,9 @@ export default function Wallet() {
                   <p className="text-white font-semibold">
                     {showBalance ? `$${asset.value}` : "••••"}
                   </p>
-                  <p className="text-green-400 text-sm">{asset.change}</p>
+                  <p className={`text-sm ${parseFloat(asset.change) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {asset.change}
+                  </p>
                 </div>
               </div>
             </motion.div>

@@ -1,29 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, ArrowDownUp, TrendingUp } from "lucide-react";
+import { X, ArrowDownUp, TrendingUp, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import toast from "react-hot-toast";
 
 export default function CryptoExchangeModal({ currentUser, onClose }) {
   const [fromCurrency, setFromCurrency] = useState("USD");
   const [toCurrency, setToCurrency] = useState("BTC");
   const [fromAmount, setFromAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [prices, setPrices] = useState({});
+  const [loadingPrices, setLoadingPrices] = useState(true);
 
-  const exchangeRates = {
-    "USD-BTC": 0.000016,
-    "USD-ETH": 0.00051,
-    "USD-SoFloCoin": 0.41,
-    "BTC-USD": 62340,
-    "ETH-USD": 1950,
-    "SoFloCoin-USD": 2.45
+  useEffect(() => {
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchPrices = async () => {
+    try {
+      const { data } = await base44.functions.invoke('getCryptoPrices');
+      setPrices(data.prices);
+      setLoadingPrices(false);
+    } catch (err) {
+      console.error('Failed to fetch prices:', err);
+      toast.error('Failed to fetch live prices');
+      setLoadingPrices(false);
+    }
+  };
+
+  const getExchangeRate = () => {
+    if (fromCurrency === toCurrency) return 1;
+    
+    // Convert from currency to USD first, then to target currency
+    const fromPrice = fromCurrency === 'USD' ? 1 : (prices[fromCurrency]?.usd || 1);
+    const toPrice = toCurrency === 'USD' ? 1 : (prices[toCurrency]?.usd || 1);
+    
+    return fromPrice / toPrice;
   };
 
   const getToAmount = () => {
     if (!fromAmount) return "0";
-    const key = `${fromCurrency}-${toCurrency}`;
-    const rate = exchangeRates[key] || 1;
+    const rate = getExchangeRate();
     return (parseFloat(fromAmount) * rate).toFixed(8);
   };
 
@@ -35,8 +56,7 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
 
     setLoading(true);
     try {
-      const key = `${fromCurrency}-${toCurrency}`;
-      const rate = exchangeRates[key] || 1;
+      const rate = getExchangeRate();
       
       await base44.entities.CryptoTransaction.create({
         user_email: currentUser.email,
@@ -80,10 +100,22 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
         >
           <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Exchange Crypto</h2>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
-                <X className="w-6 h-6 text-white" />
-              </button>
+              <div>
+                <h2 className="text-2xl font-bold text-white">Exchange Crypto</h2>
+                <p className="text-blue-100 text-sm">Live prices • Updated every 30s</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={fetchPrices}
+                  className="p-2 hover:bg-white/10 rounded-full transition"
+                  disabled={loadingPrices}
+                >
+                  <RefreshCw className={`w-5 h-5 text-white ${loadingPrices ? 'animate-spin' : ''}`} />
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -98,19 +130,25 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
                 className="bg-white/10 border-white/20 text-white text-2xl mb-3"
               />
               <div className="flex gap-2 flex-wrap">
-                {cryptos.map((curr) => (
-                  <button
-                    key={curr}
-                    onClick={() => setFromCurrency(curr)}
-                    className={`px-3 py-1 rounded-lg text-sm transition ${
-                      fromCurrency === curr
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
+                {cryptos.map((curr) => {
+                  const price = prices[curr]?.usd;
+                  return (
+                    <button
+                      key={curr}
+                      onClick={() => setFromCurrency(curr)}
+                      className={`px-3 py-2 rounded-lg text-sm transition ${
+                        fromCurrency === curr
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      <div>{curr}</div>
+                      {price && curr !== 'USD' && (
+                        <div className="text-xs opacity-70">${price.toLocaleString()}</div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -133,23 +171,35 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
                 {getToAmount()}
               </div>
               <div className="flex gap-2 flex-wrap">
-                {cryptos.map((curr) => (
-                  <button
-                    key={curr}
-                    onClick={() => setToCurrency(curr)}
-                    className={`px-3 py-1 rounded-lg text-sm transition ${
-                      toCurrency === curr
-                        ? "bg-blue-600 text-white"
-                        : "bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
+                {cryptos.map((curr) => {
+                  const price = prices[curr]?.usd;
+                  return (
+                    <button
+                      key={curr}
+                      onClick={() => setToCurrency(curr)}
+                      className={`px-3 py-2 rounded-lg text-sm transition ${
+                        toCurrency === curr
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/10 text-gray-300 hover:bg-white/20"
+                      }`}
+                    >
+                      <div>{curr}</div>
+                      {price && curr !== 'USD' && (
+                        <div className="text-xs opacity-70">${price.toLocaleString()}</div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Exchange Rate</span>
+                <span className="text-white font-semibold">
+                  1 {fromCurrency} = {getExchangeRate().toFixed(8)} {toCurrency}
+                </span>
+              </div>
               <div className="flex items-center gap-2 text-blue-300 text-sm">
                 <TrendingUp className="w-4 h-4" />
                 <span>Exchange fee: 1% • Instant settlement</span>
