@@ -32,6 +32,15 @@ import CurrencySelector from "../components/wallet/CurrencySelector";
 import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
 
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount || 0);
+};
+
 export default function Wallet() {
   const [showBalance, setShowBalance] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
