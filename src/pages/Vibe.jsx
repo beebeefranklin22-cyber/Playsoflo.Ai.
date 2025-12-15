@@ -352,11 +352,17 @@ export default function Vibe() {
           </div>
 
           {/* Search */}
-          <form onSubmit={(e) => { e.preventDefault(); console.log('Search submitted:', searchQuery); refetch(); }} className="relative">
+          <form onSubmit={(e) => { e.preventDefault(); refetch(); }} className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  refetch();
+                }
+              }}
               placeholder="Search songs, artists, albums..."
               className="pl-12 pr-24 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
             />
