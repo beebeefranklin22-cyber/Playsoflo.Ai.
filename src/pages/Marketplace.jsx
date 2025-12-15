@@ -147,6 +147,34 @@ export default function Marketplace() {
     retry: 1
   });
 
+  // Also fetch properties and show in marketplace
+  const { data: properties = [] } = useQuery({
+    queryKey: ['marketplace-properties'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.Property.list();
+      } catch (err) {
+        console.log("Error loading properties:", err);
+        return [];
+      }
+    },
+    initialData: []
+  });
+
+  // Also fetch P2P orders
+  const { data: p2pOrders = [] } = useQuery({
+    queryKey: ['marketplace-p2p'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.P2POrder.filter({ status: 'active' });
+      } catch (err) {
+        console.log("Error loading P2P orders:", err);
+        return [];
+      }
+    },
+    initialData: []
+  });
+
   // Add query for provider verifications
   const { data: providerVerifications = {} } = useQuery({
     queryKey: ['provider-verifications-map'],
@@ -182,7 +210,47 @@ export default function Marketplace() {
     "shelter_services", "medical_health"
   ];
 
-  const filteredItems = items.filter(item => {
+  // Combine all marketplace items
+  const allItems = [
+    ...items,
+    ...properties.map(p => ({
+      id: `prop_${p.id}`,
+      title: p.title,
+      description: p.description,
+      price: p.listing_type === 'short_term' ? p.price_per_night :
+             p.listing_type === 'for_rent' ? p.price_per_month :
+             p.sale_price,
+      price_type: p.listing_type === 'short_term' ? 'night' :
+                  p.listing_type === 'for_rent' ? 'month' : 'total',
+      category: 'real_estate',
+      image_url: p.main_image,
+      rating: p.rating || 4.5,
+      reviews_count: p.reviews_count || 0,
+      provider_name: p.host_name || 'Property Owner',
+      created_by: p.created_by,
+      verified_provider: p.verified_host,
+      availability: 'available',
+      instant_booking: p.instant_book,
+      itemType: 'property',
+      originalData: p
+    })),
+    ...p2pOrders.map(o => ({
+      id: `p2p_${o.id}`,
+      title: `${o.order_type === 'sell' ? 'Sell' : 'Buy'} ${o.crypto_amount} ${o.crypto_currency}`,
+      description: o.terms,
+      price: o.total_amount,
+      price_type: 'total',
+      category: 'p2p_crypto',
+      rating: 5,
+      provider_name: 'P2P Trader',
+      created_by: o.seller_email,
+      availability: 'available',
+      itemType: 'p2p',
+      originalData: o
+    }))
+  ];
+
+  const filteredItems = allItems.filter(item => {
     // Exclude wellness categories
     if (wellnessCategoryIds.includes(item.category)) {
       return false;
