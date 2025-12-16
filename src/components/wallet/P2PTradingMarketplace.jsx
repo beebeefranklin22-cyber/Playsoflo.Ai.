@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import CreateP2POrderModal from "./CreateP2POrderModal";
 import P2POrderDetails from "./P2POrderDetails";
 import P2PAnalyticsDashboard from "./P2PAnalyticsDashboard";
+import AdminDisputeResolution from "./AdminDisputeResolution";
 import HelpModal from "../onboarding/HelpModal";
 
 export default function P2PTradingMarketplace({ currentUser, onClose }) {
@@ -21,6 +22,7 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
   const [filterCrypto, setFilterCrypto] = useState('all');
   const [showHelp, setShowHelp] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAdminDisputes, setShowAdminDisputes] = useState(false);
 
   const { data: orders = [] } = useQuery({
     queryKey: ['p2p-orders', filterType, filterCrypto],
@@ -85,6 +87,10 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
     return <P2PAnalyticsDashboard currentUser={currentUser} onClose={() => setShowAnalytics(false)} />;
   }
 
+  if (showAdminDisputes && currentUser?.role === 'admin') {
+    return <AdminDisputeResolution currentUser={currentUser} onClose={() => setShowAdminDisputes(false)} />;
+  }
+
   if (showCreateOrder) {
     return <CreateP2POrderModal currentUser={currentUser} onClose={() => setShowCreateOrder(false)} />;
   }
@@ -124,6 +130,16 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
               <p className="text-green-100">Trade crypto peer-to-peer with escrow protection</p>
             </div>
             <div className="flex items-center gap-3">
+              {currentUser?.role === 'admin' && (
+                <Button
+                  onClick={() => setShowAdminDisputes(true)}
+                  variant="outline"
+                  className="bg-red-500/20 border-red-500/30 text-red-300"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  Disputes
+                </Button>
+              )}
               <Button
                 onClick={() => setShowAnalytics(true)}
                 variant="outline"
