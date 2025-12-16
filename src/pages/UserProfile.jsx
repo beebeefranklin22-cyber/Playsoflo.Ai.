@@ -62,12 +62,25 @@ export default function UserProfile() {
   });
 
   const { data: stories = [] } = useQuery({
-    queryKey: ['user-stories', profileUser?.email],
+    queryKey: ['user-stories', profileUser?.email, currentUser?.email],
     queryFn: async () => {
       if (!profileUser) return [];
       const allStories = await base44.entities.Story.filter({ created_by: profileUser.email });
       const now = new Date();
-      return allStories.filter(story => new Date(story.expires_at) > now);
+      
+      const activeStories = allStories.filter(story => new Date(story.expires_at) > now);
+      
+      if (isOwnProfile) return activeStories;
+      
+      const following = await base44.entities.Follow.filter({ 
+        follower_email: currentUser?.email,
+        following_email: profileUser.email 
+      });
+      const isFollowing = following.length > 0;
+      
+      return activeStories.filter(story => 
+        story.visibility === 'public' || (story.visibility === 'followers' && isFollowing)
+      );
     },
     enabled: !!profileUser?.email,
     refetchInterval: 10000
