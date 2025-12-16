@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import CreateP2POrderModal from "./CreateP2POrderModal";
 import P2POrderDetails from "./P2POrderDetails";
+import P2PAnalyticsDashboard from "./P2PAnalyticsDashboard";
 import HelpModal from "../onboarding/HelpModal";
 
 export default function P2PTradingMarketplace({ currentUser, onClose }) {
@@ -19,6 +20,7 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
   const [filterType, setFilterType] = useState('all');
   const [filterCrypto, setFilterCrypto] = useState('all');
   const [showHelp, setShowHelp] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const { data: orders = [] } = useQuery({
     queryKey: ['p2p-orders', filterType, filterCrypto],
@@ -79,6 +81,10 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
     return <HelpModal topic="p2p_trading" onClose={() => setShowHelp(false)} />;
   }
 
+  if (showAnalytics) {
+    return <P2PAnalyticsDashboard currentUser={currentUser} onClose={() => setShowAnalytics(false)} />;
+  }
+
   if (showCreateOrder) {
     return <CreateP2POrderModal currentUser={currentUser} onClose={() => setShowCreateOrder(false)} />;
   }
@@ -118,6 +124,14 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
               <p className="text-green-100">Trade crypto peer-to-peer with escrow protection</p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setShowAnalytics(true)}
+                variant="outline"
+                className="bg-purple-500/20 border-purple-500/30 text-purple-300"
+              >
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Analytics
+              </Button>
               <Button
                 onClick={() => setShowHelp(true)}
                 variant="outline"
