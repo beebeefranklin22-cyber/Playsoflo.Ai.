@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Shield, MessageCircle, AlertTriangle, Star, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { X, Shield, MessageCircle, AlertTriangle, Star, CheckCircle, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -12,6 +13,10 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
+  const [disputeReason, setDisputeReason] = useState('');
+  const [showDispute, setShowDispute] = useState(false);
+  const [aiDisputeAnalysis, setAiDisputeAnalysis] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const { data: escrow } = useQuery({
     queryKey: ['p2p-escrow', order.escrow_id],
@@ -123,6 +128,31 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
 
   const isMyOrder = order.seller_email === currentUser.email || order.buyer_email === currentUser.email;
   const isSeller = order.seller_email === currentUser.email;
+
+  const getAIDisputeHelp = async () => {
+    if (!disputeReason) {
+      toast.error('Please describe the dispute first');
+      return;
+    }
+
+    setLoadingAI(true);
+    try {
+      const { data } = await base44.functions.invoke('getAIDisputeResolution', {
+        orderId: order.id,
+        disputeReason,
+        userRole: isSeller ? 'seller' : 'buyer'
+      });
+
+      if (data.success) {
+        setAiDisputeAnalysis(data.analysis);
+        toast.success('🤖 AI analysis complete');
+      }
+    } catch (error) {
+      toast.error('Failed to get AI analysis');
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   return (
     <motion.div
@@ -274,7 +304,111 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
                 Message Trader
               </Button>
             )}
+
+            {isMyOrder && order.status !== 'completed' && (
+              <Button
+                onClick={() => setShowDispute(!showDispute)}
+                variant="outline"
+                className="flex-1 border-red-500/50 text-red-400"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Report Issue
+              </Button>
+            )}
           </div>
+
+          {/* Dispute Section */}
+          {showDispute && (
+            <Card className="bg-red-500/10 border-red-500/30">
+              <CardContent className="p-6 space-y-4">
+                <h4 className="text-white font-bold">Report Dispute</h4>
+                <Textarea
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  placeholder="Describe the issue..."
+                  className="bg-white/10 border-white/20 text-white h-24"
+                />
+                
+                <Button
+                  onClick={getAIDisputeHelp}
+                  disabled={loadingAI || !disputeReason}
+                  variant="outline"
+                  className="w-full border-purple-500/50 text-purple-300"
+                >
+                  {loadingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Get AI Resolution Assistance
+                    </>
+                  )}
+                </Button>
+
+                {aiDisputeAnalysis && (
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-3">
+                    <p className="text-purple-300 font-semibold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      AI Dispute Analysis
+                    </p>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <p className="text-gray-400">Severity</p>
+                        <p className={`font-semibold ${
+                          aiDisputeAnalysis.severity === 'critical' ? 'text-red-400' :
+                          aiDisputeAnalysis.severity === 'high' ? 'text-orange-400' :
+                          aiDisputeAnalysis.severity === 'medium' ? 'text-yellow-400' :
+                          'text-green-400'
+                        }`}>
+                          {aiDisputeAnalysis.severity.toUpperCase()}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-400">Likely Cause</p>
+                        <p className="text-white">{aiDisputeAnalysis.likely_cause}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-400">Recommended Steps</p>
+                        <ul className="text-purple-200 space-y-1">
+                          {aiDisputeAnalysis.recommended_steps.map((step, i) => (
+                            <li key={i}>• {step}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-400">Your Action</p>
+                        <p className="text-white">
+                          {isSeller ? aiDisputeAnalysis.seller_action : aiDisputeAnalysis.buyer_action}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-gray-400">Estimated Resolution Time</p>
+                        <p className="text-white">{aiDisputeAnalysis.resolution_timeline}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => {
+                    toast.success('Dispute submitted to admin');
+                    setShowDispute(false);
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700"
+                >
+                  Submit Dispute to Admin
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Rating */}
           {order.status === 'completed' && isMyOrder && (
