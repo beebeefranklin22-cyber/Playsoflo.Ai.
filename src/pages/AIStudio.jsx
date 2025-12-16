@@ -648,7 +648,7 @@ Be production-ready and technically accurate.`;
               {/* Demo Input */}
               <div className="mb-6">
                 <label className="text-white font-medium mb-2 block">
-                  Try it now - Enter your prompt:
+                  Try Demo - See AI Planning (Full tool generates actual files):
                 </label>
                 <Input
                   value={demoInput}
@@ -680,15 +680,76 @@ Be production-ready and technically accurate.`;
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 rounded-2xl p-6 border border-white/10"
+                  className="space-y-4"
                 >
-                  <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
-                    AI Generated Result
-                  </h3>
-                  <pre className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {JSON.stringify(demoOutput, null, 2)}
-                  </pre>
+                  {/* Info Banner */}
+                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4">
+                    <p className="text-white text-sm font-semibold mb-1">ℹ️ Demo Preview Mode</p>
+                    <p className="text-gray-300 text-xs">
+                      This demo shows the AI's intelligent planning for your request. 
+                      <span className="font-bold text-white"> The full subscription generates the actual {selectedTool.id === 'image-gen' ? 'images' : selectedTool.id === 'video-editor' ? 'videos' : selectedTool.id === 'music-creator' ? 'music files' : selectedTool.id === 'code-assistant' ? 'complete code' : selectedTool.id === '3d-modeler' ? '3D models' : 'content'}</span> ready for download and use.
+                    </p>
+                  </div>
+
+                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                    <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-yellow-400" />
+                      AI Planning Result {selectedTool.id === 'video-editor' && '(Video Editing Plan)'}
+                      {selectedTool.id === 'image-gen' && '(Image Generation Plan)'}
+                      {selectedTool.id === 'music-creator' && '(Music Composition Plan)'}
+                      {selectedTool.id === 'code-assistant' && '(Code Structure)'}
+                    </h3>
+                    <pre className="text-gray-300 text-sm whitespace-pre-wrap bg-black/30 p-4 rounded-lg">
+                      {JSON.stringify(demoOutput, null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* What You Get Banner */}
+                  <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4">
+                    <p className="text-white font-bold mb-2">✨ With Full Subscription You Get:</p>
+                    <ul className="text-gray-300 text-sm space-y-1">
+                      {selectedTool.id === 'video-editor' && (
+                        <>
+                          <li>• Actual edited video file (MP4, 4K quality)</li>
+                          <li>• All transitions, effects, and color grading applied</li>
+                          <li>• Professional audio mixing included</li>
+                          <li>• Ready to publish directly to social media</li>
+                        </>
+                      )}
+                      {selectedTool.id === 'image-gen' && (
+                        <>
+                          <li>• High-resolution image file (8K PNG/JPG)</li>
+                          <li>• Multiple variations and styles</li>
+                          <li>• Commercial usage license included</li>
+                          <li>• AI upscaling to any resolution</li>
+                        </>
+                      )}
+                      {selectedTool.id === 'music-creator' && (
+                        <>
+                          <li>• Complete audio track (WAV/MP3/MIDI)</li>
+                          <li>• Separated stems for mixing</li>
+                          <li>• Royalty-free commercial license</li>
+                          <li>• Professional mastering applied</li>
+                        </>
+                      )}
+                      {selectedTool.id === 'code-assistant' && (
+                        <>
+                          <li>• Complete, tested, working code files</li>
+                          <li>• Ready to deploy to production</li>
+                          <li>• Includes tests and documentation</li>
+                          <li>• Security-scanned and optimized</li>
+                        </>
+                      )}
+                      {selectedTool.id === '3d-modeler' && (
+                        <>
+                          <li>• Production-ready 3D model files</li>
+                          <li>• All major formats (FBX, OBJ, GLTF)</li>
+                          <li>• Rigged and animated if needed</li>
+                          <li>• Game-engine optimized</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
                 </motion.div>
               )}
 
