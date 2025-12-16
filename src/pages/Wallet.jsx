@@ -702,15 +702,13 @@ export default function Wallet() {
             <h3 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h3>
             <p className="text-gray-400 text-xs sm:text-sm">Latest {transactions.length} transactions</p>
           </div>
-          <Button
+          <button
             onClick={() => setActiveModal('transaction-filter')}
-            variant="outline"
-            size="sm"
-            className="border-white/20 text-white hover:bg-white/10"
+            className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm hover:bg-white/20 transition flex items-center gap-2"
           >
-            <FileText className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4" />
             Filter & Export
-          </Button>
+          </button>
         </div>
         <div className="space-y-2">
           {transactions.length > 0 ? transactions.slice(0, 10).map((tx, index) => {
