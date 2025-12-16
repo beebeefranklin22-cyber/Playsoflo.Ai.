@@ -189,7 +189,7 @@ export default function CryptoCollector({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const reward = Math.min(0.6, 0.2 + (score / 500) * 0.4);
+    const reward = Math.min(0.01, 0.002 + (score / 500) * 0.008);
 
     try {
       await base44.entities.GameScore.create({
@@ -204,7 +204,7 @@ export default function CryptoCollector({ currentUser, onExit }) {
         soflo_coins: (currentUser.soflo_coins || 0) + reward
       });
 
-      toast.success(`💰 Collected! Earned ${reward.toFixed(2)} SFC`);
+      toast.success(`💰 Collected! Earned ${reward.toFixed(4)} SFC`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }
@@ -218,14 +218,16 @@ export default function CryptoCollector({ currentUser, onExit }) {
         </button>
 
         {gameState === 'menu' && (
-          <div className="text-center mb-6">
-            <h2 className="text-4xl font-bold text-white mb-4">💰 Crypto Collector</h2>
-            <p className="text-gray-400 mb-2">Move mouse to control basket</p>
-            <p className="text-yellow-400 mb-4">Collect coins • Avoid bombs</p>
-            <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
-              <Play className="w-5 h-5 mr-2" />
-              Start Game
-            </Button>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="text-center">
+              <h2 className="text-4xl font-bold text-white mb-4">💰 Crypto Collector</h2>
+              <p className="text-gray-400 mb-2">Move mouse to control basket</p>
+              <p className="text-yellow-400 mb-4">Collect coins • Avoid bombs</p>
+              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
+                <Play className="w-5 h-5 mr-2" />
+                Start Game
+              </Button>
+            </div>
           </div>
         )}
 

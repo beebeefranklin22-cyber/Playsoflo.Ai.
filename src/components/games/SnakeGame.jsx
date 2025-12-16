@@ -175,7 +175,7 @@ export default function SnakeGame({ currentUser, onExit }) {
         soflo_coins: (currentUser.soflo_coins || 0) + reward
       });
 
-      toast.success(`🎮 Game Over! Earned ${reward.toFixed(2)} SFC`);
+      toast.success(`🎮 Game Over! Earned ${reward.toFixed(4)} SFC`);
       
       if (score > highScore) {
         setHighScore(score);
@@ -201,26 +201,14 @@ export default function SnakeGame({ currentUser, onExit }) {
         </button>
 
         {gameState === 'menu' && (
-          <div className="text-center mb-6">
-            <h2 className="text-4xl font-bold text-white mb-2">🐍 Classic Snake</h2>
-            <p className="text-gray-400 mb-4">Use arrow keys to control</p>
-            <p className="text-purple-400 font-bold mb-4">High Score: {highScore}</p>
-            <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
-              <Play className="w-5 h-5 mr-2" />
-              Start Game
-            </Button>
-          </div>
-        )}
-
-        {gameState === 'gameover' && (
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="text-center">
-              <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-white mb-2">Game Over!</h3>
-              <p className="text-gray-400 mb-4">Score: {score}</p>
-              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700">
-                <RotateCcw className="w-5 h-5 mr-2" />
-                Play Again
+              <h2 className="text-4xl font-bold text-white mb-2">🐍 Classic Snake</h2>
+              <p className="text-gray-400 mb-4">Use arrow keys to control</p>
+              <p className="text-purple-400 font-bold mb-4">High Score: {highScore}</p>
+              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
+                <Play className="w-5 h-5 mr-2" />
+                Start Game
               </Button>
             </div>
           </div>

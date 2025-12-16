@@ -73,7 +73,7 @@ export default function Gaming() {
       icon: '🐍',
       category: 'classic',
       difficulty: 'Easy',
-      reward: '0.1-0.5 SFC',
+      reward: '0.001-0.01 SFC',
       component: SnakeGame,
       is3D: false,
       multiplayer: false
@@ -85,7 +85,7 @@ export default function Gaming() {
       icon: '🏓',
       category: 'classic',
       difficulty: 'Easy',
-      reward: '0.1-0.3 SFC',
+      reward: '0.001-0.005 SFC',
       component: PongGame,
       is3D: false,
       multiplayer: false
@@ -97,7 +97,7 @@ export default function Gaming() {
       icon: '🏃',
       category: 'unique',
       difficulty: 'Medium',
-      reward: '0.2-0.8 SFC',
+      reward: '0.003-0.015 SFC',
       component: SoFloRunner,
       is3D: true,
       multiplayer: false
@@ -109,7 +109,7 @@ export default function Gaming() {
       icon: '💰',
       category: 'unique',
       difficulty: 'Medium',
-      reward: '0.2-0.6 SFC',
+      reward: '0.002-0.01 SFC',
       component: CryptoCollector,
       is3D: false,
       multiplayer: false
@@ -121,7 +121,7 @@ export default function Gaming() {
       icon: '🎨',
       category: 'unique',
       difficulty: 'Hard',
-      reward: '0.3-1.0 SFC',
+      reward: '0.005-0.02 SFC',
       component: VibeMatch,
       is3D: false,
       multiplayer: false
@@ -133,7 +133,7 @@ export default function Gaming() {
       icon: '⚔️',
       category: 'multiplayer',
       difficulty: 'Medium',
-      reward: '0.5-1.5 SFC',
+      reward: '0.01-0.03 SFC',
       component: MultiplayerPong,
       is3D: false,
       multiplayer: true
@@ -171,7 +171,7 @@ export default function Gaming() {
               <p className="text-purple-100 text-xs">Rewards Earned</p>
               <p className="text-white text-2xl font-bold flex items-center gap-1">
                 <Sparkles className="w-4 h-4" />
-                {myStats.totalRewards.toFixed(2)}
+                {myStats.totalRewards.toFixed(4)}
               </p>
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
@@ -289,7 +289,7 @@ export default function Gaming() {
                   <p className="text-white font-bold text-lg">{entry.score}</p>
                   <p className="text-purple-400 text-sm flex items-center gap-1">
                     <Star className="w-3 h-3" />
-                    +{entry.reward_earned.toFixed(2)} SFC
+                    +{entry.reward_earned.toFixed(4)} SFC
                   </p>
                 </div>
               </motion.div>

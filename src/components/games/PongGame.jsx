@@ -143,7 +143,7 @@ export default function PongGame({ currentUser, onExit }) {
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const finalScore = score * 10;
-    const reward = 0.05 + (score / 10) * 0.25;
+    const reward = 0.001 + (score / 10) * 0.004;
 
     try {
       await base44.entities.GameScore.create({
@@ -158,7 +158,7 @@ export default function PongGame({ currentUser, onExit }) {
         soflo_coins: (currentUser.soflo_coins || 0) + reward
       });
 
-      toast.success(`🎮 Victory! Earned ${reward.toFixed(2)} SFC`);
+      toast.success(`🎮 Victory! Earned ${reward.toFixed(4)} SFC`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }
@@ -172,13 +172,15 @@ export default function PongGame({ currentUser, onExit }) {
         </button>
 
         {gameState === 'menu' && (
-          <div className="text-center mb-6">
-            <h2 className="text-4xl font-bold text-white mb-4">🏓 Retro Pong</h2>
-            <p className="text-gray-400 mb-4">Move mouse to control paddle • First to 5 wins</p>
-            <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
-              <Play className="w-5 h-5 mr-2" />
-              Start Game
-            </Button>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="text-center">
+              <h2 className="text-4xl font-bold text-white mb-4">🏓 Retro Pong</h2>
+              <p className="text-gray-400 mb-4">Move mouse to control paddle • First to 5 wins</p>
+              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
+                <Play className="w-5 h-5 mr-2" />
+                Start Game
+              </Button>
+            </div>
           </div>
         )}
 

@@ -95,7 +95,7 @@ export default function VibeMatch({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const reward = Math.min(1.0, 0.3 + (score / 500) * 0.7);
+    const reward = Math.min(0.02, 0.005 + (score / 500) * 0.015);
 
     try {
       await base44.entities.GameScore.create({
@@ -111,7 +111,7 @@ export default function VibeMatch({ currentUser, onExit }) {
         soflo_coins: (currentUser.soflo_coins || 0) + reward
       });
 
-      toast.success(`🎨 Perfect vibes! Earned ${reward.toFixed(2)} SFC`);
+      toast.success(`🎨 Perfect vibes! Earned ${reward.toFixed(4)} SFC`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }
@@ -125,14 +125,16 @@ export default function VibeMatch({ currentUser, onExit }) {
         </button>
 
         {gameState === 'menu' && (
-          <div className="text-center mb-6">
-            <h2 className="text-5xl font-bold text-white mb-4">🎨 Vibe Match</h2>
-            <p className="text-white mb-2">Watch the sequence, then repeat it</p>
-            <p className="text-purple-200 mb-6">Each level adds one more vibe to remember</p>
-            <Button onClick={startGame} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-8 py-6 text-lg">
-              <Play className="w-5 h-5 mr-2" />
-              Start Game
-            </Button>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="text-center">
+              <h2 className="text-5xl font-bold text-white mb-4">🎨 Vibe Match</h2>
+              <p className="text-white mb-2">Watch the sequence, then repeat it</p>
+              <p className="text-purple-200 mb-6">Each level adds one more vibe to remember</p>
+              <Button onClick={startGame} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-8 py-6 text-lg">
+                <Play className="w-5 h-5 mr-2" />
+                Start Game
+              </Button>
+            </div>
           </div>
         )}
 
