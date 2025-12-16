@@ -154,10 +154,8 @@ export default function SnakeGame({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    
-    // Calculate reward based on score (0.1 - 0.5 SFC)
-    const baseReward = 0.05;
-    const scoreBonus = Math.min(0.45, (score / 1000) * 0.45);
+    const baseReward = 0.001;
+    const scoreBonus = Math.min(0.009, (score / 1000) * 0.009);
     const reward = baseReward + scoreBonus;
 
     try {
@@ -209,6 +207,32 @@ export default function SnakeGame({ currentUser, onExit }) {
               <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700 px-8 py-6 text-lg">
                 <Play className="w-5 h-5 mr-2" />
                 Start Game
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'paused' && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="text-center">
+              <h3 className="text-3xl font-bold text-white mb-4">Paused</h3>
+              <Button onClick={() => setGameState('playing')} className="bg-purple-600 hover:bg-purple-700 mb-2">
+                <Play className="w-5 h-5 mr-2" />
+                Resume
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'gameover' && (
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="text-center">
+              <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+              <h3 className="text-3xl font-bold text-white mb-2">Game Over!</h3>
+              <p className="text-gray-400 mb-4">Score: {score}</p>
+              <Button onClick={startGame} className="bg-purple-600 hover:bg-purple-700">
+                <RotateCcw className="w-5 h-5 mr-2" />
+                Play Again
               </Button>
             </div>
           </div>
