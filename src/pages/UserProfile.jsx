@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart } from "lucide-react";
+import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { createPageUrl } from "@/utils";
 import FollowButton from "../components/social/FollowButton";
 import AddFriendButton from "../components/friends/AddFriendButton";
+import FollowersModal from "../components/social/FollowersModal";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ export default function UserProfile() {
   const userParam = searchParams.get("user") || searchParams.get("username") || searchParams.get("email");
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [followersModalMode, setFollowersModalMode] = useState('followers');
 
   useEffect(() => {
     const loadUser = async () => {
@@ -55,6 +59,18 @@ export default function UserProfile() {
     queryKey: ['user-posts', profileUser?.email],
     queryFn: () => base44.entities.SocialPost.filter({ created_by: profileUser.email }, '-created_date'),
     enabled: !!profileUser?.email
+  });
+
+  const { data: stories = [] } = useQuery({
+    queryKey: ['user-stories', profileUser?.email],
+    queryFn: async () => {
+      if (!profileUser) return [];
+      const allStories = await base44.entities.Story.filter({ created_by: profileUser.email });
+      const now = new Date();
+      return allStories.filter(story => new Date(story.expires_at) > now);
+    },
+    enabled: !!profileUser?.email,
+    refetchInterval: 10000
   });
 
   const { data: listeningHistory = [] } = useQuery({
@@ -108,6 +124,30 @@ export default function UserProfile() {
         </button>
       </div>
 
+      {/* Stories Bar */}
+      {stories.length > 0 && (
+        <div className="px-4 py-4 border-b border-white/10">
+          <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+            {stories.map((story) => (
+              <button key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 shadow-lg">
+                  <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
+                    {story.media_url ? (
+                      <img src={story.media_url} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500">
+                        {profileUser.full_name?.[0]?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span className="text-gray-300 text-xs">Story</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Profile Info */}
       <div className="px-4 py-6">
         <div className="flex items-start gap-4 mb-6">
@@ -129,14 +169,26 @@ export default function UserProfile() {
                 <p className="text-white font-bold text-lg">{posts.length}</p>
                 <p className="text-gray-400 text-sm">Posts</p>
               </div>
-              <div className="text-center">
+              <button
+                onClick={() => {
+                  setFollowersModalMode('followers');
+                  setShowFollowersModal(true);
+                }}
+                className="text-center hover:opacity-80 transition"
+              >
                 <p className="text-white font-bold text-lg">{profileUser.followers_count || 0}</p>
                 <p className="text-gray-400 text-sm">Followers</p>
-              </div>
-              <div className="text-center">
+              </button>
+              <button
+                onClick={() => {
+                  setFollowersModalMode('following');
+                  setShowFollowersModal(true);
+                }}
+                className="text-center hover:opacity-80 transition"
+              >
                 <p className="text-white font-bold text-lg">{profileUser.following_count || 0}</p>
                 <p className="text-gray-400 text-sm">Following</p>
-              </div>
+              </button>
             </div>
 
             {!isOwnProfile && currentUser && (
@@ -276,15 +328,34 @@ export default function UserProfile() {
           ))}
           {listeningHistory.length === 0 && (
             <div className="text-center py-10 text-gray-400">No listening history</div>
-          )}
-        </div>
-      )}
+            )}
+            </div>
+            )}
 
-      {activeTab === "posts" && posts.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-gray-400">No posts yet</p>
-        </div>
-      )}
-    </div>
-  );
-}
+            {activeTab === "posts" && posts.length === 0 && (
+            <div className="text-center py-20">
+            <p className="text-gray-400">No posts yet</p>
+            </div>
+            )}
+
+            {/* Followers Modal */}
+            <FollowersModal
+            isOpen={showFollowersModal}
+            onClose={() => setShowFollowersModal(false)}
+            userEmail={profileUser?.email}
+            currentUser={currentUser}
+            mode={followersModalMode}
+            />
+
+            <style>{`
+            .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+            }
+            .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            }
+            `}</style>
+            </div>
+            );
+            }
