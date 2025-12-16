@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, RefreshCw } from "lucide-react";
+import { X, RefreshCw, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
@@ -22,6 +22,8 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
     time_limit_minutes: 30,
     terms: ''
   });
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   // Fetch real-time crypto prices
   const { data: cryptoPrices = {}, refetch: refetchPrices } = useQuery({
@@ -62,6 +64,35 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
       toast.error('Failed to create order: ' + err.message);
     }
   });
+
+  const getAIPriceSuggestion = async () => {
+    if (!formData.crypto_amount) {
+      toast.error('Please enter amount first');
+      return;
+    }
+
+    setLoadingAI(true);
+    try {
+      const { data } = await base44.functions.invoke('getAIPriceSuggestion', {
+        cryptoCurrency: formData.crypto_currency,
+        cryptoAmount: parseFloat(formData.crypto_amount),
+        orderType: formData.order_type
+      });
+
+      if (data.success) {
+        setAiSuggestion(data.suggestion);
+        setFormData(prev => ({
+          ...prev,
+          price_per_unit: data.suggestion.recommended_price.toString()
+        }));
+        toast.success('🤖 AI price suggestion applied!');
+      }
+    } catch (error) {
+      toast.error('Failed to get AI suggestion');
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,14 +183,29 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
             <div>
               <label className="text-white font-semibold mb-2 flex items-center justify-between">
                 <span>Price per Unit (USD)</span>
-                <button
-                  type="button"
-                  onClick={() => refetchPrices()}
-                  className="text-blue-400 hover:text-blue-300"
-                  title="Refresh price"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={getAIPriceSuggestion}
+                    disabled={loadingAI || !formData.crypto_amount}
+                    className="text-purple-400 hover:text-purple-300 disabled:opacity-50"
+                    title="Get AI price suggestion"
+                  >
+                    {loadingAI ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => refetchPrices()}
+                    className="text-blue-400 hover:text-blue-300"
+                    title="Refresh price"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                </div>
               </label>
               <Input
                 type="number"
@@ -253,6 +299,32 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
               className="bg-white/10 border-white/20 text-white h-24"
             />
           </div>
+
+          {aiSuggestion && (
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 space-y-2">
+              <p className="text-purple-300 font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                AI Price Analysis
+              </p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-400">Competitive Range</p>
+                  <p className="text-white">${aiSuggestion.competitive_range.min} - ${aiSuggestion.competitive_range.max}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Market Trend</p>
+                  <p className={`font-semibold ${
+                    aiSuggestion.market_trend === 'bullish' ? 'text-green-400' :
+                    aiSuggestion.market_trend === 'bearish' ? 'text-red-400' :
+                    'text-yellow-400'
+                  }`}>
+                    {aiSuggestion.market_trend.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <p className="text-purple-200 text-xs">{aiSuggestion.reasoning}</p>
+            </div>
+          )}
 
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
             <p className="text-blue-300 text-sm">
