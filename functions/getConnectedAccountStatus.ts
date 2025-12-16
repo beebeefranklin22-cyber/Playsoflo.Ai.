@@ -1,22 +1,10 @@
-/**
- * Get Connected Account Status
- * 
- * Retrieves the current status of a Stripe connected account.
- * This is used to check if onboarding is complete and if account can accept charges.
- * 
- * Flow:
- * 1. Authenticate user
- * 2. Retrieve account from Stripe API
- * 3. Return detailed status information
- */
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.5.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
     // ============================================
-    // STEP 1: AUTHENTICATE USER
+    // STEP 1: Authenticate User
     // ============================================
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -26,83 +14,93 @@ Deno.serve(async (req) => {
     }
 
     // ============================================
-    // STEP 2: VALIDATE STRIPE CREDENTIALS
+    // STEP 2: Initialize Stripe
     // ============================================
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    
     if (!stripeSecretKey) {
       return Response.json({ 
-        error: 'Stripe API key not configured'
+        error: 'STRIPE_SECRET_KEY not configured' 
       }, { status: 500 });
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-11-17.clover',
+      apiVersion: '2025-11-17.clover'
     });
 
     // ============================================
-    // STEP 3: GET ACCOUNT ID FROM REQUEST
+    // STEP 3: Get Account ID
     // ============================================
-    const url = new URL(req.url);
-    const account_id = url.searchParams.get('account_id');
+    const accountId = user.stripe_connect_account_id;
     
-    if (!account_id) {
-      return Response.json({ error: 'account_id query parameter is required' }, { status: 400 });
+    if (!accountId) {
+      return Response.json({ 
+        hasAccount: false,
+        message: 'No connected account exists'
+      });
     }
 
     // ============================================
-    // STEP 4: RETRIEVE ACCOUNT FROM STRIPE
+    // STEP 4: Retrieve Account from Stripe
     // ============================================
-    /**
-     * Retrieve account details directly from Stripe API
-     * 
-     * Key fields to check:
-     * - charges_enabled: Can accept charges
-     * - details_submitted: Has completed onboarding
-     * - payouts_enabled: Can receive payouts
-     * - requirements: Any pending information needed
-     */
-    const account = await stripe.accounts.retrieve(account_id);
+    // Always fetch the latest account status from Stripe
+    // Do NOT rely on cached/stored data for onboarding status
+    const account = await stripe.accounts.retrieve(accountId);
 
     // ============================================
-    // STEP 5: RETURN ACCOUNT STATUS
+    // STEP 5: Parse Account Status
     // ============================================
+    // Key properties to check:
+    // - details_submitted: Has the user completed onboarding?
+    // - charges_enabled: Can the account receive payments?
+    // - payouts_enabled: Can the account receive payouts?
+    
     return Response.json({
-      success: true,
-      account_id: account.id,
-      email: account.email,
-      
-      // Critical status flags
-      charges_enabled: account.charges_enabled,
-      details_submitted: account.details_submitted,
-      payouts_enabled: account.payouts_enabled,
+      hasAccount: true,
+      accountId: account.id,
       
       // Onboarding status
-      requirements: {
+      onboarding: {
+        details_submitted: account.details_submitted,
         currently_due: account.requirements?.currently_due || [],
         eventually_due: account.requirements?.eventually_due || [],
-        past_due: account.requirements?.past_due || [],
+        past_due: account.requirements?.past_due || []
       },
       
-      // Human-readable status
-      status: account.charges_enabled ? 'active' : 'pending',
-      can_accept_payments: account.charges_enabled && account.details_submitted,
+      // Payment capabilities
+      capabilities: {
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled
+      },
+      
+      // Account info
+      info: {
+        email: account.email,
+        country: account.country,
+        default_currency: account.default_currency,
+        business_profile: account.business_profile
+      },
+      
+      // Simple status indicator
+      isFullyOnboarded: account.details_submitted && 
+                        account.charges_enabled && 
+                        account.payouts_enabled
     });
 
   } catch (error) {
-    console.error('Get account status error:', error);
+    console.error('Error getting account status:', error);
     
-    // Handle account not found
-    if (error.code === 'resource_missing') {
-      return Response.json({ 
-        error: 'Connected account not found',
-        details: 'The specified account_id does not exist'
-      }, { status: 404 });
+    // Handle case where account was deleted
+    if (error.code === 'account_invalid') {
+      return Response.json({
+        hasAccount: false,
+        error: 'Account no longer exists',
+        hint: 'Create a new connected account'
+      });
     }
     
     return Response.json({ 
-      error: 'Failed to retrieve account status',
-      details: error.message 
+      error: error.message || 'Failed to get account status',
+      type: error.type || 'unknown_error'
     }, { status: 500 });
   }
 });

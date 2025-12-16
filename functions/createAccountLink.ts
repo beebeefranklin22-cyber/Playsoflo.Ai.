@@ -1,23 +1,10 @@
-/**
- * Create Stripe Account Link for Onboarding
- * 
- * This function generates an onboarding link for a connected account.
- * The link redirects users through Stripe's hosted onboarding flow.
- * 
- * Flow:
- * 1. Authenticate user
- * 2. Validate Stripe account ID
- * 3. Generate account link with refresh and return URLs
- * 4. Return onboarding URL
- */
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.5.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
     // ============================================
-    // STEP 1: AUTHENTICATE USER
+    // STEP 1: Authenticate User
     // ============================================
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -27,68 +14,76 @@ Deno.serve(async (req) => {
     }
 
     // ============================================
-    // STEP 2: VALIDATE STRIPE CREDENTIALS
+    // STEP 2: Initialize Stripe
     // ============================================
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    
     if (!stripeSecretKey) {
       return Response.json({ 
-        error: 'Stripe API key not configured. Please add STRIPE_SECRET_KEY to environment variables.'
+        error: 'STRIPE_SECRET_KEY not configured' 
       }, { status: 500 });
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-11-17.clover',
+      apiVersion: '2025-11-17.clover'
     });
 
     // ============================================
-    // STEP 3: PARSE REQUEST
+    // STEP 3: Get Account ID
     // ============================================
-    const { account_id, refresh_url, return_url } = await req.json();
+    // The account ID should be stored in the user record
+    const accountId = user.stripe_connect_account_id;
     
-    if (!account_id) {
-      return Response.json({ error: 'account_id is required' }, { status: 400 });
+    if (!accountId) {
+      return Response.json({ 
+        error: 'No connected account found for this user',
+        hint: 'Create a connected account first'
+      }, { status: 400 });
     }
 
     // ============================================
-    // STEP 4: CREATE ACCOUNT LINK
+    // STEP 4: Get Current App URL for Redirects
     // ============================================
-    /**
-     * Account Link Configuration:
-     * 
-     * - account: Connected account ID to onboard
-     * - refresh_url: Where to redirect if link expires (user needs new link)
-     * - return_url: Where to redirect after successful onboarding
-     * - type: 'account_onboarding' for initial setup
-     */
+    // IMPORTANT: Replace this with your actual app URL
+    const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'http://localhost:3000';
+    
+    // These URLs determine where users go after onboarding
+    const returnUrl = `${appBaseUrl}/StripeConnectOnboarding?success=true`;
+    const refreshUrl = `${appBaseUrl}/StripeConnectOnboarding`;
+
+    // ============================================
+    // STEP 5: Create Account Link
+    // ============================================
+    // Account Links are one-time use URLs for onboarding
+    // They expire after a short time (usually 5 minutes)
     const accountLink = await stripe.accountLinks.create({
-      account: account_id,
+      // The connected account to onboard
+      account: accountId,
       
-      // URL to redirect to if the link expires (happens after 5 minutes)
-      refresh_url: refresh_url || `${new URL(req.url).origin}/stripe-connect-onboarding?refresh=true`,
+      // Return URL after successful onboarding
+      return_url: returnUrl,
       
-      // URL to redirect to after successful onboarding
-      return_url: return_url || `${new URL(req.url).origin}/stripe-connect-onboarding?success=true`,
+      // Refresh URL if the link expires or there's an error
+      refresh_url: refreshUrl,
       
-      // Type of flow - account_onboarding for initial setup
-      type: 'account_onboarding',
+      // Type of link - account_onboarding for initial setup
+      type: 'account_onboarding'
     });
 
     // ============================================
-    // STEP 5: RETURN ONBOARDING URL
+    // STEP 6: Return the Onboarding URL
     // ============================================
     return Response.json({
       success: true,
       url: accountLink.url,
       expires_at: accountLink.expires_at,
-      message: 'Redirect user to this URL to complete onboarding'
+      message: 'Onboarding link created successfully'
     });
 
   } catch (error) {
-    console.error('Create account link error:', error);
+    console.error('Error creating account link:', error);
     return Response.json({ 
-      error: 'Failed to create account link',
-      details: error.message 
+      error: error.message || 'Failed to create account link',
+      type: error.type || 'unknown_error'
     }, { status: 500 });
   }
 });

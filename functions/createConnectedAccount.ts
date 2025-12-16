@@ -1,135 +1,117 @@
-/**
- * Create a Stripe Connected Account
- * 
- * This function creates a connected account where:
- * - Platform controls pricing and fees
- * - Platform handles losses/refunds/chargebacks
- * - Account holder gets access to Express dashboard
- * 
- * Flow:
- * 1. Validate user authentication
- * 2. Initialize Stripe with secret key
- * 3. Create connected account with controller properties
- * 4. Return account ID for onboarding
- */
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.5.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
     // ============================================
-    // STEP 1: AUTHENTICATE USER
+    // STEP 1: Initialize Base44 SDK and Authenticate User
     // ============================================
-    // Create base44 client from incoming request
     const base44 = createClientFromRequest(req);
-    
-    // Verify user is authenticated
     const user = await base44.auth.me();
+    
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // ============================================
-    // STEP 2: VALIDATE STRIPE CREDENTIALS
+    // STEP 2: Initialize Stripe with Secret Key
     // ============================================
-    // Get Stripe secret key from environment
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    
-    // ERROR HANDLING: Check if Stripe key is configured
     if (!stripeSecretKey) {
       return Response.json({ 
-        error: 'Stripe API key not configured. Please add STRIPE_SECRET_KEY to your environment variables in the dashboard settings.',
-        setup_url: 'https://dashboard.stripe.com/apikeys'
+        error: 'STRIPE_SECRET_KEY not configured',
+        hint: 'Please set STRIPE_SECRET_KEY in your environment variables'
       }, { status: 500 });
     }
 
-    // Initialize Stripe with latest API version
+    // Initialize Stripe with the latest API version
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-11-17.clover',
+      apiVersion: '2025-11-17.clover'
     });
 
     // ============================================
-    // STEP 3: PARSE REQUEST BODY
+    // STEP 3: Parse Request Body
     // ============================================
-    const { email, country = 'US' } = await req.json();
-    
-    if (!email) {
-      return Response.json({ error: 'Email is required' }, { status: 400 });
+    const { email, businessName, country = 'US' } = await req.json();
+
+    if (!email || !businessName) {
+      return Response.json({ 
+        error: 'Missing required fields: email and businessName' 
+      }, { status: 400 });
     }
 
     // ============================================
-    // STEP 4: CREATE CONNECTED ACCOUNT
+    // STEP 4: Create Connected Account
     // ============================================
-    /**
-     * IMPORTANT: Using controller properties (NOT top-level type)
-     * 
-     * Controller configuration:
-     * - fees.payer: 'application' = Platform controls pricing and fees
-     * - losses.payments: 'application' = Platform handles refunds/chargebacks
-     * - stripe_dashboard.type: 'express' = Give account holder Express dashboard access
-     */
+    // IMPORTANT: Use controller properties, NOT top-level type
+    // The controller object specifies who is responsible for what
     const account = await stripe.accounts.create({
-      // Email for the connected account holder
+      // Email for the connected account
       email: email,
       
-      // Country of operation (affects payment methods and regulations)
-      country: country,
-      
-      // Controller configuration (CRITICAL: Do not use top-level 'type' property)
+      // Controller configuration - defines responsibilities
       controller: {
         // Platform is responsible for pricing and fee collection
         fees: {
-          payer: 'application'
+          payer: 'application' // Platform controls fees
         },
-        
-        // Platform is responsible for losses, refunds, and chargebacks
+        // Platform is responsible for losses (refunds/chargebacks)
         losses: {
-          payments: 'application'
+          payments: 'application' // Platform handles disputes
         },
-        
-        // Give them access to the Express dashboard for account management
+        // Give connected account access to Express dashboard
         stripe_dashboard: {
-          type: 'express'
+          type: 'express' // Express dashboard for easy management
         }
       },
       
-      // Capabilities the account needs (payment processing)
+      // Capabilities the account needs
       capabilities: {
         card_payments: { requested: true },
-        transfers: { requested: true },
+        transfers: { requested: true }
       },
+      
+      // Country where the account operates
+      country: country,
+      
+      // Store metadata for your app
+      metadata: {
+        app_user_email: user.email,
+        business_name: businessName,
+        created_at: new Date().toISOString()
+      }
     });
 
     // ============================================
-    // STEP 5: RETURN ACCOUNT DETAILS
+    // STEP 5: Store Account ID in User Record
+    // ============================================
+    // Save the Stripe account ID to the user so we can reference it later
+    await base44.auth.updateMe({
+      stripe_connect_account_id: account.id
+    });
+
+    // ============================================
+    // STEP 6: Return Success Response
     // ============================================
     return Response.json({
       success: true,
-      account_id: account.id,
-      email: account.email,
-      charges_enabled: account.charges_enabled,
-      details_submitted: account.details_submitted,
-      message: 'Connected account created successfully. Use this account_id for onboarding.'
+      accountId: account.id,
+      message: 'Connected account created successfully',
+      // Include useful account info
+      details: {
+        email: account.email,
+        country: account.country,
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted
+      }
     });
 
   } catch (error) {
-    // ============================================
-    // ERROR HANDLING
-    // ============================================
-    console.error('Create connected account error:', error);
-    
-    // Handle Stripe-specific errors
-    if (error.type === 'StripeAuthenticationError') {
-      return Response.json({ 
-        error: 'Invalid Stripe API key. Please check your STRIPE_SECRET_KEY in environment variables.',
-        details: error.message 
-      }, { status: 401 });
-    }
-    
+    console.error('Error creating connected account:', error);
     return Response.json({ 
-      error: 'Failed to create connected account',
-      details: error.message 
+      error: error.message || 'Failed to create connected account',
+      type: error.type || 'unknown_error'
     }, { status: 500 });
   }
 });

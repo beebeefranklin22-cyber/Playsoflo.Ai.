@@ -1,215 +1,241 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Package, Plus, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChevronLeft, Plus, Package, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 export default function StripeConnectProducts() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
-  const [accountId, setAccountId] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    price: "",
-    image_url: ""
-  });
+  
+  // Form state
+  const [productName, setProductName] = useState("");
+  const [description, setDescription] = useState("");
+  const [priceInDollars, setPriceInDollars] = useState("");
 
   useEffect(() => {
-    base44.auth.me().then(user => {
-      setCurrentUser(user);
-      // Get saved account ID
-      const savedAccountId = localStorage.getItem('stripe_account_id');
-      if (savedAccountId) {
-        setAccountId(savedAccountId);
-      }
-    });
+    loadUser();
   }, []);
 
-  const { data: products = [], isLoading } = useQuery({
+  const loadUser = async () => {
+    try {
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+      
+      // Check if user has completed onboarding
+      if (!user.stripe_connect_account_id) {
+        toast.error('Please complete Stripe Connect onboarding first');
+        navigate('/StripeConnectOnboarding');
+      }
+    } catch (error) {
+      toast.error('Please log in first');
+      navigate('/');
+    }
+  };
+
+  // Fetch user's products
+  const { data: allProducts = [] } = useQuery({
     queryKey: ['connect-products'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getAllConnectProducts', {});
-      return response.products || [];
+      const { data } = await base44.functions.invoke('getAllConnectProducts');
+      return data.products || [];
     },
-    initialData: []
+    enabled: !!currentUser
   });
 
+  // Filter to show only current user's products
+  const myProducts = allProducts.filter(
+    p => p.seller.email === currentUser?.email
+  );
+
+  // Create product mutation
   const createProductMutation = useMutation({
-    mutationFn: async (data) => {
-      return await base44.functions.invoke('createConnectProduct', data);
+    mutationFn: async (productData) => {
+      const { data } = await base44.functions.invoke('createConnectProduct', productData);
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connect-products'] });
-      setShowForm(false);
-      setForm({ name: "", description: "", price: "", image_url: "" });
+      queryClient.invalidateQueries(['connect-products']);
       toast.success('Product created successfully!');
+      // Reset form
+      setProductName("");
+      setDescription("");
+      setPriceInDollars("");
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to create product');
     }
   });
 
-  const handleSubmit = () => {
-    if (!accountId) {
-      toast.error('Please complete Stripe Connect onboarding first');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!productName || !priceInDollars) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
-    if (!form.name || !form.price) {
-      toast.error('Name and price are required');
-      return;
-    }
-
-    const priceInCents = Math.round(parseFloat(form.price) * 100);
-    if (isNaN(priceInCents) || priceInCents <= 0) {
-      toast.error('Please enter a valid price');
+    const priceInCents = Math.round(parseFloat(priceInDollars) * 100);
+    
+    if (priceInCents < 50) {
+      toast.error('Price must be at least $0.50');
       return;
     }
 
     createProductMutation.mutate({
-      name: form.name,
-      description: form.description,
-      price: priceInCents,
-      currency: 'usd',
-      connected_account_id: accountId,
-      image_url: form.image_url || undefined
+      name: productName,
+      description: description,
+      priceInCents: priceInCents
     });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 p-6">
+    <div className="min-h-screen pb-24 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">My Products</h1>
-            <p className="text-gray-400">Create and manage products for your storefront</p>
-          </div>
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-purple-600 hover:bg-purple-700"
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
           >
-            <Plus className="w-5 h-5 mr-2" />
-            Add Product
-          </Button>
+            <ChevronLeft className="w-6 h-6 text-white" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-white">Manage Products</h1>
+            <p className="text-gray-400">Create and manage your Stripe products</p>
+          </div>
         </div>
 
-        {/* Account ID Warning */}
-        {!accountId && (
-          <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-6">
-            <p className="text-yellow-400 font-medium">⚠ Complete Onboarding First</p>
-            <p className="text-gray-300 text-sm mt-1">
-              You need to complete Stripe Connect onboarding before creating products.
-            </p>
-          </div>
-        )}
-
-        {/* Create Product Form */}
-        {showForm && (
-          <Card className="bg-white/5 border-white/10 mb-6">
-            <CardHeader>
-              <CardTitle className="text-white">Create New Product</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Product Name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="bg-white/10 border-white/20 text-white"
-              />
-              <Textarea
-                placeholder="Description"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="bg-white/10 border-white/20 text-white"
-                rows={3}
-              />
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="Price (USD)"
-                value={form.price}
-                onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="bg-white/10 border-white/20 text-white"
-              />
-              <Input
-                placeholder="Image URL (optional)"
-                value={form.image_url}
-                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                className="bg-white/10 border-white/20 text-white"
-              />
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={createProductMutation.isPending || !accountId}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  {createProductMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : null}
-                  Create Product
-                </Button>
-                <Button
-                  onClick={() => setShowForm(false)}
-                  variant="outline"
-                  className="bg-white/5 border-white/20"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Products List */}
-        {isLoading ? (
-          <div className="text-center py-12">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-400 mx-auto mb-4" />
-            <p className="text-gray-400">Loading products...</p>
-          </div>
-        ) : products.length === 0 ? (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Create Product Form */}
           <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-12 text-center">
-              <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg">No products yet</p>
-              <p className="text-gray-500 text-sm mt-2">Create your first product to get started</p>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Create New Product
+              </h2>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Product Name *
+                  </label>
+                  <Input
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
+                    placeholder="e.g., Premium Widget"
+                    className="bg-white/10 border-white/20 text-white"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Description
+                  </label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe your product..."
+                    className="bg-white/10 border-white/20 text-white h-24"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">
+                    Price (USD) *
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0.50"
+                      value={priceInDollars}
+                      onChange={(e) => setPriceInDollars(e.target.value)}
+                      placeholder="0.00"
+                      className="bg-white/10 border-white/20 text-white pl-10"
+                      required
+                    />
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">Minimum: $0.50</p>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={createProductMutation.isPending}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  {createProductMutation.isPending ? 'Creating...' : 'Create Product'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            {products.map(product => (
-              <Card key={product.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
-                <CardContent className="p-0">
-                  {product.image_url && (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-t-lg"
-                    />
-                  )}
-                  <div className="p-4">
-                    <h3 className="text-white font-bold text-lg mb-2">{product.name}</h3>
-                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-green-400 font-bold text-2xl">{product.price_formatted}</div>
-                        <Badge className="bg-purple-500/20 text-purple-300 text-xs mt-1">
-                          {product.currency.toUpperCase()}
-                        </Badge>
+
+          {/* My Products List */}
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                My Products ({myProducts.length})
+              </h2>
+
+              {myProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400">No products yet</p>
+                  <p className="text-gray-500 text-sm">Create your first product to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-white font-semibold">{product.name}</h3>
+                        <span className="text-green-400 font-bold">
+                          {product.price.formatted}
+                        </span>
+                      </div>
+                      {product.description && (
+                        <p className="text-gray-400 text-sm mb-2">{product.description}</p>
+                      )}
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>ID: {product.id}</span>
+                        <span>Price ID: {product.price.id}</span>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Action */}
+        <Card className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30 mt-6">
+          <CardContent className="p-6">
+            <h3 className="text-white font-bold mb-2">Ready to sell?</h3>
+            <p className="text-gray-300 text-sm mb-4">
+              Visit the storefront to see all products available for purchase.
+            </p>
+            <Button
+              onClick={() => navigate('/StripeConnectStorefront')}
+              variant="outline"
+              className="border-purple-500/50 text-purple-300 hover:bg-purple-500/20"
+            >
+              View Storefront
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

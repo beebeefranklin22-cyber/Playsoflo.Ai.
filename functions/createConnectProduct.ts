@@ -1,23 +1,10 @@
-/**
- * Create Stripe Connect Product
- * 
- * Creates a product at the PLATFORM LEVEL (not on connected account).
- * Stores the connected_account_id in product metadata for destination charges.
- * 
- * Flow:
- * 1. Authenticate user
- * 2. Create product with price at platform level
- * 3. Store connected account mapping in metadata
- * 4. Return product details
- */
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@17.5.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
     // ============================================
-    // STEP 1: AUTHENTICATE USER
+    // STEP 1: Authenticate User
     // ============================================
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
@@ -27,84 +14,75 @@ Deno.serve(async (req) => {
     }
 
     // ============================================
-    // STEP 2: VALIDATE STRIPE CREDENTIALS
+    // STEP 2: Initialize Stripe
     // ============================================
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    
     if (!stripeSecretKey) {
       return Response.json({ 
-        error: 'Stripe API key not configured'
+        error: 'STRIPE_SECRET_KEY not configured' 
       }, { status: 500 });
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2025-11-17.clover',
+      apiVersion: '2025-11-17.clover'
     });
 
     // ============================================
-    // STEP 3: PARSE REQUEST BODY
+    // STEP 3: Verify Connected Account Exists
     // ============================================
-    const { 
-      name, 
-      description, 
-      price, // Price in cents (e.g., 2000 = $20.00)
-      currency = 'usd',
-      connected_account_id, // Which connected account should receive funds
-      image_url 
-    } = await req.json();
+    const connectedAccountId = user.stripe_connect_account_id;
     
-    // Validate required fields
-    if (!name || !price || !connected_account_id) {
+    if (!connectedAccountId) {
       return Response.json({ 
-        error: 'Missing required fields: name, price, and connected_account_id are required' 
-      }, { status: 400 });
-    }
-
-    // Validate price is a positive integer
-    if (typeof price !== 'number' || price <= 0 || !Number.isInteger(price)) {
-      return Response.json({ 
-        error: 'Price must be a positive integer in cents (e.g., 2000 for $20.00)' 
+        error: 'No connected account found',
+        hint: 'Complete Stripe Connect onboarding first'
       }, { status: 400 });
     }
 
     // ============================================
-    // STEP 4: CREATE PRODUCT AT PLATFORM LEVEL
+    // STEP 4: Parse Product Details
     // ============================================
-    /**
-     * IMPORTANT: Product is created at PLATFORM LEVEL, not on connected account
-     * 
-     * Why?
-     * - Platform controls pricing
-     * - Can sell products from multiple connected accounts in one storefront
-     * - Easier to manage application fees
-     * 
-     * Metadata stores the connected_account_id for routing payments
-     */
+    const { name, description, priceInCents, currency = 'usd' } = await req.json();
+
+    if (!name || !priceInCents) {
+      return Response.json({ 
+        error: 'Missing required fields: name and priceInCents' 
+      }, { status: 400 });
+    }
+
+    if (priceInCents < 50) {
+      return Response.json({ 
+        error: 'Price must be at least 50 cents (minimum Stripe charge)' 
+      }, { status: 400 });
+    }
+
+    // ============================================
+    // STEP 5: Create Product at Platform Level
+    // ============================================
+    // IMPORTANT: Create products on the PLATFORM account, not the connected account
+    // This allows you to control pricing and fees
     const product = await stripe.products.create({
-      // Product details
       name: name,
       description: description,
       
-      // Optional product image
-      images: image_url ? [image_url] : undefined,
-      
-      // Create default price (saves having to create price separately)
+      // Create the default price inline
       default_price_data: {
-        unit_amount: price, // Price in cents
-        currency: currency, // Currency code (usd, eur, etc.)
+        unit_amount: priceInCents, // Price in cents (e.g., 2000 = $20.00)
+        currency: currency
       },
       
-      // CRITICAL: Store connected account ID in metadata
-      // This tells us where to send funds during checkout
+      // Store the connected account ID in metadata
+      // This links the product to the seller who will receive funds
       metadata: {
-        connected_account_id: connected_account_id,
-        created_by_email: user.email,
-        created_at: new Date().toISOString(),
-      },
+        connected_account_id: connectedAccountId,
+        seller_email: user.email,
+        created_by: user.email,
+        created_at: new Date().toISOString()
+      }
     });
 
     // ============================================
-    // STEP 5: RETURN PRODUCT DETAILS
+    // STEP 6: Return Success Response
     // ============================================
     return Response.json({
       success: true,
@@ -112,28 +90,17 @@ Deno.serve(async (req) => {
         id: product.id,
         name: product.name,
         description: product.description,
-        price_id: product.default_price,
-        price_amount: price,
-        currency: currency,
-        connected_account_id: connected_account_id,
-        image_url: product.images?.[0],
+        default_price: product.default_price,
+        metadata: product.metadata
       },
-      message: 'Product created successfully at platform level'
+      message: 'Product created successfully'
     });
 
   } catch (error) {
-    console.error('Create product error:', error);
-    
-    // Handle invalid connected account
-    if (error.code === 'resource_missing') {
-      return Response.json({ 
-        error: 'Invalid connected_account_id. Please create and onboard the account first.' 
-      }, { status: 400 });
-    }
-    
+    console.error('Error creating product:', error);
     return Response.json({ 
-      error: 'Failed to create product',
-      details: error.message 
+      error: error.message || 'Failed to create product',
+      type: error.type || 'unknown_error'
     }, { status: 500 });
   }
 });
