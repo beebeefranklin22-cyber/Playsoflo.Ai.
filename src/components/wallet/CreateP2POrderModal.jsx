@@ -47,12 +47,24 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
     mutationFn: async (data) => {
       const totalAmount = parseFloat(data.crypto_amount) * parseFloat(data.price_per_unit);
       
-      return await base44.entities.P2POrder.create({
+      const newOrder = await base44.entities.P2POrder.create({
         ...data,
         seller_email: currentUser.email,
         total_amount: totalAmount,
         status: 'active'
       });
+
+      // Create notification for user
+      await base44.entities.Notification.create({
+        recipient_email: currentUser.email,
+        type: 'p2p_order',
+        title: '✅ Your P2P order is live',
+        message: `Your ${data.order_type} order for ${data.crypto_amount} ${data.crypto_currency} is now active and visible to traders.`,
+        read: false,
+        action_url: '/MyP2POrders'
+      });
+
+      return newOrder;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['p2p-orders']);

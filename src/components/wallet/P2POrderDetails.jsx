@@ -50,6 +50,16 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
         matched_at: new Date().toISOString()
       });
 
+      // Notify seller
+      await base44.entities.Notification.create({
+        recipient_email: order.seller_email,
+        type: 'p2p_order',
+        title: '🤝 Your P2P order was matched!',
+        message: `${currentUser.email} accepted your ${order.order_type} order for ${order.crypto_amount} ${order.crypto_currency}. Waiting for payment.`,
+        read: false,
+        action_url: '/MyP2POrders'
+      });
+
       return escrowData;
     },
     onSuccess: () => {
@@ -64,6 +74,16 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
       await base44.entities.P2PEscrow.update(escrow.id, {
         status: 'payment_submitted',
         payment_confirmed_at: new Date().toISOString()
+      });
+
+      // Notify seller
+      await base44.entities.Notification.create({
+        recipient_email: order.seller_email,
+        type: 'payment_received',
+        title: '💰 Payment received on P2P order',
+        message: `Buyer confirmed payment for ${order.crypto_amount} ${order.crypto_currency}. Please verify and release escrow.`,
+        read: false,
+        action_url: '/MyP2POrders'
       });
     },
     onSuccess: () => {
@@ -96,6 +116,26 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
       await base44.entities.P2POrder.update(order.id, {
         status: 'completed',
         completed_at: new Date().toISOString()
+      });
+
+      // Notify buyer
+      await base44.entities.Notification.create({
+        recipient_email: escrow.buyer_email,
+        type: 'payment_received',
+        title: '✅ Escrow released - Trade complete!',
+        message: `Seller released ${escrow.crypto_amount} ${escrow.crypto_currency}. Your trade is complete!`,
+        read: false,
+        action_url: '/MyP2POrders'
+      });
+
+      // Notify seller
+      await base44.entities.Notification.create({
+        recipient_email: order.seller_email,
+        type: 'p2p_order',
+        title: '✅ Trade completed successfully',
+        message: `Your P2P trade for ${order.crypto_amount} ${order.crypto_currency} is complete. Payment received.`,
+        read: false,
+        action_url: '/MyP2POrders'
       });
     },
     onSuccess: () => {
@@ -398,7 +438,40 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
                 )}
 
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Update escrow with dispute
+                    if (escrow) {
+                      await base44.entities.P2PEscrow.update(escrow.id, {
+                        status: 'disputed',
+                        dispute_reason: disputeReason
+                      });
+                    }
+
+                    // Notify other party
+                    const otherPartyEmail = isSeller ? order.buyer_email : order.seller_email;
+                    await base44.entities.Notification.create({
+                      recipient_email: otherPartyEmail,
+                      type: 'alert',
+                      title: '⚠️ Dispute filed on your P2P trade',
+                      message: `A dispute was filed for ${order.crypto_amount} ${order.crypto_currency}. Reason: ${disputeReason}`,
+                      read: false,
+                      action_url: '/MyP2POrders'
+                    });
+
+                    // Notify admins
+                    const adminUsers = await base44.entities.User.filter({ role: 'admin' });
+                    for (const admin of adminUsers) {
+                      await base44.entities.Notification.create({
+                        recipient_email: admin.email,
+                        type: 'alert',
+                        title: '🚨 P2P Dispute - Admin Action Required',
+                        message: `Dispute filed on ${order.crypto_currency} order. Amount: ${order.total_amount} USD. Review needed.`,
+                        read: false,
+                        action_url: '/MyP2POrders'
+                      });
+                    }
+
+                    queryClient.invalidateQueries(['p2p-escrow']);
                     toast.success('Dispute submitted to admin');
                     setShowDispute(false);
                   }}
