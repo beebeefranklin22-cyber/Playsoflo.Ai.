@@ -422,6 +422,29 @@ Be production-ready and technically accurate.`;
           break;
       }
 
+      // Security moderation
+      if (tool.id === 'code-assistant') {
+        const safetyCheck = await base44.integrations.Core.InvokeLLM({
+          prompt: `Is this code request safe and legal? "${demoInput}"`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              is_safe: { type: "boolean" },
+              reason: { type: "string" }
+            }
+          }
+        });
+
+        if (!safetyCheck.is_safe) {
+          setDemoOutput({
+            error: "Request blocked for security",
+            reason: safetyCheck.reason
+          });
+          setIsGenerating(false);
+          return;
+        }
+      }
+
       const result = await base44.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: responseSchema
@@ -455,7 +478,7 @@ Be production-ready and technically accurate.`;
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white">AI Studio</h1>
-              <p className="text-gray-300">Ultra-powerful AI tools from just $2.99/month</p>
+              <p className="text-gray-300">Ultra-powerful AI tools from just $1.49/month</p>
             </div>
           </div>
 
