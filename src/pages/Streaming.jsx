@@ -65,13 +65,22 @@ export default function Streaming() {
               <h2 className="text-2xl font-bold text-white mb-2">Discover Content</h2>
               <p className="text-gray-300">Personalized recommendations based on your interests</p>
             </div>
-            <Button
-              onClick={() => navigate(createPageUrl("PersonalizedFeed"))}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              <Sparkles className="w-4 h-4 mr-2" />
-              Explore
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate(createPageUrl("Gaming"))}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                <Gamepad2 className="w-4 h-4 mr-2" />
+                Play Games
+              </Button>
+              <Button
+                onClick={() => navigate(createPageUrl("PersonalizedFeed"))}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Explore
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="text-center p-4 bg-white/5 rounded-xl">
