@@ -192,15 +192,17 @@ export default function Home() {
     queryKey: ['stories', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
+      
+      const following = await base44.entities.Follow.filter({ follower_email: currentUser.email });
+      const followingEmails = following.map(f => f.following_email);
+      
       const allStories = await base44.entities.Story.list('-created_date');
       const now = new Date();
       
-      // Only show stories from people user follows + own stories
       return allStories.filter(story => {
-        const expires = new Date(story.expires_at);
-        const isNotExpired = expires > now;
+        const isNotExpired = new Date(story.expires_at) > now;
         const isOwnStory = story.created_by === currentUser.email;
-        const isFromFollowing = currentUser.following?.includes(story.created_by);
+        const isFromFollowing = followingEmails.includes(story.created_by);
         
         return isNotExpired && (isOwnStory || isFromFollowing);
       });
