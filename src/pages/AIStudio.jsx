@@ -4,13 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   Wand2, Image, Video, Music, Code, FileText, 
   Sparkles, Cpu, Palette, Mic, Brain, Zap,
-  CheckCircle, Gift, ChevronRight
+  CheckCircle, Crown, Gift, ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
 const aiTools = [
@@ -22,7 +22,7 @@ const aiTools = [
     category: "image_generation",
     color: "from-pink-500 to-rose-500",
     tier: "standard",
-    monthlyPrice: 4.99, // Further reduced
+    monthlyPrice: 2.99, // Most affordable
     features: ["8K Resolution", "50+ Styles", "Batch Generation", "Commercial License", "Ultra-Fast Processing", "AI Upscaling"],
     capabilities: [
       "Generate photorealistic images in seconds",
@@ -42,7 +42,7 @@ const aiTools = [
     category: "video_editing",
     color: "from-purple-500 to-indigo-500",
     tier: "premium",
-    monthlyPrice: 9.99, // Further reduced
+    monthlyPrice: 4.99,
     features: ["Auto Editing", "Scene Detection", "Color Grading", "AI Transitions", "Voice Enhancement", "4K Export"],
     capabilities: [
       "Automatic scene detection and intelligent cutting",
@@ -62,7 +62,7 @@ const aiTools = [
     category: "music_creation",
     color: "from-cyan-500 to-blue-500",
     tier: "standard",
-    monthlyPrice: 7.99, // Further reduced
+    monthlyPrice: 3.99,
     features: ["100+ Genres", "Stem Separation", "Royalty Free", "MIDI Export", "Loop Creator", "AI Mastering"],
     capabilities: [
       "Generate full songs in any genre instantly",
@@ -82,7 +82,7 @@ const aiTools = [
     category: "code_development",
     color: "from-green-500 to-emerald-500",
     tier: "standard",
-    monthlyPrice: 3.99, // Most affordable - further reduced
+    monthlyPrice: 1.99, // Most affordable
     features: ["50+ Languages", "Code Review", "Bug Detection", "Refactoring", "Documentation", "Security Scanning"],
     capabilities: [
       "Write complete production-ready applications",
@@ -103,7 +103,7 @@ const aiTools = [
     category: "writing",
     color: "from-orange-500 to-amber-500",
     tier: "standard",
-    monthlyPrice: 2.99, // Most affordable - further reduced
+    monthlyPrice: 1.49, // Most affordable
     features: ["SEO Optimized", "50+ Formats", "Plagiarism Check", "Tone Adjustment", "50+ Languages", "Grammar AI"],
     capabilities: [
       "Write SEO-optimized blog posts and articles",
@@ -124,7 +124,7 @@ const aiTools = [
     category: "design",
     color: "from-violet-500 to-purple-500",
     tier: "premium",
-    monthlyPrice: 8.99, // Further reduced
+    monthlyPrice: 3.99,
     features: ["Brand Kit", "1000+ Templates", "Vector Export", "Mockup Generator", "Font Pairing", "AI Color Theory"],
     capabilities: [
       "Generate professional logo designs instantly",
@@ -145,7 +145,7 @@ const aiTools = [
     category: "voice_synthesis",
     color: "from-red-500 to-pink-500",
     tier: "premium",
-    monthlyPrice: 9.99, // Further reduced
+    monthlyPrice: 4.99,
     features: ["Voice Cloning", "50+ Accents", "Emotion Control", "Real-time", "Audio Effects", "Multi-Speaker"],
     capabilities: [
       "Ultra-realistic text-to-speech in any voice",
@@ -166,7 +166,7 @@ const aiTools = [
     category: "3d_modeling",
     color: "from-yellow-500 to-orange-500",
     tier: "elite",
-    monthlyPrice: 12.99, // Further reduced
+    monthlyPrice: 5.99,
     features: ["Text-to-3D", "Photo-to-Model", "Auto Rigging", "Animation", "All Formats", "PBR Materials"],
     capabilities: [
       "Generate 3D models from text descriptions",
@@ -294,26 +294,27 @@ Be specific and music-theory accurate.`;
           break;
 
         case "code-assistant":
-          prompt = `You are a senior software engineer with expertise in clean code and best practices. Write production-ready code for: "${demoInput}"
+          prompt = `You are a helpful coding assistant for learning and development. Help with: "${demoInput}"
 
-Requirements:
-- Include comprehensive error handling
-- Add detailed comments explaining logic
-- Follow industry best practices
-- Optimize for performance
-- Include security considerations
-- Write it ready for deployment
+STRICT SECURITY RESTRICTIONS:
+- NEVER generate code that accesses sensitive data (passwords, API keys, tokens, payment info)
+- NEVER create code for hacking, phishing, scraping, or malicious purposes
+- NEVER bypass authentication or authorization systems
+- NEVER generate code that violates privacy or terms of service
+- DO provide educational examples and learning resources only
+- DO focus on legitimate development tasks
 
-Provide complete, working code.`;
+If the request involves anything potentially malicious or unethical, refuse politely and explain why.
+
+Provide helpful, educational code examples only.`;
           responseSchema = {
             type: "object",
             properties: {
+              is_safe_request: { type: "boolean" },
               code: { type: "string" },
               language: { type: "string" },
               explanation: { type: "string" },
-              dependencies: { type: "array", items: { type: "string" } },
-              testing_notes: { type: "string" },
-              security_notes: { type: "string" }
+              security_warning: { type: "string" }
             }
           };
           break;

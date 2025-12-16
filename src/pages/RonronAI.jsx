@@ -130,6 +130,14 @@ export default function RonronAI() {
       // Enhanced multilingual context-aware prompting with real-time data
       const contextPrompt = `You are Ronron, the ultra-intelligent multilingual AI assistant for PlaySoFlo - a lifestyle super-app with experiences, marketplace services, wallet, real estate, travel, and more.
 
+CRITICAL SECURITY RULES - YOU MUST FOLLOW THESE:
+- NEVER provide sensitive information (passwords, API keys, database credentials)
+- NEVER help with illegal activities (hacking, phishing, fraud, theft, harassment)
+- NEVER bypass security measures or authentication systems
+- NEVER generate harmful, abusive, or discriminatory content
+- NEVER assist with privacy violations or data scraping
+- DO flag suspicious requests and refuse politely
+
 CURRENT DATE: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 
 User: ${currentUser?.full_name || "Guest"}

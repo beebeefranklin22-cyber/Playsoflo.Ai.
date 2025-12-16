@@ -74,6 +74,7 @@ import MyPropertyBookings from './pages/MyPropertyBookings';
 import MyP2POrders from './pages/MyP2POrders';
 import AdminPanel from './pages/AdminPanel';
 import Gaming from './pages/Gaming';
+import ARShowroom from './pages/ARShowroom';
 import __Layout from './Layout.jsx';
 
 
@@ -154,6 +155,7 @@ export const PAGES = {
     "MyP2POrders": MyP2POrders,
     "AdminPanel": AdminPanel,
     "Gaming": Gaming,
+    "ARShowroom": ARShowroom,
 }
 
 export const pagesConfig = {
