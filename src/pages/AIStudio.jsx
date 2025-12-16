@@ -22,7 +22,7 @@ const aiTools = [
     category: "image_generation",
     color: "from-pink-500 to-rose-500",
     tier: "standard",
-    monthlyPrice: 2.99, // Most affordable
+    monthlyPrice: 0, // FREE
     features: ["8K Resolution", "50+ Styles", "Batch Generation", "Commercial License", "Ultra-Fast Processing", "AI Upscaling"],
     capabilities: [
       "Generate photorealistic images in seconds",
@@ -42,7 +42,7 @@ const aiTools = [
     category: "video_editing",
     color: "from-purple-500 to-indigo-500",
     tier: "premium",
-    monthlyPrice: 4.99,
+    monthlyPrice: 0, // FREE
     features: ["Auto Editing", "Scene Detection", "Color Grading", "AI Transitions", "Voice Enhancement", "4K Export"],
     capabilities: [
       "Automatic scene detection and intelligent cutting",
@@ -62,7 +62,7 @@ const aiTools = [
     category: "music_creation",
     color: "from-cyan-500 to-blue-500",
     tier: "standard",
-    monthlyPrice: 3.99,
+    monthlyPrice: 0, // FREE
     features: ["100+ Genres", "Stem Separation", "Royalty Free", "MIDI Export", "Loop Creator", "AI Mastering"],
     capabilities: [
       "Generate full songs in any genre instantly",
@@ -82,7 +82,7 @@ const aiTools = [
     category: "code_development",
     color: "from-green-500 to-emerald-500",
     tier: "standard",
-    monthlyPrice: 1.99, // Most affordable
+    monthlyPrice: 0, // FREE
     features: ["50+ Languages", "Code Review", "Bug Detection", "Refactoring", "Documentation", "Security Scanning"],
     capabilities: [
       "Write complete production-ready applications",
@@ -103,7 +103,7 @@ const aiTools = [
     category: "writing",
     color: "from-orange-500 to-amber-500",
     tier: "standard",
-    monthlyPrice: 1.49, // Most affordable
+    monthlyPrice: 0, // FREE
     features: ["SEO Optimized", "50+ Formats", "Plagiarism Check", "Tone Adjustment", "50+ Languages", "Grammar AI"],
     capabilities: [
       "Write SEO-optimized blog posts and articles",
@@ -124,7 +124,7 @@ const aiTools = [
     category: "design",
     color: "from-violet-500 to-purple-500",
     tier: "premium",
-    monthlyPrice: 3.99,
+    monthlyPrice: 0, // FREE
     features: ["Brand Kit", "1000+ Templates", "Vector Export", "Mockup Generator", "Font Pairing", "AI Color Theory"],
     capabilities: [
       "Generate professional logo designs instantly",
@@ -145,7 +145,7 @@ const aiTools = [
     category: "voice_synthesis",
     color: "from-red-500 to-pink-500",
     tier: "premium",
-    monthlyPrice: 4.99,
+    monthlyPrice: 0, // FREE
     features: ["Voice Cloning", "50+ Accents", "Emotion Control", "Real-time", "Audio Effects", "Multi-Speaker"],
     capabilities: [
       "Ultra-realistic text-to-speech in any voice",
@@ -166,7 +166,7 @@ const aiTools = [
     category: "3d_modeling",
     color: "from-yellow-500 to-orange-500",
     tier: "elite",
-    monthlyPrice: 5.99,
+    monthlyPrice: 0, // FREE
     features: ["Text-to-3D", "Photo-to-Model", "Auto Rigging", "Animation", "All Formats", "PBR Materials"],
     capabilities: [
       "Generate 3D models from text descriptions",
@@ -214,55 +214,55 @@ export default function AIStudio() {
       // Enhanced intelligent prompts with better context
       switch(tool.id) {
         case "image-gen":
-          prompt = `You are an expert AI image generation specialist. Based on this request: "${demoInput}"
-
-Generate a detailed, creative image specification including:
-- Artistic style and technique
-- Lighting setup and mood
-- Composition and framing
-- Color palette and atmosphere
-- Technical camera settings
-- Post-processing effects
-
-Provide specific, actionable details that would create a stunning visual result.`;
-          responseSchema = {
-            type: "object",
-            properties: {
-              description: { type: "string" },
-              style: { type: "string" },
-              lighting: { type: "string" },
-              colors: { type: "array", items: { type: "string" } },
-              mood: { type: "string" },
-              composition: { type: "string" },
-              camera_settings: { type: "string" }
-            }
-          };
-          break;
+          // Actually generate an image!
+          const imageResult = await base44.integrations.Core.GenerateImage({
+            prompt: demoInput
+          });
+          
+          setDemoOutput({
+            type: "image",
+            url: imageResult.url,
+            prompt: demoInput,
+            message: "✨ Image generated successfully!"
+          });
+          setIsGenerating(false);
+          return;
 
         case "video-editor":
-          prompt = `You are a professional video editor and cinematographer. Analyze this video concept: "${demoInput}"
+          // Generate video storyboard with preview image
+          prompt = `Create a detailed video production plan for: "${demoInput}"
 
-Provide a complete editing plan including:
-- Scene breakdown with timing
-- Transition suggestions
-- Color grading approach
-- Audio mixing strategy
-- Visual effects needed
-- Pacing and rhythm
-
-Be specific and production-ready.`;
-          responseSchema = {
-            type: "object",
-            properties: {
-              scenes: { type: "array", items: { type: "string" } },
-              transitions: { type: "array", items: { type: "string" } },
-              effects: { type: "array", items: { type: "string" } },
-              duration: { type: "string" },
-              color_grade: { type: "string" },
-              audio_plan: { type: "string" }
+Include specific scenes, transitions, visual effects, and timing.`;
+          
+          const storyboard = await base44.integrations.Core.InvokeLLM({
+            prompt,
+            response_json_schema: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                scenes: { type: "array", items: { type: "string" } },
+                transitions: { type: "array", items: { type: "string" } },
+                effects: { type: "array", items: { type: "string" } },
+                duration: { type: "string" },
+                color_grade: { type: "string" },
+                audio_plan: { type: "string" }
+              }
             }
-          };
-          break;
+          });
+          
+          // Generate thumbnail for the video concept
+          const videoThumb = await base44.integrations.Core.GenerateImage({
+            prompt: `Professional video thumbnail for: ${demoInput}`
+          });
+          
+          setDemoOutput({
+            type: "video",
+            thumbnail: videoThumb.url,
+            storyboard: storyboard,
+            message: "🎬 Video plan created! Thumbnail preview generated."
+          });
+          setIsGenerating(false);
+          return;
 
         case "music-creator":
           prompt = `You are a professional music producer and composer. Create a detailed composition plan for: "${demoInput}"
@@ -478,7 +478,7 @@ Be production-ready and technically accurate.`;
             </div>
             <div>
               <h1 className="text-4xl font-bold text-white">AI Studio</h1>
-              <p className="text-gray-300">Ultra-powerful AI tools from just $1.49/month</p>
+              <p className="text-gray-300">100% FREE • Unlimited AI generation • No credit card required</p>
             </div>
           </div>
 
@@ -591,8 +591,8 @@ Be production-ready and technically accurate.`;
                       <Zap className="w-4 h-4 mr-2" />
                       Try Demo
                     </Button>
-                    <Button className={`flex-1 bg-gradient-to-r ${tool.color}`}>
-                      Subscribe
+                    <Button className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600">
+                      Use Free
                     </Button>
                   </div>
                 </CardContent>
@@ -677,34 +677,64 @@ Be production-ready and technically accurate.`;
 
               {/* Demo Output */}
               {demoOutput && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 rounded-2xl p-6 border border-white/10"
-                >
-                  <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
-                    AI Generated Result
-                  </h3>
-                  <pre className="text-gray-300 text-sm whitespace-pre-wrap">
-                    {JSON.stringify(demoOutput, null, 2)}
-                  </pre>
-                </motion.div>
+               <motion.div
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="bg-white/5 rounded-2xl p-6 border border-white/10"
+               >
+                 <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                   <Sparkles className="w-5 h-5 text-yellow-400" />
+                   {demoOutput.message || "AI Generated Result"}
+                 </h3>
+
+                 {demoOutput.type === "image" && demoOutput.url && (
+                   <div className="space-y-4">
+                     <img 
+                       src={demoOutput.url} 
+                       alt="Generated" 
+                       className="w-full rounded-xl"
+                     />
+                     <p className="text-gray-400 text-sm">Prompt: {demoOutput.prompt}</p>
+                   </div>
+                 )}
+
+                 {demoOutput.type === "video" && demoOutput.thumbnail && (
+                   <div className="space-y-4">
+                     <img 
+                       src={demoOutput.thumbnail} 
+                       alt="Video thumbnail" 
+                       className="w-full rounded-xl"
+                     />
+                     <div className="bg-white/5 rounded-lg p-4">
+                       <h4 className="text-white font-semibold mb-2">📋 Video Production Plan</h4>
+                       <pre className="text-gray-300 text-xs whitespace-pre-wrap">
+                         {JSON.stringify(demoOutput.storyboard, null, 2)}
+                       </pre>
+                     </div>
+                   </div>
+                 )}
+
+                 {!demoOutput.type && (
+                   <pre className="text-gray-300 text-sm whitespace-pre-wrap">
+                     {JSON.stringify(demoOutput, null, 2)}
+                   </pre>
+                 )}
+               </motion.div>
               )}
 
               {/* Pricing */}
-              <div className="mt-6 p-6 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl border border-purple-500/30">
+              <div className="mt-6 p-6 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-2xl border border-green-500/30">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-white font-bold text-xl mb-1">
-                      Subscribe for ${selectedTool.monthlyPrice}/month
+                      100% FREE Forever
                     </p>
                     <p className="text-gray-300 text-sm">
-                      Unlimited access • Cancel anytime • 7-day free trial
+                      Unlimited generations • No credit card required • No limits
                     </p>
                   </div>
-                  <Button className={`bg-gradient-to-r ${selectedTool.color} px-8 py-6`}>
-                    Start Free Trial
+                  <Button className="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6">
+                    Start Creating Free
                   </Button>
                 </div>
               </div>
