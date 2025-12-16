@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
+import CreateStoryModal from "../components/CreateStoryModal";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
@@ -26,6 +27,7 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateStory, setShowCreateStory] = useState(false);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
 
   useEffect(() => {
@@ -173,20 +175,38 @@ export default function Home() {
     { icon: Music, label: "Music", color: "pink", path: "Vibe" },
   ];
 
+  // Fetch followers list
+  const { data: followers = [] } = useQuery({
+    queryKey: ['my-followers', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const followData = await base44.entities.Follow.filter({
+        following_email: currentUser.email
+      });
+      return followData.map(f => f.follower_email);
+    },
+    enabled: !!currentUser
+  });
+
   const { data: stories = [] } = useQuery({
     queryKey: ['stories', currentUser?.email],
     queryFn: async () => {
+      if (!currentUser) return [];
       const allStories = await base44.entities.Story.list('-created_date');
       const now = new Date();
+      
+      // Only show stories from people user follows + own stories
       return allStories.filter(story => {
         const expires = new Date(story.expires_at);
-        return expires > now && (
-          story.user_email === currentUser?.email ||
-          currentUser?.following?.includes(story.user_email)
-        );
+        const isNotExpired = expires > now;
+        const isOwnStory = story.created_by === currentUser.email;
+        const isFromFollowing = currentUser.following?.includes(story.created_by);
+        
+        return isNotExpired && (isOwnStory || isFromFollowing);
       });
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 10000
   });
 
   return (
@@ -196,24 +216,32 @@ export default function Home() {
         <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
           {/* Add Your Story */}
           <button 
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowCreateStory(true)}
             className="flex flex-col items-center gap-2 flex-shrink-0"
           >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative">
-              <Plus className="w-6 h-6 text-white" />
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative shadow-lg">
+              <Plus className="w-7 h-7 text-white" />
             </div>
-            <span className="text-white text-xs font-medium">Your Story</span>
+            <span className="text-white text-xs font-medium">Add Story</span>
           </button>
 
-          {/* Stories from others */}
-          {[1, 2, 3, 4, 5].map((i) => (
-            <button key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 p-0.5">
-                <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center text-white font-bold">
-                  U{i}
+          {/* Stories from following */}
+          {stories.slice(0, 10).map((story) => (
+            <button key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 shadow-lg">
+                <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
+                  {story.media_url ? (
+                    <img src={story.media_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500">
+                      {story.created_by?.[0]?.toUpperCase() || "U"}
+                    </div>
+                  )}
                 </div>
               </div>
-              <span className="text-gray-400 text-xs">User {i}</span>
+              <span className="text-gray-300 text-xs max-w-[64px] truncate">
+                {story.created_by === currentUser?.email ? 'You' : story.created_by?.split('@')[0]}
+              </span>
             </button>
           ))}
         </div>
@@ -418,6 +446,13 @@ export default function Home() {
       <CreatePostModal 
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        currentUser={currentUser}
+      />
+
+      {/* Create Story Modal */}
+      <CreateStoryModal 
+        isOpen={showCreateStory}
+        onClose={() => setShowCreateStory(false)}
         currentUser={currentUser}
       />
 
