@@ -72,6 +72,7 @@ import PropertyProviderHub from './pages/PropertyProviderHub';
 import PropertyHostProfile from './pages/PropertyHostProfile';
 import MyPropertyBookings from './pages/MyPropertyBookings';
 import MyP2POrders from './pages/MyP2POrders';
+import AdminPanel from './pages/AdminPanel';
 import __Layout from './Layout.jsx';
 
 
@@ -150,6 +151,7 @@ export const PAGES = {
     "PropertyHostProfile": PropertyHostProfile,
     "MyPropertyBookings": MyPropertyBookings,
     "MyP2POrders": MyP2POrders,
+    "AdminPanel": AdminPanel,
 }
 
 export const pagesConfig = {

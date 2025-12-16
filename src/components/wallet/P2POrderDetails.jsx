@@ -4,10 +4,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Shield, MessageCircle, AlertTriangle, Star, CheckCircle, Sparkles, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import P2PChat from "./P2PChat";
 
 export default function P2POrderDetails({ order, currentUser, onClose }) {
   const queryClient = useQueryClient();
@@ -17,6 +18,7 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
   const [showDispute, setShowDispute] = useState(false);
   const [aiDisputeAnalysis, setAiDisputeAnalysis] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const { data: escrow } = useQuery({
     queryKey: ['p2p-escrow', order.escrow_id],
@@ -338,10 +340,14 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
               </Button>
             )}
 
-            {isMyOrder && (
-              <Button variant="outline" className="flex-1">
+            {isMyOrder && order.buyer_email && (
+              <Button 
+                onClick={() => setShowChat(!showChat)}
+                variant="outline" 
+                className="flex-1 border-blue-500/50 text-blue-400"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Message Trader
+                {showChat ? 'Hide Chat' : 'Message Trader'}
               </Button>
             )}
 
@@ -356,6 +362,19 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
               </Button>
             )}
           </div>
+
+          {/* Chat Section */}
+          <AnimatePresence>
+            {showChat && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <P2PChat order={order} currentUser={currentUser} escrow={escrow} />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Dispute Section */}
           {showDispute && (
