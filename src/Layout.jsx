@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,7 @@ import ServiceWorkerManager from "./components/ServiceWorkerManager";
 import AdvancedOfflineSync from "./components/AdvancedOfflineSync";
 import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
 import RealtimeDataManager from "./components/RealtimeDataManager";
+import CustomerSupportChat from "./components/support/CustomerSupportChat";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -22,6 +23,7 @@ export default function Layout({ children, currentPageName }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showSupportChat, setShowSupportChat] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -385,7 +387,25 @@ export default function Layout({ children, currentPageName }) {
           </div>
         </nav>
       )}
+
+      {/* Support Chat Button */}
+      {!isFullScreen && currentUser && (
+        <button
+          onClick={() => setShowSupportChat(true)}
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+        >
+          <Headphones className="w-6 h-6 text-white" />
+        </button>
+      )}
+
+      {/* Support Chat Modal */}
+      {showSupportChat && currentUser && (
+        <CustomerSupportChat
+          currentUser={currentUser}
+          onClose={() => setShowSupportChat(false)}
+        />
+      )}
       </div>
-    </PostHogProvider>
-  );
-}
+      </PostHogProvider>
+      );
+      }
