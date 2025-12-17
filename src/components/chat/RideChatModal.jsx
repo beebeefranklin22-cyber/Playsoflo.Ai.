@@ -56,17 +56,31 @@ export default function RideChatModal({ open, onClose, ride }) {
     enabled: !!ride && !!currentUser
   });
 
-  // Fetch messages
+  // Fetch messages with real-time updates
   const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversation?.id],
     queryFn: async () => {
       if (!conversation) return [];
-      return await base44.entities.ChatMessage.filter({
+      const msgs = await base44.entities.ChatMessage.filter({
         conversation_id: conversation.id
       });
+      
+      // Mark messages as read
+      const unreadMessages = msgs.filter(m => 
+        m.sender_email !== currentUser?.email && 
+        !m.read_by?.includes(currentUser?.email)
+      );
+      
+      for (const msg of unreadMessages) {
+        await base44.entities.ChatMessage.update(msg.id, {
+          read_by: [...(msg.read_by || []), currentUser.email]
+        });
+      }
+      
+      return msgs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
     },
-    enabled: !!conversation,
-    refetchInterval: 3000 // Poll every 3 seconds
+    enabled: !!conversation && !!currentUser,
+    refetchInterval: 2000 // Poll every 2 seconds for real-time feel
   });
 
   // Send message mutation
