@@ -75,6 +75,7 @@ import MyP2POrders from './pages/MyP2POrders';
 import AdminPanel from './pages/AdminPanel';
 import Gaming from './pages/Gaming';
 import ARShowroom from './pages/ARShowroom';
+import AffiliateHub from './pages/AffiliateHub';
 import __Layout from './Layout.jsx';
 
 
@@ -156,6 +157,7 @@ export const PAGES = {
     "AdminPanel": AdminPanel,
     "Gaming": Gaming,
     "ARShowroom": ARShowroom,
+    "AffiliateHub": AffiliateHub,
 }
 
 export const pagesConfig = {
