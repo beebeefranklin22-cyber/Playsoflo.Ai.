@@ -81,6 +81,7 @@ import PackageDelivery from './pages/PackageDelivery';
 import DeliveryDriverHub from './pages/DeliveryDriverHub';
 import FranchiseHub from './pages/FranchiseHub';
 import SupportDashboard from './pages/SupportDashboard';
+import PassengerProfile from './pages/PassengerProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -168,6 +169,7 @@ export const PAGES = {
     "DeliveryDriverHub": DeliveryDriverHub,
     "FranchiseHub": FranchiseHub,
     "SupportDashboard": SupportDashboard,
+    "PassengerProfile": PassengerProfile,
 }
 
 export const pagesConfig = {
