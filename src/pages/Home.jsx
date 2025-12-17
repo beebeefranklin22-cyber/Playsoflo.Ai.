@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
@@ -24,11 +24,13 @@ const Badge = ({ children, className }) => (
 
 export default function Home() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateStory, setShowCreateStory] = useState(false);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -91,6 +93,16 @@ export default function Home() {
   };
 
   const [showFriendFinder, setShowFriendFinder] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['social-posts'] }),
+      queryClient.invalidateQueries({ queryKey: ['stories'] }),
+      queryClient.invalidateQueries({ queryKey: ['pending-requests-count'] })
+    ]);
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   const { data: pendingRequestsCount = 0 } = useQuery({
     queryKey: ['pending-requests-count', currentUser?.email],
@@ -253,7 +265,16 @@ export default function Home() {
       {/* Quick Access Pills */}
       <div className="px-4 py-4 border-b border-white/10">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-white font-semibold">Quick Access</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-white font-semibold">Quick Access</h3>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-1.5 hover:bg-white/10 rounded-full transition"
+            >
+              <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowFollowRequests(true)}
