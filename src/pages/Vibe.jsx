@@ -105,11 +105,11 @@ export default function Vibe() {
         status: "published"
       });
 
-      // For search, fetch from YouTube
-      if (searchQuery?.trim()) {
+      // For search, fetch from YouTube (faster debounced search)
+      if (searchQuery?.trim() && searchQuery.length >= 2) {
         const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
           query: searchQuery,
-          maxResults: 20
+          maxResults: 15
         });
         const youtubeTracks = youtubeResponse?.data?.tracks || [];
         return { 
@@ -129,8 +129,9 @@ export default function Vibe() {
       };
     },
     initialData: { tracks: sampleTracks, source: 'demo' },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    staleTime: 2 * 60 * 1000, // 2 minutes for faster refresh
+    gcTime: 5 * 60 * 1000,
+    enabled: !searchQuery || searchQuery.length >= 2 // Only search with 2+ chars
   });
 
   const allTracks = musicData?.tracks || [];
@@ -372,30 +373,27 @@ export default function Vibe() {
             )}
           </div>
 
-          {/* Search */}
-          <form onSubmit={(e) => { e.preventDefault(); refetch(); }} className="relative">
+          {/* Search - Auto-search with debounce */}
+          <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  refetch();
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                // Auto-trigger search after typing stops (faster UX)
+                if (e.target.value.length >= 2) {
+                  setTimeout(() => refetch(), 500);
                 }
               }}
-              placeholder="Search songs, artists, albums..."
-              className="pl-12 pr-24 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
+              placeholder="Search songs, artists, albums... (min 2 chars)"
+              className="pl-12 pr-4 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
             />
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-purple-600 hover:bg-purple-700 h-9"
-              size="sm"
-            >
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Search'}
-            </Button>
-          </form>
+            {isLoading && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <RefreshCw className="w-4 h-4 animate-spin text-purple-400" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
