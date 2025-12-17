@@ -1098,30 +1098,24 @@ export default function CreatorHub() {
             <h2 className="text-2xl font-bold text-white">Your Products</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {products.map(p => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                >
-                  <Card className="bg-white/5 border-white/10">
-                    <CardContent className="p-4">
-                      {p.image_url && (
-                        <img src={p.image_url} alt={p.title} className="h-48 w-full object-cover rounded-lg mb-3" />
-                      )}
-                      <div className="text-white font-semibold text-lg mb-1">{p.title}</div>
-                      <div className="text-gray-300 text-sm capitalize mb-2">{p.type?.replace('_', ' ')}</div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-white text-xl font-bold">${p.price_usd?.toFixed(2) || 0}</div>
-                        <div className="text-gray-400 text-sm">{p.inventory || 0} in stock</div>
-                      </div>
-                      <div className={`mt-2 text-xs px-2 py-1 rounded-full inline-block ${
-                        p.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                      }`}>
-                        {p.is_active ? 'Active' : 'Inactive'}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+                <Card key={p.id} className="bg-white/5 border-white/10">
+                  <CardContent className="p-4">
+                    {p.image_url && (
+                      <img src={p.image_url} alt={p.title} className="h-48 w-full object-cover rounded-lg mb-3" />
+                    )}
+                    <div className="text-white font-semibold text-lg mb-1">{p.title}</div>
+                    <div className="text-gray-300 text-sm capitalize mb-2">{p.type?.replace('_', ' ')}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-white text-xl font-bold">${p.price_usd?.toFixed(2) || 0}</div>
+                      <div className="text-gray-400 text-sm">{p.inventory || 0} in stock</div>
+                    </div>
+                    <div className={`mt-2 text-xs px-2 py-1 rounded-full inline-block ${
+                      p.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </TabsContent>
