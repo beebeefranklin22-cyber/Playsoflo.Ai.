@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, X, Image as ImageIcon, Clock, MapPin, AlertCircle, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function RideChatModal({ open, onClose, ride }) {
@@ -190,38 +190,35 @@ export default function RideChatModal({ open, onClose, ride }) {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          <AnimatePresence>
-            {messages.map((msg) => {
-              const isMe = msg.sender_email === currentUser?.email;
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[70%] ${isMe ? 'bg-blue-600' : 'bg-white/10'} rounded-2xl px-4 py-2`}>
-                    {msg.attachment_url && (
-                      <img 
-                        src={msg.attachment_url} 
-                        alt="Attachment" 
-                        className="rounded-lg mb-2 max-w-full h-auto cursor-pointer hover:opacity-90 transition"
-                        onClick={() => window.open(msg.attachment_url, '_blank')}
-                      />
-                    )}
-                    <p className="text-white text-sm">{msg.content?.replace('📷 ', '')}</p>
-                    <p className="text-xs text-white/60 mt-1">
-                      {new Date(msg.created_date).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+          {messages.map((msg) => {
+            const isMe = msg.sender_email === currentUser?.email;
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[70%] ${isMe ? 'bg-blue-600' : 'bg-white/10'} rounded-2xl px-4 py-2`}>
+                  {msg.attachment_url && (
+                    <img 
+                      src={msg.attachment_url} 
+                      alt="Attachment" 
+                      className="rounded-lg mb-2 max-w-full h-auto cursor-pointer hover:opacity-90 transition"
+                      onClick={() => window.open(msg.attachment_url, '_blank')}
+                    />
+                  )}
+                  <p className="text-white text-sm">{msg.content?.replace('📷 ', '')}</p>
+                  <p className="text-xs text-white/60 mt-1">
+                    {new Date(msg.created_date).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
