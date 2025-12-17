@@ -8,6 +8,8 @@ import LiveGPSTracking from "./LiveGPSTracking";
 import RatingModal from "./RatingModal";
 
 export default function DeliveryTrackingModal({ delivery, currentUser, onClose }) {
+  const [showRating, setShowRating] = useState(false);
+
   const trackingSteps = [
     { status: 'pending', label: 'Order Placed', icon: Package },
     { status: 'driver_assigned', label: 'Driver Assigned', icon: Truck },
@@ -17,6 +19,17 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
   ];
 
   const currentStepIndex = trackingSteps.findIndex(s => s.status === delivery.status);
+
+  // Poll for live driver location
+  const { data: liveDelivery } = useQuery({
+    queryKey: ['live-delivery', delivery.id],
+    queryFn: async () => {
+      const orders = await base44.entities.DeliveryOrder.filter({ id: delivery.id });
+      return orders[0] || delivery;
+    },
+    refetchInterval: delivery.status === 'in_transit' || delivery.status === 'picked_up' ? 5000 : false,
+    initialData: delivery
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto">
@@ -237,17 +250,15 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
                 <p className="text-gray-400 text-xs">than Uber</p>
               </div>
             </div>
-          </div>
-          </div>
-          </motion.div>
+        </div>
+      </motion.div>
 
-          {showRating && (
-          <RatingModal
+      {showRating && (
+        <RatingModal
           delivery={liveDelivery}
           onClose={() => setShowRating(false)}
-          />
-          )}
-      </motion.div>
+        />
+      )}
     </div>
   );
 }
