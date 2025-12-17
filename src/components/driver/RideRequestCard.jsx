@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, DollarSign, Clock, Users, ArrowRight, X, CheckCircle, Navigation, Volume2, Wind, Droplets, Music, MessageCircle } from "lucide-react";
+import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -304,6 +305,51 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           ) : ride.status === 'en_route' ? (
             <div className="space-y-2">
               <Button
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.pickup_address)}`, '_blank')}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                Navigate to Pickup
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={async () => {
+                    await base44.entities.Notification.create({
+                      recipient_email: ride.created_by,
+                      type: "ride_update",
+                      title: "🚗 Driver is Coming",
+                      message: `Your driver is on the way to pick you up!`,
+                      reference_type: "ride",
+                      reference_id: ride.id
+                    });
+                    toast.success('Passenger notified: En route');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
+                >
+                  🚗 En Route
+                </Button>
+                <Button
+                  onClick={async () => {
+                    await base44.entities.Notification.create({
+                      recipient_email: ride.created_by,
+                      type: "ride_update",
+                      title: "📍 Driver Arrived",
+                      message: `Your driver has arrived at the pickup location`,
+                      reference_type: "ride",
+                      reference_id: ride.id
+                    });
+                    toast.success('Passenger notified: Arrived');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-500/10 border-green-500/30 text-green-300"
+                >
+                  📍 Arrived
+                </Button>
+              </div>
+              <Button
                 onClick={() => setShowVerification(true)}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
@@ -313,6 +359,51 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
             </div>
           ) : ride.status === 'accepted' ? (
             <div className="space-y-2">
+              <Button
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.dropoff_address)}`, '_blank')}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                Navigate to Dropoff
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={async () => {
+                    await base44.entities.Notification.create({
+                      recipient_email: ride.created_by,
+                      type: "ride_update",
+                      title: "📍 Almost There",
+                      message: `Your driver is arriving at the destination soon`,
+                      reference_type: "ride",
+                      reference_id: ride.id
+                    });
+                    toast.success('Passenger notified: Almost there');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-purple-500/10 border-purple-500/30 text-purple-300"
+                >
+                  📍 Almost There
+                </Button>
+                <Button
+                  onClick={async () => {
+                    await base44.entities.Notification.create({
+                      recipient_email: ride.created_by,
+                      type: "ride_update",
+                      title: "⏱️ Traffic Delay",
+                      message: `Driver is experiencing slight traffic delay`,
+                      reference_type: "ride",
+                      reference_id: ride.id
+                    });
+                    toast.success('Passenger notified: Delay');
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
+                >
+                  ⏱️ Delay
+                </Button>
+              </div>
               <Button
                 onClick={() => handleStatusUpdate('completed', 'Ride Completed', 'Your ride has been completed. Rate your experience!')}
                 disabled={loading}
