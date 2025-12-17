@@ -4,35 +4,46 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-
+    
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { transactions } = await req.json();
+    const { time_period = '90' } = await req.json();
 
-    if (!transactions || !Array.isArray(transactions)) {
-      return Response.json({ error: 'Invalid transactions data' }, { status: 400 });
-    }
+    // Fetch user's recent transactions
+    const payments = await base44.entities.Payment.filter({
+      created_by: user.email
+    });
 
-    // Use AI to categorize transactions
-    const prompt = `Analyze these cryptocurrency transactions and categorize each for tax purposes. 
-    
-Categories:
-- capital_gain: Selling crypto for profit
-- capital_loss: Selling crypto at a loss
-- income: Received as payment, staking rewards, mining
-- expense: Used to purchase goods/services
-- transfer: Moving between own wallets
-- gift: Received as gift or donation
-- trade: Exchanging one crypto for another
+    // Sort by date and limit to recent transactions
+    const recentTransactions = payments
+      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+      .slice(0, parseInt(time_period));
+
+    // Batch categorize using AI
+    const transactionSummary = recentTransactions.map(t => ({
+      id: t.id,
+      type: t.reference_type,
+      amount: t.amount_usd,
+      memo: t.memo || 'No description',
+      date: t.created_date
+    }));
+
+    const prompt = `Analyze and categorize these financial transactions. For each transaction, provide a category, subcategory, emoji, and color theme.
 
 Transactions:
-${JSON.stringify(transactions, null, 2)}
+${JSON.stringify(transactionSummary, null, 2)}
 
-Return JSON array with same order, each with: {original_index, category, confidence, reasoning}`;
+Categories available: Food & Dining, Transportation, Entertainment, Shopping, Bills & Utilities, Healthcare, Travel, Services, Transfer, Investment, Income, Other
 
-    const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
+For each transaction, determine:
+1. Primary category
+2. Specific subcategory
+3. Appropriate emoji
+4. Color (red for spending, green for income, blue for transfers, purple for investments)`;
+
+    const categorizedData = await base44.integrations.Core.InvokeLLM({
       prompt,
       response_json_schema: {
         type: "object",
@@ -42,10 +53,29 @@ Return JSON array with same order, each with: {original_index, category, confide
             items: {
               type: "object",
               properties: {
-                original_index: { type: "number" },
+                transaction_id: { type: "string" },
                 category: { type: "string" },
-                confidence: { type: "number" },
-                reasoning: { type: "string" }
+                subcategory: { type: "string" },
+                emoji: { type: "string" },
+                color: { type: "string" }
+              }
+            }
+          },
+          spending_summary: {
+            type: "object",
+            properties: {
+              top_category: { type: "string" },
+              total_spent: { type: "number" },
+              category_breakdown: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    category: { type: "string" },
+                    amount: { type: "number" },
+                    percentage: { type: "number" }
+                  }
+                }
               }
             }
           }
@@ -53,14 +83,14 @@ Return JSON array with same order, each with: {original_index, category, confide
       }
     });
 
-    const categorized = aiResponse.categorized_transactions || [];
-
-    return Response.json({ 
-      success: true, 
-      categorized_transactions: categorized 
+    return Response.json({
+      success: true,
+      data: categorizedData,
+      transaction_count: recentTransactions.length
     });
+
   } catch (error) {
-    console.error('Transaction categorization error:', error);
+    console.error('Batch categorization error:', error);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

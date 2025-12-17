@@ -208,6 +208,30 @@ export default function Wallet() {
     refetchInterval: 15000,
   });
 
+  // AI-powered transaction categorization
+  const { data: categorizedTransactions } = useQuery({
+    queryKey: ['categorized-transactions', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return null;
+      try {
+        const { data } = await base44.functions.invoke('categorizeCryptoTransactions', {
+          time_period: '50'
+        });
+        return data.data;
+      } catch (error) {
+        console.error('Categorization failed:', error);
+        return null;
+      }
+    },
+    enabled: !!currentUser && transactions.length > 0,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const getCategoryForTransaction = (txId) => {
+    if (!categorizedTransactions?.categorized_transactions) return null;
+    return categorizedTransactions.categorized_transactions.find(ct => ct.transaction_id === txId);
+  };
+
   return (
     <div className="min-h-screen pb-24 overflow-x-hidden">
       {/* Header */}
@@ -721,7 +745,7 @@ export default function Wallet() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-white">Recent Activity</h3>
-            <p className="text-gray-400 text-xs sm:text-sm">Latest {transactions.length} transactions</p>
+            <p className="text-gray-400 text-xs sm:text-sm">Latest {transactions.length} transactions • AI categorized</p>
           </div>
           <button
             onClick={() => setActiveModal('transaction-filter')}
@@ -731,9 +755,36 @@ export default function Wallet() {
             Filter & Export
           </button>
         </div>
+
+        {/* Spending Summary */}
+        {categorizedTransactions?.spending_summary && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-gray-400 text-xs">Top Spending Category</p>
+                <p className="text-white font-bold text-lg">{categorizedTransactions.spending_summary.top_category}</p>
+              </div>
+              <Brain className="w-6 h-6 text-purple-400" />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {categorizedTransactions.spending_summary.category_breakdown?.slice(0, 3).map((cat, i) => (
+                <div key={i} className="px-2 py-1 bg-white/10 rounded-lg text-xs">
+                  <span className="text-white font-medium">{cat.category}</span>
+                  <span className="text-gray-400 ml-1">{cat.percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
         <div className="space-y-2">
           {transactions.length > 0 ? transactions.slice(0, 10).map((tx, index) => {
             const isIncoming = tx.reference_type === 'deposit' || tx.reference_type === 'received';
+            const category = getCategoryForTransaction(tx.id);
             return (
               <motion.div
                 key={tx.id}
@@ -747,18 +798,39 @@ export default function Wallet() {
                     <div className={`w-9 h-9 ${
                       isIncoming ? "bg-green-500/10" : "bg-red-500/10"
                     } rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                      {isIncoming ? (
+                      {category?.emoji ? (
+                        <span className="text-lg">{category.emoji}</span>
+                      ) : isIncoming ? (
                         <ArrowDownLeft className="w-4 h-4 text-green-400" />
                       ) : (
                         <ArrowUpRight className="w-4 h-4 text-red-400" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{tx.memo || tx.reference_type}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-white font-medium text-sm truncate">{tx.memo || tx.reference_type}</p>
+                        {category && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            category.color === 'green' ? 'bg-green-500/20 text-green-400' :
+                            category.color === 'red' ? 'bg-red-500/20 text-red-400' :
+                            category.color === 'blue' ? 'bg-blue-500/20 text-blue-400' :
+                            category.color === 'purple' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {category.category}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-gray-400">
                           {new Date(tx.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
+                        {category?.subcategory && (
+                          <>
+                            <span className="text-gray-600">•</span>
+                            <span className="text-gray-500">{category.subcategory}</span>
+                          </>
+                        )}
                         <span className="text-gray-600">•</span>
                         <span className={`capitalize ${
                           tx.status === 'completed' ? 'text-green-400' : 
