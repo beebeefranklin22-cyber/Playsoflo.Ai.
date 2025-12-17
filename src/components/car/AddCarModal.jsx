@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
-import { Upload, X, Loader2, Car } from "lucide-react";
+import { Upload, X, Loader2, Car, Image } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AddCarModal({ open, onClose, onSuccess }) {
@@ -18,14 +18,27 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
     image_url: "",
     category: "automotive",
     availability: "available",
+    price_type: "per_day",
     car_year: "",
     car_make: "",
     car_model: "",
     car_color: "",
+    license_plate: "",
     transmission: "automatic",
     fuel_type: "gasoline",
     seats: "5",
-    features: []
+    mileage_limit: 200,
+    security_deposit: 500,
+    features: [],
+    portfolio_images: [],
+    is_rental: true,
+    rental_details: {
+      asset_type: "car",
+      min_rental_period: 24,
+      fuel_policy: "full_to_full",
+      insurance_included: true,
+      delivery_available: true
+    }
   });
 
   const handleImageUpload = async (file) => {
@@ -44,8 +57,8 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.price || !formData.image_url) {
-      toast.error("Please fill in required fields");
+    if (!formData.title || !formData.price || !formData.image_url || !formData.license_plate) {
+      toast.error("Please fill in all required fields (including license plate)");
       return;
     }
 
@@ -54,7 +67,10 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
       await base44.entities.MarketplaceItem.create({
         ...formData,
         price: parseFloat(formData.price),
-        verified_provider: true
+        security_deposit: parseFloat(formData.security_deposit) || 500,
+        mileage_limit: parseFloat(formData.mileage_limit) || 200,
+        verified_provider: true,
+        is_rental: true
       });
       toast.success("Vehicle added successfully!");
       if (onSuccess) onSuccess();
@@ -148,8 +164,25 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
             <label className="text-gray-400 text-sm mb-2 block">Model *</label>
             <Input
               value={formData.car_model}
-              onChange={(e) => setFormData({ ...formData, car_model: e.target.value, title: `${formData.car_year} ${formData.car_make} ${e.target.value}` })}
+              onChange={(e) => {
+                const newModel = e.target.value;
+                setFormData({ 
+                  ...formData, 
+                  car_model: newModel, 
+                  title: `${formData.car_year} ${formData.car_make} ${newModel}`.trim() 
+                });
+              }}
               placeholder="488 Spider"
+              className="bg-white/10 border-white/20 text-white"
+            />
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">License Plate *</label>
+            <Input
+              value={formData.license_plate}
+              onChange={(e) => setFormData({ ...formData, license_plate: e.target.value.toUpperCase() })}
+              placeholder="ABC123"
               className="bg-white/10 border-white/20 text-white"
             />
           </div>
@@ -165,7 +198,7 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
             />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Daily Rate ($) *</label>
               <Input
@@ -176,6 +209,19 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
                 className="bg-white/10 border-white/20 text-white"
               />
             </div>
+            <div>
+              <label className="text-gray-400 text-sm mb-2 block">Security Deposit ($)</label>
+              <Input
+                type="number"
+                value={formData.security_deposit}
+                onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                placeholder="500"
+                className="bg-white/10 border-white/20 text-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Color</label>
               <Input
@@ -198,6 +244,16 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
                   <SelectItem value="7">7 Seats</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <label className="text-gray-400 text-sm mb-2 block">Daily Mileage Limit</label>
+              <Input
+                type="number"
+                value={formData.mileage_limit}
+                onChange={(e) => setFormData({ ...formData, mileage_limit: e.target.value })}
+                placeholder="200"
+                className="bg-white/10 border-white/20 text-white"
+              />
             </div>
           </div>
 
@@ -228,6 +284,58 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Additional Photos */}
+          <div>
+            <label className="text-gray-400 text-sm mb-2 block">Additional Photos (Optional)</label>
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              {formData.portfolio_images.map((img, idx) => (
+                <div key={idx} className="relative">
+                  <img src={img} className="w-full h-20 object-cover rounded-lg" />
+                  <button
+                    onClick={() => setFormData(prev => ({
+                      ...prev,
+                      portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx)
+                    }))}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+            <input
+              id="portfolio-images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                for (const file of files) {
+                  try {
+                    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                    setFormData(prev => ({
+                      ...prev,
+                      portfolio_images: [...prev.portfolio_images, file_url]
+                    }));
+                    toast.success('Photo uploaded');
+                  } catch {
+                    toast.error('Upload failed');
+                  }
+                }
+              }}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById('portfolio-images').click()}
+              className="w-full bg-white/5 border-white/20"
+            >
+              <Image className="w-4 h-4 mr-2" />
+              Add More Photos
+            </Button>
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -180,17 +180,18 @@ export default function CarRentals() {
   const calculateTotalCost = () => {
     if (!selectedCar || !bookingForm.start_date || !bookingForm.end_date) return 0;
 
-    const days = Math.ceil(
+    const days = Math.max(1, Math.ceil(
       (new Date(bookingForm.end_date) - new Date(bookingForm.start_date)) / (1000 * 60 * 60 * 24)
-    );
+    ));
 
     const baseCost = (selectedCar.price || 0) * days;
     const insurance = baseCost * 0.15;
     const deliveryFee = bookingForm.delivery_option === "delivery_both_ways" ? 100 :
                        bookingForm.delivery_option === "delivery_to_renter" ? 50 : 0;
-    const securityDeposit = selectedCar.price || 500;
+    const securityDeposit = selectedCar.security_deposit || selectedCar.price || 500;
 
     return {
+      days,
       baseCost,
       insurance,
       deliveryFee,
@@ -214,8 +215,10 @@ export default function CarRentals() {
 
     createRentalMutation.mutate({
       provider_email: selectedCar.created_by,
-      car_make: selectedCar.title.split(' ')[0] || "Exotic",
-      car_model: selectedCar.title,
+      car_make: selectedCar.car_make || selectedCar.title.split(' ')[1] || "Car",
+      car_model: selectedCar.car_model || selectedCar.title,
+      car_year: selectedCar.car_year || new Date().getFullYear(),
+      license_plate: selectedCar.license_plate || "UNKNOWN",
       car_image: selectedCar.image_url,
       rental_type: "daily",
       price_per_unit: selectedCar.price,
@@ -228,13 +231,13 @@ export default function CarRentals() {
       delivery_address: bookingForm.delivery_address || "",
       delivery_fee: costs.deliveryFee,
       unlock_method: bookingForm.unlock_method,
-      security_deposit: costs.securityDeposit,
+      security_deposit: selectedCar.security_deposit || costs.securityDeposit,
       verification_required: true,
       driver_license_url: bookingForm.driver_license_url,
       id_verification_url: bookingForm.id_verification_url,
-      mileage_limit: 200,
+      mileage_limit: selectedCar.mileage_limit || 200,
       excess_mileage_fee: 0.50,
-      fuel_policy: "full_to_full",
+      fuel_policy: selectedCar.rental_details?.fuel_policy || "full_to_full",
       cancellation_policy: "moderate"
     });
   };
@@ -352,18 +355,26 @@ export default function CarRentals() {
                       </div>
 
                       <div className="space-y-2 mb-4 text-sm">
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Smartphone className="w-4 h-4 text-blue-400" />
-                          App unlock available
-                        </div>
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Smartphone className="w-4 h-4 text-blue-400" />
+                        App unlock available
+                      </div>
+                      {car.rental_details?.delivery_available && (
                         <div className="flex items-center gap-2 text-gray-300">
                           <MapPin className="w-4 h-4 text-red-400" />
                           Delivery available
                         </div>
+                      )}
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Shield className="w-4 h-4 text-green-400" />
+                        Full insurance included
+                      </div>
+                      {car.mileage_limit && (
                         <div className="flex items-center gap-2 text-gray-300">
-                          <Shield className="w-4 h-4 text-green-400" />
-                          Full insurance included
+                          <Car className="w-4 h-4 text-cyan-400" />
+                          {car.mileage_limit} mi/day limit
                         </div>
+                      )}
                       </div>
 
                       <Button
@@ -796,8 +807,12 @@ export default function CarRentals() {
                         const costs = calculateTotalCost();
                         return (
                           <>
+                            <div className="flex justify-between text-gray-300 text-sm">
+                              <span>Rental Period</span>
+                              <span className="font-semibold">{costs.days} day{costs.days !== 1 ? 's' : ''}</span>
+                            </div>
                             <div className="flex justify-between text-gray-300">
-                              <span>Base Rental</span>
+                              <span>Base Rental (${selectedCar.price}/day × {costs.days})</span>
                               <span>${costs.baseCost.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-gray-300">
