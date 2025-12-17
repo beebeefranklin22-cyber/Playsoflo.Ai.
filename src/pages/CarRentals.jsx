@@ -66,7 +66,9 @@ export default function CarRentals() {
       });
       return cars;
     },
-    initialData: []
+    initialData: [],
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true
   });
 
   const { data: myRentals = [] } = useQuery({
@@ -78,7 +80,9 @@ export default function CarRentals() {
       });
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   const { data: settlements = [] } = useQuery({
@@ -94,7 +98,9 @@ export default function CarRentals() {
       return allSettlements;
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   const createRentalMutation = useMutation({

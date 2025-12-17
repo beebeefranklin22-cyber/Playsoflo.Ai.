@@ -70,7 +70,9 @@ export default function FleetManager() {
       });
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   const { data: myRentals = [] } = useQuery({
@@ -82,7 +84,9 @@ export default function FleetManager() {
       });
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   const deleteCarMutation = useMutation({

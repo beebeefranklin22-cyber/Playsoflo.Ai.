@@ -5,18 +5,20 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Truck, Package, DollarSign, MapPin, CheckCircle, 
-  ArrowLeft, Navigation, TrendingUp, Clock
+  ArrowLeft, Navigation, TrendingUp, Clock, Car, Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import VehicleManagementModal from "../components/delivery/VehicleManagementModal";
 
 export default function DeliveryDriverHub() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -141,6 +143,13 @@ export default function DeliveryDriverHub() {
               </h1>
               <p className="text-cyan-100">Accept deliveries and earn 85% of delivery fees</p>
             </div>
+            <Button
+              onClick={() => setShowVehicleModal(true)}
+              className="bg-white/10 hover:bg-white/20 border border-white/20"
+            >
+              <Car className="w-5 h-5 mr-2" />
+              My Vehicles
+            </Button>
           </div>
         </div>
       </div>
@@ -340,6 +349,13 @@ export default function DeliveryDriverHub() {
           )}
         </div>
       </div>
+
+      {showVehicleModal && (
+        <VehicleManagementModal
+          currentUser={currentUser}
+          onClose={() => setShowVehicleModal(false)}
+        />
+      )}
     </div>
   );
 }
