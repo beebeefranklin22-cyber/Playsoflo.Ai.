@@ -78,6 +78,7 @@ import ARShowroom from './pages/ARShowroom';
 import AffiliateHub from './pages/AffiliateHub';
 import OrderSuccess from './pages/OrderSuccess';
 import PackageDelivery from './pages/PackageDelivery';
+import DeliveryDriverHub from './pages/DeliveryDriverHub';
 import __Layout from './Layout.jsx';
 
 
@@ -162,6 +163,7 @@ export const PAGES = {
     "AffiliateHub": AffiliateHub,
     "OrderSuccess": OrderSuccess,
     "PackageDelivery": PackageDelivery,
+    "DeliveryDriverHub": DeliveryDriverHub,
 }
 
 export const pagesConfig = {

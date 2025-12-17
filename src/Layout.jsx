@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -82,6 +82,7 @@ export default function Layout({ children, currentPageName }) {
 
   const sidebarSections = [
     { icon: Store, label: "Marketplace", path: "Marketplace" },
+    { icon: Truck, label: "Package Delivery", path: "PackageDelivery" },
     { icon: Home, label: "Real Estate", path: "RealEstate" },
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
     { icon: Package, label: "Orders", path: "FoodOrderTracking" },
