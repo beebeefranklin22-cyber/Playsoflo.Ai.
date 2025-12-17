@@ -94,6 +94,11 @@ export default function Layout({ children, currentPageName }) {
     { icon: Home, label: "My Bookings", path: "MyPropertyBookings" },
   ];
 
+  // Add support dashboard for admins
+  if (currentUser?.role === 'admin' || currentUser?.is_support_agent) {
+    sidebarSections.push({ icon: Headphones, label: "Support", path: "SupportDashboard" });
+  }
+
   const breadcrumbMap = {
     "Home": ["Home"],
     "Profile": ["Home", "Profile"],

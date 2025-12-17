@@ -43,7 +43,7 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
             <div>
               <h2 className="text-2xl font-bold text-white">Track Delivery</h2>
               <p className="text-blue-100">Order #{delivery.order_number?.substring(0, 8).toUpperCase()}</p>
-              {delivery.recipient_email === currentUser.email && (
+              {delivery.recipient_email === currentUser?.email && (
                 <p className="text-blue-200 text-sm mt-1">📦 Package coming to you</p>
               )}
             </div>
@@ -196,11 +196,11 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
                 <CheckCircle className="w-4 h-4 text-green-400" />
                 Proof of Delivery
               </h3>
-              <img src={liveDelivery.delivery_photo} className="w-full h-48 object-cover rounded-lg mb-2" />
+              <img src={liveDelivery.delivery_photo} className="w-full h-48 object-cover rounded-lg mb-2" alt="Delivery proof" />
               {liveDelivery.signature_image && (
                 <div>
                   <p className="text-gray-400 text-xs mb-1">Recipient Signature:</p>
-                  <img src={liveDelivery.signature_image} className="w-full h-24 bg-white rounded-lg" />
+                  <img src={liveDelivery.signature_image} className="w-full h-24 bg-white rounded-lg" alt="Signature" />
                 </div>
               )}
             </div>

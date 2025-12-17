@@ -78,23 +78,20 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
         pricing: pricing
       });
 
-      if (data.success) {
-        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
-        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-        
-        const franchiseMsg = data.franchise ? ` Assigned to ${data.franchise}.` : '';
-        const waitMsg = data.estimated_wait_minutes ? ` Est. wait: ${data.estimated_wait_minutes} min` : '';
-        
-        toast.success(`🚚 Delivery created! Order #${data.order_number.substring(0, 8)}.${franchiseMsg}${waitMsg}`);
-        onClose();
-      } else {
-        toast.error(data.error || 'Failed to create delivery');
-      }
+      queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      
+      const franchiseMsg = data.franchise ? ` Assigned to ${data.franchise}.` : '';
+      const waitMsg = data.estimated_wait_minutes ? ` Est. wait: ${data.estimated_wait_minutes} min` : '';
+      
+      toast.success(`🚚 Delivery created! Order #${data.order_number.substring(0, 8)}.${franchiseMsg}${waitMsg}`);
+      onClose();
     } catch (error) {
-      if (error.response?.data?.error === 'Insufficient balance') {
-        toast.error(`Insufficient balance. Need $${error.response.data.required}, have $${error.response.data.available}`);
+      const errorData = error.response?.data || {};
+      if (errorData.error === 'Insufficient balance') {
+        toast.error(`Insufficient balance. Need $${errorData.required}, have $${errorData.available}`);
       } else {
-        toast.error('Failed to create delivery');
+        toast.error(errorData.error || 'Failed to create delivery');
       }
     } finally {
       setLoading(false);
