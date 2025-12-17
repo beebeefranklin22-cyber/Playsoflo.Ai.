@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import CreatePostModal from "../components/CreatePostModal";
 import CreateStoryModal from "../components/CreateStoryModal";
+import StoryViewer from "../components/story/StoryViewer";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
@@ -32,6 +33,8 @@ export default function Home() {
   const [showCreateStory, setShowCreateStory] = useState(false);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewingStories, setViewingStories] = useState(null);
+  const [storyStartIndex, setStoryStartIndex] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -232,11 +235,12 @@ export default function Home() {
     <div className="min-h-screen pb-20">
       {/* Stories Bar */}
       <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scroll-smooth" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}>
           {/* Add Your Story */}
           <button 
             onClick={() => setShowCreateStory(true)}
             className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-80 transition"
+            style={{ scrollSnapAlign: 'start' }}
           >
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative shadow-lg hover:scale-105 transition-transform">
               <Plus className="w-7 h-7 text-white" />
@@ -248,11 +252,12 @@ export default function Home() {
           {stories.slice(0, 15).map((story) => {
             const isMyStory = story.created_by === currentUser?.email;
             return (
-              <div key={story.id} className="relative flex flex-col items-center gap-2 flex-shrink-0 group">
+              <div key={story.id} className="relative flex flex-col items-center gap-2 flex-shrink-0 group" style={{ scrollSnapAlign: 'start' }}>
                 <button 
                   onClick={() => {
-                    // Add story viewer logic here
-                    toast.info('Story viewer coming soon!');
+                    const storyIndex = stories.findIndex(s => s.id === story.id);
+                    setStoryStartIndex(storyIndex);
+                    setViewingStories(stories);
                   }}
                   className="relative"
                 >
@@ -537,9 +542,27 @@ export default function Home() {
         currentUser={currentUser}
       />
 
+      {/* Story Viewer */}
+      {viewingStories && (
+        <StoryViewer
+          stories={viewingStories}
+          initialIndex={storyStartIndex}
+          onClose={() => {
+            setViewingStories(null);
+            setStoryStartIndex(0);
+          }}
+        />
+      )}
+
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
+        }
+        
+        /* Smooth scrolling improvements */
+        * {
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
         }
       `}</style>
     </div>
