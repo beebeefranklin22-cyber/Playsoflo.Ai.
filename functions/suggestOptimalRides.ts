@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Validate driver is authorized (additional security)
+    if (!driver.email) {
+      return Response.json({ error: 'Invalid user session' }, { status: 401 });
+    }
+
     const { 
       driver_location, 
       available_rides, 

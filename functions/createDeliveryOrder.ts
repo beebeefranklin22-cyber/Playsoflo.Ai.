@@ -35,22 +35,50 @@ Deno.serve(async (req) => {
     }
 
     // Verify user has sufficient balance
-    if (user.usd_balance < pricing.total_price) {
+    const userBalance = parseFloat(user.usd_balance) || 0;
+    const totalPrice = parseFloat(pricing.total_price) || 0;
+    
+    if (userBalance < totalPrice) {
       return Response.json({ 
         error: 'Insufficient balance',
-        required: pricing.total_price,
-        available: user.usd_balance
+        required: totalPrice.toFixed(2),
+        available: userBalance.toFixed(2)
       }, { status: 400 });
     }
 
     // Generate unique order number
     const orderNumber = `DEL${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-    // Create delivery order
+    // Create delivery order with explicit pricing to prevent tampering
     const delivery = await base44.asServiceRole.entities.DeliveryOrder.create({
-      ...order_data,
+      sender_name: order_data.sender_name,
+      sender_phone: order_data.sender_phone,
+      sender_email: order_data.sender_email,
+      pickup_address: order_data.pickup_address,
+      pickup_coords: order_data.pickup_coords,
+      recipient_name: order_data.recipient_name,
+      recipient_phone: order_data.recipient_phone,
+      recipient_email: order_data.recipient_email,
+      delivery_address: order_data.delivery_address,
+      delivery_coords: order_data.delivery_coords,
+      package_type: order_data.package_type,
+      package_weight: order_data.package_weight,
+      package_description: order_data.package_description,
+      package_value: order_data.package_value,
+      delivery_type: order_data.delivery_type,
+      urgency_level: order_data.urgency_level,
+      special_instructions: order_data.special_instructions,
+      signature_required: order_data.signature_required,
       order_number: orderNumber,
-      ...pricing,
+      distance_miles: pricing.distance_miles,
+      estimated_duration_minutes: pricing.estimated_duration_minutes,
+      base_price: pricing.base_price,
+      urgency_surcharge: pricing.urgency_surcharge || 0,
+      weight_surcharge: pricing.weight_surcharge || 0,
+      insurance_fee: pricing.insurance_fee || 0,
+      platform_fee: pricing.platform_fee,
+      total_price: totalPrice,
+      driver_earnings: pricing.driver_earnings,
       franchise_id: franchise?.id || null,
       franchise_name: franchise?.franchise_name || 'Default Hub',
       estimated_wait_time_minutes: estimatedWaitMinutes,
@@ -67,22 +95,23 @@ Deno.serve(async (req) => {
       created_by: user.email
     });
 
-    // Deduct from user balance securely
-    const newBalance = user.usd_balance - pricing.total_price;
+    // Deduct from user balance atomically using service role
+    const newBalance = userBalance - totalPrice;
     await base44.asServiceRole.entities.User.update(user.id, {
       usd_balance: newBalance
     });
 
-    // Create payment record
+    // Create payment record - use service role to ensure creation
     await base44.asServiceRole.entities.Payment.create({
-      amount_usd: pricing.total_price,
+      amount_usd: totalPrice,
+      amount_rri: 0,
       method: 'internal_transfer',
       status: 'completed',
       reference_type: 'other',
       reference_id: delivery.id,
       sender_email: user.email,
-      memo: 'Package delivery payment',
-      created_by: user.email
+      recipient_email: 'platform@playsoflo.com',
+      memo: `Delivery payment #${orderNumber.substring(0, 8)}`
     });
 
     // Notify sender

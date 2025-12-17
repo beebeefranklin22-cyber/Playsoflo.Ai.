@@ -49,28 +49,45 @@ Deno.serve(async (req) => {
       updates.delivery_time = new Date().toISOString();
       updates.payment_status = 'paid';
 
-      // Pay driver securely via service role
-      const driverPayout = order.driver_earnings || 0;
-      const driver = await base44.asServiceRole.entities.User.filter({ email: user.email });
-      
-      if (driver.length > 0) {
-        const currentBalance = driver[0].usd_balance || 0;
-        await base44.asServiceRole.entities.User.update(driver[0].id, {
-          usd_balance: currentBalance + driverPayout
-        });
+      // Verify payment hasn't already been made (prevent double-payment)
+      const existingPayments = await base44.asServiceRole.entities.Payment.filter({
+        reference_type: 'other',
+        reference_id: order.id,
+        recipient_email: user.email,
+        memo: 'Delivery driver earnings'
+      });
 
-        // Record payment
-        await base44.asServiceRole.entities.Payment.create({
-          amount_usd: driverPayout,
-          method: 'internal_transfer',
-          status: 'completed',
-          reference_type: 'other',
-          reference_id: order.id,
-          recipient_email: user.email,
-          sender_email: 'platform@playsofl.com',
-          memo: 'Delivery driver earnings',
-          created_by: user.email
-        });
+      if (existingPayments.length > 0) {
+        console.log('Driver already paid for this delivery');
+      } else {
+        // Pay driver securely via service role
+        const driverPayout = parseFloat(order.driver_earnings) || 0;
+        
+        if (driverPayout > 0) {
+          const driver = await base44.asServiceRole.entities.User.filter({ email: user.email });
+          
+          if (driver.length > 0) {
+            const currentBalance = parseFloat(driver[0].usd_balance) || 0;
+            const newBalance = currentBalance + driverPayout;
+            
+            await base44.asServiceRole.entities.User.update(driver[0].id, {
+              usd_balance: newBalance
+            });
+
+            // Record payment
+            await base44.asServiceRole.entities.Payment.create({
+              amount_usd: driverPayout,
+              amount_rri: 0,
+              method: 'internal_transfer',
+              status: 'completed',
+              reference_type: 'other',
+              reference_id: order.id,
+              recipient_email: user.email,
+              sender_email: 'platform@playsoflo.com',
+              memo: 'Delivery driver earnings'
+            });
+          }
+        }
       }
 
       // Notify recipient
