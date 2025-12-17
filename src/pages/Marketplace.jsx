@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import BookingModal from "../components/BookingModal";
+import ShopifyCheckoutModal from "../components/marketplace/ShopifyCheckoutModal";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 
 const categories = [

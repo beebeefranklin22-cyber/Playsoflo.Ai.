@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import Stripe from 'npm:stripe@14.11.0';
 
 Deno.serve(async (req) => {
@@ -45,13 +45,17 @@ Deno.serve(async (req) => {
         const baseAmount = parseFloat(session.metadata?.base_amount || '0');
         
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
+          // Calculate platform fee (2.5% for instant deposits)
+          const platformFee = baseAmount * 0.025;
+          const netAmount = baseAmount - platformFee;
+          
           // Find user and update balance
           const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
           
           if (users.length > 0) {
             const user = users[0];
             const currentBalance = user.usd_balance || 0;
-            const newBalance = currentBalance + baseAmount;
+            const newBalance = currentBalance + netAmount;
             
             await base44.asServiceRole.entities.User.update(user.id, {
               usd_balance: newBalance
@@ -59,13 +63,25 @@ Deno.serve(async (req) => {
 
             // Create payment record
             await base44.asServiceRole.entities.Payment.create({
-              amount_usd: baseAmount,
+              amount_usd: netAmount,
               method: 'stripe',
               status: 'completed',
               reference_type: 'deposit',
               reference_id: session.id,
               sender_email: userEmail,
-              memo: 'Wallet deposit via Stripe'
+              memo: `Wallet deposit via Stripe (Fee: $${platformFee.toFixed(2)})`
+            });
+
+            // Record platform fee
+            await base44.asServiceRole.entities.Payment.create({
+              amount_usd: platformFee,
+              method: 'internal_transfer',
+              status: 'completed',
+              reference_type: 'other',
+              reference_id: session.id,
+              sender_email: userEmail,
+              recipient_email: 'platform@playsofl.com',
+              memo: 'Platform instant deposit fee (2.5%)'
             });
 
             // Notify user
@@ -73,7 +89,7 @@ Deno.serve(async (req) => {
               recipient_email: userEmail,
               type: 'payment_received',
               title: '✅ Money Added Successfully',
-              message: `$${baseAmount.toFixed(2)} has been added to your wallet. New balance: $${newBalance.toFixed(2)}`,
+              message: `$${netAmount.toFixed(2)} has been added to your wallet (Fee: $${platformFee.toFixed(2)}). New balance: $${newBalance.toFixed(2)}`,
               reference_type: 'payment',
               reference_id: session.id
             });

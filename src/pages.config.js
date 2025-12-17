@@ -76,6 +76,7 @@ import AdminPanel from './pages/AdminPanel';
 import Gaming from './pages/Gaming';
 import ARShowroom from './pages/ARShowroom';
 import AffiliateHub from './pages/AffiliateHub';
+import OrderSuccess from './pages/OrderSuccess';
 import __Layout from './Layout.jsx';
 
 
@@ -158,6 +159,7 @@ export const PAGES = {
     "Gaming": Gaming,
     "ARShowroom": ARShowroom,
     "AffiliateHub": AffiliateHub,
+    "OrderSuccess": OrderSuccess,
 }
 
 export const pagesConfig = {
