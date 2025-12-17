@@ -343,15 +343,15 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {spendingInsights.data.top_categories?.map((cat, i) => (
+                          {spendingInsights.data.top_categories?.length > 0 ? spendingInsights.data.top_categories.map((cat, i) => (
                             <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                              <span className="text-white font-medium">{cat.category}</span>
+                              <span className="text-white font-medium">{cat.category || 'Unknown'}</span>
                               <div className="text-right">
-                                <span className="text-white font-bold">${cat.amount?.toFixed(2)}</span>
-                                <span className="text-gray-400 text-sm ml-2">({cat.percentage}%)</span>
+                                <span className="text-white font-bold">${(cat.amount || 0).toFixed(2)}</span>
+                                <span className="text-gray-400 text-sm ml-2">({cat.percentage || 0}%)</span>
                               </div>
                             </div>
-                          ))}
+                          )) : <p className="text-gray-400 text-sm">No spending categories found</p>}
                         </div>
                       </CardContent>
                     </Card>
@@ -370,7 +370,7 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
                               <span className="text-purple-400 flex-shrink-0">•</span>
                               <span>{rec}</span>
                             </li>
-                          ))}
+                          )) || <li className="text-gray-400">No recommendations available yet</li>}
                         </ul>
                       </CardContent>
                     </Card>
@@ -422,18 +422,18 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-3">
-                          {earningForecast.data.monthly_forecast?.map((forecast, i) => (
+                          {earningForecast.data.monthly_forecast?.length > 0 ? earningForecast.data.monthly_forecast.map((forecast, i) => (
                             <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
                               <div className="flex items-center gap-3">
                                 <Calendar className="w-5 h-5 text-green-400" />
-                                <span className="text-white font-medium">{forecast.month}</span>
+                                <span className="text-white font-medium">{forecast.month || 'N/A'}</span>
                               </div>
                               <div className="text-right">
-                                <p className="text-white font-bold text-xl">${forecast.projected_amount?.toFixed(2)}</p>
-                                <p className="text-green-400 text-sm">{forecast.confidence}% confidence</p>
+                                <p className="text-white font-bold text-xl">${(forecast.projected_amount || 0).toFixed(2)}</p>
+                                <p className="text-green-400 text-sm">{forecast.confidence || 0}% confidence</p>
                               </div>
                             </div>
-                          ))}
+                          )) : <p className="text-gray-400">No forecast data available</p>}
                         </div>
                       </CardContent>
                     </Card>
