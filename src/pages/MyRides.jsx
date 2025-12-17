@@ -81,7 +81,7 @@ export default function MyRides() {
     }
   });
 
-  // Poll for driver location if ride is active
+  // Real-time driver location tracking - updates every 2 seconds
   const { data: driverLocation } = useQuery({
     queryKey: ['driver-location', trackingRideId],
     queryFn: async () => {
@@ -107,8 +107,8 @@ export default function MyRides() {
       }
     },
     enabled: !!trackingRideId,
-    refetchInterval: 10000,
-    staleTime: 5000
+    refetchInterval: 2000, // Real-time: poll every 2 seconds
+    staleTime: 1000 // Consider data stale after 1 second
   });
 
   const copyShareLink = (link) => {

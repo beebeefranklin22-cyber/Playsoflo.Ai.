@@ -52,13 +52,13 @@ const carIcon = new L.Icon({
   popupAnchor: [0, -40],
 });
 
-function MapUpdater({ center }) {
+function MapUpdater({ center, zoom = 14 }) {
   const map = useMap();
   useEffect(() => {
     if (center) {
-      map.setView(center, 14);
+      map.setView(center, zoom, { animate: true, duration: 0.5 });
     }
-  }, [center, map]);
+  }, [center, map, zoom]);
   return null;
 }
 
@@ -66,6 +66,7 @@ export default function RideTrackingMap({ ride, driverLocation }) {
   const [directions, setDirections] = useState(null);
   const [routeCoords, setRouteCoords] = useState([]);
   const [trafficDelay, setTrafficDelay] = useState(0);
+  const [prevDriverCoords, setPrevDriverCoords] = useState(null);
 
   // Default to Miami if no location
   const defaultCenter = [25.7617, -80.1918];
@@ -83,9 +84,17 @@ export default function RideTrackingMap({ ride, driverLocation }) {
     ? [driverLocation.lat, driverLocation.lng] 
     : null;
 
+  // Real-time directions update when driver moves
   useEffect(() => {
     if (driverCoords && pickupCoords) {
-      fetchRealTimeDirections();
+      const coordsChanged = !prevDriverCoords || 
+        prevDriverCoords[0] !== driverCoords[0] || 
+        prevDriverCoords[1] !== driverCoords[1];
+      
+      if (coordsChanged) {
+        fetchRealTimeDirections();
+        setPrevDriverCoords(driverCoords);
+      }
     }
   }, [driverCoords, pickupCoords]);
 
@@ -143,14 +152,25 @@ export default function RideTrackingMap({ ride, driverLocation }) {
               </Marker>
             )}
 
-            {/* Driver Location */}
+            {/* Driver Location - Real-time */}
             {driverCoords && (
-              <Marker position={driverCoords} icon={carIcon}>
+              <Marker 
+                position={driverCoords} 
+                icon={carIcon}
+                key={`driver-${driverCoords[0]}-${driverCoords[1]}`}
+              >
                 <Popup>
                   <div className="text-sm">
                     <strong>Your Driver</strong>
                     <br />
-                    On the way!
+                    {driverLocation?.lastUpdate && (
+                      <span className="text-xs text-gray-500">
+                        Updated: {new Date(driverLocation.lastUpdate).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    )}
                   </div>
                 </Popup>
               </Marker>
@@ -166,7 +186,7 @@ export default function RideTrackingMap({ ride, driverLocation }) {
               />
             )}
 
-            <MapUpdater center={driverCoords || pickupCoords} />
+            <MapUpdater center={driverCoords || pickupCoords} zoom={15} />
           </MapContainer>
 
           {/* Overlay Info */}
@@ -181,10 +201,11 @@ export default function RideTrackingMap({ ride, driverLocation }) {
                     {ride.status === 'accepted' ? '📍 Driver Arrived' : 
                      ride.status === 'en_route' ? '🚗 Driver En Route' : 
                      'Driver On The Way'}
+                    <span className="ml-2 text-xs">• Live</span>
                   </Badge>
                   {directions?.duration_in_traffic && ride.status === 'en_route' && (
                     <div className="flex items-center gap-1 text-sm text-gray-700 font-bold">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 animate-pulse" />
                       {directions.duration_in_traffic.minutes} min away
                       {trafficDelay > 2 && (
                         <Badge className="ml-2 bg-red-500/20 text-red-700 text-xs">
