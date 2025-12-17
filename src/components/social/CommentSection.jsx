@@ -3,10 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Send, User } from "lucide-react";
+import { Heart, Send, User, Trash2, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { trackPostCommented } from "@/components/analytics/analytics";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function CommentSection({ postId, commentsCount, currentUser }) {
   const queryClient = useQueryClient();
@@ -84,6 +90,28 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
     }
   });
 
+  const deleteCommentMutation = useMutation({
+    mutationFn: async (commentId) => {
+      await base44.entities.Comment.delete(commentId);
+      
+      // Update post comments count
+      if (commentsCount > 0) {
+        await base44.entities.SocialPost.update(postId, {
+          comments_count: commentsCount - 1
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['post-comments', postId]);
+      queryClient.invalidateQueries(['social-feed']);
+      queryClient.invalidateQueries(['social-posts']);
+      toast.success("Comment deleted");
+    },
+    onError: () => {
+      toast.error("Failed to delete comment");
+    }
+  });
+
   const handlePostComment = () => {
     if (!commentText.trim() || !currentUser) return;
 
@@ -128,8 +156,34 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="bg-white/10 rounded-2xl px-4 py-2">
-                      <p className="text-white font-semibold text-sm">{comment.author_name}</p>
-                      <p className="text-gray-200 text-sm">{comment.content}</p>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-white font-semibold text-sm">{comment.author_name}</p>
+                          <p className="text-gray-200 text-sm">{comment.content}</p>
+                        </div>
+                        {(comment.author_email === currentUser?.email || currentUser?.role === 'admin') && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1 hover:bg-white/10 rounded transition">
+                                <MoreVertical className="w-4 h-4 text-gray-400" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (confirm('Delete this comment?')) {
+                                    deleteCommentMutation.mutate(comment.id);
+                                  }
+                                }}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 mt-1 ml-2">
                       <button
