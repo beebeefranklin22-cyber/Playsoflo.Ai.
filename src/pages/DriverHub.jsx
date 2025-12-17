@@ -122,13 +122,48 @@ export default function DriverHub() {
   });
 
   const { data: pendingRequests = [] } = useQuery({
-    queryKey: ['pending-ride-requests'],
+    queryKey: ['pending-ride-requests', driverLocation],
     queryFn: async () => {
       try {
-        return await base44.entities.RideRequest.filter({
+        const requests = await base44.entities.RideRequest.filter({
           status: "requested",
           driver_status: "pending"
         });
+
+        // Use AI matching if location available
+        if (driverLocation && requests.length > 0) {
+          try {
+            const { data } = await base44.functions.invoke('suggestOptimalRides', {
+              driver_location: driverLocation,
+              available_rides: requests.map(r => ({
+                ...r,
+                pickup_coords: r.pickup_coords || [25.7617, -80.1918],
+                dropoff_coords: r.dropoff_coords || [25.7617, -80.1918]
+              })),
+              current_time: new Date().getHours(),
+              driver_stats: todayStats
+            });
+
+            if (data.recommended_rides) {
+              const recommendedIds = data.recommended_rides.map(r => r.id);
+              const enriched = requests.map(ride => {
+                const rec = data.recommended_rides.find(r => r.id === ride.id);
+                return { ...ride, ai_recommendation: rec?.ai_recommendation };
+              });
+              return enriched.sort((a, b) => {
+                const idxA = recommendedIds.indexOf(a.id);
+                const idxB = recommendedIds.indexOf(b.id);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+              });
+            }
+          } catch (aiError) {
+            console.log('AI matching skipped:', aiError);
+          }
+        }
+        
+        return requests;
       } catch (err) {
         console.error("Error fetching pending requests:", err);
         return [];
