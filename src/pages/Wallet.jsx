@@ -84,23 +84,22 @@ export default function Wallet() {
     const action = searchParams.get('action');
     
     if (paymentStatus === 'success') {
-      // Check for pending deposits after successful payment
-      const checkDeposits = async () => {
-        try {
-          const { data } = await base44.functions.invoke('checkPendingDeposits');
-          if (data.processed > 0) {
-            toast.success(`✅ ${data.message}`);
-            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-          }
-        } catch (error) {
-          console.error('Failed to check pending deposits:', error);
-        }
-      };
-      
       if (action === 'add_card') {
         toast.success('✅ Payment method added successfully!');
       } else {
+        // Check for pending deposits after successful payment
+        const checkDeposits = async () => {
+          try {
+            const { data } = await base44.functions.invoke('checkPendingDeposits');
+            if (data?.processed > 0) {
+              toast.success(`✅ ${data.message}`);
+              queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+              queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            }
+          } catch (error) {
+            console.error('Failed to check pending deposits:', error);
+          }
+        };
         checkDeposits();
       }
       // Clean URL without page reload
@@ -109,7 +108,7 @@ export default function Wallet() {
       toast.error('Payment setup cancelled');
       window.history.replaceState({}, '', createPageUrl("Wallet"));
     }
-  }, [searchParams]);
+  }, [searchParams, queryClient]);
 
   useEffect(() => {
     const checkLowBalance = async () => {
