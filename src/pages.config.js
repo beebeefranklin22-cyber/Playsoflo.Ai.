@@ -77,6 +77,7 @@ import Gaming from './pages/Gaming';
 import ARShowroom from './pages/ARShowroom';
 import AffiliateHub from './pages/AffiliateHub';
 import OrderSuccess from './pages/OrderSuccess';
+import PackageDelivery from './pages/PackageDelivery';
 import __Layout from './Layout.jsx';
 
 
@@ -160,6 +161,7 @@ export const PAGES = {
     "ARShowroom": ARShowroom,
     "AffiliateHub": AffiliateHub,
     "OrderSuccess": OrderSuccess,
+    "PackageDelivery": PackageDelivery,
 }
 
 export const pagesConfig = {
