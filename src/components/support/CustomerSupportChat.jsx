@@ -203,7 +203,7 @@ export default function CustomerSupportChat({ currentUser, onClose }) {
             {/* Messages */}
             <div className="h-96 overflow-y-auto p-4 space-y-3">
               <AnimatePresence>
-                {messages.map((msg) => (
+                {messages.filter(m => !m.is_internal).map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 10 }}

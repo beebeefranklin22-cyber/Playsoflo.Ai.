@@ -256,7 +256,7 @@ export default function PackageDelivery() {
       </div>
 
       {/* Modals */}
-      {showCreateModal && (
+      {showCreateModal && currentUser && (
         <CreateDeliveryModal
           currentUser={currentUser}
           onClose={() => {
@@ -266,7 +266,7 @@ export default function PackageDelivery() {
         />
       )}
 
-      {selectedDelivery && (
+      {selectedDelivery && currentUser && (
         <DeliveryTrackingModal
           delivery={selectedDelivery}
           currentUser={currentUser}
