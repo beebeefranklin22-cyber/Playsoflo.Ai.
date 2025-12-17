@@ -778,6 +778,7 @@ export default function DriverHub() {
       <AIDriverAssistant
         open={showAIAssistant}
         onClose={() => setShowAIAssistant(false)}
+        currentUser={currentUser}
       />
 
       {/* Dispute Resolution */}

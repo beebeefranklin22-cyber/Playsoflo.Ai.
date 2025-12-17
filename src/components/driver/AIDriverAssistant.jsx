@@ -3,23 +3,55 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
-import { Brain, Send, X, Loader2, MapPin, DollarSign, Clock, AlertTriangle } from "lucide-react";
+import { Brain, Send, X, Loader2, MapPin, DollarSign, Clock, AlertTriangle, TrendingUp, Zap, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 
-export default function AIDriverAssistant({ open, onClose }) {
+export default function AIDriverAssistant({ open, onClose, currentUser }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "👋 Hi! I'm your AI driving assistant. I can help you with:\n\n• Route optimization tips\n• Earnings strategies\n• Ride acceptance advice\n• Traffic updates\n• Platform policies\n• Vehicle maintenance reminders\n\nHow can I assist you today?"
+      content: "👋 Hi! I'm your AI driving assistant with predictive intelligence. I can help you with:\n\n• 🔮 Demand forecasting & hot zones\n• 🗺️ Optimal route suggestions\n• 💰 Dynamic pricing recommendations\n• 📊 Performance analytics & tips\n• 🚗 Real-time traffic updates\n• 🎯 Personalized earning strategies\n\nHow can I assist you today?"
     }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [insights, setInsights] = useState(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (open && !insights && currentUser) {
+      loadPredictiveInsights();
+    }
+  }, [open, currentUser]);
+
+  const loadPredictiveInsights = async () => {
+    if (!currentUser) return;
+    
+    setLoadingInsights(true);
+    try {
+      const location = currentUser.driver_current_lat 
+        ? [currentUser.driver_current_lat, currentUser.driver_current_lng]
+        : null;
+      
+      const { data } = await base44.functions.invoke('getPredictiveInsights', {
+        driver_email: currentUser.email,
+        current_location: location,
+        time_of_day: new Date().getHours()
+      });
+      
+      setInsights(data.insights);
+    } catch (error) {
+      console.error('Failed to load insights:', error);
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -67,18 +99,137 @@ Provide a helpful response in 2-3 sentences max.`,
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[80vh] flex flex-col">
+      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl flex items-center gap-2">
-              <Brain className="w-6 h-6 text-purple-400" />
-              AI Driving Assistant
+              <Brain className="w-6 h-6 text-purple-400 animate-pulse" />
+              AI Predictive Assistant
             </DialogTitle>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={loadPredictiveInsights}
+                disabled={loadingInsights}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                Refresh Insights
+              </Button>
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </DialogHeader>
+
+        {/* Predictive Insights Dashboard */}
+        {loadingInsights ? (
+          <div className="p-8 text-center">
+            <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto mb-3" />
+            <p className="text-gray-400">Analyzing patterns and generating insights...</p>
+          </div>
+        ) : insights ? (
+          <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-white/5 rounded-xl max-h-64 overflow-y-auto">
+            {/* Demand Forecast */}
+            <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 rounded-xl p-4">
+              <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Demand Forecast
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-300 text-sm">Current:</span>
+                  <Badge className={`
+                    ${insights.demand_forecast?.current_demand === 'surge' ? 'bg-red-500/30 text-red-200' : ''}
+                    ${insights.demand_forecast?.current_demand === 'high' ? 'bg-orange-500/30 text-orange-200' : ''}
+                    ${insights.demand_forecast?.current_demand === 'medium' ? 'bg-yellow-500/30 text-yellow-200' : ''}
+                    ${insights.demand_forecast?.current_demand === 'low' ? 'bg-gray-500/30 text-gray-200' : ''}
+                  `}>
+                    {insights.demand_forecast?.current_demand?.toUpperCase()}
+                  </Badge>
+                </div>
+                <p className="text-gray-400 text-xs">{insights.demand_forecast?.next_hour_prediction}</p>
+                {insights.demand_forecast?.peak_hours_today?.length > 0 && (
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Peak Hours Today:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {insights.demand_forecast.peak_hours_today.map((hour, idx) => (
+                        <Badge key={idx} className="bg-green-500/20 text-green-300 text-xs">
+                          {hour}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hot Zones */}
+            {insights.demand_forecast?.high_demand_areas?.length > 0 && (
+              <div className="bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl p-4">
+                <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Hot Zones
+                </h3>
+                <div className="space-y-2">
+                  {insights.demand_forecast.high_demand_areas.slice(0, 3).map((area, idx) => (
+                    <div key={idx} className="text-sm">
+                      <p className="text-white font-medium">{area.area_name}</p>
+                      <p className="text-gray-400 text-xs">{area.distance_from_driver} • {area.demand_level}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Route Suggestions */}
+            {insights.route_suggestions?.length > 0 && (
+              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-4">
+                <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Best Routes
+                </h3>
+                <div className="space-y-2">
+                  {insights.route_suggestions.slice(0, 2).map((route, idx) => (
+                    <div key={idx} className="text-sm">
+                      <p className="text-white font-medium">{route.destination}</p>
+                      <p className="text-gray-400 text-xs">{route.reason}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-green-500/30 text-green-200 text-xs">
+                          ${route.avg_fare}/ride
+                        </Badge>
+                        <Badge className="bg-blue-500/30 text-blue-200 text-xs">
+                          {route.estimated_rides_per_hour} rides/hr
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Performance Feedback */}
+            {insights.performance_feedback && (
+              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4">
+                <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Performance Score
+                </h3>
+                <div className="text-center mb-3">
+                  <div className="text-4xl font-bold text-white">{insights.performance_feedback.overall_score}/100</div>
+                </div>
+                {insights.performance_feedback.earning_optimization_tips?.length > 0 && (
+                  <div className="space-y-1">
+                    {insights.performance_feedback.earning_optimization_tips.slice(0, 2).map((tip, idx) => (
+                      <p key={idx} className="text-gray-300 text-xs">• {tip}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">
@@ -124,37 +275,49 @@ Provide a helpful response in 2-3 sentences max.`,
             size="sm"
             variant="outline"
             onClick={() => {
-              setInput("What's the best time to drive today?");
+              setInput("What's the predicted demand for the next 2 hours?");
               setTimeout(() => handleSend(), 100);
             }}
             className="bg-white/5 border-white/20 text-white hover:bg-white/10"
           >
-            <Clock className="w-3 h-3 mr-1" />
-            Best times
+            <TrendingUp className="w-3 h-3 mr-1" />
+            Demand Forecast
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              setInput("How can I maximize my earnings?");
+              setInput("What's the optimal pricing strategy right now?");
               setTimeout(() => handleSend(), 100);
             }}
             className="bg-white/5 border-white/20 text-white hover:bg-white/10"
           >
             <DollarSign className="w-3 h-3 mr-1" />
-            Earn more
+            Pricing Tips
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => {
-              setInput("What areas have high demand right now?");
+              setInput("Where should I position myself for maximum earnings?");
               setTimeout(() => handleSend(), 100);
             }}
             className="bg-white/5 border-white/20 text-white hover:bg-white/10"
           >
             <MapPin className="w-3 h-3 mr-1" />
-            Hot zones
+            Best Position
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setInput("Analyze my performance and give me tips to earn more");
+              setTimeout(() => handleSend(), 100);
+            }}
+            className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+          >
+            <Target className="w-3 h-3 mr-1" />
+            Performance
           </Button>
         </div>
 
