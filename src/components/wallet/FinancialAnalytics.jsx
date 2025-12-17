@@ -308,16 +308,16 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
                               spendingInsights.data.trend_percentage >= 0 
                                 ? 'bg-red-500/20 text-red-400' 
                                 : 'bg-green-500/20 text-green-400'
-                            }`}>
-                              {spendingInsights.data.trend_percentage >= 0 ? (
+                                }`}>
+                                {(spendingInsights.data.trend_percentage || 0) >= 0 ? (
                                 <ArrowUpRight className="w-5 h-5 inline mr-1" />
-                              ) : (
+                                ) : (
                                 <ArrowDownRight className="w-5 h-5 inline mr-1" />
-                              )}
-                              {Math.abs(spendingInsights.data.trend_percentage)}%
+                                )}
+                                {Math.abs(spendingInsights.data.trend_percentage || 0)}%
                             </div>
-                          </div>
-                          <p className="text-gray-300 text-sm">{spendingInsights.data.trend}</p>
+                            </div>
+                            <p className="text-gray-300 text-sm">{spendingInsights.data.trend || 'No trend data available'}</p>
                         </CardContent>
                       </Card>
 
