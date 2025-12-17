@@ -4,9 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, AlertTriangle, TrendingUp, Users, FileText, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, AlertTriangle, TrendingUp, Users, FileText, Sparkles, MapPin, DollarSign, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import AdminDisputeResolution from "../components/wallet/AdminDisputeResolution";
+import GlobalDriverMap from "../components/admin/GlobalDriverMap";
+import FinancialAnalytics from "../components/admin/FinancialAnalytics";
+import UserManagement from "../components/admin/UserManagement";
+import DisputeManagement from "../components/admin/DisputeManagement";
 
 export default function AdminPanel() {
   const [showDisputes, setShowDisputes] = useState(false);
@@ -52,12 +57,19 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 pb-20">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-white mb-8 flex items-center gap-3">
-          <Shield className="w-10 h-10 text-purple-400" />
-          Admin Control Panel
-        </h1>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Shield className="w-10 h-10 text-purple-400" />
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-400">Real-time platform management and analytics</p>
+        </motion.div>
 
         {/* Alert Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -117,39 +129,90 @@ export default function AdminPanel() {
           </motion.div>
         </div>
 
-        {/* Quick Actions */}
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-6">
-            <h3 className="text-white font-bold text-xl mb-4">Quick Actions</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Button
-                onClick={() => setShowDisputes(true)}
-                className="bg-red-600 hover:bg-red-700 h-16"
-              >
-                <Shield className="w-5 h-5 mr-2" />
-                Manage Disputes ({disputes.length})
-              </Button>
-              <Button
-                className="bg-purple-600 hover:bg-purple-700 h-16"
-              >
-                <Users className="w-5 h-5 mr-2" />
-                User Management
-              </Button>
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 h-16"
-              >
-                <FileText className="w-5 h-5 mr-2" />
-                Platform Reports
-              </Button>
-              <Button
-                className="bg-green-600 hover:bg-green-700 h-16"
-              >
-                <TrendingUp className="w-5 h-5 mr-2" />
-                Analytics Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Dashboard */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-white/10 border border-white/20 p-1">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-purple-600">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="map" className="data-[state=active]:bg-blue-600">
+              <MapPin className="w-4 h-4 mr-2" />
+              Live Map
+            </TabsTrigger>
+            <TabsTrigger value="finances" className="data-[state=active]:bg-green-600">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Finances
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-orange-600">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="disputes" className="data-[state=active]:bg-red-600">
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Disputes
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6">
+                <h3 className="text-white font-bold text-xl mb-4">Quick Actions</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Button
+                    onClick={() => setShowDisputes(true)}
+                    className="bg-red-600 hover:bg-red-700 h-16"
+                  >
+                    <Shield className="w-5 h-5 mr-2" />
+                    Manage P2P Disputes ({disputes.length})
+                  </Button>
+                  <Button
+                    className="bg-purple-600 hover:bg-purple-700 h-16"
+                    onClick={() => document.querySelector('[value="users"]')?.click()}
+                  >
+                    <Users className="w-5 h-5 mr-2" />
+                    User Management
+                  </Button>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 h-16"
+                    onClick={() => document.querySelector('[value="map"]')?.click()}
+                  >
+                    <MapPin className="w-5 h-5 mr-2" />
+                    Live Driver Map
+                  </Button>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 h-16"
+                    onClick={() => document.querySelector('[value="finances"]')?.click()}
+                  >
+                    <TrendingUp className="w-5 h-5 mr-2" />
+                    Financial Analytics
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="map">
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6">
+                <h3 className="text-white font-bold text-xl mb-4">Real-Time Driver Tracking</h3>
+                <GlobalDriverMap />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="finances">
+            <FinancialAnalytics />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="disputes">
+            <DisputeManagement />
+          </TabsContent>
+        </Tabs>
 
         {/* Recent Fraud Alerts */}
         {highRiskAlerts.length > 0 && (
