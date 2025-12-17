@@ -1,0 +1,96 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { order_id, new_status, message } = await req.json();
+
+    if (!order_id || !new_status) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Get the delivery order
+    const orders = await base44.asServiceRole.entities.DeliveryOrder.filter({ id: order_id });
+    
+    if (orders.length === 0) {
+      return Response.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const order = orders[0];
+
+    // Verify driver owns this order
+    if (order.driver_email !== user.email) {
+      return Response.json({ error: 'Unauthorized - not your delivery' }, { status: 403 });
+    }
+
+    // Build updates
+    const updates = {
+      status: new_status,
+      tracking_updates: [
+        ...(order.tracking_updates || []),
+        {
+          timestamp: new Date().toISOString(),
+          status: new_status,
+          message: message || `Status updated to ${new_status}`,
+          location: order.delivery_address
+        }
+      ]
+    };
+
+    if (new_status === 'picked_up') {
+      updates.pickup_time = new Date().toISOString();
+    } else if (new_status === 'delivered') {
+      updates.delivery_time = new Date().toISOString();
+      updates.payment_status = 'paid';
+
+      // Pay driver securely via service role
+      const driverPayout = order.driver_earnings || 0;
+      const driver = await base44.asServiceRole.entities.User.filter({ email: user.email });
+      
+      if (driver.length > 0) {
+        const currentBalance = driver[0].usd_balance || 0;
+        await base44.asServiceRole.entities.User.update(driver[0].id, {
+          usd_balance: currentBalance + driverPayout
+        });
+
+        // Record payment
+        await base44.asServiceRole.entities.Payment.create({
+          amount_usd: driverPayout,
+          method: 'internal_transfer',
+          status: 'completed',
+          reference_type: 'other',
+          reference_id: order.id,
+          recipient_email: user.email,
+          sender_email: 'platform@playsofl.com',
+          memo: 'Delivery driver earnings',
+          created_by: user.email
+        });
+      }
+
+      // Notify recipient
+      await base44.asServiceRole.entities.Notification.create({
+        recipient_email: order.recipient_email || order.sender_email,
+        type: 'system_alert',
+        title: '📦 Package Delivered',
+        message: `Your package #${order.order_number?.substring(0, 8)} has been delivered!`,
+        reference_type: 'delivery',
+        reference_id: order.id
+      });
+    }
+
+    // Update order
+    await base44.asServiceRole.entities.DeliveryOrder.update(order_id, updates);
+
+    return Response.json({ success: true, updates });
+
+  } catch (error) {
+    console.error('Delivery completion error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

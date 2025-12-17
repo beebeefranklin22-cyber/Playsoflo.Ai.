@@ -6,8 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, Package, MapPin, DollarSign, Loader2, TrendingDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CreateDeliveryModal({ currentUser, onClose }) {
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [pricing, setPricing] = useState(null);
@@ -71,43 +73,25 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
   const createDelivery = async () => {
     setLoading(true);
     try {
-      const orderNumber = `DEL${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-
-      await base44.entities.DeliveryOrder.create({
-        ...formData,
-        order_number: orderNumber,
-        ...pricing,
-        status: 'pending',
-        payment_status: 'pending',
-        tracking_updates: [{
-          timestamp: new Date().toISOString(),
-          status: 'pending',
-          message: 'Delivery order created',
-          location: formData.pickup_address
-        }]
+      const { data } = await base44.functions.invoke('createDeliveryOrder', {
+        order_data: formData,
+        pricing: pricing
       });
 
-      // Deduct from user balance
-      const newBalance = (currentUser.usd_balance || 0) - pricing.total_price;
-      await base44.asServiceRole.entities.User.update(currentUser.id, {
-        usd_balance: newBalance
-      });
-
-      // Create payment record
-      await base44.entities.Payment.create({
-        amount_usd: pricing.total_price,
-        method: 'internal_transfer',
-        status: 'completed',
-        reference_type: 'other',
-        reference_id: orderNumber,
-        sender_email: currentUser.email,
-        memo: 'Package delivery payment'
-      });
-
-      toast.success(`🚚 Delivery created! Order #${orderNumber.substring(0, 8)}`);
-      onClose();
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        toast.success(`🚚 Delivery created! Order #${data.order_number.substring(0, 8)}`);
+        onClose();
+      } else {
+        toast.error(data.error || 'Failed to create delivery');
+      }
     } catch (error) {
-      toast.error('Failed to create delivery');
+      if (error.response?.data?.error === 'Insufficient balance') {
+        toast.error(`Insufficient balance. Need $${error.response.data.required}, have $${error.response.data.available}`);
+      } else {
+        toast.error('Failed to create delivery');
+      }
     } finally {
       setLoading(false);
     }

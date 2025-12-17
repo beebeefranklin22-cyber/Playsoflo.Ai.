@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Truck, Package, DollarSign, MapPin, CheckCircle, 
-  ArrowLeft, Navigation, Camera, TrendingUp, Clock
+  ArrowLeft, Navigation, TrendingUp, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,63 +106,17 @@ export default function DeliveryDriverHub() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, newStatus, message }) => {
-      const order = myActiveDeliveries.find(o => o.id === orderId);
-      
-      const updates = {
-        status: newStatus,
-        tracking_updates: [
-          ...(order.tracking_updates || []),
-          {
-            timestamp: new Date().toISOString(),
-            status: newStatus,
-            message: message,
-            location: order.delivery_address
-          }
-        ]
-      };
-
-      if (newStatus === 'picked_up') {
-        updates.pickup_time = new Date().toISOString();
-      } else if (newStatus === 'delivered') {
-        updates.delivery_time = new Date().toISOString();
-        updates.payment_status = 'paid';
-        
-        // Pay driver
-        const driverPayout = order.driver_earnings || 0;
-        const currentBalance = currentUser.usd_balance || 0;
-        
-        await base44.asServiceRole.entities.User.update(currentUser.id, {
-          usd_balance: currentBalance + driverPayout
-        });
-
-        // Record payment
-        await base44.entities.Payment.create({
-          amount_usd: driverPayout,
-          method: 'internal_transfer',
-          status: 'completed',
-          reference_type: 'other',
-          reference_id: order.id,
-          recipient_email: currentUser.email,
-          sender_email: 'platform@playsofl.com',
-          memo: 'Delivery driver earnings'
-        });
-
-        // Notify recipient
-        await base44.entities.Notification.create({
-          recipient_email: order.recipient_email || order.sender_email,
-          type: 'system_alert',
-          title: '📦 Package Delivered',
-          message: `Your package #${order.order_number?.substring(0, 8)} has been delivered!`,
-          reference_type: 'delivery',
-          reference_id: order.id
-        });
-      }
-
-      await base44.entities.DeliveryOrder.update(orderId, updates);
+      const { data } = await base44.functions.invoke('completeDelivery', {
+        order_id: orderId,
+        new_status: newStatus,
+        message: message
+      });
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-active-deliveries'] });
       queryClient.invalidateQueries({ queryKey: ['driver-delivery-earnings'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success('Status updated!');
     }
   });
