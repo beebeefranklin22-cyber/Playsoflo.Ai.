@@ -50,11 +50,11 @@ Deno.serve(async (req) => {
           
           if (users.length > 0) {
             const user = users[0];
-            const currentBalance = user.wallet_balance || 0;
+            const currentBalance = user.usd_balance || 0;
             const newBalance = currentBalance + baseAmount;
             
             await base44.asServiceRole.entities.User.update(user.id, {
-              wallet_balance: newBalance
+              usd_balance: newBalance
             });
 
             // Create payment record

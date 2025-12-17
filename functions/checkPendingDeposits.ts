@@ -45,11 +45,11 @@ Deno.serve(async (req) => {
         const currentUser = await base44.asServiceRole.entities.User.filter({ email: user.email });
         
         if (currentUser.length > 0) {
-          const currentBalance = currentUser[0].wallet_balance || 0;
+          const currentBalance = currentUser[0].usd_balance || 0;
           const newBalance = currentBalance + baseAmount;
           
           await base44.asServiceRole.entities.User.update(currentUser[0].id, {
-            wallet_balance: newBalance
+            usd_balance: newBalance
           });
 
           await base44.entities.Payment.create({
