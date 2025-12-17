@@ -122,10 +122,18 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validation
     if (!formData.media_url && !formData.caption) {
-      toast.error('Add media or text to continue');
+      toast.error('⚠️ Add media or text to continue');
       return;
     }
+
+    // For text stories, ensure media_url is set
+    if (activeTab === 'text' && !formData.media_url) {
+      setFormData(prev => ({ ...prev, media_url: 'text-story' }));
+    }
+
     createStoryMutation.mutate(formData);
   };
 

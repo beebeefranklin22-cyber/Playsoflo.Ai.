@@ -285,10 +285,11 @@ export default function Home() {
                       if (confirm('Delete this story?')) {
                         try {
                           await base44.entities.Story.delete(story.id);
-                          queryClient.invalidateQueries({ queryKey: ['stories'] });
-                          toast.success('Story deleted');
+                          await queryClient.invalidateQueries({ queryKey: ['stories'] });
+                          toast.success('✅ Story deleted');
                         } catch (error) {
-                          toast.error('Failed to delete story');
+                          console.error('Delete error:', error);
+                          toast.error('❌ Failed to delete story');
                         }
                       }
                     }}
