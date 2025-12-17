@@ -13,6 +13,7 @@ import {
 import { motion } from "framer-motion";
 import RideTrackingMap from "../components/ride/RideTrackingMap";
 import RatingModal from "../components/ride/RatingModal";
+import PassengerRatingModal from "../components/ride/PassengerRatingModal";
 import RideChatModal from "../components/chat/RideChatModal";
 import CancellationModal from "../components/ride/CancellationModal";
 import RidePreferencesModal from "../components/ride/RidePreferencesModal";
@@ -24,6 +25,7 @@ export default function MyRides() {
   const [currentUser, setCurrentUser] = useState(null);
   const [trackingRideId, setTrackingRideId] = useState(null);
   const [ratingRide, setRatingRide] = useState(null);
+  const [passengerRatingRide, setPassengerRatingRide] = useState(null);
   const [chatRide, setChatRide] = useState(null);
   const [cancelRide, setCancelRide] = useState(null);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -379,23 +381,39 @@ export default function MyRides() {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button
-                        onClick={() => setRatingRide(ride)}
-                        size="sm"
-                        className="flex-1 bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/30"
-                      >
-                        <Star className="w-4 h-4 mr-2" />
-                        Rate
-                      </Button>
-                      {ride.driver_email && (
-                        <TipButton
-                          creatorEmail={ride.driver_email}
-                          creatorName={ride.driver_email}
-                          contentId={ride.id}
-                          variant="outline"
+                      {!ride.passenger_rating ? (
+                        <Button
+                          onClick={() => setPassengerRatingRide(ride)}
                           size="sm"
-                          showAmount={true}
-                        />
+                          className="flex-1 bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/30"
+                        >
+                          <Star className="w-4 h-4 mr-2" />
+                          Rate Driver
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-1 text-yellow-400">
+                          <Star className="w-4 h-4 fill-yellow-400" />
+                          <span className="font-semibold">{ride.passenger_rating}</span>
+                        </div>
+                      )}
+                      {ride.driver_email && (
+                        <>
+                          <TipButton
+                            creatorEmail={ride.driver_email}
+                            creatorName={ride.driver_email}
+                            contentId={ride.id}
+                            variant="outline"
+                            size="sm"
+                            showAmount={true}
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setChatRide(ride)}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </CardContent>
@@ -489,6 +507,17 @@ export default function MyRides() {
         open={showGiftRide}
         onClose={() => setShowGiftRide(false)}
       />
+
+      {/* Passenger Rating Modal */}
+      {passengerRatingRide && (
+        <PassengerRatingModal
+          ride={passengerRatingRide}
+          onClose={() => {
+            setPassengerRatingRide(null);
+            queryClient.invalidateQueries(['my-rides']);
+          }}
+        />
+      )}
     </div>
   );
 }
