@@ -36,6 +36,52 @@ Deno.serve(async (req) => {
 
     // Handle different event types
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        
+        // Check if this is a wallet deposit
+        const description = session.metadata?.description;
+        const userEmail = session.metadata?.user_email;
+        const baseAmount = parseFloat(session.metadata?.base_amount || '0');
+        
+        if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
+          // Find user and update balance
+          const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+          
+          if (users.length > 0) {
+            const user = users[0];
+            const currentBalance = user.wallet_balance || 0;
+            const newBalance = currentBalance + baseAmount;
+            
+            await base44.asServiceRole.entities.User.update(user.id, {
+              wallet_balance: newBalance
+            });
+
+            // Create payment record
+            await base44.asServiceRole.entities.Payment.create({
+              amount_usd: baseAmount,
+              method: 'stripe',
+              status: 'completed',
+              reference_type: 'deposit',
+              reference_id: session.id,
+              sender_email: userEmail,
+              memo: 'Wallet deposit via Stripe'
+            });
+
+            // Notify user
+            await base44.asServiceRole.entities.Notification.create({
+              recipient_email: userEmail,
+              type: 'payment_received',
+              title: '✅ Money Added Successfully',
+              message: `$${baseAmount.toFixed(2)} has been added to your wallet. New balance: $${newBalance.toFixed(2)}`,
+              reference_type: 'payment',
+              reference_id: session.id
+            });
+          }
+        }
+        break;
+      }
+
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
         
