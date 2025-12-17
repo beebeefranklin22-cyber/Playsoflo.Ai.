@@ -277,9 +277,9 @@ export default function DeliveryDriverHub() {
                             onClick={async () => {
                               await base44.entities.Notification.create({
                                 recipient_email: order.sender_email,
-                                type: 'system_alert',
-                                title: '🚗 Driver En Route',
-                                message: `Your driver is on the way to pickup location for order #${order.order_number?.substring(0, 8)}`,
+                                type: 'delivery_update',
+                                title: '🚗 Driver En Route to Pickup',
+                                message: `Your driver is heading to pickup location at ${order.pickup_address}. Order #${order.order_number?.substring(0, 8)}. Est. arrival: ${order.estimated_wait_time_minutes || 10} min.`,
                                 reference_type: 'delivery',
                                 reference_id: order.id
                               });
@@ -310,9 +310,9 @@ export default function DeliveryDriverHub() {
                             onClick={async () => {
                               await base44.entities.Notification.create({
                                 recipient_email: order.recipient_email || order.sender_email,
-                                type: 'system_alert',
-                                title: '🚚 On The Way',
-                                message: `Your package is on the way! Order #${order.order_number?.substring(0, 8)}`,
+                                type: 'delivery_update',
+                                title: '🚚 Package On The Way',
+                                message: `Your package has been picked up and is now in transit to ${order.delivery_address}. Order #${order.order_number?.substring(0, 8)}. Est. delivery: ${order.estimated_duration_minutes || 20} min.`,
                                 reference_type: 'delivery',
                                 reference_id: order.id
                               });
@@ -343,9 +343,9 @@ export default function DeliveryDriverHub() {
                             onClick={async () => {
                               await base44.entities.Notification.create({
                                 recipient_email: order.recipient_email || order.sender_email,
-                                type: 'system_alert',
-                                title: '📍 Almost There',
-                                message: `Your driver is arriving soon with order #${order.order_number?.substring(0, 8)}`,
+                                type: 'delivery_update',
+                                title: '📍 Driver Almost There',
+                                message: `Your driver is less than 5 minutes away from delivery at ${order.delivery_address}. Please be ready to receive order #${order.order_number?.substring(0, 8)}.`,
                                 reference_type: 'delivery',
                                 reference_id: order.id
                               });

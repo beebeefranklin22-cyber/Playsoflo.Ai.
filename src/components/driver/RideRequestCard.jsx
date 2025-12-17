@@ -317,8 +317,8 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "🚗 Driver is Coming",
-                      message: `Your driver is on the way to pick you up!`,
+                      title: "🚗 Driver En Route",
+                      message: `Your driver is on the way to ${ride.pickup_address}. Est. arrival: ${ride.estimated_duration_minutes || 5} min. ${ride.ride_type} ride.`,
                       reference_type: "ride",
                       reference_id: ride.id
                     });
@@ -335,8 +335,8 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "📍 Driver Arrived",
-                      message: `Your driver has arrived at the pickup location`,
+                      title: "📍 Driver Arrived at Pickup",
+                      message: `Your driver has arrived at ${ride.pickup_address}. Please come out to your ${ride.ride_type}. Look for vehicle matching the app description.`,
                       reference_type: "ride",
                       reference_id: ride.id
                     });
@@ -372,8 +372,8 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "📍 Almost There",
-                      message: `Your driver is arriving at the destination soon`,
+                      title: "📍 Almost at Destination",
+                      message: `You're almost at ${ride.dropoff_address}. Arriving in approximately 2-3 minutes. Please prepare for dropoff.`,
                       reference_type: "ride",
                       reference_id: ride.id
                     });
@@ -390,8 +390,8 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "⏱️ Traffic Delay",
-                      message: `Driver is experiencing slight traffic delay`,
+                      title: "⏱️ Slight Traffic Delay",
+                      message: `Your driver is experiencing traffic on the route to ${ride.dropoff_address}. Expected delay: 3-5 minutes. Thank you for your patience!`,
                       reference_type: "ride",
                       reference_id: ride.id
                     });
