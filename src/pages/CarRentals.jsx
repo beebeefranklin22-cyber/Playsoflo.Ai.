@@ -40,7 +40,8 @@ export default function CarRentals() {
     delivery_address: "",
     unlock_method: "app_unlock",
     driver_license_url: "",
-    id_verification_url: ""
+    id_verification_url: "",
+    selected_add_ons: []
   });
 
   const [damageForm, setDamageForm] = useState({
@@ -189,14 +190,20 @@ export default function CarRentals() {
     const deliveryFee = bookingForm.delivery_option === "delivery_both_ways" ? 100 :
                        bookingForm.delivery_option === "delivery_to_renter" ? 50 : 0;
     const securityDeposit = selectedCar.security_deposit || selectedCar.price || 500;
+    
+    // Calculate add-ons cost
+    const addOnsCost = bookingForm.selected_add_ons.reduce((sum, addon) => {
+      return sum + ((addon.price || 0) * days * (addon.quantity || 1));
+    }, 0);
 
     return {
       days,
       baseCost,
       insurance,
       deliveryFee,
+      addOnsCost,
       securityDeposit,
-      total: baseCost + insurance + deliveryFee
+      total: baseCost + insurance + deliveryFee + addOnsCost
     };
   };
 
@@ -238,7 +245,9 @@ export default function CarRentals() {
       mileage_limit: selectedCar.mileage_limit || 200,
       excess_mileage_fee: 0.50,
       fuel_policy: selectedCar.rental_details?.fuel_policy || "full_to_full",
-      cancellation_policy: "moderate"
+      cancellation_policy: "moderate",
+      selected_add_ons: bookingForm.selected_add_ons,
+      add_ons_total: costs.addOnsCost
     });
   };
 
@@ -442,6 +451,20 @@ export default function CarRentals() {
                             <span className="text-blue-400 font-bold ml-2">{rental.unlock_method.replace('_', ' ')}</span>
                           </div>
                         </div>
+
+                        {rental.selected_add_ons && rental.selected_add_ons.length > 0 && (
+                          <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 mb-4">
+                            <p className="text-purple-300 text-xs font-semibold mb-2">Selected Add-Ons:</p>
+                            <div className="space-y-1">
+                              {rental.selected_add_ons.map((addon, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-gray-300">{addon.name} {addon.quantity > 1 ? `(×${addon.quantity})` : ''}</span>
+                                  <span className="text-purple-400">${addon.price}/day</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         {rental.unlock_code && rental.status === 'active' && (
                           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
@@ -733,6 +756,53 @@ export default function CarRentals() {
                     </Select>
                   </div>
 
+                  {/* Add-Ons Selection */}
+                  {selectedCar.add_ons && selectedCar.add_ons.length > 0 && (
+                    <div className="border-t border-white/20 pt-4">
+                      <label className="text-gray-400 text-sm mb-3 block font-semibold">Available Add-Ons</label>
+                      <div className="space-y-2">
+                        {selectedCar.add_ons.map((addon) => {
+                          const isSelected = bookingForm.selected_add_ons.find(a => a.id === addon.id);
+                          return (
+                            <div key={addon.id} className="flex items-center justify-between bg-white/5 rounded-lg p-3 border border-white/10">
+                              <div className="flex-1">
+                                <p className="text-white font-medium">{addon.name}</p>
+                                {addon.description && (
+                                  <p className="text-gray-400 text-xs">{addon.description}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-green-400 font-bold text-sm">${addon.price}/day</span>
+                                <button
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setBookingForm(prev => ({
+                                        ...prev,
+                                        selected_add_ons: prev.selected_add_ons.filter(a => a.id !== addon.id)
+                                      }));
+                                    } else {
+                                      setBookingForm(prev => ({
+                                        ...prev,
+                                        selected_add_ons: [...prev.selected_add_ons, { ...addon, quantity: 1 }]
+                                      }));
+                                    }
+                                  }}
+                                  className={`px-4 py-2 rounded-lg font-semibold text-sm transition ${
+                                    isSelected 
+                                      ? 'bg-green-600 text-white' 
+                                      : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                  }`}
+                                >
+                                  {isSelected ? '✓ Added' : 'Add'}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
                     <h3 className="text-white font-bold mb-3 flex items-center gap-2">
                       <FileText className="w-5 h-5 text-yellow-400" />
@@ -823,6 +893,12 @@ export default function CarRentals() {
                               <div className="flex justify-between text-gray-300">
                                 <span>Delivery Fee</span>
                                 <span>${costs.deliveryFee.toFixed(2)}</span>
+                              </div>
+                            )}
+                            {costs.addOnsCost > 0 && (
+                              <div className="flex justify-between text-gray-300">
+                                <span>Add-Ons ({bookingForm.selected_add_ons.length} item{bookingForm.selected_add_ons.length !== 1 ? 's' : ''})</span>
+                                <span>${costs.addOnsCost.toFixed(2)}</span>
                               </div>
                             )}
                             <div className="border-t border-white/10 pt-3 flex justify-between text-white font-bold text-xl">

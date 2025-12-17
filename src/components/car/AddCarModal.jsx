@@ -32,6 +32,7 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
     features: [],
     portfolio_images: [],
     is_rental: true,
+    add_ons: [],
     rental_details: {
       asset_type: "car",
       min_rental_period: 24,
@@ -40,6 +41,7 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
       delivery_available: true
     }
   });
+  const [newAddOn, setNewAddOn] = useState({ name: "", description: "", price: "" });
 
   const handleImageUpload = async (file) => {
     if (!file) return;
@@ -336,6 +338,105 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
               <Image className="w-4 h-4 mr-2" />
               Add More Photos
             </Button>
+          </div>
+
+          {/* Add-Ons Management */}
+          <div className="border-t border-white/20 pt-4">
+            <label className="text-gray-400 text-sm mb-3 block font-semibold">Add-Ons (Optional)</label>
+            
+            {formData.add_ons.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {formData.add_ons.map((addon, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="flex-1">
+                      <p className="text-white font-semibold">{addon.name}</p>
+                      <p className="text-gray-400 text-xs">{addon.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-400 font-bold">${addon.price}/day</span>
+                      <button
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          add_ons: prev.add_ons.filter((_, i) => i !== idx)
+                        }))}
+                        className="p-1 bg-red-500/20 hover:bg-red-500/30 rounded text-red-400"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+              <p className="text-white text-sm font-semibold mb-3">Add New Add-On</p>
+              <div className="grid md:grid-cols-3 gap-2 mb-2">
+                <Input
+                  placeholder="Name (e.g., Child Seat)"
+                  value={newAddOn.name}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, name: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+                <Input
+                  placeholder="Description"
+                  value={newAddOn.description}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, description: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+                <Input
+                  type="number"
+                  placeholder="Price/day"
+                  value={newAddOn.price}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, price: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (!newAddOn.name || !newAddOn.price) {
+                    toast.error("Please fill in add-on name and price");
+                    return;
+                  }
+                  setFormData(prev => ({
+                    ...prev,
+                    add_ons: [...prev.add_ons, {
+                      id: Date.now(),
+                      name: newAddOn.name,
+                      description: newAddOn.description,
+                      price: parseFloat(newAddOn.price)
+                    }]
+                  }));
+                  setNewAddOn({ name: "", description: "", price: "" });
+                  toast.success("Add-on added!");
+                }}
+                className="w-full bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20"
+              >
+                + Add to List
+              </Button>
+              
+              <div className="mt-3 text-xs text-gray-400">
+                <p className="font-semibold mb-1">Suggested add-ons:</p>
+                <div className="flex flex-wrap gap-1">
+                  {['Child Seat ($15)', 'GPS Device ($10)', 'Ski Rack ($20)', 'Bike Rack ($15)', 'Extra Driver ($25)', 'Roadside Assist ($30)'].map(suggestion => (
+                    <button
+                      key={suggestion}
+                      onClick={() => {
+                        const [name, priceStr] = suggestion.split(' ($');
+                        const price = priceStr.replace(')', '');
+                        setNewAddOn({ name, description: '', price });
+                      }}
+                      className="px-2 py-1 bg-white/5 hover:bg-white/10 rounded text-xs"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-4">

@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
-import { X, Save } from "lucide-react";
+import { X, Save, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EditCarModal({ open, onClose, car, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
+  const [newAddOn, setNewAddOn] = useState({ name: "", description: "", price: "" });
 
   useEffect(() => {
     if (car) {
@@ -97,6 +98,81 @@ export default function EditCarModal({ open, onClose, car, onSuccess }) {
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Add-Ons Management */}
+          <div className="border-t border-white/20 pt-4">
+            <label className="text-gray-400 text-sm mb-3 block font-semibold">Manage Add-Ons</label>
+            
+            {formData.add_ons && formData.add_ons.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {formData.add_ons.map((addon, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                    <div>
+                      <p className="text-white font-semibold">{addon.name}</p>
+                      {addon.description && <p className="text-gray-400 text-xs">{addon.description}</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-400 font-bold">${addon.price}/day</span>
+                      <button
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          add_ons: prev.add_ons.filter((_, i) => i !== idx)
+                        }))}
+                        className="p-1 bg-red-500/20 hover:bg-red-500/30 rounded"
+                      >
+                        <X className="w-4 h-4 text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+              <div className="grid md:grid-cols-3 gap-2 mb-2">
+                <Input
+                  placeholder="Name"
+                  value={newAddOn.name}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, name: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+                <Input
+                  placeholder="Description"
+                  value={newAddOn.description}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, description: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+                <Input
+                  type="number"
+                  placeholder="$/day"
+                  value={newAddOn.price}
+                  onChange={(e) => setNewAddOn({ ...newAddOn, price: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white text-sm"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (!newAddOn.name || !newAddOn.price) return;
+                  setFormData(prev => ({
+                    ...prev,
+                    add_ons: [...(prev.add_ons || []), {
+                      id: Date.now(),
+                      name: newAddOn.name,
+                      description: newAddOn.description,
+                      price: parseFloat(newAddOn.price)
+                    }]
+                  }));
+                  setNewAddOn({ name: "", description: "", price: "" });
+                }}
+                className="w-full bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add
+              </Button>
             </div>
           </div>
 
