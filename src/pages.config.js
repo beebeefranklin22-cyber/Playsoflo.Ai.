@@ -79,6 +79,7 @@ import AffiliateHub from './pages/AffiliateHub';
 import OrderSuccess from './pages/OrderSuccess';
 import PackageDelivery from './pages/PackageDelivery';
 import DeliveryDriverHub from './pages/DeliveryDriverHub';
+import FranchiseHub from './pages/FranchiseHub';
 import __Layout from './Layout.jsx';
 
 
@@ -164,6 +165,7 @@ export const PAGES = {
     "OrderSuccess": OrderSuccess,
     "PackageDelivery": PackageDelivery,
     "DeliveryDriverHub": DeliveryDriverHub,
+    "FranchiseHub": FranchiseHub,
 }
 
 export const pagesConfig = {

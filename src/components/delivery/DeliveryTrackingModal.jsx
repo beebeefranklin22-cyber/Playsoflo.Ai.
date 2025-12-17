@@ -1,7 +1,11 @@
-import React from "react";
-import { X, MapPin, Package, Truck, CheckCircle, Clock } from "lucide-react";
+import React, { useState } from "react";
+import { X, MapPin, Package, Truck, CheckCircle, Clock, Star, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import LiveGPSTracking from "./LiveGPSTracking";
+import RatingModal from "./RatingModal";
 
 export default function DeliveryTrackingModal({ delivery, currentUser, onClose }) {
   const trackingSteps = [
@@ -37,6 +41,35 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Franchise Info */}
+          {liveDelivery.franchise_name && (
+            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Handled by</p>
+                  <p className="text-white font-bold">{liveDelivery.franchise_name}</p>
+                </div>
+                {liveDelivery.estimated_wait_time_minutes && liveDelivery.status === 'pending' && (
+                  <div className="text-right">
+                    <p className="text-gray-400 text-xs mb-1">Est. Wait</p>
+                    <p className="text-cyan-400 font-bold">{liveDelivery.estimated_wait_time_minutes} min</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Live GPS Tracking */}
+          {(liveDelivery.status === 'in_transit' || liveDelivery.status === 'picked_up') && liveDelivery.driver_location && (
+            <div className="mb-6">
+              <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                <Navigation className="w-5 h-5 text-blue-400" />
+                Live GPS Tracking
+              </h3>
+              <LiveGPSTracking delivery={liveDelivery} driverLocation={liveDelivery.driver_location} />
+            </div>
+          )}
+
           {/* Progress Tracker */}
           <div className="relative">
             <div className="flex justify-between mb-8">
@@ -143,6 +176,55 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
             </div>
           )}
 
+          {/* Proof of Delivery */}
+          {liveDelivery.delivery_photo && (
+            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                Proof of Delivery
+              </h3>
+              <img src={liveDelivery.delivery_photo} className="w-full h-48 object-cover rounded-lg mb-2" />
+              {liveDelivery.signature_image && (
+                <div>
+                  <p className="text-gray-400 text-xs mb-1">Recipient Signature:</p>
+                  <img src={liveDelivery.signature_image} className="w-full h-24 bg-white rounded-lg" />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Driver Rating */}
+          {liveDelivery.status === 'delivered' && !liveDelivery.rating && 
+           liveDelivery.created_by === currentUser?.email && (
+            <Button
+              onClick={() => setShowRating(true)}
+              className="w-full bg-yellow-600 hover:bg-yellow-700 py-6"
+            >
+              <Star className="w-5 h-5 mr-2" />
+              Rate Your Delivery Experience
+            </Button>
+          )}
+
+          {liveDelivery.rating && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`w-5 h-5 ${
+                      star <= liveDelivery.rating 
+                        ? 'fill-yellow-400 text-yellow-400' 
+                        : 'text-gray-600'
+                    }`}
+                  />
+                ))}
+              </div>
+              {liveDelivery.review && (
+                <p className="text-gray-300 text-sm">{liveDelivery.review}</p>
+              )}
+            </div>
+          )}
+
           {/* Price Summary */}
           <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4">
             <div className="flex items-center justify-between">
@@ -156,7 +238,15 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
               </div>
             </div>
           </div>
-        </div>
+          </div>
+          </motion.div>
+
+          {showRating && (
+          <RatingModal
+          delivery={liveDelivery}
+          onClose={() => setShowRating(false)}
+          />
+          )}
       </motion.div>
     </div>
   );

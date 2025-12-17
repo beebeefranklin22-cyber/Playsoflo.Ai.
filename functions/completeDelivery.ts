@@ -78,10 +78,24 @@ Deno.serve(async (req) => {
         recipient_email: order.recipient_email || order.sender_email,
         type: 'system_alert',
         title: '📦 Package Delivered',
-        message: `Your package #${order.order_number?.substring(0, 8)} has been delivered!`,
+        message: `Your package #${order.order_number?.substring(0, 8)} has been delivered! Tap to rate your experience.`,
         reference_type: 'delivery',
         reference_id: order.id
       });
+
+      // Update franchise stats
+      if (order.franchise_id) {
+        const franchises = await base44.asServiceRole.entities.DeliveryFranchise.filter({
+          id: order.franchise_id
+        });
+        
+        if (franchises.length > 0) {
+          const franchise = franchises[0];
+          await base44.asServiceRole.entities.DeliveryFranchise.update(order.franchise_id, {
+            total_deliveries: (franchise.total_deliveries || 0) + 1
+          });
+        }
+      }
     }
 
     // Update order

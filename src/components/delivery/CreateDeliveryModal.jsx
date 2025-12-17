@@ -81,7 +81,11 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
         queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-        toast.success(`🚚 Delivery created! Order #${data.order_number.substring(0, 8)}`);
+        
+        const franchiseMsg = data.franchise ? ` Assigned to ${data.franchise}.` : '';
+        const waitMsg = data.estimated_wait_minutes ? ` Est. wait: ${data.estimated_wait_minutes} min` : '';
+        
+        toast.success(`🚚 Delivery created! Order #${data.order_number.substring(0, 8)}.${franchiseMsg}${waitMsg}`);
         onClose();
       } else {
         toast.error(data.error || 'Failed to create delivery');

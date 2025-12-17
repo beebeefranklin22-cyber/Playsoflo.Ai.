@@ -5,13 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Truck, Package, DollarSign, MapPin, CheckCircle, 
-  ArrowLeft, Navigation, TrendingUp, Clock, Car, Settings
+  ArrowLeft, Navigation, TrendingUp, Clock, Car, Camera, FileSignature
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import VehicleManagementModal from "../components/delivery/VehicleManagementModal";
+import ProofOfDeliveryModal from "../components/delivery/ProofOfDeliveryModal";
 
 export default function DeliveryDriverHub() {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function DeliveryDriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [deliveryForProof, setDeliveryForProof] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -122,6 +125,37 @@ export default function DeliveryDriverHub() {
       toast.success('Status updated!');
     }
   });
+
+  // Track driver location for active deliveries
+  useEffect(() => {
+    if (!currentUser || myActiveDeliveries.length === 0) return;
+
+    const updateLocation = async () => {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const location = [position.coords.latitude, position.coords.longitude];
+          
+          // Update location for all active deliveries
+          for (const order of myActiveDeliveries) {
+            try {
+              await base44.functions.invoke('updateDriverLocation', {
+                order_id: order.id,
+                location: location
+              });
+            } catch (error) {
+              console.log('Location update failed:', error);
+            }
+          }
+        });
+      }
+    };
+
+    // Update location every 10 seconds
+    updateLocation();
+    const interval = setInterval(updateLocation, 10000);
+
+    return () => clearInterval(interval);
+  }, [currentUser, myActiveDeliveries]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-cyan-900 to-gray-900 pb-24">
@@ -251,15 +285,14 @@ export default function DeliveryDriverHub() {
 
                     {order.status === 'in_transit' && (
                       <Button
-                        onClick={() => updateStatusMutation.mutate({
-                          orderId: order.id,
-                          newStatus: 'delivered',
-                          message: 'Package successfully delivered'
-                        })}
+                        onClick={() => {
+                          setDeliveryForProof(order);
+                          setShowProofModal(true);
+                        }}
                         className="flex-1 bg-green-600 hover:bg-green-700"
                       >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Complete Delivery
+                        <Camera className="w-4 h-4 mr-2" />
+                        Complete & Add Proof
                       </Button>
                     )}
 
@@ -354,6 +387,26 @@ export default function DeliveryDriverHub() {
         <VehicleManagementModal
           currentUser={currentUser}
           onClose={() => setShowVehicleModal(false)}
+        />
+      )}
+
+      {showProofModal && deliveryForProof && (
+        <ProofOfDeliveryModal
+          delivery={deliveryForProof}
+          onComplete={async (proofData) => {
+            await base44.entities.DeliveryOrder.update(deliveryForProof.id, proofData);
+            await updateStatusMutation.mutateAsync({
+              orderId: deliveryForProof.id,
+              newStatus: 'delivered',
+              message: 'Package delivered with proof'
+            });
+            setShowProofModal(false);
+            setDeliveryForProof(null);
+          }}
+          onClose={() => {
+            setShowProofModal(false);
+            setDeliveryForProof(null);
+          }}
         />
       )}
     </div>
