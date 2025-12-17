@@ -9,6 +9,7 @@ import {
   Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import CreatePostModal from "../components/CreatePostModal";
 import CreateStoryModal from "../components/CreateStoryModal";
 import FriendFinder from "../components/FriendFinder";

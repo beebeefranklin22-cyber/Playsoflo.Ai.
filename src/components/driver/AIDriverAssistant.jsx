@@ -62,8 +62,19 @@ export default function AIDriverAssistant({ open, onClose, currentUser }) {
     setLoading(true);
 
     try {
+      // Get fresh insights data if available
+      const contextData = insights ? `
+
+Current Market Insights:
+- Demand Level: ${insights.demand_forecast?.current_demand}
+- Peak Hours Today: ${insights.demand_forecast?.peak_hours_today?.join(', ')}
+- Hot Zones: ${insights.demand_forecast?.high_demand_areas?.map(a => a.area_name).join(', ')}
+- Suggested Rate Multiplier: ${insights.pricing_suggestions?.suggested_rate_multiplier}x
+- Performance Score: ${insights.performance_feedback?.overall_score}/100
+` : '';
+
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an AI assistant for rideshare drivers on the PlaySoFlo platform. 
+        prompt: `You are an AI assistant for rideshare drivers on the PlaySoFlo platform with access to predictive analytics. 
         
 Platform details:
 - Drivers keep 88-90% of fares (industry-leading)
@@ -72,17 +83,19 @@ Platform details:
 - Tips: 100% goes to driver
 - Peak hours: 7-9am, 5-7pm weekdays (1.5x multiplier)
 - Streak bonuses: $5 per 10 rides without cancellation
+${contextData}
 
-Provide helpful, concise, and friendly advice for drivers. Focus on:
-- Maximizing earnings
-- Route optimization
+Provide helpful, concise, and actionable advice for drivers. Use the insights data when relevant. Focus on:
+- Maximizing earnings with data-driven strategies
+- Route optimization based on demand
+- Dynamic pricing suggestions
 - Time management
 - Safety tips
-- Platform features
+- Performance improvement
 
 Driver question: ${userMessage}
 
-Provide a helpful response in 2-3 sentences max.`,
+Provide a helpful response in 2-4 sentences max.`,
       });
 
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
@@ -213,16 +226,21 @@ Provide a helpful response in 2-3 sentences max.`,
             {insights.performance_feedback && (
               <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4">
                 <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
+                  <Target className="w-4 h-4" />
                   Performance Score
                 </h3>
                 <div className="text-center mb-3">
-                  <div className="text-4xl font-bold text-white">{insights.performance_feedback.overall_score}/100</div>
+                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    {insights.performance_feedback.overall_score}/100
+                  </div>
+                  {insights.performance_feedback.weekly_goal && (
+                    <p className="text-gray-400 text-xs mt-1">{insights.performance_feedback.weekly_goal}</p>
+                  )}
                 </div>
                 {insights.performance_feedback.earning_optimization_tips?.length > 0 && (
                   <div className="space-y-1">
                     {insights.performance_feedback.earning_optimization_tips.slice(0, 2).map((tip, idx) => (
-                      <p key={idx} className="text-gray-300 text-xs">• {tip}</p>
+                      <p key={idx} className="text-purple-300 text-xs leading-relaxed">💡 {tip}</p>
                     ))}
                   </div>
                 )}
@@ -230,6 +248,48 @@ Provide a helpful response in 2-3 sentences max.`,
             )}
           </div>
         ) : null}
+
+        {/* Detailed Insights Expandable Section */}
+        {insights && (
+          <div className="p-4 border-t border-white/10">
+            <details className="group">
+              <summary className="cursor-pointer text-purple-400 font-semibold text-sm flex items-center gap-2 hover:text-purple-300 transition">
+                <Brain className="w-4 h-4" />
+                View Full Analytics Report
+              </summary>
+              <div className="mt-4 space-y-4">
+                {/* Strengths */}
+                {insights.performance_feedback?.strengths?.length > 0 && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                    <h4 className="text-green-400 font-semibold text-sm mb-2">✨ Your Strengths</h4>
+                    {insights.performance_feedback.strengths.map((strength, idx) => (
+                      <p key={idx} className="text-green-300 text-xs mb-1">• {strength}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Improvement Areas */}
+                {insights.performance_feedback?.improvement_areas?.length > 0 && (
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                    <h4 className="text-orange-400 font-semibold text-sm mb-2">🎯 Growth Opportunities</h4>
+                    {insights.performance_feedback.improvement_areas.map((area, idx) => (
+                      <p key={idx} className="text-orange-300 text-xs mb-1">• {area}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pricing Strategy */}
+                {insights.pricing_suggestions && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <h4 className="text-blue-400 font-semibold text-sm mb-2">💰 Pricing Strategy</h4>
+                    <p className="text-blue-300 text-xs mb-1">Suggested Multiplier: {insights.pricing_suggestions.suggested_rate_multiplier}x</p>
+                    <p className="text-gray-400 text-xs">{insights.pricing_suggestions.reasoning}</p>
+                  </div>
+                )}
+              </div>
+            </details>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-2">

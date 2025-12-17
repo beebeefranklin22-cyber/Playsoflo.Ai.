@@ -237,9 +237,12 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                         accept="image/*,video/*"
                         onChange={(e) => handleFileUpload(e.target.files?.[0])}
                       />
-                      <div className="aspect-[9/16] max-h-[500px] border-2 border-dashed border-purple-500/40 rounded-2xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 transition-all flex flex-col items-center justify-center gap-4">
+                      <div className="aspect-[9/16] max-h-[500px] border-2 border-dashed border-purple-500/40 rounded-2xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 transition-all flex flex-col items-center justify-center gap-4 group-hover:border-purple-500/60">
                         {uploading ? (
-                          <Loader2 className="w-16 h-16 text-purple-400 animate-spin" />
+                          <>
+                            <Loader2 className="w-16 h-16 text-purple-400 animate-spin" />
+                            <p className="text-gray-400 text-sm">Uploading your media...</p>
+                          </>
                         ) : (
                           <>
                             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
