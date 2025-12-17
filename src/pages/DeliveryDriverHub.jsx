@@ -254,56 +254,121 @@ export default function DeliveryDriverHub() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    {order.status === 'driver_assigned' && (
-                      <Button
-                        onClick={() => updateStatusMutation.mutate({
-                          orderId: order.id,
-                          newStatus: 'picked_up',
-                          message: 'Package picked up by driver'
-                        })}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <Package className="w-4 h-4 mr-2" />
-                        Confirm Pickup
-                      </Button>
-                    )}
-                    
-                    {order.status === 'picked_up' && (
-                      <Button
-                        onClick={() => updateStatusMutation.mutate({
-                          orderId: order.id,
-                          newStatus: 'in_transit',
-                          message: 'Package in transit'
-                        })}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Truck className="w-4 h-4 mr-2" />
-                        Start Delivery
-                      </Button>
-                    )}
-
-                    {order.status === 'in_transit' && (
+                  <div className="space-y-2">
+                    {/* Navigation Buttons */}
+                    <div className="flex gap-2">
                       <Button
                         onClick={() => {
-                          setDeliveryForProof(order);
-                          setShowProofModal(true);
+                          const destination = order.status === 'driver_assigned' ? order.pickup_address : order.delivery_address;
+                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`, '_blank');
                         }}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
                       >
-                        <Camera className="w-4 h-4 mr-2" />
-                        Complete & Add Proof
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Navigate to {order.status === 'driver_assigned' ? 'Pickup' : 'Delivery'}
                       </Button>
-                    )}
+                    </div>
 
-                    <Button
-                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(order.pickup_address)}&destination=${encodeURIComponent(order.delivery_address)}`, '_blank')}
-                      variant="outline"
-                      className="border-white/20 text-white"
-                    >
-                      <Navigation className="w-4 h-4 mr-2" />
-                      Navigate
-                    </Button>
+                    {/* Quick Status Updates */}
+                    <div className="flex gap-2">
+                      {order.status === 'driver_assigned' && (
+                        <>
+                          <Button
+                            onClick={async () => {
+                              await base44.entities.Notification.create({
+                                recipient_email: order.sender_email,
+                                type: 'system_alert',
+                                title: '🚗 Driver En Route',
+                                message: `Your driver is on the way to pickup location for order #${order.order_number?.substring(0, 8)}`,
+                                reference_type: 'delivery',
+                                reference_id: order.id
+                              });
+                              toast.success('Customer notified: En route to pickup');
+                            }}
+                            variant="outline"
+                            className="flex-1 border-cyan-500/30 text-cyan-400"
+                          >
+                            🚗 En Route
+                          </Button>
+                          <Button
+                            onClick={() => updateStatusMutation.mutate({
+                              orderId: order.id,
+                              newStatus: 'picked_up',
+                              message: 'Package picked up by driver'
+                            })}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            <Package className="w-4 h-4 mr-2" />
+                            Confirm Pickup
+                          </Button>
+                        </>
+                      )}
+                      
+                      {order.status === 'picked_up' && (
+                        <>
+                          <Button
+                            onClick={async () => {
+                              await base44.entities.Notification.create({
+                                recipient_email: order.recipient_email || order.sender_email,
+                                type: 'system_alert',
+                                title: '🚚 On The Way',
+                                message: `Your package is on the way! Order #${order.order_number?.substring(0, 8)}`,
+                                reference_type: 'delivery',
+                                reference_id: order.id
+                              });
+                              toast.success('Customer notified: Package on the way');
+                            }}
+                            variant="outline"
+                            className="flex-1 border-blue-500/30 text-blue-400"
+                          >
+                            🚚 On The Way
+                          </Button>
+                          <Button
+                            onClick={() => updateStatusMutation.mutate({
+                              orderId: order.id,
+                              newStatus: 'in_transit',
+                              message: 'Package in transit'
+                            })}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Truck className="w-4 h-4 mr-2" />
+                            Start Delivery
+                          </Button>
+                        </>
+                      )}
+
+                      {order.status === 'in_transit' && (
+                        <>
+                          <Button
+                            onClick={async () => {
+                              await base44.entities.Notification.create({
+                                recipient_email: order.recipient_email || order.sender_email,
+                                type: 'system_alert',
+                                title: '📍 Almost There',
+                                message: `Your driver is arriving soon with order #${order.order_number?.substring(0, 8)}`,
+                                reference_type: 'delivery',
+                                reference_id: order.id
+                              });
+                              toast.success('Customer notified: Almost there');
+                            }}
+                            variant="outline"
+                            className="flex-1 border-purple-500/30 text-purple-400"
+                          >
+                            📍 Almost There
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setDeliveryForProof(order);
+                              setShowProofModal(true);
+                            }}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            <Camera className="w-4 h-4 mr-2" />
+                            Complete & Add Proof
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
