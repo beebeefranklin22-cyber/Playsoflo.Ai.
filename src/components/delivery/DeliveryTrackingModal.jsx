@@ -250,6 +250,7 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
                 <p className="text-gray-400 text-xs">than Uber</p>
               </div>
             </div>
+          </div>
         </div>
       </motion.div>
 
