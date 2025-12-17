@@ -127,10 +127,12 @@ export default function Home() {
       try {
         const allPosts = await base44.entities.SocialPost.list('-created_date');
         
-        // Filter to show posts from friends and own posts
+        // Filter to show posts from friends and own posts (exclude stories)
         const friendPosts = allPosts.filter(post => 
-          post.created_by === currentUser?.email || 
-          currentUser?.following?.includes(post.created_by)
+          (post.created_by === currentUser?.email || 
+          currentUser?.following?.includes(post.created_by)) &&
+          post.image_url && 
+          post.image_url !== 'text-story' // Exclude stories from feed
         );
         
         // Track post views for the first few posts
