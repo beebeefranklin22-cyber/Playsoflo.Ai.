@@ -32,6 +32,7 @@ import CurrencySelector from "../components/wallet/CurrencySelector";
 import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
 import TransactionHistoryFilter from "../components/wallet/TransactionHistoryFilter";
+import FinancialAnalytics from "../components/wallet/FinancialAnalytics";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -382,6 +383,13 @@ export default function Wallet() {
             >
               <ArrowDownUp className="w-4 h-4 text-green-400" />
               <span className="text-white text-xs font-semibold">P2P Trade</span>
+            </button>
+            <button 
+              onClick={() => setActiveModal('analytics')}
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/20 hover:to-blue-500/20 transition text-left"
+            >
+              <TrendingUp className="w-4 h-4 text-purple-400" />
+              <span className="text-white text-xs font-semibold">AI Analytics</span>
             </button>
           </div>
         </details>
@@ -879,6 +887,9 @@ export default function Wallet() {
       )}
       {activeModal === 'transaction-filter' && currentUser && (
         <TransactionHistoryFilter transactions={transactions} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'analytics' && currentUser && (
+        <FinancialAnalytics currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
