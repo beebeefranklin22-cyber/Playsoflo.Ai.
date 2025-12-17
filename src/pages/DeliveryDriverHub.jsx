@@ -29,7 +29,8 @@ export default function DeliveryDriverHub() {
         status: 'pending' 
       });
     },
-    refetchInterval: 10000
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true
   });
 
   const { data: myActiveDeliveries = [] } = useQuery({
@@ -42,7 +43,8 @@ export default function DeliveryDriverHub() {
       });
     },
     enabled: !!currentUser,
-    refetchInterval: 5000
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true
   });
 
   const { data: todayEarnings = 0 } = useQuery({
@@ -63,7 +65,9 @@ export default function DeliveryDriverHub() {
       
       return todayDeliveries.reduce((sum, d) => sum + (d.driver_earnings || 0), 0);
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true
   });
 
   const acceptOrderMutation = useMutation({

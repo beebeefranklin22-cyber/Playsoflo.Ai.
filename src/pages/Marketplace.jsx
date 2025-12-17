@@ -146,7 +146,9 @@ export default function Marketplace() {
       }
     },
     initialData: [],
-    retry: 1
+    retry: 1,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true
   });
 
   // Fetch Shopify affiliate products
@@ -161,7 +163,9 @@ export default function Marketplace() {
         return [];
       }
     },
-    initialData: []
+    initialData: [],
+    refetchInterval: 300000,
+    refetchOnWindowFocus: true
   });
 
   // Also fetch properties and show in marketplace
@@ -175,7 +179,9 @@ export default function Marketplace() {
         return [];
       }
     },
-    initialData: []
+    initialData: [],
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true
   });
 
   // Also fetch P2P orders
@@ -189,7 +195,9 @@ export default function Marketplace() {
         return [];
       }
     },
-    initialData: []
+    initialData: [],
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   // Add query for provider verifications

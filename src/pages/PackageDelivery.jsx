@@ -45,7 +45,8 @@ export default function PackageDelivery() {
       );
     },
     enabled: !!currentUser,
-    refetchInterval: 15000
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true
   });
 
   const filteredDeliveries = filterStatus === 'all' 

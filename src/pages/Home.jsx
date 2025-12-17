@@ -145,7 +145,9 @@ export default function Home() {
     initialData: [],
     retry: 1,
     retryDelay: 1000,
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   const toggleLike = (postId) => {
@@ -221,7 +223,8 @@ export default function Home() {
       });
     },
     enabled: !!currentUser,
-    refetchInterval: 10000
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true
   });
 
   return (
