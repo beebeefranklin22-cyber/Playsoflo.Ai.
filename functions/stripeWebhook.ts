@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
       case 'checkout.session.completed': {
         const session = event.data.object;
         
-        // Check if this is a wallet deposit
         const description = session.metadata?.description;
         const userEmail = session.metadata?.user_email;
         const baseAmount = parseFloat(session.metadata?.base_amount || '0');
+        const orderId = session.metadata?.order_id;
         
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
           // Calculate platform fee (2.5% for instant deposits)
@@ -94,6 +94,24 @@ Deno.serve(async (req) => {
               reference_id: session.id
             });
           }
+        }
+
+        // Handle Shopify order completion
+        if (orderId && description === 'Shopify product purchase') {
+          await base44.asServiceRole.entities.Order.update(orderId, {
+            status: 'confirmed',
+            stripe_session_id: session.id
+          });
+
+          // Notify customer
+          await base44.asServiceRole.entities.Notification.create({
+            recipient_email: userEmail,
+            type: 'system_alert',
+            title: '✅ Order Confirmed',
+            message: 'Your order has been confirmed and will be processed shortly.',
+            reference_type: 'order',
+            reference_id: orderId
+          });
         }
         break;
       }

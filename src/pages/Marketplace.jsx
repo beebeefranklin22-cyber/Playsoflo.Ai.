@@ -133,6 +133,7 @@ export default function Marketplace() {
   const [selectedService, setSelectedService] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
 
   const { data: items = [], isLoading, error } = useQuery({
     queryKey: ['marketplace-items'],
@@ -566,26 +567,38 @@ export default function Marketplace() {
                         </div>
 
                         {item.itemType === 'shopify' ? (
-                          <button
-                            className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-full text-white font-semibold hover:from-green-700 hover:to-blue-700 transition flex items-center gap-2"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                await base44.functions.invoke('trackAffiliateClick', {
-                                  product_title: item.title,
-                                  tracking_url: item.tracking_url,
-                                  referral_code: item.referral_code
-                                });
-                                window.open(item.tracking_url, '_blank');
-                              } catch (error) {
-                                console.error('Tracking error:', error);
-                                window.open(item.tracking_url, '_blank');
-                              }
-                            }}
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            Shop & Earn
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition flex items-center justify-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItem(item);
+                              }}
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                              Buy Now
+                            </button>
+                            <button
+                              className="px-4 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-full text-white font-semibold hover:from-green-700 hover:to-blue-700 transition flex items-center gap-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  await base44.functions.invoke('trackAffiliateClick', {
+                                    product_title: item.title,
+                                    tracking_url: item.tracking_url,
+                                    referral_code: item.referral_code
+                                  });
+                                  window.open(item.tracking_url, '_blank');
+                                } catch (error) {
+                                  console.error('Tracking error:', error);
+                                  window.open(item.tracking_url, '_blank');
+                                }
+                              }}
+                            >
+                              <Sparkles className="w-4 h-4" />
+                              Shopify
+                            </button>
+                          </div>
                         ) : !isFood ? (
                           groupedByService[item.title]?.length > 1 ? (
                             <button
@@ -661,6 +674,14 @@ export default function Marketplace() {
             setShowBookingModal(false);
             setSelectedService(null);
           }}
+        />
+      )}
+
+      {/* Shopify Checkout Modal */}
+      {selectedItem && selectedItem.itemType === 'shopify' && (
+        <ShopifyCheckoutModal 
+          product={selectedItem.originalData} 
+          onClose={() => setSelectedItem(null)} 
         />
       )}
 
