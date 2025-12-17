@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
@@ -167,6 +167,7 @@ export default function Home() {
   };
 
   const quickAccess = [
+    { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
     { icon: Compass, label: "Explore", color: "purple", path: "Universe" },
     { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
     { icon: ShoppingBag, label: "Shop", color: "orange", path: "Marketplace" },

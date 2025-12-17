@@ -34,11 +34,18 @@ export default function PackageDelivery() {
       const received = await base44.entities.DeliveryOrder.filter({
         recipient_email: currentUser.email
       });
+      
+      // Notify about incoming packages
+      const incomingPending = received.filter(d => 
+        d.status === 'pending' || d.status === 'driver_assigned'
+      );
+      
       return [...sent, ...received].sort((a, b) => 
         new Date(b.created_date) - new Date(a.created_date)
       );
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000
   });
 
   const filteredDeliveries = filterStatus === 'all' 
@@ -226,6 +233,12 @@ export default function PackageDelivery() {
                     <div className="flex items-center justify-between">
                       <span className="text-gray-400 text-sm">Price</span>
                       <span className="text-green-400 font-bold text-lg">${delivery.total_price?.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Type</span>
+                      <span className="text-white font-semibold">
+                        {delivery.sender_email === currentUser?.email ? 'Sending' : 'Receiving'}
+                      </span>
                     </div>
                     {delivery.driver_email && (
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">

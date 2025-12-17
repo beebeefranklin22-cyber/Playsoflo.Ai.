@@ -26,6 +26,9 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
             <div>
               <h2 className="text-2xl font-bold text-white">Track Delivery</h2>
               <p className="text-blue-100">Order #{delivery.order_number?.substring(0, 8).toUpperCase()}</p>
+              {delivery.recipient_email === currentUser.email && (
+                <p className="text-blue-200 text-sm mt-1">📦 Package coming to you</p>
+              )}
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
               <X className="w-6 h-6 text-white" />
