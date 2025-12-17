@@ -44,7 +44,16 @@ Deno.serve(async (req) => {
         const baseAmount = parseFloat(session.metadata?.base_amount || '0');
         const orderId = session.metadata?.order_id;
         
+        // Validate session amount matches expected amount (security check)
+        const sessionAmount = session.amount_total / 100; // Stripe uses cents
+        
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
+          // Verify session amount matches what we expect
+          if (Math.abs(sessionAmount - baseAmount) > 0.01) {
+            console.error('Amount mismatch in webhook', { sessionAmount, baseAmount });
+            return Response.json({ error: 'Amount verification failed' }, { status: 400 });
+          }
+
           // Calculate platform fee (2.5% for instant deposits)
           const platformFee = baseAmount * 0.025;
           const netAmount = baseAmount - platformFee;
@@ -61,26 +70,41 @@ Deno.serve(async (req) => {
               usd_balance: newBalance
             });
 
+            // Prevent duplicate deposits - check if already processed
+            const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
+              reference_type: 'deposit',
+              reference_id: session.id,
+              sender_email: userEmail
+            });
+
+            if (existingDeposits.length > 0) {
+              console.log('Deposit already processed:', session.id);
+              return Response.json({ received: true, message: 'Already processed' });
+            }
+
             // Create payment record
             await base44.asServiceRole.entities.Payment.create({
               amount_usd: netAmount,
+              amount_rri: 0,
               method: 'stripe',
               status: 'completed',
               reference_type: 'deposit',
               reference_id: session.id,
               sender_email: userEmail,
+              recipient_email: userEmail,
               memo: `Wallet deposit via Stripe (Fee: $${platformFee.toFixed(2)})`
             });
 
             // Record platform fee
             await base44.asServiceRole.entities.Payment.create({
               amount_usd: platformFee,
+              amount_rri: 0,
               method: 'internal_transfer',
               status: 'completed',
               reference_type: 'other',
               reference_id: session.id,
               sender_email: userEmail,
-              recipient_email: 'platform@playsofl.com',
+              recipient_email: 'platform@playsoflo.com',
               memo: 'Platform instant deposit fee (2.5%)'
             });
 

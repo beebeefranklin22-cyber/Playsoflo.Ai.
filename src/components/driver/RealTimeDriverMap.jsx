@@ -7,6 +7,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import "leaflet/dist/leaflet.css";
 
+// Helper: Calculate distance between coordinates
+function calculateDistance(coord1, coord2) {
+  if (!coord1 || !coord2) return 0;
+  const R = 3959; // Earth radius in miles
+  const lat1 = coord1[0] * Math.PI / 180;
+  const lat2 = coord2[0] * Math.PI / 180;
+  const deltaLat = (coord2[0] - coord1[0]) * Math.PI / 180;
+  const deltaLon = (coord2[1] - coord1[1]) * Math.PI / 180;
+  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) *
+    Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // Fix leaflet default icon issue
 import L from "leaflet";
 delete L.Icon.Default.prototype._getIconUrl;
@@ -65,17 +80,30 @@ export default function RealTimeDriverMap({ currentUser, driverLocation, isOnlin
     refetchInterval: 60000 // Every minute
   });
 
-  // Fetch nearby online drivers (for market saturation)
+  // Fetch nearby online drivers (for market saturation) - anonymized for privacy
   const { data: nearbyDrivers = [] } = useQuery({
     queryKey: ['nearby-drivers', driverLocation],
     queryFn: async () => {
-      const allUsers = await base44.asServiceRole.entities.User.list();
-      return allUsers.filter(u => 
-        u.driver_is_online && 
-        u.email !== currentUser?.email &&
-        u.driver_current_lat && 
-        u.driver_current_lng
-      );
+      if (!driverLocation) return [];
+      
+      // Only fetch drivers within reasonable radius (10 miles) for privacy
+      const allUsers = await base44.entities.User.list();
+      return allUsers.filter(u => {
+        if (!u.driver_is_online || u.email === currentUser?.email) return false;
+        if (!u.driver_current_lat || !u.driver_current_lng) return false;
+        
+        const distance = calculateDistance(
+          driverLocation,
+          [u.driver_current_lat, u.driver_current_lng]
+        );
+        
+        return distance <= 10; // Within 10 miles
+      }).map(u => ({
+        // Anonymize - don't expose personal info
+        id: u.id,
+        lat: u.driver_current_lat,
+        lng: u.driver_current_lng
+      }));
     },
     enabled: isOnline && !!driverLocation && !!currentUser && showOtherDrivers,
     refetchInterval: 15000
@@ -250,11 +278,11 @@ export default function RealTimeDriverMap({ currentUser, driverLocation, isOnlin
           </Marker>
         ))}
 
-        {/* Nearby Online Drivers */}
-        {showOtherDrivers && nearbyDrivers.map((driver, idx) => (
+        {/* Nearby Online Drivers - Anonymized */}
+        {showOtherDrivers && nearbyDrivers.map((driver) => (
           <Marker
             key={driver.id}
-            position={[driver.driver_current_lat, driver.driver_current_lng]}
+            position={[driver.lat, driver.lng]}
             icon={driverIcon}
           >
             <Popup>
