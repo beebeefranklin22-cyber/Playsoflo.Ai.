@@ -676,48 +676,169 @@ Be production-ready and technically accurate.`;
               </div>
 
               {/* Demo Output */}
-              {demoOutput && (
+              {generationOutput && (
                <motion.div
                  initial={{ opacity: 0, y: 20 }}
                  animate={{ opacity: 1, y: 0 }}
                  className="bg-white/5 rounded-2xl p-6 border border-white/10"
                >
-                 <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                   <Sparkles className="w-5 h-5 text-yellow-400" />
-                   {demoOutput.message || "AI Generated Result"}
-                 </h3>
+                 <div className="flex items-center justify-between mb-4">
+                   <h3 className="text-white font-bold flex items-center gap-2">
+                     <Sparkles className="w-5 h-5 text-yellow-400" />
+                     Generated {selectedTool.name}
+                   </h3>
+                   <Button
+                     onClick={() => setGenerationOutput(null)}
+                     variant="outline"
+                     size="sm"
+                     className="border-white/20 text-white hover:bg-white/10"
+                   >
+                     Clear
+                   </Button>
+                 </div>
 
-                 {demoOutput.type === "image" && demoOutput.url && (
+                 {/* Image Output */}
+                 {generationOutput.type === "image" && (
                    <div className="space-y-4">
                      <img 
-                       src={demoOutput.url} 
+                       src={generationOutput.url} 
                        alt="Generated" 
-                       className="w-full rounded-xl"
+                       className="w-full rounded-xl shadow-2xl"
                      />
-                     <p className="text-gray-400 text-sm">Prompt: {demoOutput.prompt}</p>
-                   </div>
-                 )}
-
-                 {demoOutput.type === "video" && demoOutput.thumbnail && (
-                   <div className="space-y-4">
-                     <img 
-                       src={demoOutput.thumbnail} 
-                       alt="Video thumbnail" 
-                       className="w-full rounded-xl"
-                     />
-                     <div className="bg-white/5 rounded-lg p-4">
-                       <h4 className="text-white font-semibold mb-2">📋 Video Production Plan</h4>
-                       <pre className="text-gray-300 text-xs whitespace-pre-wrap">
-                         {JSON.stringify(demoOutput.storyboard, null, 2)}
-                       </pre>
+                     <div className="flex gap-2">
+                       <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                         Download Image
+                       </Button>
+                       <Button variant="outline" className="border-white/20 text-white">
+                         Share
+                       </Button>
                      </div>
                    </div>
                  )}
 
-                 {!demoOutput.type && (
-                   <pre className="text-gray-300 text-sm whitespace-pre-wrap">
-                     {JSON.stringify(demoOutput, null, 2)}
-                   </pre>
+                 {/* Video Output */}
+                 {generationOutput.type === "video" && (
+                   <div className="space-y-4">
+                     <h4 className="text-white font-semibold mb-3">🎬 Video Scenes</h4>
+                     <div className="grid grid-cols-3 gap-3">
+                       {generationOutput.scenes.map((scene, i) => (
+                         <div key={i} className="relative group">
+                           <img src={scene} className="w-full rounded-lg" alt={`Scene ${i+1}`} />
+                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                             <span className="text-white font-bold">Scene {i+1}</span>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                     <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                       Export Video Project
+                     </Button>
+                   </div>
+                 )}
+
+                 {/* Music Output */}
+                 {generationOutput.type === "music" && (
+                   <div className="space-y-4">
+                     <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-6">
+                       <h4 className="text-white font-bold text-xl mb-2">{generationOutput.title}</h4>
+                       <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                         <div>
+                           <span className="text-gray-400">Genre:</span>
+                           <span className="text-white ml-2">{generationOutput.genre}</span>
+                         </div>
+                         <div>
+                           <span className="text-gray-400">Tempo:</span>
+                           <span className="text-white ml-2">{generationOutput.tempo_bpm} BPM</span>
+                         </div>
+                         <div>
+                           <span className="text-gray-400">Key:</span>
+                           <span className="text-white ml-2">{generationOutput.key}</span>
+                         </div>
+                         <div>
+                           <span className="text-gray-400">Mood:</span>
+                           <span className="text-white ml-2">{generationOutput.mood}</span>
+                         </div>
+                       </div>
+
+                       <audio controls className="w-full mb-4">
+                         <source src={generationOutput.audio_preview} type="audio/mpeg" />
+                       </audio>
+
+                       {generationOutput.structure && (
+                         <div className="bg-white/5 rounded-lg p-4">
+                           <h5 className="text-white font-semibold mb-2">Song Structure:</h5>
+                           <div className="space-y-1 text-sm">
+                             {generationOutput.structure.map((part, i) => (
+                               <div key={i} className="flex justify-between text-gray-300">
+                                 <span>{part.section}</span>
+                                 <span>{part.timestamp}</span>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Voice Output */}
+                 {generationOutput.type === "voice" && (
+                   <div className="space-y-4">
+                     <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30">
+                       <h4 className="text-white font-semibold mb-3">🎙️ Voice Script</h4>
+                       <p className="text-white mb-4 leading-relaxed">{generationOutput.script}</p>
+                       <div className="grid grid-cols-2 gap-3 text-sm">
+                         <div className="bg-white/5 rounded-lg p-3">
+                           <span className="text-gray-400 text-xs">Style</span>
+                           <p className="text-white">{generationOutput.voice_style}</p>
+                         </div>
+                         <div className="bg-white/5 rounded-lg p-3">
+                           <span className="text-gray-400 text-xs">Pace</span>
+                           <p className="text-white">{generationOutput.pace}</p>
+                         </div>
+                         <div className="bg-white/5 rounded-lg p-3">
+                           <span className="text-gray-400 text-xs">Tone</span>
+                           <p className="text-white">{generationOutput.tone}</p>
+                         </div>
+                         <div className="bg-white/5 rounded-lg p-3">
+                           <span className="text-gray-400 text-xs">Emphasis</span>
+                           <p className="text-white">{generationOutput.emphasis_words?.join(', ')}</p>
+                         </div>
+                       </div>
+                     </div>
+                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                       Generate Voice Audio
+                     </Button>
+                   </div>
+                 )}
+
+                 {/* Code Output */}
+                 {generationOutput.type === "code" && (
+                   <div className="space-y-4">
+                     <div className="bg-gray-900 rounded-xl p-4">
+                       <div className="flex items-center justify-between mb-2">
+                         <span className="text-gray-400 text-sm">{generationOutput.language}</span>
+                         <Button size="sm" variant="outline">Copy Code</Button>
+                       </div>
+                       <pre className="text-green-400 text-sm overflow-x-auto">
+                         <code>{generationOutput.code}</code>
+                       </pre>
+                     </div>
+                     <div className="bg-white/5 rounded-lg p-4">
+                       <h5 className="text-white font-semibold mb-2">Explanation:</h5>
+                       <p className="text-gray-300 text-sm">{generationOutput.explanation}</p>
+                     </div>
+                   </div>
+                 )}
+
+                 {/* 3D Output */}
+                 {generationOutput.type === "3d" && (
+                   <div className="space-y-4">
+                     <img src={generationOutput.preview_url} className="w-full rounded-xl" alt="3D Preview" />
+                     <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
+                       Export 3D Model
+                     </Button>
+                   </div>
                  )}
                </motion.div>
               )}
