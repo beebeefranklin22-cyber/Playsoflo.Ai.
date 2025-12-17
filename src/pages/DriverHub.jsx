@@ -23,6 +23,7 @@ import AIDriverAssistant from "../components/driver/AIDriverAssistant";
 import AIRouteOptimizer from "../components/driver/AIRouteOptimizer";
 import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
 import DisputeResolutionModal from "../components/driver/DisputeResolutionModal";
+import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -33,13 +34,31 @@ export default function DriverHub() {
   const [navRide, setNavRide] = useState(null);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [disputeRide, setDisputeRide] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
       setIsOnline(user.driver_is_online || false);
+      
+      // Set initial location from user data
+      if (user.driver_current_lat && user.driver_current_lng) {
+        setDriverLocation([user.driver_current_lat, user.driver_current_lng]);
+      }
     }).catch(() => {});
+
+    // Get driver's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const loc = [position.coords.latitude, position.coords.longitude];
+          setDriverLocation(loc);
+        },
+        (error) => console.log('Location error:', error),
+        { enableHighAccuracy: true }
+      );
+    }
   }, []);
 
   const { data: todayStats } = useQuery({
@@ -307,15 +326,24 @@ export default function DriverHub() {
           </div>
         )}
 
-        {/* AI Route Optimizer */}
-        {isOnline && (
+        {/* Real-Time Map */}
+        {isOnline && driverLocation && (
           <div className="mb-6">
-            <AIRouteOptimizer 
-              currentLocation={currentUser?.driver_current_lat ? 
-                [currentUser.driver_current_lat, currentUser.driver_current_lng] : null
-              } 
-              isOnline={isOnline} 
-            />
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <MapPin className="w-6 h-6 text-blue-400" />
+                  Live Market Map
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RealTimeDriverMap 
+                  currentUser={currentUser}
+                  driverLocation={driverLocation}
+                  isOnline={isOnline}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
 
