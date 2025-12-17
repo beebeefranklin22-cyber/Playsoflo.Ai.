@@ -70,14 +70,42 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
 
   const handleFileUpload = async (file) => {
     if (!file) return;
+    
+    // Validate file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('File too large. Max 100MB');
+      return;
+    }
+
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const mediaType = file.type.startsWith('video') ? 'video' : 'image';
       setFormData(prev => ({ ...prev, media_url: file_url, media_type: mediaType }));
-      toast.success('📸 Media uploaded!');
+      toast.success('📸 Media uploaded successfully!');
     } catch (error) {
-      toast.error('Upload failed');
+      console.error('Upload error:', error);
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAudioUpload = async (file) => {
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Audio file too large. Max 10MB');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, music: file.name }));
+      toast.success('🎵 Audio added!');
+    } catch (error) {
+      toast.error('Audio upload failed');
     } finally {
       setUploading(false);
     }
@@ -285,11 +313,11 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 max-h-[450px] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-3 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-white/5 pr-2">
                     {/* Placeholder GIF results */}
                     {gifSearchQuery && (
                       <>
-                        {[1, 2, 3, 4].map((i) => (
+                        {[1, 2, 3, 4, 5, 6].map((i) => (
                           <div
                             key={i}
                             onClick={() => {
@@ -298,9 +326,9 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                                 media_url: `https://media.tenor.com/example-${i}.gif`,
                                 media_type: 'image'
                               }));
-                              toast.success('GIF selected!');
+                              toast.success('✨ GIF selected!');
                             }}
-                            className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl cursor-pointer hover:scale-105 transition-transform border border-purple-500/30 flex items-center justify-center"
+                            className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl cursor-pointer hover:scale-105 hover:shadow-lg transition-all border border-purple-500/30 flex items-center justify-center"
                           >
                             <Sparkles className="w-8 h-8 text-purple-400" />
                           </div>
@@ -335,32 +363,32 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
 
               {/* Music Selection */}
               <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white font-semibold mb-2 block flex items-center gap-2">
+                <label className="text-white font-semibold mb-3 block flex items-center gap-2">
                   <Music className="w-4 h-4 text-pink-400" />
                   Add Music
                 </label>
                 
                 {formData.music ? (
                   <div className="flex items-center justify-between p-3 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-lg border border-pink-500/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-500/30 rounded-lg flex items-center justify-center">
-                        <Music className="w-5 h-5 text-pink-400" />
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 bg-pink-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Music className="w-5 h-5 text-pink-400 animate-pulse" />
                       </div>
-                      <div>
-                        <p className="text-white font-medium text-sm truncate max-w-[200px]">{formData.music}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm truncate">{formData.music}</p>
                         <p className="text-gray-400 text-xs">Now playing</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, music: "" }))}
-                      className="p-1.5 hover:bg-white/10 rounded-full transition"
+                      className="p-1.5 hover:bg-white/10 rounded-full transition flex-shrink-0"
                     >
                       <X className="w-4 h-4 text-gray-400" />
                     </button>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-3">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
@@ -371,8 +399,26 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                       />
                     </div>
                     
+                    <div className="text-center">
+                      <span className="text-gray-400 text-xs">or</span>
+                    </div>
+
+                    <label className="block cursor-pointer">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="audio/*"
+                        onChange={(e) => handleAudioUpload(e.target.files?.[0])}
+                      />
+                      <div className="p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-dashed border-purple-500/30 rounded-lg hover:border-purple-500/60 transition-all text-center">
+                        <Upload className="w-6 h-6 text-purple-400 mx-auto mb-1" />
+                        <p className="text-white text-sm font-medium">Upload Audio File</p>
+                        <p className="text-gray-400 text-xs mt-0.5">MP3, WAV, M4A (Max 10MB)</p>
+                      </div>
+                    </label>
+                    
                     {musicResults.length > 0 && (
-                      <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                      <div className="space-y-1 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-white/5">
                         {musicResults.map((track, i) => (
                           <button
                             key={i}
@@ -380,8 +426,9 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                             onClick={() => {
                               setFormData(prev => ({ ...prev, music: `${track.artist} - ${track.title}` }));
                               setMusicSearchQuery("");
+                              toast.success('🎵 Music added!');
                             }}
-                            className="w-full text-left p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition group"
+                            className="w-full text-left p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
                           >
                             <p className="text-white text-sm font-medium truncate group-hover:text-purple-400 transition">{track.title}</p>
                             <p className="text-gray-400 text-xs truncate">{track.artist}</p>
@@ -389,7 +436,7 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                         ))}
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
 

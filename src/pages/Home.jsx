@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CreatePostModal from "../components/CreatePostModal";
@@ -231,37 +231,75 @@ export default function Home() {
     <div className="min-h-screen pb-20">
       {/* Stories Bar */}
       <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 scroll-smooth" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
           {/* Add Your Story */}
           <button 
             onClick={() => setShowCreateStory(true)}
-            className="flex flex-col items-center gap-2 flex-shrink-0"
+            className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-80 transition"
           >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative shadow-lg">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative shadow-lg hover:scale-105 transition-transform">
               <Plus className="w-7 h-7 text-white" />
             </div>
             <span className="text-white text-xs font-medium">Add Story</span>
           </button>
 
           {/* Stories from following */}
-          {stories.slice(0, 10).map((story) => (
-            <button key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 shadow-lg">
-                <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
-                  {story.media_url ? (
-                    <img src={story.media_url} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500">
-                      {story.created_by?.[0]?.toUpperCase() || "U"}
+          {stories.slice(0, 15).map((story) => {
+            const isMyStory = story.created_by === currentUser?.email;
+            return (
+              <div key={story.id} className="relative flex flex-col items-center gap-2 flex-shrink-0 group">
+                <button 
+                  onClick={() => {
+                    // Add story viewer logic here
+                    toast.info('Story viewer coming soon!');
+                  }}
+                  className="relative"
+                >
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 shadow-lg hover:scale-105 transition-transform">
+                    <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
+                      {story.media_url && story.media_url !== 'text-story' ? (
+                        <img src={story.media_url} className="w-full h-full object-cover" alt="Story" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500 text-xl">
+                          {story.created_by?.[0]?.toUpperCase() || "U"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {story.music && (
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center border-2 border-gray-900">
+                      <Music className="w-3 h-3 text-white" />
                     </div>
                   )}
-                </div>
+                </button>
+
+                <span className="text-gray-300 text-xs max-w-[64px] truncate">
+                  {isMyStory ? 'You' : story.created_by?.split('@')[0]}
+                </span>
+
+                {/* Delete button for own stories */}
+                {isMyStory && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this story?')) {
+                        try {
+                          await base44.entities.Story.delete(story.id);
+                          queryClient.invalidateQueries({ queryKey: ['stories'] });
+                          toast.success('Story deleted');
+                        } catch (error) {
+                          toast.error('Failed to delete story');
+                        }
+                      }
+                    }}
+                    className="absolute top-0 right-0 w-5 h-5 bg-red-500/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                )}
               </div>
-              <span className="text-gray-300 text-xs max-w-[64px] truncate">
-                {story.created_by === currentUser?.email ? 'You' : story.created_by?.split('@')[0]}
-              </span>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
