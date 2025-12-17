@@ -42,9 +42,14 @@ Deno.serve(async (req) => {
     const data = await response.json();
 
     if (data.status !== 'OK') {
+      console.error('Google Directions API Error:', data.status, data.error_message);
       return Response.json({ 
         error: 'Directions request failed', 
-        details: data.status 
+        details: data.status,
+        message: data.error_message || 'Please enable Directions API in Google Cloud Console',
+        help: data.status === 'REQUEST_DENIED' 
+          ? 'Enable the Directions API at https://console.cloud.google.com/apis/library/directions-backend.googleapis.com'
+          : undefined
       }, { status: 400 });
     }
 

@@ -268,8 +268,23 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
       if (destination.length > 3) {
         try {
           setIsLoading(true);
+          
+          // Get current location
+          const getCurrentLocation = () => new Promise((resolve) => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                (position) => resolve([position.coords.latitude, position.coords.longitude]),
+                () => resolve('Miami, FL') // Fallback to Miami
+              );
+            } else {
+              resolve('Miami, FL');
+            }
+          });
+
+          const origin = await getCurrentLocation();
+          
           const response = await base44.functions.invoke('getDirections', {
-            origin: 'current location',
+            origin: Array.isArray(origin) ? `${origin[0]},${origin[1]}` : origin,
             destination: destination,
             mode: 'driving'
           });
@@ -278,13 +293,25 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
             setNavigationData({
               destination: destination,
               directions: response.data,
-              destinationCoords: response.data.destination_coords
+              destinationCoords: response.data.end_location 
+                ? [response.data.end_location.lat, response.data.end_location.lng]
+                : null
             });
             setShowNavigation(true);
+          } else {
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: `Sorry, I couldn't get directions to "${destination}". ${response.data?.message || 'Please try a different location.'}`
+            }]);
           }
           setIsLoading(false);
         } catch (error) {
           console.error('Navigation error:', error);
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: `I encountered an error getting directions. Please check that the Google Directions API is enabled in your Google Cloud Console.`
+          }]);
+          setIsLoading(false);
         }
       }
     }

@@ -114,8 +114,11 @@ export default function AINavigationView({ navigationData, onClose }) {
           )}
 
           {/* Destination */}
-          {navigationData?.destinationCoords && (
+          {navigationData?.destinationCoords && Array.isArray(navigationData.destinationCoords) && (
             <Marker position={navigationData.destinationCoords} />
+          )}
+          {navigationData?.directions?.end_location && (
+            <Marker position={[navigationData.directions.end_location.lat, navigationData.directions.end_location.lng]} />
           )}
 
           {/* Route */}
