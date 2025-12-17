@@ -127,13 +127,17 @@ export default function Home() {
       try {
         const allPosts = await base44.entities.SocialPost.list('-created_date');
         
-        // Filter to show posts from friends and own posts (exclude stories)
-        const friendPosts = allPosts.filter(post => 
-          (post.created_by === currentUser?.email || 
-          currentUser?.following?.includes(post.created_by)) &&
-          post.image_url && 
-          post.image_url !== 'text-story' // Exclude stories from feed
-        );
+        // Filter to show only real posts (not stories) from friends and self
+        const friendPosts = allPosts.filter(post => {
+          const isFromNetwork = post.created_by === currentUser?.email || 
+                                currentUser?.following?.includes(post.created_by);
+          const hasValidImage = post.image_url && 
+                               post.image_url !== 'text-story' && 
+                               !post.image_url.includes('example-'); // Exclude story placeholders
+          const isNotStory = !post.is_story && post.caption; // Real posts have captions
+          
+          return isFromNetwork && hasValidImage && isNotStory;
+        });
         
         // Track post views for the first few posts
         if (currentUser?.email) {
