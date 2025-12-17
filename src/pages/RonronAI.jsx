@@ -6,10 +6,11 @@ import {
   Mic, MicOff, Sparkles, Zap, Brain, MessageCircle,
   Send, Volume2, VolumeX, Settings, TrendingUp, Wallet,
   ShoppingBag, Calendar, Globe, Languages, CreditCard,
-  MapPin, Search, Heart, User
+  MapPin, Search, Heart, User, Navigation
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import AINavigationView from "../components/ai/AINavigationView";
 
 export default function RonronAI() {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ export default function RonronAI() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [showNavigation, setShowNavigation] = useState(false);
+  const [navigationData, setNavigationData] = useState(null);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
 
@@ -72,11 +75,11 @@ export default function RonronAI() {
   };
 
   const quickCommands = [
+    { icon: Navigation, label: "Navigate", command: "Navigate me to Miami Beach", color: "from-blue-500 to-cyan-500" },
     { icon: Calendar, label: "Book Experience", command: "Show me available experiences", color: "from-purple-500 to-pink-500" },
     { icon: Wallet, label: "Check Balance", command: "What's my SoFloCoin balance?", color: "from-green-500 to-emerald-500" },
     { icon: ShoppingBag, label: "Find Services", command: "Find services near me", color: "from-orange-500 to-amber-500" },
-    { icon: MapPin, label: "Book a Ride", command: "I need a ride", color: "from-blue-500 to-cyan-500" },
-    { icon: CreditCard, label: "Make Payment", command: "Help me pay a bill", color: "from-red-500 to-rose-500" },
+    { icon: MapPin, label: "Book a Ride", command: "I need a ride", color: "from-red-500 to-rose-500" },
     { icon: Languages, label: "Translate", command: "Translate to Spanish: How are you?", color: "from-indigo-500 to-purple-500" },
   ];
 
@@ -163,11 +166,16 @@ ADVANCED CAPABILITIES YOU MUST HANDLE:
 1. BOOKING: If user wants to book (experiences, services, rides, properties), provide specific options with CURRENT pricing and availability
 2. PAYMENTS: If asking about wallet/balance, explain SoFloCoin balance and payment methods with exact numbers
 3. TRANSLATION: Provide accurate translations with cultural context
-4. NAVIGATION: Guide users to specific sections with clear instructions
+4. NAVIGATION & DIRECTIONS: If user asks to navigate to a place, address, business, or coordinates (e.g., "navigate to Miami Beach", "directions to Starbucks", "take me to 123 Main St"), provide detailed turn-by-turn directions with the exact destination address or coordinates
 5. SEARCH: Provide detailed, relevant results using REAL-TIME data from internet
 6. REAL-TIME INFO: Answer questions with current, accurate information (2025 data, not outdated 2023 info)
 7. MULTILINGUAL: Always respond in ${selectedLanguage} naturally and conversationally
 8. CONTEXT AWARENESS: Remember previous conversation context and provide coherent responses
+
+NAVIGATION FORMAT: When user requests directions, respond with:
+- The exact destination address or coordinates
+- Current estimated time and distance
+- Include the word "NAVIGATE:" at the start of your response so the app can detect it
 
 SMART ACTIONS YOU CAN TAKE:
 - Book experiences and services with current pricing details
@@ -196,8 +204,11 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
       // Text-to-speech response
       speak(response);
 
-      // Handle navigation intents
+      // Handle in-app navigation (to different pages)
       await handleNavigationIntent(messageText, response);
+
+      // Handle map navigation/directions
+      await handleMapNavigationIntent(messageText, response);
 
       // Handle booking intents
       await handleBookingIntent(messageText);
@@ -227,7 +238,7 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
   const handleNavigationIntent = async (userText, aiResponse) => {
     const lowerText = userText.toLowerCase();
     
-    // Detect navigation keywords
+    // Detect navigation keywords for app pages
     if (lowerText.includes('wallet') || lowerText.includes('balance') || lowerText.includes('coins')) {
       setTimeout(() => navigate(createPageUrl("Wallet")), 1500);
     } else if (lowerText.includes('marketplace') || lowerText.includes('services') || lowerText.includes('shop')) {
@@ -240,6 +251,42 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
       setTimeout(() => navigate(createPageUrl("Travel")), 1500);
     } else if (lowerText.includes('real estate') || lowerText.includes('property')) {
       setTimeout(() => navigate(createPageUrl("RealEstate")), 1500);
+    }
+  };
+
+  const handleMapNavigationIntent = async (userText, aiResponse) => {
+    const lowerText = userText.toLowerCase();
+    
+    // Detect map navigation requests
+    const navKeywords = ['navigate', 'direction', 'take me', 'how to get', 'route to', 'way to', 'lost', 'find'];
+    const hasNavKeyword = navKeywords.some(keyword => lowerText.includes(keyword));
+    
+    if (hasNavKeyword || aiResponse.includes('NAVIGATE:')) {
+      // Extract destination from user text
+      const destination = userText.replace(/navigate|direction|take me|how to get|route to|way to|to the|to/gi, '').trim();
+      
+      if (destination.length > 3) {
+        try {
+          setIsLoading(true);
+          const response = await base44.functions.invoke('getDirections', {
+            origin: 'current location',
+            destination: destination,
+            mode: 'driving'
+          });
+
+          if (response.data && !response.data.error) {
+            setNavigationData({
+              destination: destination,
+              directions: response.data,
+              destinationCoords: response.data.destination_coords
+            });
+            setShowNavigation(true);
+          }
+          setIsLoading(false);
+        } catch (error) {
+          console.error('Navigation error:', error);
+        }
+      }
     }
   };
 
@@ -298,6 +345,18 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
   };
 
   return (
+    <>
+      {showNavigation && navigationData && (
+        <AINavigationView
+          navigationData={navigationData}
+          onClose={() => {
+            setShowNavigation(false);
+            setNavigationData(null);
+          }}
+        />
+      )}
+
+      {!showNavigation && (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-950 via-indigo-950 to-gray-950 pb-20">
       {/* Header */}
       <div className="glass-effect border-b border-white/10 px-6 py-4 sticky top-0 z-10">
@@ -473,5 +532,7 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
         </p>
       </div>
     </div>
+      )}
+    </>
   );
 }
