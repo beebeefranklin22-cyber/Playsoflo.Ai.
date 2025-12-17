@@ -84,10 +84,24 @@ export default function Wallet() {
     const action = searchParams.get('action');
     
     if (paymentStatus === 'success') {
+      // Check for pending deposits after successful payment
+      const checkDeposits = async () => {
+        try {
+          const { data } = await base44.functions.invoke('checkPendingDeposits');
+          if (data.processed > 0) {
+            toast.success(`✅ ${data.message}`);
+            queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+          }
+        } catch (error) {
+          console.error('Failed to check pending deposits:', error);
+        }
+      };
+      
       if (action === 'add_card') {
         toast.success('✅ Payment method added successfully!');
       } else {
-        toast.success('Payment completed successfully!');
+        checkDeposits();
       }
       // Clean URL without page reload
       window.history.replaceState({}, '', createPageUrl("Wallet"));
