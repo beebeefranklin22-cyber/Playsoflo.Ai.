@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import { Navigation, MapPin, Clock, ExternalLink, AlertTriangle, TrendingUp, X } from "lucide-react";
+import L from "leaflet";
 import { base44 } from "@/api/base44Client";
 import "leaflet/dist/leaflet.css";
 
@@ -54,13 +55,65 @@ export default function NavigationModal({ open, onClose, ride }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [geofenceInfo, setGeofenceInfo] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [distanceToNextTurn, setDistanceToNextTurn] = useState(null);
 
   useEffect(() => {
     if (ride?.pickup_coords && open) {
       fetchDirections();
       checkGeofence();
+      startLocationTracking();
     }
+    return () => {
+      if (window.navigationWatcher) {
+        navigator.geolocation.clearWatch(window.navigationWatcher);
+      }
+    };
   }, [ride, open]);
+
+  // Real-time location tracking for navigation
+  const startLocationTracking = () => {
+    if (navigator.geolocation) {
+      window.navigationWatcher = navigator.geolocation.watchPosition(
+        (position) => {
+          const newLocation = [position.coords.latitude, position.coords.longitude];
+          setCurrentLocation(newLocation);
+          
+          // Auto-advance to next step based on proximity
+          if (autoAdvance && directions?.steps && currentStepIndex < directions.steps.length - 1) {
+            const currentStep = directions.steps[currentStepIndex];
+            const stepLocation = currentStep.end_location;
+            if (stepLocation) {
+              const distance = calculateDistance(
+                newLocation[0], newLocation[1],
+                stepLocation.lat, stepLocation.lng
+              );
+              setDistanceToNextTurn(distance);
+              
+              // Auto-advance when within 50 meters of turn
+              if (distance < 0.05) {
+                setCurrentStepIndex(prev => prev + 1);
+              }
+            }
+          }
+        },
+        (error) => console.log('Location tracking error:', error),
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      );
+    }
+  };
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  };
 
   const fetchDirections = async () => {
     setLoading(true);
@@ -182,6 +235,18 @@ export default function NavigationModal({ open, onClose, ride }) {
                 {ride.pickup_coords && Array.isArray(ride.pickup_coords) && ride.pickup_coords.length === 2 && (
                   <Marker position={ride.pickup_coords} />
                 )}
+
+                {/* Current Location Marker */}
+                {currentLocation && (
+                  <Marker 
+                    position={currentLocation}
+                    icon={L.divIcon({
+                      className: 'custom-current-location',
+                      html: '<div style="width: 20px; height: 20px; background: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);"></div>',
+                      iconSize: [20, 20]
+                    })}
+                  />
+                )}
                 
                 {routeCoordinates.length > 0 && (
                   <Polyline 
@@ -201,34 +266,66 @@ export default function NavigationModal({ open, onClose, ride }) {
 
           {/* Current Turn-by-Turn Instruction */}
           {currentStep && (
-            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Navigation className="w-6 h-6 text-white" />
+            <div className="space-y-3">
+              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Navigation className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-white font-bold text-xl mb-1">{currentStep.instruction}</div>
+                    <div className="text-gray-400 text-sm flex items-center gap-3">
+                      <span>{currentStep.distance}</span>
+                      {distanceToNextTurn !== null && (
+                        <span className="text-yellow-400 font-bold">
+                          {(distanceToNextTurn * 1000).toFixed(0)}m away
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))}
+                      disabled={currentStepIndex === 0}
+                      variant="outline"
+                      className="w-10"
+                    >
+                      ←
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setCurrentStepIndex(Math.min(directions.steps.length - 1, currentStepIndex + 1))}
+                      disabled={currentStepIndex === directions.steps.length - 1}
+                      variant="outline"
+                      className="w-10"
+                    >
+                      →
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <div className="text-white font-bold text-lg mb-1">{currentStep.instruction}</div>
-                  <div className="text-gray-400 text-sm">{currentStep.distance} • {currentStep.duration}</div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))}
-                    disabled={currentStepIndex === 0}
-                    variant="outline"
+                <div className="mt-3 flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Step {currentStepIndex + 1} of {directions.steps.length}</span>
+                  <button
+                    onClick={() => setAutoAdvance(!autoAdvance)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      autoAdvance ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}
                   >
-                    ←
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setCurrentStepIndex(Math.min(directions.steps.length - 1, currentStepIndex + 1))}
-                    disabled={currentStepIndex === directions.steps.length - 1}
-                    variant="outline"
-                  >
-                    →
-                  </Button>
+                    Auto-advance: {autoAdvance ? 'ON' : 'OFF'}
+                  </button>
                 </div>
               </div>
+
+              {/* Next Step Preview */}
+              {directions.steps[currentStepIndex + 1] && (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-3">
+                  <div className="text-gray-400 text-xs mb-1">NEXT</div>
+                  <div className="text-white text-sm">
+                    {directions.steps[currentStepIndex + 1].instruction}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
