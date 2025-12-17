@@ -147,6 +147,21 @@ export default function Marketplace() {
     retry: 1
   });
 
+  // Fetch Shopify affiliate products
+  const { data: shopifyProducts = [] } = useQuery({
+    queryKey: ['shopify-products'],
+    queryFn: async () => {
+      try {
+        const { data } = await base44.functions.invoke('fetchShopifyProducts');
+        return data.products || [];
+      } catch (err) {
+        console.log("Error loading Shopify products:", err);
+        return [];
+      }
+    },
+    initialData: []
+  });
+
   // Also fetch properties and show in marketplace
   const { data: properties = [] } = useQuery({
     queryKey: ['marketplace-properties'],
@@ -210,9 +225,27 @@ export default function Marketplace() {
     "shelter_services", "medical_health"
   ];
 
-  // Combine all marketplace items
+  // Combine all marketplace items including Shopify products
   const allItems = [
     ...items,
+    ...shopifyProducts.map(p => ({
+      id: `shopify_${p.title}`,
+      title: p.title,
+      description: p.description,
+      price: p.price,
+      price_type: 'fixed',
+      category: p.category,
+      image_url: p.image_url,
+      rating: p.rating,
+      reviews_count: p.reviews_count,
+      provider_name: 'Shopify Partner',
+      verified_provider: true,
+      availability: 'available',
+      itemType: 'shopify',
+      tracking_url: p.tracking_url,
+      referral_code: p.referral_code,
+      originalData: p
+    })),
     ...properties.map(p => ({
       id: `prop_${p.id}`,
       title: p.title,
@@ -302,6 +335,39 @@ export default function Marketplace() {
               placeholder="Search services, providers..."
               className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 transition backdrop-blur-xl"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Shopify Affiliate Banner */}
+      <div className="px-6 mb-6">
+        <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500/30 to-blue-500/30 rounded-full flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg">Shop & Earn Commissions</h3>
+                <p className="text-gray-300 text-sm">Buy Shopify products and earn affiliate revenue</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate(createPageUrl("AffiliateHub"))}
+              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 rounded-full text-green-400 font-semibold transition text-sm"
+            >
+              View Earnings
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-300">
+            <Check className="w-4 h-4 text-green-400" />
+            <span>Tracked affiliate links</span>
+            <span>•</span>
+            <Check className="w-4 h-4 text-green-400" />
+            <span>Commissions paid to your Stripe</span>
+            <span>•</span>
+            <Check className="w-4 h-4 text-green-400" />
+            <span>Premium products</span>
           </div>
         </div>
       </div>
@@ -417,6 +483,12 @@ export default function Marketplace() {
 
                     {/* Enhanced Verification Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
+                      {item.itemType === 'shopify' && (
+                        <div className="px-3 py-1 bg-gradient-to-r from-green-500/90 to-blue-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Shopify Affiliate
+                        </div>
+                      )}
                       {item.verified_provider && (
                         <div className="px-3 py-1 bg-blue-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
                           <Check className="w-3 h-3" />
@@ -492,7 +564,28 @@ export default function Marketplace() {
                           )}
                         </div>
 
-                        {!isFood ? (
+                        {item.itemType === 'shopify' ? (
+                          <button
+                            className="px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-full text-white font-semibold hover:from-green-700 hover:to-blue-700 transition flex items-center gap-2"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                await base44.functions.invoke('trackAffiliateClick', {
+                                  product_title: item.title,
+                                  tracking_url: item.tracking_url,
+                                  referral_code: item.referral_code
+                                });
+                                window.open(item.tracking_url, '_blank');
+                              } catch (error) {
+                                console.error('Tracking error:', error);
+                                window.open(item.tracking_url, '_blank');
+                              }
+                            }}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            Shop & Earn
+                          </button>
+                        ) : !isFood ? (
                           groupedByService[item.title]?.length > 1 ? (
                             <button
                               className="px-6 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
