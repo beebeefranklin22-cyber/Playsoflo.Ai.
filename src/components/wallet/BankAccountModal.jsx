@@ -19,8 +19,12 @@ export default function BankAccountModal({ currentUser, onClose }) {
   });
 
   const { data: accounts = [] } = useQuery({
-    queryKey: ["bank-accounts"],
-    queryFn: () => base44.entities.BankAccount.filter({ user_email: currentUser.email })
+    queryKey: ["bank-accounts", currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.BankAccount.filter({ user_email: currentUser.email });
+    },
+    enabled: !!currentUser
   });
 
   const addAccountMutation = useMutation({
