@@ -832,9 +832,9 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* 3D Output */}
-                 {generationOutput.type === "3d" && (
+                 {demoOutput.type === "3d" && (
                    <div className="space-y-4">
-                     <img src={generationOutput.preview_url} className="w-full rounded-xl" alt="3D Preview" />
+                     <img src={demoOutput.preview_url} className="w-full rounded-xl" alt="3D Preview" />
                      <Button className="w-full bg-indigo-600 hover:bg-indigo-700">
                        Export 3D Model
                      </Button>
