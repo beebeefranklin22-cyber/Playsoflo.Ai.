@@ -11,7 +11,7 @@ import {
   Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
   Upload, X, Loader2, Video, Radio
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
