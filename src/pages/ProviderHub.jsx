@@ -26,6 +26,7 @@ import ServiceAddOnsManager from "../components/provider/ServiceAddOnsManager";
 import AvailabilityOverridesManager from "../components/provider/AvailabilityOverridesManager";
 import RentalAssetManager from "../components/provider/RentalAssetManager";
 import RentalCalendar from "../components/provider/RentalCalendar";
+import ServicePackageManager from "../components/provider/ServicePackageManager";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -804,6 +805,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
           {/* Services Tab */}
           <TabsContent value="services" className="space-y-6">
+            {/* Service Package Manager */}
+            <ServicePackageManager myServices={myServices} currentUser={currentUser} />
+
             {/* Ronron AI Smart Package Generator */}
             <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30">
               <CardHeader>
