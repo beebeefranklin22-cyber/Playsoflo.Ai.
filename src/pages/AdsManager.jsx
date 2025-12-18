@@ -355,6 +355,52 @@ export default function AdsManager() {
                       className="bg-white/10 border-white/20 text-white"
                     />
 
+                    <div>
+                      <label className="text-gray-400 text-sm mb-2 block">Ad Placements</label>
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={campaignForm.targeting?.placements?.includes('feed') || !campaignForm.targeting?.placements}
+                            onChange={(e) => {
+                              const placements = campaignForm.targeting?.placements || ['feed', 'stories'];
+                              setCampaignForm({
+                                ...campaignForm,
+                                targeting: {
+                                  ...campaignForm.targeting,
+                                  placements: e.target.checked 
+                                    ? [...placements, 'feed'].filter((v, i, a) => a.indexOf(v) === i)
+                                    : placements.filter(p => p !== 'feed')
+                                }
+                              });
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-white">News Feed</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={campaignForm.targeting?.placements?.includes('stories') || !campaignForm.targeting?.placements}
+                            onChange={(e) => {
+                              const placements = campaignForm.targeting?.placements || ['feed', 'stories'];
+                              setCampaignForm({
+                                ...campaignForm,
+                                targeting: {
+                                  ...campaignForm.targeting,
+                                  placements: e.target.checked 
+                                    ? [...placements, 'stories'].filter((v, i, a) => a.indexOf(v) === i)
+                                    : placements.filter(p => p !== 'stories')
+                                }
+                              });
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-white">Stories</span>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-4">
                       <Select value={campaignForm.objective} onValueChange={(v) => setCampaignForm({...campaignForm, objective: v})}>
                         <SelectTrigger className="bg-white/10 border-white/20 text-white">

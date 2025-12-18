@@ -256,6 +256,9 @@ export default function Home() {
             <span className="text-white text-xs font-medium">Add Story</span>
           </button>
 
+          {/* Sponsored Story Ad */}
+          <AdDisplay currentUser={currentUser} position="stories" />
+
           {/* Stories from following */}
           {stories.slice(0, 15).map((story) => {
             const isMyStory = story.created_by === currentUser?.email;

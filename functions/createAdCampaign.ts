@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const { 
       campaign_name, objective, ad_format, media_urls, headline, description,
       call_to_action, destination_url, targeting, budget_type, budget_amount,
-      schedule, bid_strategy 
+      schedule, bid_strategy, placements 
     } = body;
 
     if (!campaign_name || !objective || !budget_amount) {
@@ -72,6 +72,7 @@ Calculate and return:
       objective,
       status: 'pending_payment',
       ad_format,
+      placements: placements || ['feed', 'stories'],
       media_urls: media_urls || [],
       headline,
       description,
