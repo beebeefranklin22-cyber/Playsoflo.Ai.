@@ -15,6 +15,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
+import ListExperienceModal from "../components/entertainment/ListExperienceModal";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
@@ -49,6 +50,7 @@ export default function EntertainmentExperiences() {
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [suggestedPackages, setSuggestedPackages] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showListExperience, setShowListExperience] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -175,8 +177,19 @@ Return as JSON array with this structure:
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Entertainment Experiences</h1>
-          <p className="text-gray-400">Luxury services and unforgettable moments</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">Entertainment Experiences</h1>
+              <p className="text-gray-400">Luxury services and unforgettable moments</p>
+            </div>
+            <Button
+              onClick={() => setShowListExperience(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              List Your Experience
+            </Button>
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -411,6 +424,12 @@ Return as JSON array with this structure:
             )}
           </div>
         )}
+
+        <ListExperienceModal
+          isOpen={showListExperience}
+          onClose={() => setShowListExperience(false)}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   );

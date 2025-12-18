@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 import RonronVehicleRecommendations from "../components/car/RonronVehicleRecommendations";
+import ListCarModal from "../components/car/ListCarModal";
 
 export default function CarRentals() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export default function CarRentals() {
   const [showPhotoDoc, setShowPhotoDoc] = useState(false);
   const [photoDocStage, setPhotoDocStage] = useState('pre');
   const [photoDocRental, setPhotoDocRental] = useState(null);
+  const [showListCar, setShowListCar] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -318,6 +320,18 @@ export default function CarRentals() {
           </TabsList>
 
           <TabsContent value="browse">
+            {/* List Car Button */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Available Cars</h3>
+              <Button
+                onClick={() => setShowListCar(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Car className="w-4 h-4 mr-2" />
+                List Your Car
+              </Button>
+            </div>
+
             {/* Ronron AI Recommendations */}
             {currentUser && (
               <div className="mb-8">
@@ -1195,6 +1209,12 @@ export default function CarRentals() {
               queryClient.invalidateQueries(['my-rentals']);
             }
           }}
+        />
+
+        <ListCarModal
+          isOpen={showListCar}
+          onClose={() => setShowListCar(false)}
+          currentUser={currentUser}
         />
       </div>
     </div>

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import PropertyBookingModal from "../components/property/PropertyBookingModal";
+import ListPropertyModal from "../components/provider/ListPropertyModal";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -41,6 +42,7 @@ export default function RealEstate() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingProperty, setBookingProperty] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showListProperty, setShowListProperty] = useState(false);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -149,6 +151,16 @@ export default function RealEstate() {
 
       {/* Listing Type Filter */}
       <div className="px-4 sm:px-6 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white">Browse Properties</h2>
+          <Button
+            onClick={() => setShowListProperty(true)}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            <Building className="w-4 h-4 mr-2" />
+            List Your Property
+          </Button>
+        </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {listingTypes.map((type) => (
             <button
@@ -510,6 +522,12 @@ export default function RealEstate() {
           }}
         />
       )}
+
+      <ListPropertyModal
+        isOpen={showListProperty}
+        onClose={() => setShowListProperty(false)}
+        currentUser={currentUser}
+      />
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
