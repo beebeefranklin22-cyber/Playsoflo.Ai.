@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { X, Send, User, DollarSign, MessageCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { processP2PPayment } from "@/functions/processP2PPayment";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
