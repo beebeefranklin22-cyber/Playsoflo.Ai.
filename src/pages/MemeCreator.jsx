@@ -11,6 +11,7 @@ import {
   Palette, Image as ImageIcon, Sparkles, Laugh,
   Grid3x3, RefreshCw, AlignCenter, Shuffle, Wand2, Zap
 } from "lucide-react";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Organized meme templates by category
@@ -260,42 +261,15 @@ export default function MemeCreator() {
   };
 
   const generateAIMeme = async () => {
+    if (!selectedTemplate) {
+      toast.error('Please select a template first');
+      return;
+    }
+
     setIsGenerating(true);
     try {
-      const memeContext = selectedTemplate?.name || "general meme";
-      const memeCategory = selectedTemplate?.category || "classic";
-      
-      const prompt = `You are the funniest meme lord on the internet. Create HILARIOUS meme text for "${memeContext}" template (category: ${memeCategory}).
-
-Context: ${memeCategory === 'reaction' ? 'Create a perfect reaction meme' : 
-           memeCategory === 'decision' ? 'Show the struggle of choosing' :
-           memeCategory === 'genius' ? 'Make it cleverly stupid' :
-           memeCategory === 'sarcasm' ? 'Maximum mockery energy' :
-           memeCategory === 'chaos' ? 'Embrace the chaos and destruction' :
-           'Make it relatable and viral-worthy'}
-
-Rules:
-- Be EXTREMELY funny and clever
-- Use current 2024-2025 trends, slang, and internet culture
-- Reference modern struggles: AI, apps, social media, WFH, inflation, dating apps
-- Short, punchy, meme-worthy text
-- Think like a Gen Z comedian who lives on Twitter/TikTok
-- Add unexpected twists that make people laugh out loud
-
-Examples of good meme humor:
-- "POV:" scenarios
-- Overthinking everyday situations  
-- Calling out relatable behavior
-- Modern technology struggles
-- Work from home chaos
-- Dating app disasters
-- Inflation jokes
-- AI taking over everything
-
-Return ONLY JSON with "topText" and "bottomText". Make it VIRAL! 🔥`;
-      
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
+        prompt: `Create hilarious meme text for "${selectedTemplate.name}" template (${selectedTemplate.category} category). Make it viral, punchy, and relatable to 2025 internet culture. Return JSON with topText and bottomText.`,
         add_context_from_internet: true,
         response_json_schema: {
           type: "object",
@@ -306,11 +280,12 @@ Return ONLY JSON with "topText" and "bottomText". Make it VIRAL! 🔥`;
         }
       });
 
-      setTopText(result.topText);
-      setBottomText(result.bottomText);
+      setTopText(result.topText || "");
+      setBottomText(result.bottomText || "");
+      toast.success('🎉 AI meme generated!');
     } catch (err) {
       console.error('AI generation failed:', err);
-      alert('Failed to generate AI meme. Try manual text!');
+      toast.error('AI failed. Try manual text!');
     } finally {
       setIsGenerating(false);
     }
