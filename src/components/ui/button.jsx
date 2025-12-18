@@ -24,7 +24,7 @@ export const buttonVariants = ({ variant = "default", size = "default", classNam
   return `${baseStyles} ${variantClass} ${sizeClass} ${className}`;
 };
 
-export const Button = React.forwardRef(({ 
+const Button = React.forwardRef(({ 
   className = "", 
   variant = "default", 
   size = "default", 
@@ -45,3 +45,6 @@ export const Button = React.forwardRef(({
 });
 
 Button.displayName = "Button";
+
+export { Button };
+export default Button;
