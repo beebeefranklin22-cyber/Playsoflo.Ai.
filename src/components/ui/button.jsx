@@ -1,6 +1,6 @@
-import * as React from "react";
+import React from "react";
 
-const buttonVariants = ({ variant = "default", size = "default", className = "" }) => {
+function buttonVariants({ variant = "default", size = "default", className = "" }) {
   const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
   
   const variants = {
@@ -20,21 +20,22 @@ const buttonVariants = ({ variant = "default", size = "default", className = "" 
   };
   
   return `${base} ${variants[variant]} ${sizes[size]} ${className}`.trim();
-};
+}
 
-const Button = React.forwardRef(
-  ({ className = "", variant = "default", size = "default", type = "button", ...props }, ref) => {
-    return (
-      <button
-        type={type}
-        className={buttonVariants({ variant, size, className })}
-        ref={ref}
-        {...props}
-      />
-    );
-  }
-);
+const Button = React.forwardRef((props, ref) => {
+  const { className = "", variant = "default", size = "default", type = "button", ...otherProps } = props;
+  
+  return (
+    <button
+      type={type}
+      className={buttonVariants({ variant, size, className })}
+      ref={ref}
+      {...otherProps}
+    />
+  );
+});
 
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
+export default Button;
