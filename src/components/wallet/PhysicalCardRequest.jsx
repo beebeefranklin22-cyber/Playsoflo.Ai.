@@ -40,6 +40,10 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
       queryClient.invalidateQueries(['physical-card-request']);
       toast.success('Card request submitted! We\'ll review and ship within 5-7 business days.');
       onClose();
+    },
+    onError: (error) => {
+      toast.error('Failed to submit card request');
+      console.error('Card request error:', error);
     }
   });
 
@@ -57,8 +61,6 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
       status: 'pending'
     });
   };
-
-  if (!isOpen) return null;
 
   return (
     <motion.div
