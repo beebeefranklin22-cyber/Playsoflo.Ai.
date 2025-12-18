@@ -29,6 +29,7 @@ export default function AdsManager() {
     campaign_name: "",
     objective: "brand_awareness",
     ad_format: "image",
+    placements: ["feed", "stories"],
     media_urls: [],
     headline: "",
     description: "",
@@ -361,17 +362,13 @@ export default function AdsManager() {
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={campaignForm.targeting?.placements?.includes('feed') || !campaignForm.targeting?.placements}
+                            checked={campaignForm.placements?.includes('feed')}
                             onChange={(e) => {
-                              const placements = campaignForm.targeting?.placements || ['feed', 'stories'];
                               setCampaignForm({
                                 ...campaignForm,
-                                targeting: {
-                                  ...campaignForm.targeting,
-                                  placements: e.target.checked 
-                                    ? [...placements, 'feed'].filter((v, i, a) => a.indexOf(v) === i)
-                                    : placements.filter(p => p !== 'feed')
-                                }
+                                placements: e.target.checked 
+                                  ? [...(campaignForm.placements || []), 'feed'].filter((v, i, a) => a.indexOf(v) === i)
+                                  : (campaignForm.placements || []).filter(p => p !== 'feed')
                               });
                             }}
                             className="w-4 h-4"
@@ -381,17 +378,13 @@ export default function AdsManager() {
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={campaignForm.targeting?.placements?.includes('stories') || !campaignForm.targeting?.placements}
+                            checked={campaignForm.placements?.includes('stories')}
                             onChange={(e) => {
-                              const placements = campaignForm.targeting?.placements || ['feed', 'stories'];
                               setCampaignForm({
                                 ...campaignForm,
-                                targeting: {
-                                  ...campaignForm.targeting,
-                                  placements: e.target.checked 
-                                    ? [...placements, 'stories'].filter((v, i, a) => a.indexOf(v) === i)
-                                    : placements.filter(p => p !== 'stories')
-                                }
+                                placements: e.target.checked 
+                                  ? [...(campaignForm.placements || []), 'stories'].filter((v, i, a) => a.indexOf(v) === i)
+                                  : (campaignForm.placements || []).filter(p => p !== 'stories')
                               });
                             }}
                             className="w-4 h-4"
@@ -399,6 +392,7 @@ export default function AdsManager() {
                           <span className="text-white">Stories</span>
                         </label>
                       </div>
+                      <p className="text-gray-500 text-xs mt-2">Select where your ad will appear</p>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
