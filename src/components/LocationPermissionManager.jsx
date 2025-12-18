@@ -8,56 +8,49 @@ export default function LocationPermissionManager({ onPermissionGranted }) {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
-    checkLocationPermission();
-  }, []);
-
-  const checkLocationPermission = async () => {
-    if (!navigator.geolocation) {
-      setPermissionState('unsupported');
-      return;
-    }
-
-    try {
-      const result = await navigator.permissions.query({ name: 'geolocation' });
-      
-      if (result.state === 'granted') {
-        setPermissionState('granted');
-        setShowPrompt(false);
-        onPermissionGranted?.();
+    let mounted = true;
+    
+    const checkPermission = async () => {
+      if (!navigator.geolocation) {
+        if (mounted) {
+          setPermissionState('unsupported');
+          setShowPrompt(false);
+        }
         return;
-      } else if (result.state === 'prompt') {
-        setPermissionState('prompt');
-        setShowPrompt(true);
-      } else {
-        setPermissionState('denied');
-        setShowPrompt(true);
       }
 
-      result.onchange = () => {
-        if (result.state === 'granted') {
-          setPermissionState('granted');
-          setShowPrompt(false);
-          onPermissionGranted?.();
-        }
-      };
-    } catch {
-      // Fallback: try to get location directly
+      // First try to get location directly - if this works, permission is granted
       navigator.geolocation.getCurrentPosition(
-        () => {
-          setPermissionState('granted');
-          setShowPrompt(false);
-          onPermissionGranted?.();
+        (position) => {
+          if (mounted) {
+            setPermissionState('granted');
+            setShowPrompt(false);
+            onPermissionGranted?.();
+          }
         },
-        () => {
-          setPermissionState('prompt');
-          setShowPrompt(true);
+        (error) => {
+          // Permission denied or other error
+          if (mounted) {
+            if (error.code === 1) {
+              // Actually denied
+              setPermissionState('denied');
+              setShowPrompt(true);
+            } else {
+              // Prompt needed
+              setPermissionState('prompt');
+              setShowPrompt(true);
+            }
+          }
         },
-        { timeout: 3000 }
+        { timeout: 2000, maximumAge: 0 }
       );
-    }
-  };
+    };
 
-  const requestLocationDirectly = () => {
+    checkPermission();
+    return () => { mounted = false; };
+  }, []);
+
+  const handleRequestPermission = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setPermissionState('granted');
@@ -65,25 +58,17 @@ export default function LocationPermissionManager({ onPermissionGranted }) {
         onPermissionGranted?.();
       },
       (error) => {
-        if (error.code === 1) { // Permission denied
+        if (error.code === 1) {
           setPermissionState('denied');
           setShowPrompt(true);
-        } else {
-          // Other errors (timeout, unavailable) - try again
-          setPermissionState('granted');
-          setShowPrompt(false);
-          onPermissionGranted?.();
         }
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   };
 
-  const handleRequestPermission = () => {
-    requestLocationDirectly();
-  };
-
-  if (permissionState === 'granted' || !showPrompt) return null;
+  // Don't show if permission already granted or still checking
+  if (permissionState === 'granted' || permissionState === 'checking' || !showPrompt) return null;
 
   return (
     <AnimatePresence>
