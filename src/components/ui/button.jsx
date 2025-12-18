@@ -1,13 +1,14 @@
-import React from "react";
+import * as React from "react";
 
-const Button = React.forwardRef(({ 
+function Button({ 
   className = "", 
   variant = "default", 
   size = "default", 
   disabled = false,
   children,
+  type = "button",
   ...props 
-}, ref) => {
+}) {
   const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50";
   
   const variantStyles = {
@@ -31,7 +32,7 @@ const Button = React.forwardRef(({
   
   return (
     <button
-      ref={ref}
+      type={type}
       className={`${baseStyles} ${variantClass} ${sizeClass} ${className}`}
       disabled={disabled}
       {...props}
@@ -39,11 +40,9 @@ const Button = React.forwardRef(({
       {children}
     </button>
   );
-});
+}
 
-Button.displayName = "Button";
-
-export function buttonVariants({ variant = "default", size = "default", className = "" }) {
+function buttonVariants({ variant = "default", size = "default", className = "" }) {
   const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50";
   
   const variantStyles = {
@@ -68,5 +67,5 @@ export function buttonVariants({ variant = "default", size = "default", classNam
   return `${baseStyles} ${variantClass} ${sizeClass} ${className}`;
 }
 
-export { Button };
+export { Button, buttonVariants };
 export default Button;
