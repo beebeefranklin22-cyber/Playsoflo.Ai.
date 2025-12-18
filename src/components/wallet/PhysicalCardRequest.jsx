@@ -61,8 +61,7 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -237,6 +236,5 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }
