@@ -688,7 +688,7 @@ Be production-ready and technically accurate.`;
                      Generated {selectedTool.name}
                    </h3>
                    <Button
-                     onClick={() => setGenerationOutput(null)}
+                     onClick={() => setDemoOutput(null)}
                      variant="outline"
                      size="sm"
                      className="border-white/20 text-white hover:bg-white/10"
