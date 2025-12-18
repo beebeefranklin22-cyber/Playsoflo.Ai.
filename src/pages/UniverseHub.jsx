@@ -15,7 +15,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export default function UniverseHub() {
