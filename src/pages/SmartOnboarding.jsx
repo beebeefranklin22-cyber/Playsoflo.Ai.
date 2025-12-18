@@ -186,14 +186,14 @@ Be specific and actionable. Format as JSON.`,
       </div>
 
       {/* Content */}
-      <div className="h-full flex items-center justify-center px-6">
+      <div className="h-full flex items-center justify-center px-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
-            className="w-full max-w-2xl"
+            className="w-full max-w-2xl py-24"
           >
             {/* Step 0: Welcome */}
             {currentStep === 0 && (
