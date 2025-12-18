@@ -262,18 +262,19 @@ export default function Universe() {
               {pillar.subtitle}
             </p>
 
-            <button
+            <div
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 navigate(createPageUrl(pillar.action));
               }}
-              type="button"
+              role="button"
+              tabIndex={0}
               className="w-full py-3 sm:py-4 md:py-5 bg-white/30 backdrop-blur-xl rounded-xl sm:rounded-2xl text-white text-sm sm:text-base md:text-lg font-bold hover:bg-white/40 active:scale-[0.98] transition border-2 border-white/50 shadow-2xl flex items-center justify-center gap-2 sm:gap-3 cursor-pointer touch-manipulation"
             >
               Enter {pillar.title}
               <span className="inline-block">→</span>
-            </button>
+            </div>
           </motion.div>
         </div>
 
