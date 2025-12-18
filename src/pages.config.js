@@ -15,7 +15,6 @@ import CreatorHub from './pages/CreatorHub';
 import ProviderHub from './pages/ProviderHub';
 import DriverHub from './pages/DriverHub';
 import Rewards from './pages/Rewards';
-import Escrow from './pages/Escrow';
 import Utilities from './pages/Utilities';
 import Messages from './pages/Messages';
 import GiveBack from './pages/GiveBack';
@@ -107,7 +106,6 @@ export const PAGES = {
     "ProviderHub": ProviderHub,
     "DriverHub": DriverHub,
     "Rewards": Rewards,
-    "Escrow": Escrow,
     "Utilities": Utilities,
     "Messages": Messages,
     "GiveBack": GiveBack,

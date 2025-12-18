@@ -14,11 +14,13 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import AffiliateDashboard from "../components/affiliate/AffiliateDashboard";
 import RecruitAffiliates from "../components/affiliate/RecruitAffiliates";
+import PayoutRequestModal from "../components/affiliate/PayoutRequestModal";
 
 export default function AffiliateProgram() {
   const [currentUser, setCurrentUser] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [referralCode, setReferralCode] = useState("");
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -124,7 +126,18 @@ export default function AffiliateProgram() {
 
           <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
             <CardContent className="p-6">
-              <TrendingUp className="w-8 h-8 text-purple-400 mb-2" />
+              <div className="flex items-center justify-between mb-2">
+                <TrendingUp className="w-8 h-8 text-purple-400" />
+                {pendingEarnings >= 25 && (
+                  <Button
+                    onClick={() => setShowPayoutModal(true)}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-xs"
+                  >
+                    Withdraw
+                  </Button>
+                )}
+              </div>
               <p className="text-3xl font-bold text-white">${pendingEarnings.toFixed(2)}</p>
               <p className="text-gray-400 text-sm">Pending Payout</p>
             </CardContent>
@@ -295,6 +308,14 @@ export default function AffiliateProgram() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Payout Modal */}
+        <PayoutRequestModal
+          isOpen={showPayoutModal}
+          onClose={() => setShowPayoutModal(false)}
+          pendingEarnings={pendingEarnings}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   );

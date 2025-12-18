@@ -57,7 +57,7 @@ export default function Wallet() {
       const user = await base44.auth.me();
       return user;
     },
-    refetchInterval: 10000,
+    refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
 
@@ -206,7 +206,7 @@ export default function Wallet() {
       return payments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 20);
     },
     enabled: !!currentUser,
-    refetchInterval: 15000,
+    refetchInterval: 5000,
   });
 
   // AI-powered transaction categorization
