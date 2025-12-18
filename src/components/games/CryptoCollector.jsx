@@ -189,7 +189,6 @@ export default function CryptoCollector({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const reward = Math.min(0.01, 0.002 + (score / 500) * 0.008);
 
     try {
       await base44.entities.GameScore.create({
@@ -197,14 +196,10 @@ export default function CryptoCollector({ currentUser, onExit }) {
         game_name: 'crypto-collector',
         score: score,
         duration_seconds: duration,
-        reward_earned: reward
+        reward_earned: 0
       });
 
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + reward
-      });
-
-      toast.success(`💰 Collected! Earned ${reward.toFixed(4)} SFC`);
+      toast.success(`💰 Game Over! Final Score: ${score}`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }

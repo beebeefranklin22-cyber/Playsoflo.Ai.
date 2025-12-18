@@ -95,7 +95,6 @@ export default function VibeMatch({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const reward = Math.min(0.02, 0.005 + (score / 500) * 0.015);
 
     try {
       await base44.entities.GameScore.create({
@@ -104,14 +103,10 @@ export default function VibeMatch({ currentUser, onExit }) {
         score: score,
         level_reached: level,
         duration_seconds: duration,
-        reward_earned: reward
+        reward_earned: 0
       });
 
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + reward
-      });
-
-      toast.success(`🎨 Perfect vibes! Earned ${reward.toFixed(4)} SFC`);
+      toast.success(`🎨 Game Over! You reached level ${level}`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }

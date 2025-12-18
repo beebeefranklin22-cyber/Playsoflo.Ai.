@@ -73,7 +73,6 @@ export default function Gaming() {
       icon: '🐍',
       category: 'classic',
       difficulty: 'Easy',
-      reward: '0.001-0.01 SFC',
       component: SnakeGame,
       is3D: false,
       multiplayer: false
@@ -85,7 +84,6 @@ export default function Gaming() {
       icon: '🏓',
       category: 'classic',
       difficulty: 'Easy',
-      reward: '0.001-0.005 SFC',
       component: PongGame,
       is3D: false,
       multiplayer: false
@@ -97,7 +95,6 @@ export default function Gaming() {
       icon: '🏃',
       category: 'unique',
       difficulty: 'Medium',
-      reward: '0.003-0.015 SFC',
       component: SoFloRunner,
       is3D: true,
       multiplayer: false
@@ -109,7 +106,6 @@ export default function Gaming() {
       icon: '💰',
       category: 'unique',
       difficulty: 'Medium',
-      reward: '0.002-0.01 SFC',
       component: CryptoCollector,
       is3D: false,
       multiplayer: false
@@ -121,7 +117,6 @@ export default function Gaming() {
       icon: '🎨',
       category: 'unique',
       difficulty: 'Hard',
-      reward: '0.005-0.02 SFC',
       component: VibeMatch,
       is3D: false,
       multiplayer: false
@@ -133,7 +128,6 @@ export default function Gaming() {
       icon: '⚔️',
       category: 'multiplayer',
       difficulty: 'Medium',
-      reward: '0.01-0.03 SFC',
       component: MultiplayerPong,
       is3D: false,
       multiplayer: true
@@ -157,22 +151,15 @@ export default function Gaming() {
               <Gamepad2 className="w-8 h-8" />
               PlaySoFlo Gaming
             </h1>
-            <p className="text-purple-100">Play games, earn SoFloCoin rewards!</p>
+            <p className="text-purple-100">Play arcade games and compete on the leaderboard!</p>
           </div>
         </div>
 
         {myStats && (
-          <div className="grid grid-cols-4 gap-3 mt-4">
+          <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
               <p className="text-purple-100 text-xs">Games Played</p>
               <p className="text-white text-2xl font-bold">{myStats.totalGames}</p>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-              <p className="text-purple-100 text-xs">Rewards Earned</p>
-              <p className="text-white text-2xl font-bold flex items-center gap-1">
-                <Sparkles className="w-4 h-4" />
-                {myStats.totalRewards.toFixed(4)}
-              </p>
             </div>
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
               <p className="text-purple-100 text-xs">Best Score</p>
@@ -235,11 +222,7 @@ export default function Gaming() {
               <h3 className="text-white font-bold text-xl mb-2">{game.name}</h3>
               <p className="text-gray-400 text-sm mb-4">{game.description}</p>
 
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 font-bold">{game.reward}</span>
-                </div>
+              <div className="flex items-center justify-end text-sm">
                 <span className={`px-2 py-1 rounded-full text-xs font-bold ${
                   game.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
                   game.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -287,10 +270,7 @@ export default function Gaming() {
                 </div>
                 <div className="text-right">
                   <p className="text-white font-bold text-lg">{entry.score}</p>
-                  <p className="text-purple-400 text-sm flex items-center gap-1">
-                    <Star className="w-3 h-3" />
-                    +{entry.reward_earned.toFixed(4)} SFC
-                  </p>
+                  <p className="text-gray-400 text-sm">{entry.game_name}</p>
                 </div>
               </motion.div>
             ))}

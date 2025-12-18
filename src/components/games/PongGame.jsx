@@ -143,7 +143,6 @@ export default function PongGame({ currentUser, onExit }) {
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const finalScore = score * 10;
-    const reward = 0.001 + (score / 10) * 0.004;
 
     try {
       await base44.entities.GameScore.create({
@@ -151,14 +150,12 @@ export default function PongGame({ currentUser, onExit }) {
         game_name: 'pong',
         score: finalScore,
         duration_seconds: duration,
-        reward_earned: reward
+        reward_earned: 0
       });
 
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + reward
-      });
-
-      toast.success(`🎮 Victory! Earned ${reward.toFixed(4)} SFC`);
+      if (score > aiScore) {
+        toast.success(`🎮 Victory! Final Score: ${finalScore}`);
+      }
     } catch (error) {
       console.error('Failed to save score:', error);
     }

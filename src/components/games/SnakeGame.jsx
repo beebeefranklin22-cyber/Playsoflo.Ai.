@@ -154,27 +154,16 @@ export default function SnakeGame({ currentUser, onExit }) {
     if (!currentUser) return;
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
-    const baseReward = 0.001;
-    const scoreBonus = Math.min(0.009, (score / 1000) * 0.009);
-    const reward = baseReward + scoreBonus;
 
     try {
-      // Save score
       await base44.entities.GameScore.create({
         user_email: currentUser.email,
         game_name: 'snake',
         score: score,
         duration_seconds: duration,
-        reward_earned: reward
+        reward_earned: 0
       });
 
-      // Award SoFloCoin
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + reward
-      });
-
-      toast.success(`🎮 Game Over! Earned ${reward.toFixed(4)} SFC`);
-      
       if (score > highScore) {
         setHighScore(score);
         toast.success(`🏆 New High Score: ${score}!`);

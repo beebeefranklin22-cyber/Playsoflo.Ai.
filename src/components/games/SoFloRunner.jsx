@@ -197,7 +197,6 @@ export default function SoFloRunner({ currentUser, onExit }) {
 
     const duration = Math.floor((Date.now() - startTimeRef.current) / 1000);
     const finalScore = score + finalDistance;
-    const reward = Math.min(0.015, 0.003 + (finalScore / 1000) * 0.012);
 
     try {
       await base44.entities.GameScore.create({
@@ -205,14 +204,10 @@ export default function SoFloRunner({ currentUser, onExit }) {
         game_name: 'soflo-runner',
         score: finalScore,
         duration_seconds: duration,
-        reward_earned: reward
+        reward_earned: 0
       });
 
-      await base44.auth.updateMe({
-        soflo_coins: (currentUser.soflo_coins || 0) + reward
-      });
-
-      toast.success(`🏃 Great run! Earned ${reward.toFixed(4)} SFC`);
+      toast.success(`🏃 Great run! Final Score: ${finalScore}`);
     } catch (error) {
       console.error('Failed to save score:', error);
     }
