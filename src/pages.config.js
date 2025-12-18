@@ -84,6 +84,7 @@ import SupportDashboard from './pages/SupportDashboard';
 import PassengerProfile from './pages/PassengerProfile';
 import AdsManager from './pages/AdsManager';
 import SystemDiagnostics from './pages/SystemDiagnostics';
+import SmartOnboarding from './pages/SmartOnboarding';
 import __Layout from './Layout.jsx';
 
 
@@ -174,6 +175,7 @@ export const PAGES = {
     "PassengerProfile": PassengerProfile,
     "AdsManager": AdsManager,
     "SystemDiagnostics": SystemDiagnostics,
+    "SmartOnboarding": SmartOnboarding,
 }
 
 export const pagesConfig = {
