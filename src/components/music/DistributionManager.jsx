@@ -351,15 +351,23 @@ export default function DistributionManager({ tracks, currentUser }) {
                             {dist.status}
                           </Badge>
                           <span className="text-gray-400">
-                            {dist.platforms?.length || 0} platforms
+                           {dist.platforms?.length || 0} platforms
                           </span>
+                          {dist.distributor && (
+                           <span className="text-gray-400 capitalize">
+                             via {dist.distributor}
+                           </span>
+                          )}
                           {dist.isrc_code && (
-                            <span className="text-gray-400">ISRC: {dist.isrc_code}</span>
+                           <span className="text-gray-400">ISRC: {dist.isrc_code}</span>
+                          )}
+                          {dist.upc_code && (
+                           <span className="text-gray-400">UPC: {dist.upc_code}</span>
                           )}
                           {dist.release_date && (
-                            <span className="text-gray-400">
-                              Release: {new Date(dist.release_date).toLocaleDateString()}
-                            </span>
+                           <span className="text-gray-400">
+                             Release: {new Date(dist.release_date).toLocaleDateString()}
+                           </span>
                           )}
                         </div>
                         {dist.status === 'live' && dist.platform_links && (
