@@ -399,23 +399,37 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
     mutationFn: async (data) => {
       if (data.category === "logistics" && !currentUser?.business_verified) {
         alert("Only verified businesses can offer Logistics. Please verify your business in your profile.");
-        return Promise.reject("Not verified for logistics"); // Reject the promise
+        return Promise.reject("Not verified for logistics");
       }
-      return base44.entities.MarketplaceItem.create(data);
+      
+      // Add required fields for marketplace visibility
+      const serviceData = {
+        ...data,
+        provider_email: currentUser.email,
+        provider_name: currentUser.provider_business_name || currentUser.full_name,
+        verified_provider: verifiedCount > 0,
+        availability: "available",
+        rating: 5.0,
+        reviews_count: 0,
+        response_time: "within 1 hour"
+      };
+      
+      return base44.entities.MarketplaceItem.create(serviceData);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
+      qc.invalidateQueries({ queryKey: ["marketplace-items"] });
       setForm({ 
         title: "", category: "logistics", price: 100, price_type: "fixed", 
         image_url: "", description: "", escrow_required: false, 
         portfolio_images: [], variations: [], add_ons: [],
         is_rental: false, rental_details: {}, blocked_dates: []
       });
-      toast.success("Service published!");
+      toast.success("Service published and live in marketplace!");
     },
     onError: (error) => {
-        if (error !== "Not verified for logistics") { // Don't re-alert for this specific error
-            alert("Failed to publish service: " + error.message);
+        if (error !== "Not verified for logistics") {
+            toast.error("Failed to publish service: " + error.message);
         }
     }
   });
@@ -1243,10 +1257,16 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
                 <Button
                   className="bg-green-600 hover:bg-green-700 w-full"
-                  onClick={() => createMutation.mutate(form)}
-                  disabled={createMutation.isLoading}
+                  onClick={() => {
+                    if (!form.title || !form.description || !form.image_url) {
+                      toast.error('Please fill in title, description, and upload a cover image');
+                      return;
+                    }
+                    createMutation.mutate(form);
+                  }}
+                  disabled={createMutation.isLoading || !form.title || !form.description || !form.image_url}
                 >
-                  Publish Service
+                  {createMutation.isLoading ? 'Publishing...' : 'Publish Service'}
                 </Button>
               </CardContent>
             </Card>
