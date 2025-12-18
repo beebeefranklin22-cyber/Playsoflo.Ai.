@@ -1,41 +1,44 @@
-import * as React from "react"
+import React from "react";
 
-const buttonVariants = (props) => {
-  const { variant = "default", size = "default", className = "" } = props
-  const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
-  
-  const variants = {
-    default: "bg-purple-600 text-white hover:bg-purple-700",
-    destructive: "bg-red-500 text-white hover:bg-red-600",
-    outline: "border border-gray-300 bg-transparent hover:bg-gray-100 text-white hover:text-gray-900",
-    secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
-    ghost: "hover:bg-gray-100 text-white hover:text-gray-900",
-    link: "text-purple-400 underline-offset-4 hover:underline"
-  }
-  
-  const sizes = {
-    default: "h-9 px-4 py-2",
-    sm: "h-8 px-3 text-xs",
-    lg: "h-10 px-8",
-    icon: "h-9 w-9"
-  }
-  
-  return [base, variants[variant], sizes[size], className].filter(Boolean).join(" ")
+function Button({ children, className = "", variant = "default", size = "default", type = "button", disabled, onClick, ...props }) {
+  let variantClass = "bg-purple-600 text-white hover:bg-purple-700";
+  if (variant === "destructive") variantClass = "bg-red-500 text-white hover:bg-red-600";
+  if (variant === "outline") variantClass = "border border-gray-300 bg-transparent hover:bg-gray-100 text-white hover:text-gray-900";
+  if (variant === "secondary") variantClass = "bg-gray-200 text-gray-900 hover:bg-gray-300";
+  if (variant === "ghost") variantClass = "hover:bg-gray-100 text-white hover:text-gray-900";
+  if (variant === "link") variantClass = "text-purple-400 underline-offset-4 hover:underline";
+
+  let sizeClass = "h-9 px-4 py-2";
+  if (size === "sm") sizeClass = "h-8 px-3 text-xs";
+  if (size === "lg") sizeClass = "h-10 px-8";
+  if (size === "icon") sizeClass = "h-9 w-9";
+
+  const buttonClass = `inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`;
+
+  return (
+    <button type={type} className={buttonClass} disabled={disabled} onClick={onClick} {...props}>
+      {children}
+    </button>
+  );
 }
 
-const Button = React.forwardRef((props, ref) => {
-  const { className, variant, size, type = "button", ...rest } = props
-  return React.createElement(
-    "button",
-    {
-      type,
-      className: buttonVariants({ variant, size, className }),
-      ref,
-      ...rest
-    }
-  )
-})
+function buttonVariants(options = {}) {
+  const { variant = "default", size = "default", className = "" } = options;
+  
+  let variantClass = "bg-purple-600 text-white hover:bg-purple-700";
+  if (variant === "destructive") variantClass = "bg-red-500 text-white hover:bg-red-600";
+  if (variant === "outline") variantClass = "border border-gray-300 bg-transparent hover:bg-gray-100 text-white hover:text-gray-900";
+  if (variant === "secondary") variantClass = "bg-gray-200 text-gray-900 hover:bg-gray-300";
+  if (variant === "ghost") variantClass = "hover:bg-gray-100 text-white hover:text-gray-900";
+  if (variant === "link") variantClass = "text-purple-400 underline-offset-4 hover:underline";
 
-Button.displayName = "Button"
+  let sizeClass = "h-9 px-4 py-2";
+  if (size === "sm") sizeClass = "h-8 px-3 text-xs";
+  if (size === "lg") sizeClass = "h-10 px-8";
+  if (size === "icon") sizeClass = "h-9 w-9";
 
-export { Button, buttonVariants }
+  return `inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`;
+}
+
+export { Button, buttonVariants };
+export default Button;
