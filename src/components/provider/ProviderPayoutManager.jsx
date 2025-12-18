@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, DollarSign, Wallet, Building, CheckCircle, AlertCircle, Loader2, TrendingUp } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -150,8 +150,7 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <motion.div
+    <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -374,6 +373,5 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
           )}
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }
