@@ -808,6 +808,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             {/* Service Package Manager */}
             <ServicePackageManager myServices={myServices} currentUser={currentUser} />
 
+            {/* Manual Package Builder */}
+            <ServicePackageManager myServices={myServices} currentUser={currentUser} />
+
             {/* Ronron AI Smart Package Generator */}
             <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30">
               <CardHeader>

@@ -273,7 +273,23 @@ export default function BookingModal({ service, onClose }) {
   const handlePaymentSuccess = async () => {
     try {
       // Create booking after successful payment
-      createBookingMutation.mutate(pendingBooking);
+      const booking = await base44.entities.ServiceBooking.create({
+        ...pendingBooking,
+        payment_status: 'paid',
+        booking_status: 'confirmed',
+        customer_email: currentUser.email,
+        confirmation_code: Math.random().toString(36).substring(2, 10).toUpperCase()
+      });
+
+      // Process payment to provider using backend function
+      const { processServicePayment } = await import('@/functions/processServicePayment');
+      await processServicePayment({
+        booking_id: booking.id,
+        payment_method: 'wallet'
+      });
+
+      setStep(3);
+      queryClient.invalidateQueries(['my-bookings']);
     } catch (error) {
       console.error('Booking creation error:', error);
       alert('Payment succeeded but booking failed. Please contact support.');
