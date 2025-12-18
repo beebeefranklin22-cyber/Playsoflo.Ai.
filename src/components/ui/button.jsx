@@ -1,12 +1,15 @@
 import React from "react";
 
-export function Button({ 
-  className = "", 
-  variant = "default", 
-  size = "default", 
-  children,
-  ...props 
-}) {
+const Button = React.forwardRef((props, ref) => {
+  const { 
+    className = "", 
+    variant = "default", 
+    size = "default", 
+    children,
+    type = "button",
+    ...rest 
+  } = props;
+
   const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
   
   const variants = {
@@ -30,15 +33,19 @@ export function Button({
   
   return (
     <button
+      ref={ref}
+      type={type}
       className={`${baseStyles} ${variantClass} ${sizeClass} ${className}`}
-      {...props}
+      {...rest}
     >
       {children}
     </button>
   );
-}
+});
 
-export function buttonVariants({ variant = "default", size = "default", className = "" }) {
+Button.displayName = "Button";
+
+const buttonVariants = ({ variant = "default", size = "default", className = "" }) => {
   const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50";
   
   const variants = {
@@ -61,4 +68,7 @@ export function buttonVariants({ variant = "default", size = "default", classNam
   const sizeClass = sizes[size] || sizes.default;
   
   return `${baseStyles} ${variantClass} ${sizeClass} ${className}`;
-}
+};
+
+export { Button, buttonVariants };
+export default Button;
