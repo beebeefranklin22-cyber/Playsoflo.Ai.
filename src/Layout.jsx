@@ -18,6 +18,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import SystemHealthMonitor from "./components/SystemHealthMonitor";
 import ProactiveMonitor from "./components/ProactiveMonitor";
 import SmartTooltip from "./components/onboarding/SmartTooltip";
+import PushNotificationManager from "./components/PushNotificationManager";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -421,6 +422,11 @@ export default function Layout({ children, currentPageName }) {
       {/* Smart AI Tooltips */}
       {currentUser && currentUser.onboarding_completed && !isFullScreen && (
         <SmartTooltip currentUser={currentUser} currentPage={currentPageName} />
+      )}
+
+      {/* Push Notification Manager */}
+      {currentUser && (
+        <PushNotificationManager currentUser={currentUser} />
       )}
       </div>
       </PostHogProvider>

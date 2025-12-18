@@ -10,6 +10,7 @@ import { createPageUrl } from "@/utils";
 import FollowButton from "../components/social/FollowButton";
 import AddFriendButton from "../components/friends/AddFriendButton";
 import FollowersModal from "../components/social/FollowersModal";
+import TipButton from "../components/TipButton";
 
 export default function UserProfile() {
   const navigate = useNavigate();
@@ -225,8 +226,14 @@ export default function UserProfile() {
                   </Button>
                 </div>
                 <AddFriendButton targetUser={profileUser} currentUser={currentUser} />
-              </div>
-            )}
+                <TipButton
+                  creatorEmail={profileUser.email}
+                  creatorName={profileUser.full_name}
+                  variant="outline"
+                  showAmount={true}
+                />
+                </div>
+                )}
           </div>
         </div>
       </div>
