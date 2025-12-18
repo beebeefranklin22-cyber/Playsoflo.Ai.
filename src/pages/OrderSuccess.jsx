@@ -4,17 +4,32 @@ import { createPageUrl } from "@/utils";
 import { CheckCircle, Package, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { base44 } from "@/api/base44Client";
 
 export default function OrderSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 1000);
-  }, []);
-
+  const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
+
+  useEffect(() => {
+    const processOrder = async () => {
+      if (sessionId && orderId) {
+        try {
+          await base44.functions.invoke('processShopifyOrder', {
+            session_id: sessionId,
+            order_id: orderId
+          });
+        } catch (error) {
+          console.error('Order processing error:', error);
+        }
+      }
+      setTimeout(() => setLoading(false), 1000);
+    };
+    processOrder();
+  }, [sessionId, orderId]);
 
   if (loading) {
     return (

@@ -60,6 +60,7 @@ export default function Profile() {
 
   const [editedUser, setEditedUser] = useState({
     full_name: "",
+    username: "",
     bio: "",
     phone: "",
     address: "",
@@ -90,6 +91,7 @@ export default function Profile() {
         setCurrentUser(user);
         setEditedUser({
           full_name: user.full_name || "",
+          username: user.username || "",
           bio: user.bio || "",
           phone: user.phone || "",
           address: user.address || "",
@@ -358,6 +360,15 @@ export default function Profile() {
                     <Input
                       value={editedUser.full_name}
                       onChange={(e) => setEditedUser({ ...editedUser, full_name: e.target.value })}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Username</label>
+                    <Input
+                      value={editedUser.username}
+                      onChange={(e) => setEditedUser({ ...editedUser, username: e.target.value })}
+                      placeholder="@yourhandle"
                       className="bg-white/10 border-white/20 text-white"
                     />
                   </div>

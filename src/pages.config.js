@@ -85,6 +85,7 @@ import PassengerProfile from './pages/PassengerProfile';
 import AdsManager from './pages/AdsManager';
 import SystemDiagnostics from './pages/SystemDiagnostics';
 import SmartOnboarding from './pages/SmartOnboarding';
+import AffiliateProgram from './pages/AffiliateProgram';
 import __Layout from './Layout.jsx';
 
 
@@ -176,6 +177,7 @@ export const PAGES = {
     "AdsManager": AdsManager,
     "SystemDiagnostics": SystemDiagnostics,
     "SmartOnboarding": SmartOnboarding,
+    "AffiliateProgram": AffiliateProgram,
 }
 
 export const pagesConfig = {

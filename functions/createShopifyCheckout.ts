@@ -46,6 +46,7 @@ Deno.serve(async (req) => {
 
     // Create order record
     const order = await base44.entities.Order.create({
+      order_type: 'shopify',
       user_email: user.email,
       product_id: product.id,
       product_name: product.title,
@@ -57,7 +58,8 @@ Deno.serve(async (req) => {
       total_amount: total / 100,
       status: 'pending',
       shipping_address: JSON.stringify(shipping_address),
-      affiliate_link: product.affiliate_link
+      affiliate_link: product.affiliate_link,
+      provider_email: 'shopify@playsoflo.com'
     });
 
     // Create Stripe checkout session
