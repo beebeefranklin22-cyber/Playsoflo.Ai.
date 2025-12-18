@@ -229,220 +229,153 @@ export default function AIStudio() {
           return;
 
         case "video-editor":
-          // Generate video storyboard with preview image
-          prompt = `Create a detailed video production plan for: "${demoInput}"
-
-Include specific scenes, transitions, visual effects, and timing.`;
-          
-          const storyboard = await base44.integrations.Core.InvokeLLM({
-            prompt,
-            response_json_schema: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                scenes: { type: "array", items: { type: "string" } },
-                transitions: { type: "array", items: { type: "string" } },
-                effects: { type: "array", items: { type: "string" } },
-                duration: { type: "string" },
-                color_grade: { type: "string" },
-                audio_plan: { type: "string" }
-              }
-            }
-          });
-          
-          // Generate thumbnail for the video concept
+          // Generate video storyboard with preview images
           const videoThumb = await base44.integrations.Core.GenerateImage({
             prompt: `Professional video thumbnail for: ${demoInput}`
           });
           
+          // Generate 3 scene previews
+          const scene1 = await base44.integrations.Core.GenerateImage({
+            prompt: `Opening scene for: ${demoInput}`
+          });
+          const scene2 = await base44.integrations.Core.GenerateImage({
+            prompt: `Middle scene for: ${demoInput}`
+          });
+          const scene3 = await base44.integrations.Core.GenerateImage({
+            prompt: `Closing scene for: ${demoInput}`
+          });
+          
           setDemoOutput({
             type: "video",
+            scenes: [scene1.url, scene2.url, scene3.url],
             thumbnail: videoThumb.url,
-            storyboard: storyboard,
-            message: "🎬 Video plan created! Thumbnail preview generated."
+            message: "🎬 Video scenes generated!"
           });
           setIsGenerating(false);
           return;
 
         case "music-creator":
-          prompt = `You are a professional music producer and composer. Create a detailed composition plan for: "${demoInput}"
+          prompt = `Create a detailed music composition plan for: "${demoInput}"
 
-Include:
-- Genre and subgenre
-- Tempo (BPM) and time signature
-- Chord progression
-- Instrument arrangement
-- Song structure (intro, verse, chorus, etc.)
-- Mood and emotional arc
-- Production techniques
+Provide the following:
+- Title for the song
+- Genre
+- Tempo in BPM (just the number)
+- Musical key
+- Overall mood
+- Song structure as an array of sections with section names
 
-Be specific and music-theory accurate.`;
+Be specific and creative.`;
           responseSchema = {
             type: "object",
             properties: {
+              title: { type: "string" },
               genre: { type: "string" },
-              tempo: { type: "string" },
-              time_signature: { type: "string" },
+              tempo_bpm: { type: "number" },
               key: { type: "string" },
-              chord_progression: { type: "string" },
-              instruments: { type: "array", items: { type: "string" } },
-              structure: { type: "string" },
               mood: { type: "string" },
-              production_notes: { type: "string" }
+              structure: { 
+                type: "array", 
+                items: { 
+                  type: "object",
+                  properties: {
+                    section: { type: "string" },
+                    timestamp: { type: "string" }
+                  }
+                } 
+              }
             }
           };
           break;
 
         case "code-assistant":
-          prompt = `You are a helpful coding assistant for learning and development. Help with: "${demoInput}"
+          prompt = `You are a helpful coding assistant. Write code for: "${demoInput}"
 
-STRICT SECURITY RESTRICTIONS:
-- NEVER generate code that accesses sensitive data (passwords, API keys, tokens, payment info)
-- NEVER create code for hacking, phishing, scraping, or malicious purposes
-- NEVER bypass authentication or authorization systems
-- NEVER generate code that violates privacy or terms of service
-- DO provide educational examples and learning resources only
-- DO focus on legitimate development tasks
+Provide:
+- Clean, working code
+- The programming language name
+- A clear explanation of what the code does
 
-If the request involves anything potentially malicious or unethical, refuse politely and explain why.
-
-Provide helpful, educational code examples only.`;
+Keep it educational and helpful.`;
           responseSchema = {
             type: "object",
             properties: {
-              is_safe_request: { type: "boolean" },
               code: { type: "string" },
               language: { type: "string" },
-              explanation: { type: "string" },
-              security_warning: { type: "string" }
+              explanation: { type: "string" }
             }
           };
           break;
 
         case "content-writer":
-          prompt = `You are an expert copywriter and content strategist. Write high-quality, engaging content about: "${demoInput}"
+          prompt = `Write engaging content about: "${demoInput}"
 
-Make it:
-- SEO-optimized with natural keyword integration
-- Compelling and conversion-focused
-- Well-structured and scannable
-- Original and plagiarism-free
-- Audience-appropriate
+Include:
+- A catchy title
+- Well-written content (at least 200 words)
+- SEO keywords (array of 5 keywords)
+- A meta description (under 160 characters)
 
-Include a catchy title, engaging content, and SEO metadata.`;
+Make it professional and engaging.`;
           responseSchema = {
             type: "object",
             properties: {
               title: { type: "string" },
               content: { type: "string" },
               keywords: { type: "array", items: { type: "string" } },
-              meta_description: { type: "string" },
-              target_audience: { type: "string" },
-              tone: { type: "string" }
+              meta_description: { type: "string" }
             }
           };
           break;
 
         case "design-studio":
-          prompt = `You are a professional graphic designer with expertise in visual communication. Create a detailed design concept for: "${demoInput}"
-
-Include:
-- Layout structure and grid system
-- Color palette with hex codes
-- Typography choices and hierarchy
-- Visual elements and spacing
-- Design principles applied
-- Brand consistency notes
-
-Be specific and design-ready.`;
-          responseSchema = {
-            type: "object",
-            properties: {
-              layout: { type: "string" },
-              color_palette: { type: "array", items: { type: "string" } },
-              fonts: { type: "array", items: { type: "string" } },
-              elements: { type: "array", items: { type: "string" } },
-              spacing: { type: "string" },
-              design_principles: { type: "string" }
-            }
-          };
-          break;
+          // Generate a design mockup image
+          const designImage = await base44.integrations.Core.GenerateImage({
+            prompt: `Professional graphic design for: ${demoInput}, clean layout, modern, high quality`
+          });
+          
+          setDemoOutput({
+            type: "design",
+            url: designImage.url,
+            message: "🎨 Design created!"
+          });
+          setIsGenerating(false);
+          return;
 
         case "voice-synthesis":
-          prompt = `You are a voice actor and audio producer. Create a professional voice-over script with emotion and pacing for: "${demoInput}"
+          prompt = `Create a professional voice-over script for: "${demoInput}"
 
-Include:
-- Script with emotion markers
-- Voice characteristics needed
-- Pacing and timing notes
-- Emphasis points
-- Background audio suggestions
-- Delivery style
-
-Make it performance-ready.`;
+Provide:
+- The complete script
+- Voice style (e.g., "professional narrator")
+- Pace (e.g., "moderate")
+- Tone (e.g., "engaging")
+- Key words to emphasize (array)`;
           responseSchema = {
             type: "object",
             properties: {
               script: { type: "string" },
-              voice_type: { type: "string" },
-              emotion: { type: "string" },
-              pacing: { type: "string" },
-              emphasis: { type: "array", items: { type: "string" } },
-              background_audio: { type: "string" },
-              delivery_notes: { type: "string" }
+              voice_style: { type: "string" },
+              pace: { type: "string" },
+              tone: { type: "string" },
+              emphasis_words: { type: "array", items: { type: "string" } }
             }
           };
           break;
 
         case "3d-modeler":
-          prompt = `You are a professional 3D artist and technical artist. Design a detailed 3D model specification for: "${demoInput}"
-
-Include:
-- Model type and style
-- Geometry details and topology
-- Texture and material specifications
-- Rigging requirements
-- Polygon budget
-- Technical specifications
-- Optimization notes
-
-Be production-ready and technically accurate.`;
-          responseSchema = {
-            type: "object",
-            properties: {
-              model_type: { type: "string" },
-              geometry: { type: "string" },
-              materials: { type: "array", items: { type: "string" } },
-              textures: { type: "array", items: { type: "string" } },
-              polygon_count: { type: "string" },
-              rigging: { type: "string" },
-              optimization: { type: "string" }
-            }
-          };
-          break;
-      }
-
-      // Security moderation
-      if (tool.id === 'code-assistant') {
-        const safetyCheck = await base44.integrations.Core.InvokeLLM({
-          prompt: `Is this code request safe and legal? "${demoInput}"`,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              is_safe: { type: "boolean" },
-              reason: { type: "string" }
-            }
-          }
-        });
-
-        if (!safetyCheck.is_safe) {
+          // Generate 3D concept preview
+          const model3D = await base44.integrations.Core.GenerateImage({
+            prompt: `3D render of: ${demoInput}, professional 3D modeling, high quality render`
+          });
+          
           setDemoOutput({
-            error: "Request blocked for security",
-            reason: safetyCheck.reason
+            type: "3d",
+            preview_url: model3D.url,
+            message: "🎮 3D model concept generated!"
           });
           setIsGenerating(false);
           return;
-        }
       }
 
       const result = await base44.integrations.Core.InvokeLLM({
@@ -450,6 +383,8 @@ Be production-ready and technically accurate.`;
         response_json_schema: responseSchema
       });
 
+      // Add type based on tool
+      result.type = tool.id.replace('-', '_');
       setDemoOutput(result);
     } catch (error) {
       console.error("Demo generation error:", error);
@@ -698,7 +633,7 @@ Be production-ready and technically accurate.`;
                  </div>
 
                  {/* Image Output */}
-                 {demoOutput.type === "image" && (
+                 {(demoOutput.type === "image" || demoOutput.url) && (
                    <div className="space-y-4">
                      <img 
                        src={demoOutput.url} 
@@ -716,8 +651,27 @@ Be production-ready and technically accurate.`;
                    </div>
                  )}
 
+                 {/* Design Output (show as image) */}
+                 {demoOutput.type === "design" && (
+                   <div className="space-y-4">
+                     <img 
+                       src={demoOutput.url} 
+                       alt="Generated Design" 
+                       className="w-full rounded-xl shadow-2xl"
+                     />
+                     <div className="flex gap-2">
+                       <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                         Download Design
+                       </Button>
+                       <Button variant="outline" className="border-white/20 text-white">
+                         Share
+                       </Button>
+                     </div>
+                   </div>
+                 )}
+
                  {/* Video Output */}
-                 {demoOutput.type === "video" && (
+                 {(demoOutput.type === "video" || demoOutput.scenes) && (
                    <div className="space-y-4">
                      <h4 className="text-white font-semibold mb-3">🎬 Video Scenes</h4>
                      <div className="grid grid-cols-3 gap-3">
@@ -736,8 +690,38 @@ Be production-ready and technically accurate.`;
                    </div>
                  )}
 
+                 {/* Content Output */}
+                 {(demoOutput.type === "content_writer" || demoOutput.title) && !demoOutput.code && !demoOutput.script && !demoOutput.tempo_bpm && (
+                   <div className="space-y-4">
+                     <div className="bg-white/5 rounded-xl p-6">
+                       <h4 className="text-white font-bold text-2xl mb-4">{demoOutput.title}</h4>
+                       <div className="text-gray-300 mb-4 leading-relaxed whitespace-pre-wrap">
+                         {demoOutput.content}
+                       </div>
+                       {demoOutput.keywords && (
+                         <div className="flex flex-wrap gap-2 mb-4">
+                           {demoOutput.keywords.map((kw, i) => (
+                             <span key={i} className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-sm">
+                               #{kw}
+                             </span>
+                           ))}
+                         </div>
+                       )}
+                       {demoOutput.meta_description && (
+                         <div className="bg-white/5 rounded-lg p-3">
+                           <span className="text-gray-400 text-xs">Meta Description:</span>
+                           <p className="text-gray-300 text-sm mt-1">{demoOutput.meta_description}</p>
+                         </div>
+                       )}
+                     </div>
+                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                       Export Content
+                     </Button>
+                   </div>
+                 )}
+
                  {/* Music Output */}
-                 {demoOutput.type === "music" && (
+                 {(demoOutput.type === "music_creator" || demoOutput.tempo_bpm) && (
                    <div className="space-y-4">
                      <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-6">
                        <h4 className="text-white font-bold text-xl mb-2">{demoOutput.title}</h4>
@@ -782,7 +766,7 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Voice Output */}
-                 {demoOutput.type === "voice" && (
+                 {(demoOutput.type === "voice_synthesis" || demoOutput.script) && (
                    <div className="space-y-4">
                      <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30">
                        <h4 className="text-white font-semibold mb-3">🎙️ Voice Script</h4>
@@ -813,7 +797,7 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Code Output */}
-                 {demoOutput.type === "code" && (
+                 {(demoOutput.type === "code_assistant" || demoOutput.code) && (
                    <div className="space-y-4">
                      <div className="bg-gray-900 rounded-xl p-4">
                        <div className="flex items-center justify-between mb-2">
