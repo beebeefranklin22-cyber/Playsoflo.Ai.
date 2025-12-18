@@ -519,6 +519,14 @@ export default function Marketplace() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="group cursor-pointer"
+                  onClick={() => {
+                    // Navigate to service details page
+                    if (item.itemType === 'property') {
+                      navigate(createPageUrl("RealEstate"));
+                    } else if (!item.itemType || item.itemType === 'service') {
+                      navigate(createPageUrl("ServiceProviders") + `?service=${encodeURIComponent(item.title)}`);
+                    }
+                  }}
                 >
                   <div className="relative h-80 rounded-3xl overflow-hidden bg-gray-900">
                     <img
@@ -686,14 +694,23 @@ export default function Marketplace() {
                             Order Now
                           </button>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
+                        </div>
+                        </div>
+                        </div>
+                        </motion.div>
+                        );
+                        })}
+                        </AnimatePresence>
+                        </div>
+
+                        {/* Show service details info */}
+                        {filteredItems.length > 0 && (
+                        <div className="mt-6 bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                        <p className="text-blue-300 text-sm">
+                        💡 <strong>Tip:</strong> Click any service card to view full details including portfolio images, service area, and provider information.
+                        </p>
+                        </div>
+                        )}
 
         {filteredItems.length === 0 && !isLoading && (
           <div className="text-center py-20">
