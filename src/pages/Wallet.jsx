@@ -33,6 +33,7 @@ import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
 import TransactionHistoryFilter from "../components/wallet/TransactionHistoryFilter";
 import FinancialAnalytics from "../components/wallet/FinancialAnalytics";
+import PhysicalCardRequest from "../components/wallet/PhysicalCardRequest";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -439,8 +440,15 @@ export default function Wallet() {
             >
               Withdraw
             </button>
-          </div>
-        </div>
+            <button
+              onClick={() => setActiveModal('physical-card')}
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 rounded-lg text-purple-400 text-xs sm:text-sm font-medium transition-all"
+            >
+              <CreditCard className="w-4 h-4 inline mr-1" />
+              Get Card
+            </button>
+            </div>
+            </div>
 
         <div className="grid md:grid-cols-2 gap-3">
           {cryptoAssets.filter(a => a.symbol !== 'USD').map((asset, index) => (
@@ -962,6 +970,9 @@ export default function Wallet() {
       )}
       {activeModal === 'analytics' && currentUser && (
         <FinancialAnalytics currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'physical-card' && currentUser && (
+        <PhysicalCardRequest currentUser={currentUser} isOpen={true} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
