@@ -269,22 +269,49 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
         try {
           setIsLoading(true);
           
-          // Get current location
-          const getCurrentLocation = () => new Promise((resolve) => {
-            if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition(
-                (position) => resolve([position.coords.latitude, position.coords.longitude]),
-                () => resolve('Miami, FL') // Fallback to Miami
-              );
-            } else {
-              resolve('Miami, FL');
+          // Get current location with high accuracy
+          const getCurrentLocation = () => new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              reject(new Error('Geolocation not supported'));
+              return;
             }
+            
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                resolve({
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                });
+              },
+              (error) => {
+                console.error('Geolocation error:', error);
+                reject(error);
+              },
+              { 
+                enableHighAccuracy: true, 
+                timeout: 10000, 
+                maximumAge: 0 
+              }
+            );
           });
 
-          const origin = await getCurrentLocation();
+          let origin;
+          let originCoords = null;
+          
+          try {
+            originCoords = await getCurrentLocation();
+            origin = `${originCoords.lat},${originCoords.lng}`;
+          } catch (geoError) {
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: "⚠️ Unable to access your location. Please enable location permissions in your browser settings to get accurate directions."
+            }]);
+            setIsLoading(false);
+            return;
+          }
           
           const response = await base44.functions.invoke('getDirections', {
-            origin: Array.isArray(origin) ? `${origin[0]},${origin[1]}` : origin,
+            origin: origin,
             destination: destination,
             mode: 'driving'
           });
@@ -293,6 +320,7 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
             setNavigationData({
               destination: destination,
               directions: response.data,
+              originCoords: originCoords,
               destinationCoords: response.data.end_location 
                 ? [response.data.end_location.lat, response.data.end_location.lng]
                 : null
@@ -309,7 +337,7 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
           console.error('Navigation error:', error);
           setMessages(prev => [...prev, {
             role: "assistant",
-            content: `I encountered an error getting directions. Please check that the Google Directions API is enabled in your Google Cloud Console.`
+            content: `I encountered an error getting directions. Please try again.`
           }]);
           setIsLoading(false);
         }

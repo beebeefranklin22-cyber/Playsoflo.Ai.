@@ -48,16 +48,26 @@ function MapUpdater({ center, bounds }) {
 
 export default function AINavigationView({ navigationData, onClose }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(
+    navigationData?.originCoords 
+      ? [navigationData.originCoords.lat, navigationData.originCoords.lng]
+      : null
+  );
 
   useEffect(() => {
-    // Track user location
+    // Track user location in real-time with high accuracy
     const watcher = navigator.geolocation.watchPosition(
       (position) => {
         setCurrentLocation([position.coords.latitude, position.coords.longitude]);
       },
-      null,
-      { enableHighAccuracy: true, maximumAge: 5000 }
+      (error) => {
+        console.error('Location tracking error:', error);
+      },
+      { 
+        enableHighAccuracy: true, 
+        maximumAge: 0,
+        timeout: 5000
+      }
     );
     return () => navigator.geolocation.clearWatch(watcher);
   }, []);
@@ -94,7 +104,7 @@ export default function AINavigationView({ navigationData, onClose }) {
       {/* Map */}
       <div className="flex-1 relative">
         <MapContainer
-          center={currentLocation || [25.7617, -80.1918]}
+          center={currentLocation || (navigationData?.originCoords ? [navigationData.originCoords.lat, navigationData.originCoords.lng] : [25.7617, -80.1918])}
           zoom={14}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
@@ -131,7 +141,12 @@ export default function AINavigationView({ navigationData, onClose }) {
             />
           )}
 
-          {directions?.bounds && <MapUpdater bounds={directions.bounds} />}
+          {/* Map centering logic */}
+          {directions?.bounds ? (
+            <MapUpdater bounds={directions.bounds} />
+          ) : currentLocation ? (
+            <MapUpdater center={currentLocation} />
+          ) : null}
         </MapContainer>
 
         {/* ETA Overlay */}
