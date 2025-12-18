@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import AINavigationView from "../components/ai/AINavigationView";
+import LocationPermissionManager from "../components/LocationPermissionManager";
 
 export default function RonronAI() {
   const navigate = useNavigate();
@@ -23,8 +24,10 @@ export default function RonronAI() {
   const [selectedLanguage, setSelectedLanguage] = useState("English");
   const [showNavigation, setShowNavigation] = useState(false);
   const [navigationData, setNavigationData] = useState(null);
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
+  const requestTimeoutRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(user => {
@@ -124,10 +127,37 @@ export default function RonronAI() {
     const messageText = textOverride || inputText;
     if (!messageText.trim()) return;
 
+    // Security validation
+    try {
+      const securityCheck = await base44.functions.invoke('securityValidator', {
+        input: messageText,
+        type: 'chat_message'
+      });
+
+      if (securityCheck.data?.blocked) {
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: "⚠️ Your message was blocked for security reasons. Please avoid using suspicious patterns or commands."
+        }]);
+        return;
+      }
+    } catch (secError) {
+      console.error('Security check failed:', secError);
+    }
+
     const userMessage = { role: "user", content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInputText("");
     setIsLoading(true);
+
+    // Request timeout - 30 seconds max
+    requestTimeoutRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "⏱️ Request timed out. Please try again with a simpler query."
+      }]);
+    }, 30000);
 
     try {
       // Enhanced multilingual context-aware prompting with real-time data
@@ -218,6 +248,20 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
 
     } catch (error) {
       console.error("Ronron error:", error);
+      
+      // Report error to diagnostics
+      try {
+        await base44.functions.invoke('systemDiagnostics', {
+          action: 'error_report',
+          context: {
+            error: error.message,
+            stack: error.stack,
+            userMessage: messageText,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch {}
+
       const errorMessage = {
         role: "assistant",
         content: selectedLanguage === "Haitian Creole" 
@@ -232,6 +276,9 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
       speak(errorMessage.content);
     }
 
+    if (requestTimeoutRef.current) {
+      clearTimeout(requestTimeoutRef.current);
+    }
     setIsLoading(false);
   };
 
@@ -401,6 +448,10 @@ Respond naturally and conversationally in ${selectedLanguage}:`;
 
   return (
     <>
+      <LocationPermissionManager 
+        onPermissionGranted={() => setLocationPermissionGranted(true)}
+      />
+
       {showNavigation && navigationData && (
         <AINavigationView
           navigationData={navigationData}
