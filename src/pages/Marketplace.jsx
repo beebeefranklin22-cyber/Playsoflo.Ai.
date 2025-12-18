@@ -459,15 +459,52 @@ export default function Marketplace() {
           <p className="text-gray-300">
             {filteredItems.length} service{filteredItems.length !== 1 ? 's' : ''} available
           </p>
-          <button 
-            onClick={() => navigate(createPageUrl("ProviderHub"))}
-            className="px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 rounded-full text-white font-semibold hover:scale-105 transition-transform"
-          >
-            Become a Provider
-          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Become a Provider Card - Shows for each category */}
+          {selectedCategory !== "all" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="group cursor-pointer"
+              onClick={() => navigate(createPageUrl("ProviderHub"))}
+            >
+              <div className="relative h-80 rounded-3xl overflow-hidden bg-gradient-to-br from-orange-600 to-red-600 border-2 border-white/20">
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=600')] bg-cover bg-center opacity-20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
+                
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                  <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Briefcase className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Become a Provider
+                  </h3>
+                  <p className="text-white/90 text-sm mb-4">
+                    Start offering {categories.find(c => c.id === selectedCategory)?.label.toLowerCase()} services
+                  </p>
+                  <div className="space-y-2 text-left w-full max-w-xs">
+                    <div className="flex items-center gap-2 text-white text-sm">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span>Set your own rates</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white text-sm">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span>Get paid securely</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-white text-sm">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span>Build your client base</span>
+                    </div>
+                  </div>
+                  <button className="mt-6 px-8 py-3 bg-white rounded-full text-orange-600 font-bold hover:scale-105 transition-transform shadow-xl">
+                    Get Started →
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
           <AnimatePresence>
             {filteredItems.map((item) => {
               const isFood = ["restaurant", "food_truck", "groceries"].includes(item.category);
