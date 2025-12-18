@@ -369,13 +369,14 @@ export default function Home() {
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
         {posts.map((post, index) => (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="mb-6"
-          >
+          <React.Fragment key={post.id}>
+            {index === 2 && <AdDisplay currentUser={currentUser} position="feed" />}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className="mb-6"
+            >
             {/* Post Header */}
             <div className="flex items-center justify-between px-4 py-3">
               <button
@@ -504,6 +505,7 @@ export default function Home() {
               {new Date(post.created_date).toLocaleDateString()}
             </p>
           </motion.div>
+          </React.Fragment>
         ))}
 
         {posts.length === 0 && !isLoading && (
