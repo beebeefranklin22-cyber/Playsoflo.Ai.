@@ -717,11 +717,11 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Video Output */}
-                 {generationOutput.type === "video" && (
+                 {demoOutput.type === "video" && (
                    <div className="space-y-4">
                      <h4 className="text-white font-semibold mb-3">🎬 Video Scenes</h4>
                      <div className="grid grid-cols-3 gap-3">
-                       {generationOutput.scenes.map((scene, i) => (
+                       {demoOutput.scenes?.map((scene, i) => (
                          <div key={i} className="relative group">
                            <img src={scene} className="w-full rounded-lg" alt={`Scene ${i+1}`} />
                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
