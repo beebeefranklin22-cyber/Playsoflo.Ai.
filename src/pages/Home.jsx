@@ -17,6 +17,7 @@ import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
 import EditPostModal from "../components/social/EditPostModal";
+import AdDisplay from "../components/ads/AdDisplay";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
