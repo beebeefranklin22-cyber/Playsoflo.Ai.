@@ -21,6 +21,7 @@ import DistributionManager from "../components/music/DistributionManager";
 import AIMasteringStudio from "../components/music/AIMasteringStudio";
 import RoyaltySplitManager from "../components/music/RoyaltySplitManager";
 import SyncLicensingManager from "../components/music/SyncLicensingManager";
+import VideoEditorPro from "../components/creator/VideoEditorPro";
 
 export default function MusicStudio() {
   const navigate = useNavigate();
@@ -466,6 +467,12 @@ Make it legally sound, fair, and industry-standard.`;
               >
                 💼 Deals
               </TabsTrigger>
+              <TabsTrigger 
+                value="video" 
+                className="flex-shrink-0 text-sm md:text-base font-bold px-4 md:px-6 py-3 md:py-4 whitespace-nowrap bg-white/10 border border-white/20 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:border-red-500"
+              >
+                🎬 Video
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -642,6 +649,10 @@ Make it legally sound, fair, and industry-standard.`;
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="video" className="mt-6">
+            <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="deals" className="mt-6">
