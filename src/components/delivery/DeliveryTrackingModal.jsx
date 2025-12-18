@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import { X, MapPin, Package, Truck, CheckCircle, Clock, Star, Navigation } from "lucide-react";
+import { X, MapPin, Package, Truck, CheckCircle, Clock, Star, Navigation, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import LiveGPSTracking from "./LiveGPSTracking";
 import RatingModal from "./RatingModal";
+import TipButton from "../TipButton";
+import DeliveryDetailsModal from "./DeliveryDetailsModal";
 
 export default function DeliveryTrackingModal({ delivery, currentUser, onClose }) {
   const [showRating, setShowRating] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const trackingSteps = [
     { status: 'pending', label: 'Order Placed', icon: Package },
@@ -244,12 +247,39 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
               <div>
                 <p className="text-gray-400 text-sm">Total Paid</p>
                 <p className="text-white text-2xl font-bold">${delivery.total_price?.toFixed(2)}</p>
+                {delivery.tip_amount > 0 && (
+                  <p className="text-green-400 text-sm">+${delivery.tip_amount?.toFixed(2)} tip</p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-green-400 text-sm font-semibold">35% Cheaper</p>
                 <p className="text-gray-400 text-xs">than Uber</p>
               </div>
             </div>
+          </div>
+
+          {/* Tip Driver & View Details */}
+          <div className="flex gap-3">
+            {liveDelivery.status === 'delivered' && liveDelivery.driver_email && 
+             liveDelivery.sender_email === currentUser?.email && (
+              <TipButton
+                recipientEmail={liveDelivery.driver_email}
+                recipientName="Your Driver"
+                currentUser={currentUser}
+                serviceType="delivery"
+                serviceId={liveDelivery.id}
+                className="flex-1"
+              />
+            )}
+            
+            <Button
+              onClick={() => setShowDetails(true)}
+              variant="outline"
+              className="flex-1 border-white/20 text-white"
+            >
+              <Info className="w-4 h-4 mr-2" />
+              View Full Details
+            </Button>
           </div>
         </div>
       </motion.div>
@@ -258,6 +288,13 @@ export default function DeliveryTrackingModal({ delivery, currentUser, onClose }
         <RatingModal
           delivery={liveDelivery}
           onClose={() => setShowRating(false)}
+        />
+      )}
+
+      {showDetails && (
+        <DeliveryDetailsModal
+          delivery={liveDelivery}
+          onClose={() => setShowDetails(false)}
         />
       )}
     </div>
