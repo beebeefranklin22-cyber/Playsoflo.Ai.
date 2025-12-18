@@ -70,6 +70,16 @@ export default function Profile() {
       show_phone: false,
       show_activity: true,
       allow_messages: "everyone"
+    },
+    notification_preferences: {
+      app_updates: true,
+      promotions: true,
+      new_features: true,
+      ride_alerts: true,
+      booking_reminders: true,
+      payment_alerts: true,
+      social_updates: false,
+      marketing_emails: false
     }
   });
 
@@ -90,6 +100,16 @@ export default function Profile() {
             show_phone: false,
             show_activity: true,
             allow_messages: "everyone"
+          },
+          notification_preferences: user.notification_preferences || {
+            app_updates: true,
+            promotions: true,
+            new_features: true,
+            ride_alerts: true,
+            booking_reminders: true,
+            payment_alerts: true,
+            social_updates: false,
+            marketing_emails: false
           }
         });
       } catch (error) {
@@ -674,6 +694,185 @@ export default function Profile() {
             <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  Notification Preferences
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">App Updates</span>
+                    <p className="text-gray-400 text-xs">Get notified about new versions</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, app_updates: !editedUser.notification_preferences.app_updates }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.app_updates ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.app_updates ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Promotions</span>
+                    <p className="text-gray-400 text-xs">Special offers and deals</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, promotions: !editedUser.notification_preferences.promotions }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.promotions ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.promotions ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">New Features</span>
+                    <p className="text-gray-400 text-xs">Learn about new capabilities</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, new_features: !editedUser.notification_preferences.new_features }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.new_features ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.new_features ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Ride Alerts</span>
+                    <p className="text-gray-400 text-xs">Driver updates and arrivals</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, ride_alerts: !editedUser.notification_preferences.ride_alerts }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.ride_alerts ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.ride_alerts ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Booking Reminders</span>
+                    <p className="text-gray-400 text-xs">Upcoming reservations</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, booking_reminders: !editedUser.notification_preferences.booking_reminders }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.booking_reminders ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.booking_reminders ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Payment Alerts</span>
+                    <p className="text-gray-400 text-xs">Transaction confirmations</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, payment_alerts: !editedUser.notification_preferences.payment_alerts }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.payment_alerts ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.payment_alerts ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Social Updates</span>
+                    <p className="text-gray-400 text-xs">Likes, comments, follows</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, social_updates: !editedUser.notification_preferences.social_updates }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.social_updates ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.social_updates ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white font-medium">Marketing Emails</span>
+                    <p className="text-gray-400 text-xs">Newsletter and updates</p>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({
+                      ...editedUser,
+                      notification_preferences: { ...editedUser.notification_preferences, marketing_emails: !editedUser.notification_preferences.marketing_emails }
+                    })}
+                    className={`w-12 h-6 rounded-full transition ${
+                      editedUser.notification_preferences.marketing_emails ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.notification_preferences.marketing_emails ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+
+                <Button
+                  onClick={async () => {
+                    await updateUserMutation.mutateAsync({ notification_preferences: editedUser.notification_preferences });
+                  }}
+                  className="w-full bg-purple-600 hover:bg-purple-700 mt-4"
+                >
+                  Save Notification Preferences
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-effect border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
                   <Settings className="w-5 h-5" />
                   Account Settings
                 </CardTitle>
@@ -693,7 +892,7 @@ export default function Profile() {
                   className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
                 >
                   <Bell className="w-4 h-4 mr-2" />
-                  Notification Settings
+                  Notification Center
                 </Button>
                 <Button
                   variant="outline"
