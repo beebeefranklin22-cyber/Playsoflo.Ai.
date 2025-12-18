@@ -698,7 +698,7 @@ Be production-ready and technically accurate.`;
                  </div>
 
                  {/* Image Output */}
-                 {generationOutput.type === "image" && (
+                 {demoOutput.type === "image" && (
                    <div className="space-y-4">
                      <img 
                        src={generationOutput.url} 
