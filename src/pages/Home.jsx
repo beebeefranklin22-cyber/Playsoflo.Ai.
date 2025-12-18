@@ -370,6 +370,9 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Discovery Section - Trending & Popular */}
+      <DiscoverySection currentUser={currentUser} />
+
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
         {posts.map((post, index) => (
