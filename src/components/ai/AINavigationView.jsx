@@ -38,9 +38,18 @@ function MapUpdater({ center, bounds }) {
   const map = useMap();
   useEffect(() => {
     if (bounds) {
-      map.fitBounds([[bounds.southwest.lat, bounds.southwest.lng], [bounds.northeast.lat, bounds.northeast.lng]], { padding: [50, 50] });
+      map.fitBounds([[bounds.southwest.lat, bounds.southwest.lng], [bounds.northeast.lat, bounds.northeast.lng]], { 
+        padding: [80, 80],
+        maxZoom: 17,
+        animate: true,
+        duration: 0.5
+      });
     } else if (center) {
-      map.setView(center, 14, { animate: true });
+      map.setView(center, 17, { 
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 0.25
+      });
     }
   }, [center, bounds, map]);
   return null;
@@ -105,22 +114,47 @@ export default function AINavigationView({ navigationData, onClose }) {
       <div className="flex-1 relative">
         <MapContainer
           center={currentLocation || (navigationData?.originCoords ? [navigationData.originCoords.lat, navigationData.originCoords.lng] : [25.7617, -80.1918])}
-          zoom={14}
+          zoom={16}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          maxZoom={19}
+          minZoom={10}
+          preferCanvas={true}
+          updateWhenIdle={false}
+          updateWhenZooming={false}
+          keepBuffer={4}
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer 
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+            updateWhenIdle={false}
+            updateWhenZooming={false}
+            keepBuffer={4}
+          />
           
-          {/* Current Location */}
+          {/* Current Location - Enhanced visibility for driving */}
           {currentLocation && (
-            <Marker 
-              position={currentLocation}
-              icon={L.divIcon({
-                className: 'current-location-marker',
-                html: '<div style="width: 16px; height: 16px; background: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);"></div>',
-                iconSize: [16, 16]
-              })}
-            />
+            <>
+              <Marker 
+                position={currentLocation}
+                icon={L.divIcon({
+                  className: 'current-location-marker',
+                  html: `
+                    <div style="position: relative; width: 30px; height: 30px;">
+                      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background: #3B82F6; border: 4px solid white; border-radius: 50%; box-shadow: 0 0 20px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.5);"></div>
+                      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(59, 130, 246, 0.2); border-radius: 50%; animation: pulse 2s infinite;"></div>
+                    </div>
+                  `,
+                  iconSize: [30, 30]
+                })}
+              />
+              <style>{`
+                @keyframes pulse {
+                  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+                }
+              `}</style>
+            </>
           )}
 
           {/* Destination */}
@@ -131,14 +165,24 @@ export default function AINavigationView({ navigationData, onClose }) {
             <Marker position={[navigationData.directions.end_location.lat, navigationData.directions.end_location.lng]} />
           )}
 
-          {/* Route */}
+          {/* Route - Enhanced for driving visibility */}
           {routeCoordinates.length > 0 && (
-            <Polyline 
-              positions={routeCoordinates} 
-              color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
-              weight={6}
-              opacity={0.8}
-            />
+            <>
+              {/* Background glow */}
+              <Polyline 
+                positions={routeCoordinates} 
+                color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
+                weight={12}
+                opacity={0.3}
+              />
+              {/* Main route */}
+              <Polyline 
+                positions={routeCoordinates} 
+                color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
+                weight={8}
+                opacity={0.9}
+              />
+            </>
           )}
 
           {/* Map centering logic */}
@@ -149,31 +193,32 @@ export default function AINavigationView({ navigationData, onClose }) {
           ) : null}
         </MapContainer>
 
-        {/* ETA Overlay */}
+        {/* ETA Overlay - Enhanced for driving */}
         {directions && (
-          <div className="absolute top-4 left-4 right-4 z-10 glass-effect rounded-xl p-4 border border-white/20">
+          <div className="absolute top-4 left-4 right-4 z-10 bg-gray-900/95 backdrop-blur-xl rounded-2xl p-5 border-2 border-blue-500/50 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-white text-3xl font-bold">
-                  {directions.duration_in_traffic?.minutes || directions.duration?.minutes} min
+                <div className="text-blue-400 text-5xl font-black tracking-tight">
+                  {directions.duration_in_traffic?.minutes || directions.duration?.minutes}
+                  <span className="text-2xl ml-2">min</span>
                 </div>
-                <div className="text-gray-400 text-sm">
-                  {directions.distance?.miles} mi
+                <div className="text-gray-300 text-base font-bold mt-1">
+                  {directions.distance?.miles} miles away
                   {trafficDelay > 1 && (
-                    <Badge className="ml-2 bg-red-500/20 text-red-400 text-xs">
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      +{trafficDelay}m traffic
+                    <Badge className="ml-2 bg-red-500/30 text-red-300 text-sm font-bold px-2 py-1">
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      +{trafficDelay}m delay
                     </Badge>
                   )}
                 </div>
               </div>
               <Button
                 onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(navigationData.destination)}`, '_blank')}
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700"
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 font-bold text-base"
               >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Google Maps
+                <ExternalLink className="w-5 h-5 mr-2" />
+                Open Maps
               </Button>
             </div>
           </div>
@@ -184,34 +229,41 @@ export default function AINavigationView({ navigationData, onClose }) {
       <div className="glass-effect border-t border-white/10 p-4 max-h-72 overflow-y-auto">
         {currentStep && (
           <div className="mb-4">
-            <div className="bg-blue-600/20 border-2 border-blue-500 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Navigation className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-br from-blue-600/30 to-purple-600/30 border-3 border-blue-400 rounded-2xl p-6 shadow-2xl">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl">
+                  <Navigation className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-white font-bold text-lg mb-1">{currentStep.instruction}</div>
-                  <div className="text-gray-400 text-sm">{currentStep.distance} • {currentStep.duration}</div>
+                  <div className="text-white font-black text-2xl mb-2 leading-tight">{currentStep.instruction}</div>
+                  <div className="text-blue-200 text-base font-bold">{currentStep.distance} • {currentStep.duration}</div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   <button
                     onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))}
                     disabled={currentStepIndex === 0}
-                    className="p-2 bg-white/10 rounded-lg disabled:opacity-30"
+                    className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl disabled:opacity-30 text-white font-bold text-xl"
                   >
                     ←
                   </button>
                   <button
                     onClick={() => setCurrentStepIndex(Math.min(directions.steps.length - 1, currentStepIndex + 1))}
                     disabled={currentStepIndex === directions.steps.length - 1}
-                    className="p-2 bg-white/10 rounded-lg disabled:opacity-30"
+                    className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl disabled:opacity-30 text-white font-bold text-xl"
                   >
                     →
                   </button>
                 </div>
               </div>
-              <div className="mt-2 text-gray-400 text-xs">
-                Step {currentStepIndex + 1} of {directions.steps.length}
+              <div className="mt-3 flex items-center justify-between">
+                <div className="text-blue-200 text-sm font-bold">
+                  Step {currentStepIndex + 1} of {directions.steps.length}
+                </div>
+                {directions.steps[currentStepIndex + 1] && (
+                  <div className="text-gray-400 text-xs">
+                    Next: {directions.steps[currentStepIndex + 1].instruction.substring(0, 40)}...
+                  </div>
+                )}
               </div>
             </div>
           </div>

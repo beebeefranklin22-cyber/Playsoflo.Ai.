@@ -15,6 +15,7 @@ import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
 import RealtimeDataManager from "./components/RealtimeDataManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
 import ErrorBoundary from "./components/ErrorBoundary";
+import SystemHealthMonitor from "./components/SystemHealthMonitor";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -137,6 +138,7 @@ export default function Layout({ children, currentPageName }) {
       <AdvancedOfflineSync />
       <OfflineMediaPlayer />
       <RealtimeDataManager />
+      <SystemHealthMonitor />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
