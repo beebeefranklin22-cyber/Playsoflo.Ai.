@@ -42,14 +42,16 @@ export default function FriendRequestsModal({ currentUser, onClose }) {
       });
 
       // Send notification
-      await base44.entities.Notification.create({
-        user_email: request.from_email,
-        type: "new_follower",
-        title: "Friend Request Accepted",
-        message: `${currentUser.full_name} accepted your friend request!`,
-        read: false,
-        action_url: `/UserProfile?user=${encodeURIComponent(currentUser.email)}`
-      });
+      if (currentUser?.email && currentUser?.full_name) {
+        await base44.entities.Notification.create({
+          user_email: request.from_email,
+          type: "new_follower",
+          title: "Friend Request Accepted",
+          message: `${currentUser.full_name} accepted your friend request!`,
+          read: false,
+          action_url: `/UserProfile?user=${encodeURIComponent(currentUser.email)}`
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['friend-requests']);

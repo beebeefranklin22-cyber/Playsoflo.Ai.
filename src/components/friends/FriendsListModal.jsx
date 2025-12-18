@@ -48,13 +48,15 @@ export default function FriendsListModal({ currentUser, onClose }) {
       await base44.entities.Friendship.delete(friendship.id);
       
       // Delete any pending requests between them
-      const requests = await base44.entities.FriendRequest.filter({});
-      const relevantRequests = requests.filter(
-        r => (r.from_email === currentUser.email && r.to_email === friendship.friendEmail) ||
-             (r.to_email === currentUser.email && r.from_email === friendship.friendEmail)
-      );
-      
-      await Promise.all(relevantRequests.map(r => base44.entities.FriendRequest.delete(r.id)));
+      if (currentUser?.email && friendship?.friendEmail) {
+        const requests = await base44.entities.FriendRequest.filter({});
+        const relevantRequests = requests.filter(
+          r => (r.from_email === currentUser.email && r.to_email === friendship.friendEmail) ||
+               (r.to_email === currentUser.email && r.from_email === friendship.friendEmail)
+        );
+        
+        await Promise.all(relevantRequests.map(r => base44.entities.FriendRequest.delete(r.id)));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['friendships']);
