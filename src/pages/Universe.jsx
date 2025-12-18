@@ -5,13 +5,14 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, // Added Home icon
-  ChevronLeft, // Added ChevronLeft icon
-  Building, // Added Building icon for Real Estate
-  Car, // Added Car icon for Car Rentals
-  Music // Added Music icon
-} from "lucide-react"; // Changed import from "lucide" to "lucide-react"
+  Home,
+  ChevronLeft,
+  Building,
+  Car,
+  Music
+} from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import CardStack from "../components/CardStack";
 
 const pillars = [
