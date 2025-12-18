@@ -108,48 +108,13 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Upload Section */}
-            <div className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center">
-              {formData.image_url ? (
-                <div className="relative">
-                  {formData.image_url.includes('.mp4') || formData.image_url.includes('video') ? (
-                    <video src={formData.image_url} className="max-h-64 mx-auto rounded-xl" controls />
-                  ) : (
-                    <img src={formData.image_url} className="max-h-64 mx-auto rounded-xl object-cover" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, image_url: "" }))}
-                    className="absolute top-2 right-2 p-2 bg-red-500 rounded-full hover:bg-red-600"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <input
-                    type="file"
-                    id="post-upload"
-                    className="hidden"
-                    accept="image/*,video/*"
-                    onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                  />
-                  <label htmlFor="post-upload" className="cursor-pointer">
-                    {uploading ? (
-                      <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Upload className="w-8 h-8 text-purple-400" />
-                        </div>
-                        <p className="text-white font-semibold mb-1">Upload Photo or Video</p>
-                        <p className="text-gray-400 text-sm">Click to browse files</p>
-                      </>
-                    )}
-                  </label>
-                </>
-              )}
-            </div>
+            <MediaUploader
+              value={formData.image_url}
+              onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+              type="both"
+              label="Post Media"
+              previewClassName="h-64"
+            />
 
             {/* Caption */}
             <Textarea

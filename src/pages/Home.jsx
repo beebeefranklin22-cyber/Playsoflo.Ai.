@@ -16,6 +16,7 @@ import StoryViewer from "../components/story/StoryViewer";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
+import EditPostModal from "../components/social/EditPostModal";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -35,6 +36,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [viewingStories, setViewingStories] = useState(null);
   const [storyStartIndex, setStoryStartIndex] = useState(0);
+  const [editingPost, setEditingPost] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -393,9 +395,18 @@ export default function Home() {
                   )}
                 </div>
               </button>
-              <button className="text-gray-400 hover:text-white">
-                <MoreHorizontal className="w-6 h-6" />
-              </button>
+              {post.created_by === currentUser?.email ? (
+                <button 
+                  onClick={() => setEditingPost(post)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <MoreHorizontal className="w-6 h-6" />
+                </button>
+              ) : (
+                <button className="text-gray-400 hover:text-white">
+                  <MoreHorizontal className="w-6 h-6" />
+                </button>
+              )}
             </div>
 
             {/* Post Image */}
@@ -559,6 +570,13 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        isOpen={!!editingPost}
+        onClose={() => setEditingPost(null)}
+        post={editingPost}
+      />
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
