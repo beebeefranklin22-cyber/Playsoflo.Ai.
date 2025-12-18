@@ -27,6 +27,7 @@ import AvailabilityOverridesManager from "../components/provider/AvailabilityOve
 import RentalAssetManager from "../components/provider/RentalAssetManager";
 import RentalCalendar from "../components/provider/RentalCalendar";
 import ServicePackageManager from "../components/provider/ServicePackageManager";
+import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -213,6 +214,7 @@ export default function ProviderHub() {
 
   const [brand, setBrand] = useState({ provider_brand_name: "", provider_description: "", provider_logo_url: "" });
   const [stripeOnboarding, setStripeOnboarding] = useState(false);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -648,6 +650,15 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
           {/* Earnings Tab */}
           <TabsContent value="earnings" className="space-y-6">
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => setShowPayoutModal(true)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                <DollarSign className="w-4 h-4 mr-2" />
+                Request Payout
+              </Button>
+            </div>
             <EarningsSection currentUser={currentUser} />
           </TabsContent>
 
@@ -1900,6 +1911,12 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             </Card>
           </TabsContent>
         </Tabs>
+
+        <ProviderPayoutManager
+          isOpen={showPayoutModal}
+          onClose={() => setShowPayoutModal(false)}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   );

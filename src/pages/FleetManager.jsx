@@ -26,6 +26,7 @@ import FleetDashboard from "../components/fleet/FleetDashboard";
 import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingFlow";
 import FeatureTooltip from "../components/onboarding/FeatureTooltip";
 import HelpModal from "../components/onboarding/HelpModal";
+import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -37,6 +38,7 @@ export default function FleetManager() {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(null);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -120,6 +122,13 @@ export default function FleetManager() {
             <p className="text-gray-300 text-lg">Manage your rental car fleet efficiently</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={() => setShowPayoutModal(true)}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Request Payout
+            </Button>
             <FeatureTooltip
               id="fleet-ai-assistant"
               title="AI Fleet Assistant"
@@ -438,6 +447,12 @@ export default function FleetManager() {
       {showHelp && (
         <HelpModal topic={showHelp} onClose={() => setShowHelp(null)} />
       )}
+
+      <ProviderPayoutManager
+        isOpen={showPayoutModal}
+        onClose={() => setShowPayoutModal(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }
