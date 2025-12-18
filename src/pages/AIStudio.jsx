@@ -701,7 +701,7 @@ Be production-ready and technically accurate.`;
                  {demoOutput.type === "image" && (
                    <div className="space-y-4">
                      <img 
-                       src={generationOutput.url} 
+                       src={demoOutput.url} 
                        alt="Generated" 
                        className="w-full rounded-xl shadow-2xl"
                      />
