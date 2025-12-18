@@ -83,6 +83,7 @@ import FranchiseHub from './pages/FranchiseHub';
 import SupportDashboard from './pages/SupportDashboard';
 import PassengerProfile from './pages/PassengerProfile';
 import AdsManager from './pages/AdsManager';
+import SystemDiagnostics from './pages/SystemDiagnostics';
 import __Layout from './Layout.jsx';
 
 
@@ -172,6 +173,7 @@ export const PAGES = {
     "SupportDashboard": SupportDashboard,
     "PassengerProfile": PassengerProfile,
     "AdsManager": AdsManager,
+    "SystemDiagnostics": SystemDiagnostics,
 }
 
 export const pagesConfig = {
