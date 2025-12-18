@@ -28,6 +28,7 @@ import RidePreferencesModal from "../components/ride/RidePreferencesModal";
 import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 import FriendRequestsModal from "../components/friends/FriendRequestsModal";
 import FriendsListModal from "../components/friends/FriendsListModal";
+import NotificationPreferences from "../components/notifications/NotificationPreferences";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -716,11 +717,16 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
+            <NotificationPreferences currentUser={currentUser} onUpdate={async () => {
+              const user = await base44.auth.me();
+              setCurrentUser(user);
+            }} />
+
             <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Bell className="w-5 h-5" />
-                  Notification Preferences
+                  Email Notification Preferences
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">

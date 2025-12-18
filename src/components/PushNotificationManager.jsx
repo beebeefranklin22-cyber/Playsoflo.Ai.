@@ -1,17 +1,62 @@
 import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Bell, Package, Car, Users, DollarSign, AlertCircle } from "lucide-react";
+import { Bell, Package, Car, Users, DollarSign, AlertCircle, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function PushNotificationManager({ currentUser }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [permission, setPermission] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
   const [lastChecked, setLastChecked] = useState(Date.now());
+  
+  const preferences = currentUser?.notification_push_preferences || {
+    ride_requests: true,
+    delivery_orders: true,
+    service_bookings: true,
+    food_orders: true,
+    enable_sound: true,
+    enable_vibration: true
+  };
+
+  const acceptRideMutation = useMutation({
+    mutationFn: async (rideId) => {
+      await base44.entities.RideRequest.update(rideId, {
+        driver_email: currentUser.email,
+        driver_status: 'accepted',
+        status: 'accepted'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['new-ride-requests'] });
+      toast.success('✅ Ride accepted!');
+    }
+  });
+
+  const acceptDeliveryMutation = useMutation({
+    mutationFn: async (deliveryId) => {
+      await base44.entities.DeliveryOrder.update(deliveryId, {
+        driver_email: currentUser.email,
+        status: 'driver_assigned'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['new-deliveries'] });
+      toast.success('✅ Delivery accepted!');
+    }
+  });
+
+  const playNotificationSound = () => {
+    if (!preferences.enable_sound) return;
+    try {
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS56+ihUhELTqXh8bllHAg2jdXzzn0vBSh+zPDclkILElyz6OyrWRQLSKDf8sFuJAUuhM/z2Ik2CRZiuOvooVIRC0yl4fG4ZhwIOY7U8858LgUof8zw3JZCCxJctOjsq1kVDEig3/LBbiQFLoTP89iJNgkWYrjr6KFSEQtMpeHxuGYcCDmO1PPOfC4FKH/M8NyWQg==');
+      audio.play().catch(() => {});
+    } catch (e) {}
+  };
 
   // Request notification permission on mount
   useEffect(() => {
@@ -34,7 +79,7 @@ export default function PushNotificationManager({ currentUser }) {
   const { data: newRideRequests = [] } = useQuery({
     queryKey: ['new-ride-requests', currentUser?.email, lastChecked],
     queryFn: async () => {
-      if (!currentUser?.is_driver) return [];
+      if (!currentUser?.is_driver || !preferences.ride_requests) return [];
       
       const requests = await base44.entities.RideRequest.filter({
         driver_status: 'pending',
@@ -45,15 +90,15 @@ export default function PushNotificationManager({ currentUser }) {
         new Date(r.created_date).getTime() > lastChecked - 10000
       );
     },
-    enabled: !!currentUser?.is_driver,
-    refetchInterval: 5000
+    enabled: !!currentUser?.is_driver && preferences.ride_requests,
+    refetchInterval: 3000
   });
 
   // Check for new delivery orders (for delivery drivers)
   const { data: newDeliveries = [] } = useQuery({
     queryKey: ['new-deliveries', currentUser?.email, lastChecked],
     queryFn: async () => {
-      if (!currentUser?.is_delivery_driver) return [];
+      if (!currentUser?.is_delivery_driver || !preferences.delivery_orders) return [];
       
       const orders = await base44.entities.DeliveryOrder.filter({
         status: 'pending'
@@ -63,15 +108,15 @@ export default function PushNotificationManager({ currentUser }) {
         new Date(o.created_date).getTime() > lastChecked - 10000
       );
     },
-    enabled: !!currentUser?.is_delivery_driver,
-    refetchInterval: 5000
+    enabled: !!currentUser?.is_delivery_driver && preferences.delivery_orders,
+    refetchInterval: 3000
   });
 
   // Check for new service bookings (for service providers)
   const { data: newBookings = [] } = useQuery({
     queryKey: ['new-bookings', currentUser?.email, lastChecked],
     queryFn: async () => {
-      if (!currentUser?.is_provider) return [];
+      if (!currentUser?.is_provider || !preferences.service_bookings) return [];
       
       const bookings = await base44.entities.ServiceBooking.filter({
         provider_email: currentUser.email,
@@ -82,15 +127,15 @@ export default function PushNotificationManager({ currentUser }) {
         new Date(b.created_date).getTime() > lastChecked - 10000
       );
     },
-    enabled: !!currentUser?.is_provider,
-    refetchInterval: 5000
+    enabled: !!currentUser?.is_provider && preferences.service_bookings,
+    refetchInterval: 3000
   });
 
   // Check for new food orders (for restaurant owners)
   const { data: newFoodOrders = [] } = useQuery({
     queryKey: ['new-food-orders', currentUser?.email, lastChecked],
     queryFn: async () => {
-      if (!currentUser?.is_restaurant_owner) return [];
+      if (!currentUser?.is_restaurant_owner || !preferences.food_orders) return [];
       
       const orders = await base44.entities.FoodOrder.filter({
         restaurant_email: currentUser.email,
@@ -101,8 +146,8 @@ export default function PushNotificationManager({ currentUser }) {
         new Date(o.created_date).getTime() > lastChecked - 10000
       );
     },
-    enabled: !!currentUser?.is_restaurant_owner,
-    refetchInterval: 5000
+    enabled: !!currentUser?.is_restaurant_owner && preferences.food_orders,
+    refetchInterval: 3000
   });
 
   // Notify on new ride requests
