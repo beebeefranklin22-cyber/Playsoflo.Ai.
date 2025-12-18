@@ -15,13 +15,12 @@ import AdvancedOfflineSync from "./components/AdvancedOfflineSync";
 import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
 import RealtimeDataManager from "./components/RealtimeDataManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
-import ErrorBoundary from "./components/ErrorBoundary";
 import SystemHealthMonitor from "./components/SystemHealthMonitor";
 import ProactiveMonitor from "./components/ProactiveMonitor";
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import PushNotificationManager from "./components/PushNotificationManager";
 
-export default function Layout({ children, currentPageName }) {
+  export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -140,7 +139,6 @@ export default function Layout({ children, currentPageName }) {
   );
 
   return (
-    <ErrorBoundary>
     <PostHogProvider user={currentUser}>
       <ServiceWorkerManager />
       <OfflineManager />
@@ -431,6 +429,5 @@ export default function Layout({ children, currentPageName }) {
       )}
       </div>
       </PostHogProvider>
-      </ErrorBoundary>
       );
       }
