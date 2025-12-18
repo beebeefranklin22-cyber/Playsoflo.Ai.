@@ -782,27 +782,27 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Voice Output */}
-                 {generationOutput.type === "voice" && (
+                 {demoOutput.type === "voice" && (
                    <div className="space-y-4">
                      <div className="bg-blue-500/10 rounded-xl p-6 border border-blue-500/30">
                        <h4 className="text-white font-semibold mb-3">🎙️ Voice Script</h4>
-                       <p className="text-white mb-4 leading-relaxed">{generationOutput.script}</p>
+                       <p className="text-white mb-4 leading-relaxed">{demoOutput.script}</p>
                        <div className="grid grid-cols-2 gap-3 text-sm">
                          <div className="bg-white/5 rounded-lg p-3">
                            <span className="text-gray-400 text-xs">Style</span>
-                           <p className="text-white">{generationOutput.voice_style}</p>
+                           <p className="text-white">{demoOutput.voice_style}</p>
                          </div>
                          <div className="bg-white/5 rounded-lg p-3">
                            <span className="text-gray-400 text-xs">Pace</span>
-                           <p className="text-white">{generationOutput.pace}</p>
+                           <p className="text-white">{demoOutput.pace}</p>
                          </div>
                          <div className="bg-white/5 rounded-lg p-3">
                            <span className="text-gray-400 text-xs">Tone</span>
-                           <p className="text-white">{generationOutput.tone}</p>
+                           <p className="text-white">{demoOutput.tone}</p>
                          </div>
                          <div className="bg-white/5 rounded-lg p-3">
                            <span className="text-gray-400 text-xs">Emphasis</span>
-                           <p className="text-white">{generationOutput.emphasis_words?.join(', ')}</p>
+                           <p className="text-white">{demoOutput.emphasis_words?.join(', ')}</p>
                          </div>
                        </div>
                      </div>
