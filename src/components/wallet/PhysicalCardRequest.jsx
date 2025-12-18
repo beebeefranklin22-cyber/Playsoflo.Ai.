@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CreditCard, Truck, CheckCircle, Clock, X, Package } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +42,8 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
       onClose();
     },
     onError: (error) => {
-      toast.error('Failed to submit card request');
+      const errorMessage = error?.message || 'Failed to submit card request';
+      toast.error(errorMessage);
       console.error('Card request error:', error);
     }
   });
@@ -65,7 +66,8 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
   if (!isOpen) return null;
 
   return (
-    <motion.div
+    <AnimatePresence>
+      <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -240,5 +242,6 @@ export default function PhysicalCardRequest({ currentUser, isOpen, onClose }) {
         )}
       </motion.div>
     </motion.div>
+    </AnimatePresence>
   );
 }
