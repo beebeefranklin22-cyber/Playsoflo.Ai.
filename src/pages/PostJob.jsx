@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ export default function PostJob() {
   const [currentUser, setCurrentUser] = useState(null);
   const [requirementInput, setRequirementInput] = useState("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
@@ -257,10 +257,10 @@ export default function PostJob() {
 
             <Button
               onClick={() => createJobMutation.mutate(jobForm)}
-              disabled={!jobForm.title || !jobForm.description || !jobForm.contact_email || createJobMutation.isLoading}
+              disabled={!jobForm.title || !jobForm.description || !jobForm.contact_email || createJobMutation.isPending}
               className="w-full py-6 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-lg font-bold"
             >
-              {createJobMutation.isLoading ? 'Posting...' : 'Post Job'}
+              {createJobMutation.isPending ? 'Posting...' : 'Post Job'}
             </Button>
           </CardContent>
         </Card>
