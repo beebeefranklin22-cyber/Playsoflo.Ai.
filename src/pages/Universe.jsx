@@ -128,6 +128,16 @@ const pillars = [
 ];
 
 const updatedPillars = [
+  {
+    id: "universe_hub",
+    title: "Universe Hub",
+    subtitle: "News & Opportunities",
+    icon: Globe,
+    gradient: "from-cyan-600 via-blue-600 to-cyan-600",
+    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200",
+    features: ["World News", "Forums", "Jobs & Gigs", "Affiliate Programs"],
+    action: "UniverseHub"
+  },
   ...pillars,
   {
     id: "car_rentals",
