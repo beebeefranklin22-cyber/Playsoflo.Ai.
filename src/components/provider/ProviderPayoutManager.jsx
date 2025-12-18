@@ -28,7 +28,8 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allBookings;
     },
-    enabled: !!currentUser && isOpen
+    enabled: !!currentUser && isOpen,
+    initialData: []
   });
 
   const { data: rentals = [] } = useQuery({
@@ -41,7 +42,8 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allRentals;
     },
-    enabled: !!currentUser && isOpen
+    enabled: !!currentUser && isOpen,
+    initialData: []
   });
 
   const { data: propertyBookings = [] } = useQuery({
@@ -54,13 +56,18 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allPropertyBookings;
     },
-    enabled: !!currentUser && isOpen
+    enabled: !!currentUser && isOpen,
+    initialData: []
   });
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bank-accounts', currentUser?.email],
-    queryFn: () => base44.entities.BankAccount.filter({ user_email: currentUser.email }),
-    enabled: !!currentUser && isOpen
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.BankAccount.filter({ user_email: currentUser.email });
+    },
+    enabled: !!currentUser && isOpen,
+    initialData: []
   });
 
   // Calculate available earnings (platform takes 5-19% fee)

@@ -24,7 +24,8 @@ export default function BankAccountModal({ currentUser, onClose }) {
       if (!currentUser) return [];
       return await base44.entities.BankAccount.filter({ user_email: currentUser.email });
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    initialData: []
   });
 
   const addAccountMutation = useMutation({
