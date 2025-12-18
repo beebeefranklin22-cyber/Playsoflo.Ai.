@@ -17,6 +17,8 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  if (!isOpen) return null;
+
   // Fetch provider earnings
   const { data: bookings = [] } = useQuery({
     queryKey: ['provider-completed-bookings', currentUser?.email],
@@ -28,7 +30,7 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allBookings;
     },
-    enabled: !!currentUser && isOpen,
+    enabled: !!currentUser,
     initialData: []
   });
 
@@ -42,7 +44,7 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allRentals;
     },
-    enabled: !!currentUser && isOpen,
+    enabled: !!currentUser,
     initialData: []
   });
 
@@ -56,7 +58,7 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       });
       return allPropertyBookings;
     },
-    enabled: !!currentUser && isOpen,
+    enabled: !!currentUser,
     initialData: []
   });
 
@@ -66,7 +68,7 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       if (!currentUser) return [];
       return await base44.entities.BankAccount.filter({ user_email: currentUser.email });
     },
-    enabled: !!currentUser && isOpen,
+    enabled: !!currentUser,
     initialData: []
   });
 
@@ -146,8 +148,6 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       bankId: selectedBankId
     });
   };
-
-  if (!isOpen) return null;
 
   return (
     <motion.div
