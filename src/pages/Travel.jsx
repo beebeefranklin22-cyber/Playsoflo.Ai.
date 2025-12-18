@@ -19,7 +19,7 @@ const defaultTravelOptions = [
     icon: Car,
     bgColor: "bg-blue-500/20",
     iconColor: "text-blue-400",
-    image: "https://images.unsplash.com/photo-1449024540548-94f5d5a59230?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80",
     action: () => {} // Action will be handled by setHailOpen for this specific ID
   },
   {
