@@ -242,41 +242,50 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
 
               <div className="space-y-4">
                 <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center">
-                  {newMedia.media_url ? (
-                    <div className="relative">
-                      {newMedia.media_type === 'video' ? (
-                        <video src={newMedia.media_url} className="max-h-48 mx-auto rounded-lg" controls />
-                      ) : (
-                        <img src={newMedia.media_url} className="max-h-48 mx-auto rounded-lg object-cover" />
-                      )}
-                      <button 
-                        onClick={() => setNewMedia(prev => ({ ...prev, media_url: "" }))}
-                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full"
-                      >
-                        <X className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <input
-                        type="file"
-                        id="gallery-upload"
-                        className="hidden"
-                        accept="image/*,video/*"
-                        onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                      />
-                      <label htmlFor="gallery-upload" className="cursor-pointer">
-                        {uploading ? (
-                          <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto" />
-                        ) : (
-                          <>
-                            <Upload className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                            <p className="text-gray-400 text-sm">Click to upload photo or video</p>
-                          </>
-                        )}
-                      </label>
-                    </>
-                  )}
+                 {newMedia.media_url ? (
+                   <div className="relative">
+                     {newMedia.media_type === 'video' ? (
+                       <video src={newMedia.media_url} className="max-h-48 mx-auto rounded-lg" controls />
+                     ) : (
+                       <img src={newMedia.media_url} className="max-h-48 mx-auto rounded-lg object-cover" />
+                     )}
+                     <button 
+                       onClick={() => setNewMedia(prev => ({ ...prev, media_url: "" }))}
+                       className="absolute top-2 right-2 p-1 bg-red-500 rounded-full"
+                     >
+                       <X className="w-4 h-4 text-white" />
+                     </button>
+                   </div>
+                 ) : (
+                   <>
+                     <input
+                       type="file"
+                       id="gallery-upload"
+                       className="hidden"
+                       accept="image/*,video/*"
+                       onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                     />
+                     <Button
+                       type="button"
+                       onClick={() => document.getElementById('gallery-upload').click()}
+                       disabled={uploading}
+                       variant="outline"
+                       className="bg-white/10 border-white/20 hover:bg-white/20"
+                     >
+                       {uploading ? (
+                         <>
+                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                           Uploading...
+                         </>
+                       ) : (
+                         <>
+                           <Upload className="w-4 h-4 mr-2" />
+                           Upload Photo or Video
+                         </>
+                       )}
+                     </Button>
+                   </>
+                 )}
                 </div>
 
                 <Input
