@@ -57,29 +57,33 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Deduct total fee
-    await base44.entities.User.update(user.id, {
+    // Deduct total fee using service role to ensure update permission
+    const updatedUser = await base44.asServiceRole.entities.User.update(user.id, {
       usd_balance: user.usd_balance - totalFee
     });
 
     // Create payment records
-    const distributorPayment = await base44.entities.Payment.create({
+    const distributorPayment = await base44.asServiceRole.entities.Payment.create({
       amount_usd: distributorFee,
       amount_rri: 0,
-      method: "wallet_balance",
+      method: "internal_transfer",
       status: "completed",
       reference_type: "other",
       reference_id: track_id,
+      sender_email: user.email,
+      recipient_email: `${distributor}@distribution.playsoflo.com`,
       memo: `${distributor.charAt(0).toUpperCase() + distributor.slice(1)} distribution fee`
     });
 
-    const platformPayment = await base44.entities.Payment.create({
+    const platformPayment = await base44.asServiceRole.entities.Payment.create({
       amount_usd: PLAYSO_FLO_FEE,
       amount_rri: 0,
-      method: "wallet_balance",
+      method: "internal_transfer",
       status: "completed",
       reference_type: "other",
       reference_id: track_id,
+      sender_email: user.email,
+      recipient_email: "platform@playsoflo.com",
       memo: "PlaySoFlo distribution service fee"
     });
 
@@ -94,12 +98,13 @@ Deno.serve(async (req) => {
       platformLinks[platform] = null;
     });
 
-    const distribution = await base44.entities.MusicDistribution.create({
+    const distribution = await base44.asServiceRole.entities.MusicDistribution.create({
       artist_email: user.email,
       track_id: track_id,
       album_id: album_id,
       distribution_type: distribution_type || 'single',
       platforms: selectedPlatforms,
+      distributor: distributor,
       release_date: release_date || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       status: "processing",
       payment_id: platformPayment.id,
@@ -117,11 +122,11 @@ Deno.serve(async (req) => {
     // After release date, status would change to "live" with platform links
 
     // Send confirmation notification
-    await base44.entities.Notification.create({
+    await base44.asServiceRole.entities.Notification.create({
       recipient_email: user.email,
       type: "payment_received",
-      title: "Music Distribution Started",
-      message: `Charged: $${distributorFee} (${distributor}) + $${PLAYSO_FLO_FEE} (service fee). Distributing to ${platforms?.length || 6} platforms. ISRC: ${isrc}. Release: ${new Date(distribution.release_date).toLocaleDateString()}`,
+      title: "🎵 Music Distribution Started",
+      message: `Charged: $${distributorFee} (${distributor}) + $${PLAYSO_FLO_FEE} (service fee). Distributing to ${selectedPlatforms?.length || 6} platforms. ISRC: ${isrc}. Release: ${new Date(distribution.release_date).toLocaleDateString()}`,
       read: false,
       action_url: "/MusicStudio"
     });
