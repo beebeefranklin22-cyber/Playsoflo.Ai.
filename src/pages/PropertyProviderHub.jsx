@@ -26,6 +26,7 @@ import PropertyDashboard from "../components/property/PropertyDashboard";
 import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingFlow";
 import FeatureTooltip from "../components/onboarding/FeatureTooltip";
 import HelpModal from "../components/onboarding/HelpModal";
+import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export default function PropertyProviderHub() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(null);
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -198,6 +200,13 @@ export default function PropertyProviderHub() {
             <p className="text-gray-300">Manage your real estate listings</p>
           </div>
           <div className="flex gap-3">
+            <Button
+              onClick={() => setShowPayoutModal(true)}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Request Payout
+            </Button>
             <FeatureTooltip
               id="property-bulk-upload"
               title="Bulk Property Upload"
@@ -715,6 +724,12 @@ export default function PropertyProviderHub() {
         {showHelp && (
           <HelpModal topic={showHelp} onClose={() => setShowHelp(null)} />
         )}
+
+        <ProviderPayoutManager
+          isOpen={showPayoutModal}
+          onClose={() => setShowPayoutModal(false)}
+          currentUser={currentUser}
+        />
 
         {/* Add Property Modal */}
         {showAddModal && (
