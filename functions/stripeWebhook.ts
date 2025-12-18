@@ -149,9 +149,59 @@ Deno.serve(async (req) => {
             payment_method_type: paymentIntent.payment_method_types?.[0]
           });
 
-          // Update related entity based on reference type
           const payment = payments[0];
-          if (payment.reference_type === 'booking') {
+          
+          // Handle wallet deposits
+          if (payment.reference_type === 'deposit') {
+            const baseAmount = parseFloat(payment.metadata?.base_amount || payment.amount);
+            const platformFee = parseFloat(payment.metadata?.platform_fee || 0);
+            
+            // Find user and update balance
+            const users = await base44.asServiceRole.entities.User.filter({ email: payment.user_email });
+            
+            if (users.length > 0) {
+              const user = users[0];
+              const currentBalance = user.usd_balance || 0;
+              const newBalance = currentBalance + baseAmount;
+              
+              await base44.asServiceRole.entities.User.update(user.id, {
+                usd_balance: newBalance
+              });
+
+              // Check if deposit payment record already exists
+              const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
+                reference_type: 'deposit',
+                reference_id: paymentIntent.id
+              });
+
+              if (existingDeposits.length === 0) {
+                // Create payment record
+                await base44.asServiceRole.entities.Payment.create({
+                  amount_usd: baseAmount,
+                  amount_rri: 0,
+                  method: 'stripe',
+                  status: 'completed',
+                  reference_type: 'deposit',
+                  reference_id: paymentIntent.id,
+                  sender_email: payment.user_email,
+                  recipient_email: payment.user_email,
+                  memo: `Wallet deposit via Stripe (Fee: $${platformFee.toFixed(2)})`
+                });
+              }
+
+              // Notify user
+              await base44.asServiceRole.entities.Notification.create({
+                recipient_email: payment.user_email,
+                type: 'payment_received',
+                title: '✅ Money Added Successfully',
+                message: `$${baseAmount.toFixed(2)} has been added to your wallet. New balance: $${newBalance.toFixed(2)}`,
+                reference_type: 'payment',
+                reference_id: paymentIntent.id
+              });
+            }
+          }
+          // Update related entity based on reference type
+          else if (payment.reference_type === 'booking') {
             await base44.asServiceRole.entities.Booking.update(payment.reference_id, {
               payment_status: 'paid'
             });
@@ -162,15 +212,17 @@ Deno.serve(async (req) => {
             });
           }
 
-          // Send notification to user
-          await base44.asServiceRole.entities.Notification.create({
-            recipient_email: payment.user_email,
-            type: 'payment_received',
-            title: '✅ Payment Successful',
-            message: `Your payment of $${payment.amount} has been processed successfully.`,
-            reference_type: payment.reference_type,
-            reference_id: payment.reference_id
-          });
+          // Send notification to user (if not deposit - already sent above)
+          if (payment.reference_type !== 'deposit') {
+            await base44.asServiceRole.entities.Notification.create({
+              recipient_email: payment.user_email,
+              type: 'payment_received',
+              title: '✅ Payment Successful',
+              message: `Your payment of $${payment.amount} has been processed successfully.`,
+              reference_type: payment.reference_type,
+              reference_id: payment.reference_id
+            });
+          }
         }
         break;
       }
