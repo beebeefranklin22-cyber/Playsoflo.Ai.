@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { X, Building, Plus, Trash2, CheckCircle, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function BankAccountModal({ currentUser, onClose }) {
   const qc = useQueryClient();
@@ -25,7 +26,9 @@ export default function BankAccountModal({ currentUser, onClose }) {
   const addAccountMutation = useMutation({
     mutationFn: (data) => base44.entities.BankAccount.create({
       ...data,
-      user_email: currentUser.email
+      user_email: currentUser.email,
+      is_verified: false,
+      is_primary: accounts.length === 0
     }),
     onSuccess: () => {
       qc.invalidateQueries(["bank-accounts"]);
@@ -36,12 +39,22 @@ export default function BankAccountModal({ currentUser, onClose }) {
         routing_number: "",
         account_number_last4: ""
       });
+      toast.success('Bank account added successfully!');
+    },
+    onError: (error) => {
+      toast.error(error?.message || 'Failed to add bank account');
     }
   });
 
   const deleteAccountMutation = useMutation({
     mutationFn: (id) => base44.entities.BankAccount.delete(id),
-    onSuccess: () => qc.invalidateQueries(["bank-accounts"])
+    onSuccess: () => {
+      qc.invalidateQueries(["bank-accounts"]);
+      toast.success('Bank account removed');
+    },
+    onError: (error) => {
+      toast.error(error?.message || 'Failed to remove account');
+    }
   });
 
   return (
@@ -141,11 +154,25 @@ export default function BankAccountModal({ currentUser, onClose }) {
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => addAccountMutation.mutate(accountForm)}
-                      disabled={!accountForm.bank_name || addAccountMutation.isLoading}
+                      onClick={() => {
+                        if (!accountForm.bank_name || !accountForm.routing_number || !accountForm.account_number_last4) {
+                          toast.error('Please fill in all fields');
+                          return;
+                        }
+                        if (accountForm.routing_number.length !== 9) {
+                          toast.error('Routing number must be 9 digits');
+                          return;
+                        }
+                        if (accountForm.account_number_last4.length !== 4) {
+                          toast.error('Account number last 4 must be 4 digits');
+                          return;
+                        }
+                        addAccountMutation.mutate(accountForm);
+                      }}
+                      disabled={addAccountMutation.isPending}
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
-                      Link Account
+                      {addAccountMutation.isPending ? 'Linking...' : 'Link Account'}
                     </Button>
                   </div>
                 </CardContent>
