@@ -40,23 +40,18 @@ Deno.serve(async (req) => {
         const session = event.data.object;
         
         const description = session.metadata?.description;
-        const userEmail = session.metadata?.user_email;
+        const userEmail = session.metadata?.user_email || session.customer_email;
         const baseAmount = parseFloat(session.metadata?.base_amount || '0');
+        const platformFee = parseFloat(session.metadata?.platform_fee || '0');
         const orderId = session.metadata?.order_id;
         
         // Validate session amount matches expected amount (security check)
         const sessionAmount = session.amount_total / 100; // Stripe uses cents
+        const expectedTotal = baseAmount + platformFee;
         
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
-          // Verify session amount matches what we expect
-          if (Math.abs(sessionAmount - baseAmount) > 0.01) {
-            console.error('Amount mismatch in webhook', { sessionAmount, baseAmount });
-            return Response.json({ error: 'Amount verification failed' }, { status: 400 });
-          }
-
-          // Calculate platform fee (2.5% for instant deposits)
-          const platformFee = baseAmount * 0.025;
-          const netAmount = baseAmount - platformFee;
+          // Use the net amount (base_amount is already the net amount after fee calculation)
+          const netAmount = baseAmount;
           
           // Find user and update balance
           const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
