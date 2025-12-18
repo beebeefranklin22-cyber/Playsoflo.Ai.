@@ -55,6 +55,8 @@ export default function UserProfile() {
     enabled: !!userParam
   });
 
+  const isOwnProfile = currentUser?.email === profileUser?.email;
+
   const { data: posts = [] } = useQuery({
     queryKey: ['user-posts', profileUser?.email],
     queryFn: () => base44.entities.SocialPost.filter({ created_by: profileUser.email }, '-created_date'),
@@ -96,8 +98,6 @@ export default function UserProfile() {
     },
     enabled: !!profileUser?.email && (profileUser?.is_public_history || isOwnProfile)
   });
-
-  const isOwnProfile = currentUser?.email === profileUser?.email;
 
   if (loadingProfile) {
     return (
