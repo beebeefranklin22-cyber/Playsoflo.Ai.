@@ -52,23 +52,18 @@ export default function SendMoneyModal({ currentUser, onClose }) {
       }
 
       if (currency === "USD") {
-        const currentBalance = currentUser.usd_balance || 0;
-        if (currentBalance < sendAmount) {
-          toast.error("Insufficient USD balance");
+        // Use backend function for atomic P2P payments
+        const response = await processP2PPayment({
+          recipient_email: recipient,
+          amount: sendAmount,
+          memo: message || `Transfer to ${recipientUser.full_name || recipient}`
+        });
+
+        if (!response.data?.success) {
+          toast.error(response.data?.error || "Transfer failed");
           setLoading(false);
           return;
         }
-
-        // Deduct from sender
-        await base44.auth.updateMe({
-          usd_balance: currentBalance - sendAmount
-        });
-
-        // Credit recipient
-        const recipientBalance = recipientUser.usd_balance || 0;
-        await base44.asServiceRole.entities.User.update(recipientUser.id, {
-          usd_balance: recipientBalance + sendAmount
-        });
       } else if (currency === "SoFloCoin") {
         const currentCoins = currentUser.soflo_coins || 0;
         if (currentCoins < sendAmount) {
@@ -77,58 +72,48 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           return;
         }
 
-        // Deduct from sender
+        // Atomic SoFloCoin transfer
+        const senderNewCoins = currentCoins - sendAmount;
+        const recipientCoins = recipientUser.soflo_coins || 0;
+        const recipientNewCoins = recipientCoins + sendAmount;
+
         await base44.auth.updateMe({
-          soflo_coins: currentCoins - sendAmount
+          soflo_coins: senderNewCoins
         });
 
-        // Credit recipient
-        const recipientCoins = recipientUser.soflo_coins || 0;
         await base44.asServiceRole.entities.User.update(recipientUser.id, {
-          soflo_coins: recipientCoins + sendAmount
+          soflo_coins: recipientNewCoins
+        });
+
+        // Create payment records
+        await base44.entities.Payment.create({
+          amount_usd: 0,
+          amount_rri: sendAmount,
+          method: "internal_transfer",
+          status: "completed",
+          reference_type: "sent",
+          sender_email: currentUser.email,
+          recipient_email: recipient,
+          memo: message || `SoFloCoin transfer to ${recipientUser.full_name || recipient}`
+        });
+
+        // Notifications
+        await base44.entities.Notification.create({
+          recipient_email: currentUser.email,
+          type: "payment_received",
+          title: "SoFloCoin Sent",
+          message: `You sent ${sendAmount} SFC to ${recipientUser.full_name}. New balance: ${senderNewCoins} SFC`,
+          read: false
+        });
+
+        await base44.entities.Notification.create({
+          recipient_email: recipient,
+          type: "payment_received",
+          title: "SoFloCoin Received",
+          message: `${currentUser.full_name} sent you ${sendAmount} SFC${message ? `: "${message}"` : ''}. New balance: ${recipientNewCoins} SFC`,
+          read: false
         });
       }
-
-      // Create payment records
-      await base44.entities.Payment.create({
-        amount_usd: currency === "USD" ? sendAmount : 0,
-        amount_rri: currency === "SoFloCoin" ? sendAmount : 0,
-        method: "internal_transfer",
-        status: "completed",
-        reference_type: "sent",
-        recipient_email: recipient,
-        memo: message || `Transfer to ${recipientUser.full_name || recipient}`
-      });
-
-      await base44.asServiceRole.entities.Payment.create({
-        created_by: recipient,
-        amount_usd: currency === "USD" ? sendAmount : 0,
-        amount_rri: currency === "SoFloCoin" ? sendAmount : 0,
-        method: "internal_transfer",
-        status: "completed",
-        reference_type: "received",
-        sender_email: currentUser.email,
-        memo: message || `Transfer from ${currentUser.full_name || currentUser.email}`
-      });
-
-      // Create notifications
-      await base44.entities.Notification.create({
-        user_email: currentUser.email,
-        type: "payment_received",
-        title: "Money Sent",
-        message: `You sent $${sendAmount.toFixed(2)} to ${recipientUser.full_name}`,
-        read: false,
-        action_url: "/Wallet"
-      });
-
-      await base44.entities.Notification.create({
-        user_email: recipient,
-        type: "payment_received",
-        title: "Money Received",
-        message: `${currentUser.full_name} sent you $${sendAmount.toFixed(2)}${message ? `: "${message}"` : ''}`,
-        read: false,
-        action_url: "/Wallet"
-      });
 
       setStep(2);
       
