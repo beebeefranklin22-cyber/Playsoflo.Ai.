@@ -201,13 +201,7 @@ export default function Layout({ children, currentPageName }) {
             )}
 
             <button
-              onClick={() => {
-                if (currentUser?.email) {
-                  navigate(createPageUrl("UserProfile") + `?user=${encodeURIComponent(currentUser.email)}`);
-                } else {
-                  navigate(createPageUrl("Profile"));
-                }
-              }}
+              onClick={() => navigate(createPageUrl("Profile"))}
               className="flex-shrink-0"
             >
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
