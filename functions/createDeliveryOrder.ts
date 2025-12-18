@@ -1,16 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const calculateDistance = (coords1, coords2) => {
-  const R = 3959; // Earth's radius in miles
-  const dLat = (coords2[0] - coords1[0]) * Math.PI / 180;
-  const dLon = (coords2[1] - coords1[1]) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(coords1[0] * Math.PI / 180) * Math.cos(coords2[0] * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);

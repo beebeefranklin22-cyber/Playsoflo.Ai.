@@ -86,8 +86,6 @@ import AdsManager from './pages/AdsManager';
 import SystemDiagnostics from './pages/SystemDiagnostics';
 import SmartOnboarding from './pages/SmartOnboarding';
 import AffiliateProgram from './pages/AffiliateProgram';
-import UniverseHub from './pages/UniverseHub';
-import PostJob from './pages/PostJob';
 import __Layout from './Layout.jsx';
 
 
@@ -180,8 +178,6 @@ export const PAGES = {
     "SystemDiagnostics": SystemDiagnostics,
     "SmartOnboarding": SmartOnboarding,
     "AffiliateProgram": AffiliateProgram,
-    "UniverseHub": UniverseHub,
-    "PostJob": PostJob,
 }
 
 export const pagesConfig = {

@@ -5,12 +5,12 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home,
-  ChevronLeft,
-  Building,
-  Car,
-  Music
-} from "lucide-react";
+  Home, // Added Home icon
+  ChevronLeft, // Added ChevronLeft icon
+  Building, // Added Building icon for Real Estate
+  Car, // Added Car icon for Car Rentals
+  Music // Added Music icon
+} from "lucide-react"; // Changed import from "lucide" to "lucide-react"
 import { motion } from "framer-motion";
 import CardStack from "../components/CardStack";
 
@@ -128,16 +128,6 @@ const pillars = [
 ];
 
 const updatedPillars = [
-  {
-    id: "universe_hub",
-    title: "Universe Hub",
-    subtitle: "News & Opportunities",
-    icon: Globe,
-    gradient: "from-cyan-600 via-blue-600 to-cyan-600",
-    image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200",
-    features: ["World News", "Forums", "Jobs & Gigs", "Affiliate Programs"],
-    action: "UniverseHub"
-  },
   ...pillars,
   {
     id: "car_rentals",
@@ -261,19 +251,18 @@ export default function Universe() {
               {pillar.subtitle}
             </p>
 
-            <div
+            <button
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 navigate(createPageUrl(pillar.action));
               }}
-              role="button"
-              tabIndex={0}
+              type="button"
               className="w-full py-3 sm:py-4 md:py-5 bg-white/30 backdrop-blur-xl rounded-xl sm:rounded-2xl text-white text-sm sm:text-base md:text-lg font-bold hover:bg-white/40 active:scale-[0.98] transition border-2 border-white/50 shadow-2xl flex items-center justify-center gap-2 sm:gap-3 cursor-pointer touch-manipulation"
             >
               Enter {pillar.title}
               <span className="inline-block">→</span>
-            </div>
+            </button>
           </motion.div>
         </div>
 
@@ -379,17 +368,15 @@ export default function Universe() {
             </div>
           </motion.div>
 
-          <motion.div
+          <motion.button
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 1.3, type: "spring", stiffness: 200 }}
             onClick={() => setShowIntro(false)}
-            role="button"
-            tabIndex={0}
-            className="px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-full text-white text-lg sm:text-xl font-bold hover:scale-110 transition-transform glow-effect shadow-2xl cursor-pointer"
+            className="px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-full text-white text-lg sm:text-xl font-bold hover:scale-110 transition-transform glow-effect shadow-2xl"
           >
             Start Swiping
-          </motion.div>
+          </motion.button>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -415,19 +402,18 @@ export default function Universe() {
         className="absolute top-0 left-0 right-0 z-50 p-3 sm:p-4 md:p-6 flex items-center gap-2 sm:gap-4 bg-black/50 backdrop-blur-md safe-area-top"
       >
         {/* Home Button - primary navigation */}
-        <div
+        <button
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
             navigate(createPageUrl("Home"));
           }}
-          role="button"
-          tabIndex={0}
+          type="button"
           className="p-2 sm:p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="Home"
         >
           <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-        </div>
+        </button>
 
         {/* Search Bar */}
         <div className="relative flex-1 min-w-0">
@@ -440,19 +426,18 @@ export default function Universe() {
         </div>
         
         {/* Profile Icon */}
-        <div 
+        <button 
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
             navigate(createPageUrl("Profile"));
           }}
-          role="button"
-          tabIndex={0}
+          type="button"
           className="p-2 sm:p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="View profile"
         >
           <UserCircle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-        </div>
+        </button>
       </motion.div>
 
       {/* CardStack container - uses remaining viewport */}

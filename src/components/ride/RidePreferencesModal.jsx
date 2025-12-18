@@ -6,7 +6,7 @@ import { Volume2, Wind, Droplets, Music, MessageCircle, Save, X } from "lucide-r
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-export default function RidePreferencesModal({ isOpen, onClose, currentUser, onUpdate }) {
+export default function RidePreferencesModal({ open, onClose, currentUser, onSave }) {
   const [preferences, setPreferences] = useState({
     quiet_ride: false,
     ac_preference: "medium",
@@ -29,7 +29,7 @@ export default function RidePreferencesModal({ isOpen, onClose, currentUser, onU
         ride_preferences: preferences
       });
       toast.success("Ride preferences saved!");
-      onUpdate?.();
+      onSave?.(preferences);
       onClose();
     } catch (error) {
       toast.error("Failed to save preferences");
@@ -39,7 +39,7 @@ export default function RidePreferencesModal({ isOpen, onClose, currentUser, onU
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl">
         <DialogHeader>
           <div className="flex items-center justify-between">

@@ -36,22 +36,6 @@ export default function FollowButton({
         following_name: targetName
       });
 
-      // Update follower counts
-      const followerUsers = await base44.entities.User.filter({ email: currentUser.email });
-      const followingUsers = await base44.entities.User.filter({ email: targetEmail });
-      
-      if (followerUsers.length > 0) {
-        await base44.entities.User.update(followerUsers[0].id, {
-          following_count: (followerUsers[0].following_count || 0) + 1
-        });
-      }
-      
-      if (followingUsers.length > 0) {
-        await base44.entities.User.update(followingUsers[0].id, {
-          followers_count: (followingUsers[0].followers_count || 0) + 1
-        });
-      }
-
       // Notify the user being followed
       await base44.entities.Notification.create({
         recipient_email: targetEmail,
@@ -71,8 +55,6 @@ export default function FollowButton({
       queryClient.invalidateQueries({ queryKey: ['follow-status'] });
       queryClient.invalidateQueries({ queryKey: ['followers'] });
       queryClient.invalidateQueries({ queryKey: ['following'] });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['profile-user'] });
     }
   });
 
@@ -80,30 +62,12 @@ export default function FollowButton({
     mutationFn: async () => {
       if (followStatus?.id) {
         await base44.entities.Follow.delete(followStatus.id);
-        
-        // Update follower counts
-        const followerUsers = await base44.entities.User.filter({ email: currentUser.email });
-        const followingUsers = await base44.entities.User.filter({ email: targetEmail });
-        
-        if (followerUsers.length > 0) {
-          await base44.entities.User.update(followerUsers[0].id, {
-            following_count: Math.max(0, (followerUsers[0].following_count || 1) - 1)
-          });
-        }
-        
-        if (followingUsers.length > 0) {
-          await base44.entities.User.update(followingUsers[0].id, {
-            followers_count: Math.max(0, (followingUsers[0].followers_count || 1) - 1)
-          });
-        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['follow-status'] });
       queryClient.invalidateQueries({ queryKey: ['followers'] });
       queryClient.invalidateQueries({ queryKey: ['following'] });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['profile-user'] });
     }
   });
 

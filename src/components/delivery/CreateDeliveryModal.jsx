@@ -73,11 +73,9 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
   const createDelivery = async () => {
     setLoading(true);
     try {
-      const { data } = await base44.functions.invoke('processDeliveryBooking', {
-        deliveryData: {
-          ...formData,
-          ...pricing
-        }
+      const { data } = await base44.functions.invoke('createDeliveryOrder', {
+        order_data: formData,
+        pricing: pricing
       });
 
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });

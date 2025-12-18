@@ -1,45 +1,48 @@
-import React from "react";
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva } from "class-variance-authority";
 
-export const Button = React.forwardRef(({ children, className = "", variant = "default", size = "default", type = "button", disabled, onClick, ...props }, ref) => {
-  let variantClass = "bg-purple-600 text-white hover:bg-purple-700";
-  if (variant === "destructive") variantClass = "bg-red-500 text-white hover:bg-red-600";
-  if (variant === "outline") variantClass = "border border-gray-300 bg-transparent hover:bg-gray-100 text-white hover:text-gray-900";
-  if (variant === "secondary") variantClass = "bg-gray-200 text-gray-900 hover:bg-gray-300";
-  if (variant === "ghost") variantClass = "hover:bg-gray-100 text-white hover:text-gray-900";
-  if (variant === "link") variantClass = "text-purple-400 underline-offset-4 hover:underline";
+import { cn } from "@/lib/utils"
 
-  let sizeClass = "h-9 px-4 py-2";
-  if (size === "sm") sizeClass = "h-8 px-3 text-xs";
-  if (size === "lg") sizeClass = "h-10 px-8";
-  if (size === "icon") sizeClass = "h-9 w-9";
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline:
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
 
-  const buttonClass = `inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`;
-
+const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+  const Comp = asChild ? Slot : "button"
   return (
-    <button ref={ref} type={type} className={buttonClass} disabled={disabled} onClick={onClick} {...props}>
-      {children}
-    </button>
+    (<Comp
+      className={cn(buttonVariants({ variant, size, className }))}
+      ref={ref}
+      {...props} />)
   );
-});
+})
+Button.displayName = "Button"
 
-Button.displayName = "Button";
-
-export const buttonVariants = (options = {}) => {
-  const { variant = "default", size = "default", className = "" } = options;
-  
-  let variantClass = "bg-purple-600 text-white hover:bg-purple-700";
-  if (variant === "destructive") variantClass = "bg-red-500 text-white hover:bg-red-600";
-  if (variant === "outline") variantClass = "border border-gray-300 bg-transparent hover:bg-gray-100 text-white hover:text-gray-900";
-  if (variant === "secondary") variantClass = "bg-gray-200 text-gray-900 hover:bg-gray-300";
-  if (variant === "ghost") variantClass = "hover:bg-gray-100 text-white hover:text-gray-900";
-  if (variant === "link") variantClass = "text-purple-400 underline-offset-4 hover:underline";
-
-  let sizeClass = "h-9 px-4 py-2";
-  if (size === "sm") sizeClass = "h-8 px-3 text-xs";
-  if (size === "lg") sizeClass = "h-10 px-8";
-  if (size === "icon") sizeClass = "h-9 w-9";
-
-  return `inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 ${variantClass} ${sizeClass} ${className}`;
-};
-
-export default Button;
+export { Button, buttonVariants }

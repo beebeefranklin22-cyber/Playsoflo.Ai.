@@ -28,7 +28,6 @@ import RidePreferencesModal from "../components/ride/RidePreferencesModal";
 import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 import FriendRequestsModal from "../components/friends/FriendRequestsModal";
 import FriendsListModal from "../components/friends/FriendsListModal";
-import NotificationPreferences from "../components/notifications/NotificationPreferences";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -127,18 +126,7 @@ export default function Profile() {
     onSuccess: async () => {
       const user = await base44.auth.me();
       setCurrentUser(user);
-      setEditedUser({
-        ...editedUser,
-        full_name: user.full_name || "",
-        username: user.username || "",
-        bio: user.bio || "",
-        phone: user.phone || "",
-        address: user.address || ""
-      });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-      queryClient.invalidateQueries({ queryKey: ['profile-user'] });
-      toast.success('✅ Profile updated!');
-      setIsEditing(false);
+      toast.success('Profile updated!');
     }
   });
 
@@ -272,9 +260,6 @@ export default function Profile() {
             <h1 className="text-3xl font-bold text-white mb-2">
               {currentUser?.full_name || "User"}
             </h1>
-            {currentUser?.username && (
-              <p className="text-purple-400 mb-2">@{currentUser.username}</p>
-            )}
             {currentUser?.privacy_settings?.show_email !== false && (
               <p className="text-gray-400 mb-2">{currentUser?.email}</p>
             )}
@@ -717,16 +702,11 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-4">
-            <NotificationPreferences currentUser={currentUser} onUpdate={async () => {
-              const user = await base44.auth.me();
-              setCurrentUser(user);
-            }} />
-
             <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Bell className="w-5 h-5" />
-                  Email Notification Preferences
+                  Notification Preferences
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">

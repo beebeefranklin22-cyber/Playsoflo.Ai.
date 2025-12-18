@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
@@ -15,12 +14,12 @@ import AdvancedOfflineSync from "./components/AdvancedOfflineSync";
 import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
 import RealtimeDataManager from "./components/RealtimeDataManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
+import ErrorBoundary from "./components/ErrorBoundary";
 import SystemHealthMonitor from "./components/SystemHealthMonitor";
 import ProactiveMonitor from "./components/ProactiveMonitor";
 import SmartTooltip from "./components/onboarding/SmartTooltip";
-import PushNotificationManager from "./components/PushNotificationManager";
 
-  export default function Layout({ children, currentPageName }) {
+export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
@@ -139,6 +138,7 @@ import PushNotificationManager from "./components/PushNotificationManager";
   );
 
   return (
+    <ErrorBoundary>
     <PostHogProvider user={currentUser}>
       <ServiceWorkerManager />
       <OfflineManager />
@@ -422,12 +422,8 @@ import PushNotificationManager from "./components/PushNotificationManager";
       {currentUser && currentUser.onboarding_completed && !isFullScreen && (
         <SmartTooltip currentUser={currentUser} currentPage={currentPageName} />
       )}
-
-      {/* Push Notification Manager */}
-      {currentUser && (
-        <PushNotificationManager currentUser={currentUser} />
-      )}
       </div>
       </PostHogProvider>
+      </ErrorBoundary>
       );
       }

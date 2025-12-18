@@ -12,13 +12,11 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import CreateDeliveryModal from "../components/delivery/CreateDeliveryModal";
 import DeliveryTrackingModal from "../components/delivery/DeliveryTrackingModal";
-import DeliveryDetailsModal from "../components/delivery/DeliveryDetailsModal";
 
 export default function PackageDelivery() {
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -251,31 +249,6 @@ export default function PackageDelivery() {
                     )}
                   </div>
                 </div>
-
-                {/* Quick Actions */}
-                <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDetailsModal(delivery);
-                    }}
-                    className="flex-1 border-white/20 text-white"
-                  >
-                    View Details
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedDelivery(delivery);
-                    }}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  >
-                    Track Package
-                  </Button>
-                </div>
               </motion.div>
             ))}
           </div>
@@ -298,13 +271,6 @@ export default function PackageDelivery() {
           delivery={selectedDelivery}
           currentUser={currentUser}
           onClose={() => setSelectedDelivery(null)}
-        />
-      )}
-
-      {showDetailsModal && (
-        <DeliveryDetailsModal
-          delivery={showDetailsModal}
-          onClose={() => setShowDetailsModal(null)}
         />
       )}
     </div>

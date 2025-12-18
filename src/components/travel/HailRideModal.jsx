@@ -13,7 +13,6 @@ import { toast } from "sonner";
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [stops, setStops] = useState([]);
   const [rideType, setRideType] = useState("car");
   const [isShared, setIsShared] = useState(false);
   const [waitForShared, setWaitForShared] = useState(false);
@@ -66,31 +65,13 @@ export default function HailRideModal({ open, onClose }) {
     </button>
   );
 
-  const addStop = () => {
-    setStops([...stops, { address: '', coords: null, wait_time_minutes: 0 }]);
-  };
-
-  const removeStop = (index) => {
-    setStops(stops.filter((_, i) => i !== index));
-  };
-
-  const updateStop = (index, field, value) => {
-    const updated = [...stops];
-    updated[index] = { ...updated[index], [field]: value };
-    setStops(updated);
-  };
-
   const requestRide = async () => {
-    const stopsFee = stops.length * 5; // $5 per additional stop
     const baseFare = isGroupBooking ? estimatedFare * vehiclesNeeded : estimatedFare;
-    const totalFare = baseFare + stopsFee;
     
     try {
       const ride = await base44.entities.RideRequest.create({
         pickup_address: pickup,
         dropoff_address: dropoff,
-        stops: stops,
-        total_stops_fee: stopsFee,
         ride_type: rideType,
         status: "requested",
         first_ride_free_applied: !isGroupBooking,
@@ -102,7 +83,7 @@ export default function HailRideModal({ open, onClose }) {
         vehicles_needed: isGroupBooking ? vehiclesNeeded : 1,
         group_booking_type: isGroupBooking ? groupBookingType : null,
         fare_breakdown: {
-          total_fare: totalFare,
+          total_fare: baseFare,
           shared_discount: isShared && !isGroupBooking ? estimatedFare * 0.3 : 0,
           per_passenger_fare: isShared && !isGroupBooking ? (estimatedFare * 0.7) / maxPassengers : estimatedFare
         }
@@ -135,39 +116,6 @@ export default function HailRideModal({ open, onClose }) {
           </div>
           <Input placeholder="Pickup address" value={pickup} onChange={(e) => setPickup(e.target.value)} />
           <Input placeholder="Dropoff address" value={dropoff} onChange={(e) => setDropoff(e.target.value)} />
-          
-          {/* Multiple Stops */}
-          <div className="bg-white/5 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-white font-medium">Add Stops (+$5/stop)</span>
-              <Button size="sm" onClick={addStop} variant="outline" className="border-white/20">
-                <Plus className="w-4 h-4 mr-1" />
-                Add Stop
-              </Button>
-            </div>
-            
-            {stops.map((stop, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder={`Stop ${index + 1} address`}
-                  value={stop.address}
-                  onChange={(e) => updateStop(index, 'address', e.target.value)}
-                  className="flex-1 bg-white/10 border-white/20 text-white"
-                />
-                <Button size="sm" onClick={() => removeStop(index)} variant="destructive">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-            
-            {stops.length > 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                <p className="text-yellow-300 text-xs">
-                  <strong>Wait Policy:</strong> 7 minutes per stop. Driver may terminate and keep fare if exceeded.
-                </p>
-              </div>
-            )}
-          </div>
           
           {/* Group/Motorcade Booking */}
           <div className="bg-white/5 rounded-xl p-4 space-y-3">

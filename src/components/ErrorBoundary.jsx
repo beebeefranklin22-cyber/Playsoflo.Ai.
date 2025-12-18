@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -46,13 +47,13 @@ export default class ErrorBoundary extends React.Component {
               Don't worry, our AI is analyzing this issue. Try refreshing the page.
             </p>
 
-            <button 
+            <Button 
               onClick={this.handleReset}
-              className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-medium py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
             >
-              <RefreshCw className="w-5 h-5" />
+              <RefreshCw className="w-5 h-5 mr-2" />
               Refresh Page
-            </button>
+            </Button>
           </div>
         </div>
       );
