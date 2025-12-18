@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
-import { Navigation, X, MapPin, Clock, TrendingUp, ExternalLink, ChevronRight } from "lucide-react";
+import { Navigation, X, MapPin, Clock, TrendingUp, ExternalLink, ChevronRight, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { toast } from "sonner";
 
 // Decode polyline
 const decodePolyline = (encoded) => {
@@ -57,6 +58,7 @@ function MapUpdater({ center, bounds }) {
 
 export default function AINavigationView({ navigationData, onClose }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [navigationStarted, setNavigationStarted] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(
     navigationData?.originCoords 
       ? [navigationData.originCoords.lat, navigationData.originCoords.lng]
@@ -87,6 +89,16 @@ export default function AINavigationView({ navigationData, onClose }) {
   const trafficDelay = directions?.duration_in_traffic && directions?.duration
     ? directions.duration_in_traffic.minutes - directions.duration.minutes
     : 0;
+
+  const handleStartNavigation = () => {
+    setNavigationStarted(true);
+    toast.success('Navigation started!');
+  };
+
+  const handleEndNavigation = () => {
+    toast.success('You have arrived at your destination!');
+    setTimeout(() => onClose(), 1500);
+  };
 
   return (
     <motion.div
@@ -212,17 +224,82 @@ export default function AINavigationView({ navigationData, onClose }) {
                   )}
                 </div>
               </div>
-              <Button
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(navigationData.destination)}`, '_blank')}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 font-bold text-base"
-              >
-                <ExternalLink className="w-5 h-5 mr-2" />
-                Open Maps
-              </Button>
+              <div className="flex gap-2">
+                {navigationStarted ? (
+                  <Button
+                    onClick={handleEndNavigation}
+                    size="lg"
+                    className="bg-green-600 hover:bg-green-700 font-bold text-base"
+                  >
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    Arrived
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleStartNavigation}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 font-bold text-base"
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Start
+                  </Button>
+                )}
+                <Button
+                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(navigationData.destination)}`, '_blank')}
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 border-white/20 font-bold text-base"
+                >
+                  <ExternalLink className="w-5 h-5 mr-2" />
+                  Maps
+                </Button>
+              </div>
             </div>
           </div>
         )}
+
+        {/* Start Navigation Overlay */}
+        <AnimatePresence>
+          {!navigationStarted && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            >
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl p-8 max-w-md mx-4 text-center shadow-2xl"
+              >
+                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Navigation className="w-10 h-10 text-white animate-pulse" />
+                </div>
+                <h3 className="text-white text-3xl font-black mb-2">Ready to Navigate?</h3>
+                <p className="text-blue-100 mb-6">
+                  Turn-by-turn directions to {navigationData?.destination}
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={onClose}
+                    variant="outline"
+                    className="flex-1 bg-white/10 border-white/30 hover:bg-white/20 text-white font-bold"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleStartNavigation}
+                    className="flex-1 bg-white hover:bg-gray-100 text-blue-600 font-bold shadow-lg"
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Start Navigation
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Turn-by-Turn Instructions */}
