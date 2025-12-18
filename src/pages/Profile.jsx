@@ -126,7 +126,18 @@ export default function Profile() {
     onSuccess: async () => {
       const user = await base44.auth.me();
       setCurrentUser(user);
-      toast.success('Profile updated!');
+      setEditedUser({
+        ...editedUser,
+        full_name: user.full_name || "",
+        username: user.username || "",
+        bio: user.bio || "",
+        phone: user.phone || "",
+        address: user.address || ""
+      });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-user'] });
+      toast.success('✅ Profile updated!');
+      setIsEditing(false);
     }
   });
 
@@ -260,6 +271,9 @@ export default function Profile() {
             <h1 className="text-3xl font-bold text-white mb-2">
               {currentUser?.full_name || "User"}
             </h1>
+            {currentUser?.username && (
+              <p className="text-purple-400 mb-2">@{currentUser.username}</p>
+            )}
             {currentUser?.privacy_settings?.show_email !== false && (
               <p className="text-gray-400 mb-2">{currentUser?.email}</p>
             )}
