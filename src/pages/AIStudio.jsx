@@ -813,20 +813,20 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Code Output */}
-                 {generationOutput.type === "code" && (
+                 {demoOutput.type === "code" && (
                    <div className="space-y-4">
                      <div className="bg-gray-900 rounded-xl p-4">
                        <div className="flex items-center justify-between mb-2">
-                         <span className="text-gray-400 text-sm">{generationOutput.language}</span>
+                         <span className="text-gray-400 text-sm">{demoOutput.language}</span>
                          <Button size="sm" variant="outline">Copy Code</Button>
                        </div>
                        <pre className="text-green-400 text-sm overflow-x-auto">
-                         <code>{generationOutput.code}</code>
+                         <code>{demoOutput.code}</code>
                        </pre>
                      </div>
                      <div className="bg-white/5 rounded-lg p-4">
                        <h5 className="text-white font-semibold mb-2">Explanation:</h5>
-                       <p className="text-gray-300 text-sm">{generationOutput.explanation}</p>
+                       <p className="text-gray-300 text-sm">{demoOutput.explanation}</p>
                      </div>
                    </div>
                  )}
