@@ -64,12 +64,85 @@ export default function AINavigationView({ navigationData, onClose }) {
       ? [navigationData.originCoords.lat, navigationData.originCoords.lng]
       : null
   );
+  const [announcedSteps, setAnnouncedSteps] = useState(new Set());
+  const [animatedDash, setAnimatedDash] = useState(0);
+
+  // Animate route dash
+  useEffect(() => {
+    if (!navigationStarted) return;
+    const interval = setInterval(() => {
+      setAnimatedDash(prev => (prev + 1) % 40);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [navigationStarted]);
+
+  // Voice announcement function
+  const speak = (text, priority = false) => {
+    if (!('speechSynthesis' in window)) return;
+    
+    if (priority) {
+      window.speechSynthesis.cancel();
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.lang = 'en-US';
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Calculate distance between two points
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 3959; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   useEffect(() => {
     // Track user location in real-time with high accuracy
     const watcher = navigator.geolocation.watchPosition(
       (position) => {
-        setCurrentLocation([position.coords.latitude, position.coords.longitude]);
+        const newLocation = [position.coords.latitude, position.coords.longitude];
+        setCurrentLocation(newLocation);
+
+        // Voice guidance based on location
+        if (navigationStarted && directions?.steps) {
+          const currentStep = directions.steps[currentStepIndex];
+          if (currentStep?.start_location) {
+            const distanceToStep = calculateDistance(
+              position.coords.latitude,
+              position.coords.longitude,
+              currentStep.start_location.lat,
+              currentStep.start_location.lng
+            );
+
+            // Announce 500 feet before turn (approximately 0.095 miles)
+            const stepKey = `${currentStepIndex}_warning`;
+            if (distanceToStep < 0.095 && !announcedSteps.has(stepKey)) {
+              speak(`In 500 feet, ${currentStep.instruction}`, true);
+              setAnnouncedSteps(prev => new Set(prev).add(stepKey));
+            }
+
+            // Announce when reaching turn
+            const reachedKey = `${currentStepIndex}_reached`;
+            if (distanceToStep < 0.02 && !announcedSteps.has(reachedKey)) {
+              speak(currentStep.instruction, true);
+              setAnnouncedSteps(prev => new Set(prev).add(reachedKey));
+              
+              // Auto advance to next step
+              if (currentStepIndex < directions.steps.length - 1) {
+                setTimeout(() => setCurrentStepIndex(prev => prev + 1), 2000);
+              }
+            }
+          }
+        }
       },
       (error) => {
         console.error('Location tracking error:', error);
@@ -81,7 +154,7 @@ export default function AINavigationView({ navigationData, onClose }) {
       }
     );
     return () => navigator.geolocation.clearWatch(watcher);
-  }, []);
+  }, [navigationStarted, currentStepIndex, announcedSteps, directions]);
 
   const directions = navigationData?.directions;
   const routeCoordinates = directions?.polyline ? decodePolyline(directions.polyline) : [];
@@ -93,11 +166,18 @@ export default function AINavigationView({ navigationData, onClose }) {
   const handleStartNavigation = () => {
     setNavigationStarted(true);
     toast.success('Navigation started!');
+    
+    // Initial announcement
+    const firstStep = directions?.steps?.[0];
+    if (firstStep) {
+      speak(`Starting navigation to ${navigationData.destination}. ${firstStep.instruction}`, true);
+    }
   };
 
   const handleEndNavigation = () => {
+    speak('You have arrived at your destination!', true);
     toast.success('You have arrived at your destination!');
-    setTimeout(() => onClose(), 1500);
+    setTimeout(() => onClose(), 2000);
   };
 
   return (
@@ -177,23 +257,62 @@ export default function AINavigationView({ navigationData, onClose }) {
             <Marker position={[navigationData.directions.end_location.lat, navigationData.directions.end_location.lng]} />
           )}
 
-          {/* Route - Enhanced for driving visibility */}
+          {/* Route - Enhanced with animation and direction arrows */}
           {routeCoordinates.length > 0 && (
             <>
               {/* Background glow */}
               <Polyline 
                 positions={routeCoordinates} 
                 color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
-                weight={12}
-                opacity={0.3}
+                weight={16}
+                opacity={0.2}
               />
-              {/* Main route */}
+              {/* Outer route */}
+              <Polyline 
+                positions={routeCoordinates} 
+                color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
+                weight={12}
+                opacity={0.5}
+              />
+              {/* Main animated route */}
               <Polyline 
                 positions={routeCoordinates} 
                 color={trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"}
                 weight={8}
-                opacity={0.9}
+                opacity={1}
+                dashArray={navigationStarted ? "20, 20" : null}
+                dashOffset={navigationStarted ? animatedDash : 0}
               />
+              
+              {/* Direction arrows along route */}
+              {navigationStarted && routeCoordinates.filter((_, idx) => idx % 15 === 0).map((coord, idx) => (
+                <Marker
+                  key={`arrow-${idx}`}
+                  position={coord}
+                  icon={L.divIcon({
+                    className: 'route-arrow',
+                    html: `
+                      <div style="
+                        width: 0; 
+                        height: 0; 
+                        border-left: 8px solid transparent;
+                        border-right: 8px solid transparent;
+                        border-bottom: 16px solid ${trafficDelay > 3 ? "#EF4444" : trafficDelay > 1 ? "#F59E0B" : "#3B82F6"};
+                        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+                        animation: arrowPulse 1.5s ease-in-out infinite;
+                      "></div>
+                      <style>
+                        @keyframes arrowPulse {
+                          0%, 100% { opacity: 0.6; transform: translateY(0px); }
+                          50% { opacity: 1; transform: translateY(-3px); }
+                        }
+                      </style>
+                    `,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                  })}
+                />
+              ))}
             </>
           )}
 
@@ -317,14 +436,22 @@ export default function AINavigationView({ navigationData, onClose }) {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setCurrentStepIndex(Math.max(0, currentStepIndex - 1))}
+                    onClick={() => {
+                      const newIndex = Math.max(0, currentStepIndex - 1);
+                      setCurrentStepIndex(newIndex);
+                      speak(directions.steps[newIndex].instruction);
+                    }}
                     disabled={currentStepIndex === 0}
                     className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl disabled:opacity-30 text-white font-bold text-xl"
                   >
                     ←
                   </button>
                   <button
-                    onClick={() => setCurrentStepIndex(Math.min(directions.steps.length - 1, currentStepIndex + 1))}
+                    onClick={() => {
+                      const newIndex = Math.min(directions.steps.length - 1, currentStepIndex + 1);
+                      setCurrentStepIndex(newIndex);
+                      speak(directions.steps[newIndex].instruction);
+                    }}
                     disabled={currentStepIndex === directions.steps.length - 1}
                     className="w-12 h-12 bg-white/20 hover:bg-white/30 rounded-xl disabled:opacity-30 text-white font-bold text-xl"
                   >
