@@ -761,14 +761,14 @@ Be production-ready and technically accurate.`;
                        </div>
 
                        <audio controls className="w-full mb-4">
-                         <source src={generationOutput.audio_preview} type="audio/mpeg" />
+                         <source src={demoOutput.audio_preview} type="audio/mpeg" />
                        </audio>
 
-                       {generationOutput.structure && (
+                       {demoOutput.structure && (
                          <div className="bg-white/5 rounded-lg p-4">
                            <h5 className="text-white font-semibold mb-2">Song Structure:</h5>
                            <div className="space-y-1 text-sm">
-                             {generationOutput.structure.map((part, i) => (
+                             {demoOutput.structure.map((part, i) => (
                                <div key={i} className="flex justify-between text-gray-300">
                                  <span>{part.section}</span>
                                  <span>{part.timestamp}</span>
