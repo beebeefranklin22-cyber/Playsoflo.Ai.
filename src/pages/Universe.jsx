@@ -12,7 +12,6 @@ import {
   Music
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import CardStack from "../components/CardStack";
 
 const pillars = [
@@ -380,15 +379,17 @@ export default function Universe() {
             </div>
           </motion.div>
 
-          <motion.button
+          <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 1.3, type: "spring", stiffness: 200 }}
             onClick={() => setShowIntro(false)}
-            className="px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-full text-white text-lg sm:text-xl font-bold hover:scale-110 transition-transform glow-effect shadow-2xl"
+            role="button"
+            tabIndex={0}
+            className="px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-full text-white text-lg sm:text-xl font-bold hover:scale-110 transition-transform glow-effect shadow-2xl cursor-pointer"
           >
             Start Swiping
-          </motion.button>
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
@@ -414,18 +415,19 @@ export default function Universe() {
         className="absolute top-0 left-0 right-0 z-50 p-3 sm:p-4 md:p-6 flex items-center gap-2 sm:gap-4 bg-black/50 backdrop-blur-md safe-area-top"
       >
         {/* Home Button - primary navigation */}
-        <button
+        <div
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
             navigate(createPageUrl("Home"));
           }}
-          type="button"
+          role="button"
+          tabIndex={0}
           className="p-2 sm:p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="Home"
         >
           <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-        </button>
+        </div>
 
         {/* Search Bar */}
         <div className="relative flex-1 min-w-0">
@@ -438,18 +440,19 @@ export default function Universe() {
         </div>
         
         {/* Profile Icon */}
-        <button 
+        <div 
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
             navigate(createPageUrl("Profile"));
           }}
-          type="button"
+          role="button"
+          tabIndex={0}
           className="p-2 sm:p-3 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition border border-white/20 flex-shrink-0 cursor-pointer"
           title="View profile"
         >
           <UserCircle className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-        </button>
+        </div>
       </motion.div>
 
       {/* CardStack container - uses remaining viewport */}
