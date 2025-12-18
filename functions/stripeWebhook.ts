@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
 
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
-        
+
         // Update payment record
         const payments = await base44.asServiceRole.entities.StripePayment.filter({
           stripe_payment_intent_id: paymentIntent.id
@@ -150,32 +150,29 @@ Deno.serve(async (req) => {
           });
 
           const payment = payments[0];
-          
+
           // Handle wallet deposits
           if (payment.reference_type === 'deposit') {
             const baseAmount = parseFloat(payment.metadata?.base_amount || payment.amount);
             const platformFee = parseFloat(payment.metadata?.platform_fee || 0);
-            
-            // Find user and update balance
+
             const users = await base44.asServiceRole.entities.User.filter({ email: payment.user_email });
-            
+
             if (users.length > 0) {
               const user = users[0];
               const currentBalance = user.usd_balance || 0;
               const newBalance = currentBalance + baseAmount;
-              
+
               await base44.asServiceRole.entities.User.update(user.id, {
                 usd_balance: newBalance
               });
 
-              // Check if deposit payment record already exists
               const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
                 reference_type: 'deposit',
                 reference_id: paymentIntent.id
               });
 
               if (existingDeposits.length === 0) {
-                // Create payment record
                 await base44.asServiceRole.entities.Payment.create({
                   amount_usd: baseAmount,
                   amount_rri: 0,
@@ -189,7 +186,6 @@ Deno.serve(async (req) => {
                 });
               }
 
-              // Notify user
               await base44.asServiceRole.entities.Notification.create({
                 recipient_email: payment.user_email,
                 type: 'payment_received',
@@ -200,19 +196,80 @@ Deno.serve(async (req) => {
               });
             }
           }
-          // Update related entity based on reference type
+          // Handle service bookings - pay provider
           else if (payment.reference_type === 'booking') {
-            await base44.asServiceRole.entities.Booking.update(payment.reference_id, {
-              payment_status: 'paid'
-            });
-          } else if (payment.reference_type === 'car_rental') {
-            await base44.asServiceRole.entities.CarRental.update(payment.reference_id, {
-              payment_status: 'fully_paid',
-              status: 'confirmed'
-            });
+            const bookings = await base44.asServiceRole.entities.ServiceBooking.filter({ id: payment.reference_id });
+            if (bookings.length > 0) {
+              const booking = bookings[0];
+              await base44.asServiceRole.entities.ServiceBooking.update(booking.id, {
+                payment_status: 'paid',
+                booking_status: 'confirmed'
+              });
+
+              // Pay provider (85% to provider, 15% platform fee)
+              const providerAmount = payment.amount * 0.85;
+              const platformFee = payment.amount * 0.15;
+
+              const providerUsers = await base44.asServiceRole.entities.User.filter({ email: booking.provider_email });
+              if (providerUsers.length > 0) {
+                const provider = providerUsers[0];
+                await base44.asServiceRole.entities.User.update(provider.id, {
+                  usd_balance: (provider.usd_balance || 0) + providerAmount
+                });
+
+                await base44.asServiceRole.entities.Payment.create({
+                  amount_usd: providerAmount,
+                  method: 'internal_transfer',
+                  status: 'completed',
+                  reference_type: 'booking',
+                  reference_id: booking.id,
+                  sender_email: booking.user_email,
+                  recipient_email: booking.provider_email,
+                  memo: `Payment for service: ${booking.service_name}`
+                });
+
+                await base44.asServiceRole.entities.Notification.create({
+                  recipient_email: booking.provider_email,
+                  type: 'payment_received',
+                  title: '💰 Payment Received',
+                  message: `You earned $${providerAmount.toFixed(2)} from ${booking.user_email}`,
+                  reference_type: 'booking',
+                  reference_id: booking.id
+                });
+              }
+            }
+          } 
+          else if (payment.reference_type === 'car_rental') {
+            const rentals = await base44.asServiceRole.entities.CarRental.filter({ id: payment.reference_id });
+            if (rentals.length > 0) {
+              const rental = rentals[0];
+              await base44.asServiceRole.entities.CarRental.update(rental.id, {
+                payment_status: 'fully_paid',
+                status: 'confirmed'
+              });
+
+              // Pay provider
+              const providerAmount = rental.provider_earnings || (payment.amount * 0.81);
+              const providerUsers = await base44.asServiceRole.entities.User.filter({ email: rental.provider_email });
+              if (providerUsers.length > 0) {
+                const provider = providerUsers[0];
+                await base44.asServiceRole.entities.User.update(provider.id, {
+                  usd_balance: (provider.usd_balance || 0) + providerAmount
+                });
+
+                await base44.asServiceRole.entities.Notification.create({
+                  recipient_email: rental.provider_email,
+                  type: 'payment_received',
+                  title: '💰 Rental Payment Received',
+                  message: `You earned $${providerAmount.toFixed(2)} from car rental`,
+                  reference_type: 'car_rental',
+                  reference_id: rental.id
+                });
+              }
+            }
           }
 
-          // Send notification to user (if not deposit - already sent above)
+          // Generic notification for customer
           if (payment.reference_type !== 'deposit') {
             await base44.asServiceRole.entities.Notification.create({
               recipient_email: payment.user_email,
