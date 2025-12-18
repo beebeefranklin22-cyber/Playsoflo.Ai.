@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Newspaper, MessageSquare, TrendingUp, Briefcase,
   Search, ChevronLeft, MapPin, DollarSign, Clock,
@@ -25,7 +26,7 @@ export default function UniverseHub() {
   const [newsFilter, setNewsFilter] = useState("all");
   const [jobFilter, setJobFilter] = useState("all");
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
