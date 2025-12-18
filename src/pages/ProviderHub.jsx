@@ -28,13 +28,31 @@ import RentalAssetManager from "../components/provider/RentalAssetManager";
 import RentalCalendar from "../components/provider/RentalCalendar";
 
 const categories = [
-  "logistics","bail_bonding","car_insurance","home_insurance","health_insurance","life_insurance",
-  "construction","automotive","legal_services","event_planning","concierge","personal_chef",
-  "barber_beauty","wellness","acupuncture","chiropractic","orthodontics","rehab","shelter_services",
-  "injury_care","senior_care","restaurant","food_truck","groceries","hair_extensions",
-  "physical_therapy","mental_health_counseling","nutrition_counseling","substance_abuse_counseling",
-  "hospice_care","home_healthcare","medical_equipment_rental","physical_rehabilitation",
-  "occupational_therapy","speech_therapy","mobility_assistance"
+  "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
+  "luxury_goods", "concierge", "event_planning", "legal_services", "construction", "automotive",
+  "wedding_planning", "photography", "consulting", "accounting", "real_estate", "moving_services",
+  "pet_services", "tutoring", "fitness_training", "tech_support", "medical_health", "dj_entertainment",
+  "music_lessons", "graphic_design", "video_production", "virtual_assistant", "marketing", "translation",
+  "security_services", "landscaping", "pool_maintenance", "pest_control", "interior_design",
+  "personal_shopping", "catering", "cleaning", "childcare", "elder_care", "equipment_rental",
+  "massage_therapy", "hair_makeup", "tailoring", "jewelry_repair", "computer_repair", "plumbing",
+  "electrical", "roofing", "painting", "hvac", "window_cleaning", "pressure_washing", "junk_removal",
+  "locksmith", "notary", "financial_planning", "tax_preparation", "insurance", "travel_planning",
+  "life_coaching", "career_coaching", "art_classes", "yoga_meditation", "sports_coaching",
+  "private_investigation", "logistics", "bail_bonding", "car_insurance", "home_insurance",
+  "health_insurance", "life_insurance", "acupuncture", "chiropractic", "orthodontics", "rehab",
+  "shelter_services", "injury_care", "senior_care", "restaurant", "food_truck", "groceries",
+  "hair_extensions", "physical_therapy", "mental_health_counseling", "nutrition_counseling",
+  "substance_abuse_counseling", "hospice_care", "home_healthcare", "medical_equipment_rental",
+  "physical_rehabilitation", "occupational_therapy", "speech_therapy", "mobility_assistance",
+  "audio_engineering", "session_musician", "songwriting", "music_promotion", "event_decor",
+  "event_staffing", "private_aviation", "personal_security", "visa_services", "yacht_charter",
+  "personal_stylist", "fine_art_consulting", "luxury_shopping_experience", "exclusive_event_access",
+  "web_development", "app_development", "blockchain_consulting", "ai_development", "seo_services",
+  "content_writing", "podcast_production", "voice_acting", "animation_services", "3d_modeling",
+  "game_development", "cybersecurity", "data_analytics", "business_consulting", "hr_services",
+  "payroll_services", "bookkeeping", "private_chef_catering", "sommelier_services", "party_rental",
+  "bounce_house_rental", "photo_booth_rental", "valet_parking", "coat_check", "bartending", "waitstaff"
 ];
 
 export default function ProviderHub() {

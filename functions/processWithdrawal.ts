@@ -58,8 +58,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Stripe payout failed', details: error.message }, { status: 500 });
     }
 
-    // Update user balance
-    const newBalance = (user.usd_balance || 0) - amount;
+    // Update user balance atomically
+    const currentBalance = user.usd_balance || 0;
+    const newBalance = currentBalance - amount;
+    
+    if (newBalance < 0) {
+      return Response.json({ error: 'Insufficient balance after recalculation' }, { status: 400 });
+    }
+    
     await base44.asServiceRole.entities.User.update(user.id, {
       usd_balance: newBalance
     });
