@@ -737,26 +737,26 @@ Be production-ready and technically accurate.`;
                  )}
 
                  {/* Music Output */}
-                 {generationOutput.type === "music" && (
+                 {demoOutput.type === "music" && (
                    <div className="space-y-4">
                      <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-6">
-                       <h4 className="text-white font-bold text-xl mb-2">{generationOutput.title}</h4>
+                       <h4 className="text-white font-bold text-xl mb-2">{demoOutput.title}</h4>
                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                          <div>
                            <span className="text-gray-400">Genre:</span>
-                           <span className="text-white ml-2">{generationOutput.genre}</span>
+                           <span className="text-white ml-2">{demoOutput.genre}</span>
                          </div>
                          <div>
                            <span className="text-gray-400">Tempo:</span>
-                           <span className="text-white ml-2">{generationOutput.tempo_bpm} BPM</span>
+                           <span className="text-white ml-2">{demoOutput.tempo_bpm} BPM</span>
                          </div>
                          <div>
                            <span className="text-gray-400">Key:</span>
-                           <span className="text-white ml-2">{generationOutput.key}</span>
+                           <span className="text-white ml-2">{demoOutput.key}</span>
                          </div>
                          <div>
                            <span className="text-gray-400">Mood:</span>
-                           <span className="text-white ml-2">{generationOutput.mood}</span>
+                           <span className="text-white ml-2">{demoOutput.mood}</span>
                          </div>
                        </div>
 
