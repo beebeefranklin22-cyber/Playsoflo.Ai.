@@ -22,7 +22,9 @@ export default function LocationPermissionManager({ onPermissionGranted }) {
       
       if (result.state === 'granted') {
         setPermissionState('granted');
+        setShowPrompt(false);
         onPermissionGranted?.();
+        return;
       } else if (result.state === 'prompt') {
         setPermissionState('prompt');
         setShowPrompt(true);
@@ -39,22 +41,41 @@ export default function LocationPermissionManager({ onPermissionGranted }) {
         }
       };
     } catch {
-      requestLocationDirectly();
+      // Fallback: try to get location directly
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setPermissionState('granted');
+          setShowPrompt(false);
+          onPermissionGranted?.();
+        },
+        () => {
+          setPermissionState('prompt');
+          setShowPrompt(true);
+        },
+        { timeout: 3000 }
+      );
     }
   };
 
   const requestLocationDirectly = () => {
     navigator.geolocation.getCurrentPosition(
-      () => {
+      (position) => {
         setPermissionState('granted');
         setShowPrompt(false);
         onPermissionGranted?.();
       },
-      () => {
-        setPermissionState('denied');
-        setShowPrompt(true);
+      (error) => {
+        if (error.code === 1) { // Permission denied
+          setPermissionState('denied');
+          setShowPrompt(true);
+        } else {
+          // Other errors (timeout, unavailable) - try again
+          setPermissionState('granted');
+          setShowPrompt(false);
+          onPermissionGranted?.();
+        }
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   };
 
