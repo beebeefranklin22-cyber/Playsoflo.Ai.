@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import Stripe from 'npm:stripe@14.11.0';
+import Stripe from 'npm:stripe@17.4.0';
 
 Deno.serve(async (req) => {
   try {
@@ -206,36 +206,49 @@ Deno.serve(async (req) => {
                 booking_status: 'confirmed'
               });
 
-              // Pay provider (85% to provider, 15% platform fee)
-              const providerAmount = payment.amount * 0.85;
-              const platformFee = payment.amount * 0.15;
+              // Check for duplicate payment
+              const existingProviderPayments = await base44.asServiceRole.entities.Payment.filter({
+                reference_type: 'booking',
+                reference_id: booking.id,
+                recipient_email: booking.provider_email,
+                status: 'completed'
+              });
 
-              const providerUsers = await base44.asServiceRole.entities.User.filter({ email: booking.provider_email });
-              if (providerUsers.length > 0) {
-                const provider = providerUsers[0];
-                await base44.asServiceRole.entities.User.update(provider.id, {
-                  usd_balance: (provider.usd_balance || 0) + providerAmount
-                });
+              if (existingProviderPayments.length === 0) {
+                // Pay provider (85% to provider, 15% platform fee)
+                const providerAmount = payment.amount * 0.85;
+                const platformFee = payment.amount * 0.15;
 
-                await base44.asServiceRole.entities.Payment.create({
-                  amount_usd: providerAmount,
-                  method: 'internal_transfer',
-                  status: 'completed',
-                  reference_type: 'booking',
-                  reference_id: booking.id,
-                  sender_email: booking.user_email,
-                  recipient_email: booking.provider_email,
-                  memo: `Payment for service: ${booking.service_name}`
-                });
+                const providerUsers = await base44.asServiceRole.entities.User.filter({ email: booking.provider_email });
+                if (providerUsers.length > 0) {
+                  const provider = providerUsers[0];
+                  const providerBalance = (parseFloat(provider.usd_balance) || 0) + providerAmount;
+                  
+                  await base44.asServiceRole.entities.User.update(provider.id, {
+                    usd_balance: providerBalance,
+                    total_service_earnings: (parseFloat(provider.total_service_earnings) || 0) + providerAmount
+                  });
 
-                await base44.asServiceRole.entities.Notification.create({
-                  recipient_email: booking.provider_email,
-                  type: 'payment_received',
-                  title: '💰 Payment Received',
-                  message: `You earned $${providerAmount.toFixed(2)} from ${booking.user_email}`,
-                  reference_type: 'booking',
-                  reference_id: booking.id
-                });
+                  await base44.asServiceRole.entities.Payment.create({
+                    amount_usd: providerAmount,
+                    method: 'internal_transfer',
+                    status: 'completed',
+                    reference_type: 'booking',
+                    reference_id: booking.id,
+                    sender_email: booking.user_email,
+                    recipient_email: booking.provider_email,
+                    memo: `Payment for service: ${booking.service_name}`
+                  });
+
+                  await base44.asServiceRole.entities.Notification.create({
+                    recipient_email: booking.provider_email,
+                    type: 'payment_received',
+                    title: '💰 Payment Received Instantly',
+                    message: `$${providerAmount.toFixed(2)} added to your wallet! New balance: $${providerBalance.toFixed(2)}`,
+                    reference_type: 'booking',
+                    reference_id: booking.id
+                  });
+                }
               }
             }
           } 
@@ -248,23 +261,48 @@ Deno.serve(async (req) => {
                 status: 'confirmed'
               });
 
-              // Pay provider
-              const providerAmount = rental.provider_earnings || (payment.amount * 0.81);
-              const providerUsers = await base44.asServiceRole.entities.User.filter({ email: rental.provider_email });
-              if (providerUsers.length > 0) {
-                const provider = providerUsers[0];
-                await base44.asServiceRole.entities.User.update(provider.id, {
-                  usd_balance: (provider.usd_balance || 0) + providerAmount
-                });
+              // Check for duplicate payment
+              const existingRentalPayments = await base44.asServiceRole.entities.Payment.filter({
+                reference_type: 'car_rental',
+                reference_id: rental.id,
+                recipient_email: rental.provider_email,
+                status: 'completed'
+              });
 
-                await base44.asServiceRole.entities.Notification.create({
-                  recipient_email: rental.provider_email,
-                  type: 'payment_received',
-                  title: '💰 Rental Payment Received',
-                  message: `You earned $${providerAmount.toFixed(2)} from car rental`,
-                  reference_type: 'car_rental',
-                  reference_id: rental.id
-                });
+              if (existingRentalPayments.length === 0) {
+                // Pay provider instantly
+                const providerAmount = parseFloat(rental.provider_earnings) || (payment.amount * 0.81);
+                const providerUsers = await base44.asServiceRole.entities.User.filter({ email: rental.provider_email });
+                
+                if (providerUsers.length > 0) {
+                  const provider = providerUsers[0];
+                  const providerBalance = (parseFloat(provider.usd_balance) || 0) + providerAmount;
+                  
+                  await base44.asServiceRole.entities.User.update(provider.id, {
+                    usd_balance: providerBalance,
+                    total_rental_earnings: (parseFloat(provider.total_rental_earnings) || 0) + providerAmount
+                  });
+
+                  await base44.asServiceRole.entities.Payment.create({
+                    amount_usd: providerAmount,
+                    method: 'internal_transfer',
+                    status: 'completed',
+                    reference_type: 'car_rental',
+                    reference_id: rental.id,
+                    recipient_email: rental.provider_email,
+                    sender_email: rental.renter_email,
+                    memo: 'Car rental provider earnings'
+                  });
+
+                  await base44.asServiceRole.entities.Notification.create({
+                    recipient_email: rental.provider_email,
+                    type: 'payment_received',
+                    title: '💰 Rental Payment Received Instantly',
+                    message: `$${providerAmount.toFixed(2)} added to your wallet! New balance: $${providerBalance.toFixed(2)}`,
+                    reference_type: 'car_rental',
+                    reference_id: rental.id
+                  });
+                }
               }
             }
           }

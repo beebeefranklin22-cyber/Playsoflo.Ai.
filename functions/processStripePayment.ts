@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import Stripe from 'npm:stripe@17.3.1';
+import Stripe from 'npm:stripe@17.4.0';
 
 Deno.serve(async (req) => {
   console.log('🔵 processStripePayment called');
