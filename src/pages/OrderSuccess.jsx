@@ -56,6 +56,16 @@ export default function OrderSuccess() {
             Your order has been successfully placed. We'll start processing it right away.
           </p>
 
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-2xl p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">💰</span>
+              <div className="text-left">
+                <p className="text-green-400 font-bold text-lg">Commission Earned!</p>
+                <p className="text-green-300 text-sm">5% affiliate commission added to your wallet instantly</p>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <Package className="w-6 h-6 text-purple-400" />
@@ -65,11 +75,17 @@ export default function OrderSuccess() {
               </div>
             </div>
             <p className="text-gray-400 text-sm text-left">
-              You'll receive a confirmation email with tracking information once your order ships.
+              You'll receive a confirmation email with tracking information once your order ships (2-5 business days).
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
+            <Button
+              onClick={() => navigate(createPageUrl("Wallet"))}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              View Wallet & Commission
+            </Button>
             <Button
               onClick={() => navigate(createPageUrl("Marketplace"))}
               className="w-full bg-purple-600 hover:bg-purple-700"
