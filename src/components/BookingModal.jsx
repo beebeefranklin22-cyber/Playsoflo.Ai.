@@ -163,33 +163,29 @@ export default function BookingModal({ service, onClose }) {
       const booking = await base44.entities.ServiceBooking.create({
         ...bookingData,
         confirmation_code: confirmationCode,
-        customer_email: currentUser.email
+        customer_email: currentUser.email,
+        status: 'pending'
       });
 
-      try {
-        await base44.functions.invoke('sendBookingConfirmation', {
-          booking_id: booking.id,
-          service_title: service.title,
-          provider_email: service.created_by,
-          customer_email: currentUser.email,
-          booking_date: bookingData.booking_date,
-          booking_time: bookingData.booking_time,
-          duration_hours: bookingData.duration_hours,
-          total_price: bookingData.total_price,
-          confirmation_code: confirmationCode,
-          customer_notes: bookingData.customer_notes,
-          location: bookingData.location
-        });
-      } catch (emailErr) {
-        console.error('Email send failed:', emailErr);
-        // Optionally, alert the user that email failed but booking succeeded
-      }
+      // Send notifications to both provider and customer
+      await base44.functions.invoke('sendBookingNotifications', {
+        booking_id: booking.id,
+        notification_type: 'new_booking',
+        provider_email: service.created_by,
+        customer_email: currentUser.email,
+        service_title: service.title,
+        booking_date: bookingData.booking_date,
+        booking_time: bookingData.booking_time,
+        total_price: bookingData.total_price,
+        confirmation_code: confirmationCode
+      });
 
       return booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['bookings-for-date']);
       queryClient.invalidateQueries(['my-bookings']);
+      queryClient.invalidateQueries(['provider-bookings']);
       setStep(3);
     },
     onError: (error) => {
@@ -272,24 +268,33 @@ export default function BookingModal({ service, onClose }) {
 
   const handlePaymentSuccess = async () => {
     try {
+      const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
       // Create booking after successful payment
       const booking = await base44.entities.ServiceBooking.create({
         ...pendingBooking,
         payment_status: 'paid',
-        booking_status: 'confirmed',
+        status: 'confirmed',
         customer_email: currentUser.email,
-        confirmation_code: Math.random().toString(36).substring(2, 10).toUpperCase()
+        confirmation_code: confirmationCode
       });
 
-      // Process payment to provider using backend function
-      const { processServicePayment } = await import('@/functions/processServicePayment');
-      await processServicePayment({
+      // Send booking confirmation notifications
+      await base44.functions.invoke('sendBookingNotifications', {
         booking_id: booking.id,
-        payment_method: 'wallet'
+        notification_type: 'booking_confirmed',
+        provider_email: service.created_by,
+        customer_email: currentUser.email,
+        service_title: service.title,
+        booking_date: pendingBooking.booking_date,
+        booking_time: pendingBooking.booking_time,
+        total_price: pendingBooking.total_price,
+        confirmation_code: confirmationCode
       });
 
       setStep(3);
       queryClient.invalidateQueries(['my-bookings']);
+      queryClient.invalidateQueries(['provider-bookings']);
     } catch (error) {
       console.error('Booking creation error:', error);
       alert('Payment succeeded but booking failed. Please contact support.');

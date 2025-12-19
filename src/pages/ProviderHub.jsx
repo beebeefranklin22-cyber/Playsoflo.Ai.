@@ -105,6 +105,21 @@ export default function ProviderHub() {
     refetchInterval: 5000 // Check every 5 seconds
   });
 
+  // Count unread booking requests
+  const { data: unreadBookingRequests = 0 } = useQuery({
+    queryKey: ['provider-unread-bookings', currentUser?.email],
+    queryFn: async () => {
+      const notifications = await base44.entities.Notification.filter({
+        recipient_email: currentUser.email,
+        type: 'booking_request',
+        read: false
+      });
+      return notifications.length;
+    },
+    enabled: !!currentUser,
+    refetchInterval: 5000
+  });
+
   const { data: availability = [] } = useQuery({
     queryKey: ["my-availability"],
     queryFn: async () => {
@@ -629,7 +644,14 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           <div className="overflow-x-auto -mx-2 px-2">
             <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
               <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
-              <TabsTrigger value="requests" className="whitespace-nowrap px-4">Requests</TabsTrigger>
+              <TabsTrigger value="requests" className="relative whitespace-nowrap px-4">
+                Requests
+                {unreadBookingRequests > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    {unreadBookingRequests > 9 ? '9+' : unreadBookingRequests}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="messages" className="relative whitespace-nowrap px-4">
                 Messages
                 {unreadMessages > 0 && (

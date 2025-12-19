@@ -1,56 +1,57 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// This function should be called daily (via cron job) to send reminders for bookings happening tomorrow
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // This should be called by a cron job or admin
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Use service role for automated task
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = tomorrow.toISOString().split('T')[0];
 
-    const now = new Date();
-    const twoDaysFromNow = new Date(now);
-    twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-
-    // Get all confirmed bookings with check-in in 2 days
-    const allBookings = await base44.asServiceRole.entities.Booking.list();
-    
-    const upcomingBookings = allBookings.filter(booking => {
-      if (booking.booking_status !== 'confirmed') return false;
-      
-      const checkInDate = new Date(booking.booking_date);
-      checkInDate.setHours(0, 0, 0, 0);
-      twoDaysFromNow.setHours(0, 0, 0, 0);
-      
-      return checkInDate.getTime() === twoDaysFromNow.getTime();
+    // Get all bookings for tomorrow that haven't been reminded yet
+    const bookings = await base44.asServiceRole.entities.ServiceBooking.filter({
+      booking_date: tomorrowDate,
+      status: { $in: ['pending', 'confirmed'] },
+      reminder_sent: false
     });
 
-    let sentCount = 0;
-    for (const booking of upcomingBookings) {
+    let remindersSent = 0;
+
+    // Send reminders for each booking
+    for (const booking of bookings) {
       try {
-        // Call the sendBookingEmails function
-        await base44.asServiceRole.functions.invoke('sendBookingEmails', {
+        await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
           booking_id: booking.id,
-          email_type: 'reminder'
+          notification_type: 'booking_reminder',
+          provider_email: booking.provider_email,
+          customer_email: booking.customer_email,
+          service_title: booking.service_title,
+          booking_date: booking.booking_date,
+          booking_time: booking.booking_time,
+          total_price: booking.total_price,
+          confirmation_code: booking.confirmation_code
         });
-        sentCount++;
+
+        // Mark reminder as sent
+        await base44.asServiceRole.entities.ServiceBooking.update(booking.id, {
+          reminder_sent: true
+        });
+
+        remindersSent++;
       } catch (error) {
         console.error(`Failed to send reminder for booking ${booking.id}:`, error);
       }
     }
 
-    return Response.json({
-      success: true,
-      message: `Sent ${sentCount} reminders`,
-      bookings_processed: upcomingBookings.length
-    });
-
-  } catch (error) {
-    console.error('Error processing reminders:', error);
     return Response.json({ 
-      error: error.message 
-    }, { status: 500 });
+      success: true,
+      bookings_checked: bookings.length,
+      reminders_sent: remindersSent
+    });
+  } catch (error) {
+    console.error('Reminder service error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
