@@ -12,7 +12,7 @@ import {
   Smartphone, Zap, Droplets, Paintbrush, Wind,
   Eye, Waves, Trash2, Key, FileText, DollarSign,
   FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon,
-  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck
+  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck, SlidersHorizontal, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ import { createPageUrl } from "@/utils";
 import BookingModal from "../components/BookingModal";
 import ShopifyCheckoutModal from "../components/marketplace/ShopifyCheckoutModal";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
+import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -134,6 +135,16 @@ export default function Marketplace() {
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    priceRange: [0, 10000],
+    minRating: null,
+    availability: null,
+    verification: null,
+    serviceArea: null,
+    instantBooking: false,
+    escrowProtected: false
+  });
 
   const { data: items = [], isLoading, error } = useQuery({
     queryKey: ['marketplace-items'],
@@ -298,12 +309,63 @@ export default function Marketplace() {
     if (wellnessCategoryIds.includes(item.category)) {
       return false;
     }
+
+    // Category filter
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
+    
+    // Search filter
     const matchesSearch = !searchQuery ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.provider_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+
+    // Price range filter
+    const itemPrice = item.price || 0;
+    const matchesPrice = itemPrice >= filters.priceRange[0] && itemPrice <= filters.priceRange[1];
+
+    // Rating filter
+    const itemRating = item.rating || 0;
+    const matchesRating = !filters.minRating || itemRating >= filters.minRating;
+
+    // Availability filter
+    let matchesAvailability = true;
+    if (filters.availability === 'available_today') {
+      matchesAvailability = item.availability === 'available';
+    } else if (filters.availability === 'instant_booking') {
+      matchesAvailability = item.instant_booking === true;
+    } else if (filters.availability && filters.availability !== 'all') {
+      matchesAvailability = item.availability === filters.availability;
+    }
+
+    // Verification filter
+    let matchesVerification = true;
+    if (filters.verification === 'verified_only') {
+      matchesVerification = item.verified_provider === true;
+    } else if (filters.verification === 'multi_credential') {
+      const providerVers = providerVerifications[item.created_by] || [];
+      matchesVerification = providerVers.length >= 3;
+    } else if (filters.verification === 'highly_verified') {
+      const providerVers = providerVerifications[item.created_by] || [];
+      matchesVerification = providerVers.length >= 5;
+    }
+
+    // Service area filter
+    let matchesServiceArea = true;
+    if (filters.serviceArea && filters.serviceArea !== 'all') {
+      const itemServiceArea = (item.service_area || item.location || '').toLowerCase();
+      const searchArea = filters.serviceArea.replace('_', ' ').toLowerCase();
+      matchesServiceArea = itemServiceArea.includes(searchArea) || 
+                          itemServiceArea.includes('nationwide') ||
+                          filters.serviceArea === 'online' && itemServiceArea.includes('remote');
+    }
+
+    // Special features filters
+    const matchesInstantBooking = !filters.instantBooking || item.instant_booking === true;
+    const matchesEscrow = !filters.escrowProtected || item.escrow_required === true;
+
+    return matchesCategory && matchesSearch && matchesPrice && matchesRating && 
+           matchesAvailability && matchesVerification && matchesServiceArea && 
+           matchesInstantBooking && matchesEscrow;
   });
 
   // Group items by service/title to show multiple providers
@@ -336,15 +398,28 @@ export default function Marketplace() {
           </p>
 
           {/* Search Bar */}
-          <div className="relative max-w-xl">
-            <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search services, providers..."
-              className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 transition backdrop-blur-xl"
-            />
+          <div className="flex gap-3 max-w-3xl">
+            <div className="relative flex-1">
+              <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search services, providers..."
+                className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 transition backdrop-blur-xl"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex-shrink-0 px-4 py-3 rounded-2xl font-medium transition flex items-center gap-2 ${
+                showFilters
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20'
+              }`}
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              <span className="hidden sm:inline">Filters</span>
+            </button>
           </div>
         </div>
       </div>
@@ -434,6 +509,25 @@ export default function Marketplace() {
           </div>
         </div>
       </div>
+
+      {/* Advanced Filters */}
+      {showFilters && (
+        <div className="px-6">
+          <AdvancedFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClear={() => setFilters({
+              priceRange: [0, 10000],
+              minRating: null,
+              availability: null,
+              verification: null,
+              serviceArea: null,
+              instantBooking: false,
+              escrowProtected: false
+            })}
+          />
+        </div>
+      )}
 
       <div className="px-6 mb-8">
         <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
