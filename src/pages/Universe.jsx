@@ -91,7 +91,7 @@ const pillars = [
     subtitle: "Lifestyle On-Demand",
     icon: Plane,
     gradient: "from-blue-600 via-cyan-600 to-blue-600",
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200",
+    image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200",
     features: ["Rides", "Flights", "Private Jets", "Yachts"],
     action: "Travel"
   },
