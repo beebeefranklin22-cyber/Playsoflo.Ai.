@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       if (existingPayments.length > 0) {
         console.log('Driver already paid for this delivery');
       } else {
-        // Pay driver securely via service role
+        // Pay driver instantly via service role
         const driverPayout = parseFloat(order.driver_earnings) || 0;
         
         if (driverPayout > 0) {
@@ -70,8 +70,11 @@ Deno.serve(async (req) => {
             const currentBalance = parseFloat(driver[0].usd_balance) || 0;
             const newBalance = currentBalance + driverPayout;
             
+            // Update driver balance and stats instantly
             await base44.asServiceRole.entities.User.update(driver[0].id, {
-              usd_balance: newBalance
+              usd_balance: newBalance,
+              total_deliveries_completed: (driver[0].total_deliveries_completed || 0) + 1,
+              total_delivery_earnings: (driver[0].total_delivery_earnings || 0) + driverPayout
             });
 
             // Record payment
@@ -85,6 +88,16 @@ Deno.serve(async (req) => {
               recipient_email: user.email,
               sender_email: 'platform@playsoflo.com',
               memo: 'Delivery driver earnings'
+            });
+
+            // Notify driver instantly
+            await base44.asServiceRole.entities.Notification.create({
+              recipient_email: user.email,
+              type: 'payment_received',
+              title: '💰 Delivery Payment Received',
+              message: `$${driverPayout.toFixed(2)} instantly added to your wallet! New balance: $${newBalance.toFixed(2)}`,
+              reference_type: 'delivery',
+              reference_id: order.id
             });
           }
         }

@@ -57,9 +57,10 @@ Deno.serve(async (req) => {
     const currentBalance = provider.usd_balance || 0;
     const newBalance = currentBalance + providerEarnings;
 
-    // Update provider balance
+    // Update provider balance instantly
     await base44.asServiceRole.entities.User.update(provider.id, {
-      usd_balance: newBalance
+      usd_balance: newBalance,
+      total_service_earnings: (provider.total_service_earnings || 0) + providerEarnings
     });
 
     // Create payment records
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
       memo: `Booking payment - Platform fee: $${platformFee.toFixed(2)} (${(platformRate * 100).toFixed(0)}%)`
     });
 
-    // Record platform fee
+    // Record platform fee earnings
     await base44.asServiceRole.entities.Payment.create({
       amount_usd: platformFee,
       amount_rri: 0,
@@ -88,12 +89,12 @@ Deno.serve(async (req) => {
       memo: `Platform commission (${(platformRate * 100).toFixed(0)}%) from ${bookingType} booking`
     });
 
-    // Notify provider
+    // Notify provider instantly
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: providerEmail,
       type: 'payment_received',
-      title: '💰 Payment Received',
-      message: `You've received $${providerEarnings.toFixed(2)} for a booking (Platform fee: $${platformFee.toFixed(2)}). New balance: $${newBalance.toFixed(2)}`,
+      title: '💰 Payment Received Instantly',
+      message: `$${providerEarnings.toFixed(2)} added to your wallet! (Platform fee: $${platformFee.toFixed(2)}). New balance: $${newBalance.toFixed(2)}`,
       reference_type: bookingType,
       reference_id: bookingId
     });

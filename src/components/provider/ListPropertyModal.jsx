@@ -389,6 +389,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
               Cancel
             </Button>
             <Button
+              type="button"
               onClick={handleSubmit}
               disabled={createPropertyMutation.isPending || uploading}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700"
