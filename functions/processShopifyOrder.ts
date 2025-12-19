@@ -50,27 +50,51 @@ Deno.serve(async (req) => {
       memo: `Shopify product: ${orderData.product_name}`
     });
 
-    // Track affiliate if present
-    if (orderData.affiliate_link) {
-      const commission = orderData.total_amount * 0.05; // 5% commission
-      
-      await base44.asServiceRole.entities.AffiliateReferral.create({
-        affiliate_program: 'shopify',
-        referral_code: orderData.user_email, 
-        referred_user_email: orderData.user_email,
-        status: 'completed',
-        commission_amount: commission,
-        conversion_date: new Date().toISOString()
+    // Track affiliate commission - 5% of purchase goes to buyer as commission
+    const commission = orderData.total_amount * 0.05;
+    
+    await base44.asServiceRole.entities.AffiliateReferral.create({
+      affiliate_program: 'shopify',
+      referral_code: orderData.user_email, 
+      referred_user_email: orderData.user_email,
+      product_id: orderData.product_id || order_id,
+      product_name: orderData.product_name,
+      order_value: orderData.total_amount,
+      status: 'completed',
+      commission_amount: commission,
+      commission_rate: 5,
+      conversion_date: new Date().toISOString()
+    });
+
+    // Instantly credit commission to user's USD balance
+    const users = await base44.asServiceRole.entities.User.filter({ email: orderData.user_email });
+    if (users.length > 0) {
+      const currentUser = users[0];
+      await base44.asServiceRole.entities.User.update(currentUser.id, {
+        total_referral_earnings: (currentUser.total_referral_earnings || 0) + commission,
+        usd_balance: (currentUser.usd_balance || 0) + commission
       });
 
-      // Update user's referral earnings
-      const users = await base44.asServiceRole.entities.User.filter({ email: orderData.user_email });
-      if (users.length > 0) {
-        const currentUser = users[0];
-        await base44.asServiceRole.entities.User.update(currentUser.id, {
-          total_referral_earnings: (currentUser.total_referral_earnings || 0) + commission
-        });
-      }
+      // Create payment record for commission
+      await base44.asServiceRole.entities.Payment.create({
+        amount_usd: commission,
+        method: 'internal_transfer',
+        status: 'completed',
+        reference_type: 'other',
+        reference_id: order_id,
+        recipient_email: orderData.user_email,
+        memo: `Shopify affiliate commission - ${orderData.product_name}`
+      });
+
+      // Notify user of commission earned
+      await base44.asServiceRole.entities.Notification.create({
+        recipient_email: orderData.user_email,
+        type: 'payment_received',
+        title: '💰 Commission Earned!',
+        message: `You earned $${commission.toFixed(2)} commission from your Shopify purchase!`,
+        action_url: '/Wallet',
+        read: false
+      });
     }
 
     // Send confirmation email
