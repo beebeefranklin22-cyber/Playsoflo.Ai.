@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
           product_data: {
             name: product.title,
             description: product.description,
-            images: [product.image]
+            images: [product.image_url]
           },
           unit_amount: itemPrice
         },
