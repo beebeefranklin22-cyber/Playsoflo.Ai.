@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { ChevronLeft, Star, Clock, Shield, Check, Users, MessageSquare } from "lucide-react";
+import { ChevronLeft, Star, Clock, Shield, Check, Users, MessageSquare, SlidersHorizontal } from "lucide-react";
 import BookingModal from "../components/BookingModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
+import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 import { motion } from "framer-motion";
 
 export default function ServiceProviders() {
@@ -14,6 +15,16 @@ export default function ServiceProviders() {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    priceRange: [0, 10000],
+    minRating: null,
+    availability: null,
+    verification: null,
+    serviceArea: null,
+    instantBooking: false,
+    escrowProtected: false
+  });
   
   const serviceName = new URLSearchParams(location.search).get('service');
 
@@ -21,13 +32,63 @@ export default function ServiceProviders() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  const { data: providers = [], isLoading } = useQuery({
+  const { data: allProviders = [], isLoading } = useQuery({
     queryKey: ['service-providers', serviceName],
     queryFn: async () => {
       const items = await base44.entities.MarketplaceItem.filter({ title: serviceName });
       return items.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     },
     enabled: !!serviceName
+  });
+
+  // Apply advanced filters
+  const providers = allProviders.filter(provider => {
+    // Price range
+    const itemPrice = provider.price || 0;
+    const matchesPrice = itemPrice >= filters.priceRange[0] && itemPrice <= filters.priceRange[1];
+
+    // Rating
+    const itemRating = provider.rating || 0;
+    const matchesRating = !filters.minRating || itemRating >= filters.minRating;
+
+    // Availability
+    let matchesAvailability = true;
+    if (filters.availability === 'available_today') {
+      matchesAvailability = provider.availability === 'available';
+    } else if (filters.availability === 'instant_booking') {
+      matchesAvailability = provider.instant_booking === true;
+    } else if (filters.availability && filters.availability !== 'all') {
+      matchesAvailability = provider.availability === filters.availability;
+    }
+
+    // Verification
+    let matchesVerification = true;
+    if (filters.verification === 'verified_only') {
+      matchesVerification = provider.verified_provider === true;
+    } else if (filters.verification === 'multi_credential') {
+      const providerVers = providerVerifications[provider.created_by] || [];
+      matchesVerification = providerVers.length >= 3;
+    } else if (filters.verification === 'highly_verified') {
+      const providerVers = providerVerifications[provider.created_by] || [];
+      matchesVerification = providerVers.length >= 5;
+    }
+
+    // Service area
+    let matchesServiceArea = true;
+    if (filters.serviceArea && filters.serviceArea !== 'all') {
+      const itemServiceArea = (provider.service_area || provider.location || '').toLowerCase();
+      const searchArea = filters.serviceArea.replace('_', ' ').toLowerCase();
+      matchesServiceArea = itemServiceArea.includes(searchArea) || 
+                          itemServiceArea.includes('nationwide') ||
+                          filters.serviceArea === 'online' && itemServiceArea.includes('remote');
+    }
+
+    // Special features
+    const matchesInstantBooking = !filters.instantBooking || provider.instant_booking === true;
+    const matchesEscrow = !filters.escrowProtected || provider.escrow_required === true;
+
+    return matchesPrice && matchesRating && matchesAvailability && 
+           matchesVerification && matchesServiceArea && matchesInstantBooking && matchesEscrow;
   });
 
   // Fetch provider verifications
@@ -76,11 +137,43 @@ export default function ServiceProviders() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             {serviceName}
           </h1>
-          <p className="text-gray-300">
-            {providers.length} provider{providers.length !== 1 ? 's' : ''} available
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-gray-300">
+              {providers.length} provider{providers.length !== 1 ? 's' : ''} available
+            </p>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-3 py-1.5 rounded-full font-medium transition flex items-center gap-2 text-sm ${
+                showFilters
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20'
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Advanced Filters */}
+      {showFilters && (
+        <div className="px-6">
+          <AdvancedFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClear={() => setFilters({
+              priceRange: [0, 10000],
+              minRating: null,
+              availability: null,
+              verification: null,
+              serviceArea: null,
+              instantBooking: false,
+              escrowProtected: false
+            })}
+          />
+        </div>
+      )}
 
       <div className="px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
