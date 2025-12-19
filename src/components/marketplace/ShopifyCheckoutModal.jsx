@@ -71,7 +71,7 @@ export default function ShopifyCheckoutModal({ product, onClose }) {
         <div className="p-6 space-y-6">
           {/* Product Summary */}
           <div className="flex gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
-            <img src={product.image} alt={product.title} className="w-24 h-24 object-cover rounded-lg" />
+            <img src={product.image_url || product.image} alt={product.title} className="w-24 h-24 object-cover rounded-lg" />
             <div className="flex-1">
               <h3 className="text-white font-bold mb-1">{product.title}</h3>
               <p className="text-gray-400 text-sm mb-2 line-clamp-2">{product.description}</p>
@@ -143,6 +143,21 @@ export default function ShopifyCheckoutModal({ product, onClose }) {
             />
           </div>
 
+          {/* Affiliate Commission Notice */}
+          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-xl">💰</span>
+              </div>
+              <div>
+                <h4 className="text-white font-bold mb-1">You Earn Commission!</h4>
+                <p className="text-green-300 text-sm">
+                  5% affiliate commission (${(subtotal * 0.05).toFixed(2)}) will be instantly added to your wallet after purchase
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Order Summary */}
           <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl p-6">
             <h3 className="text-white font-bold mb-4">Order Summary</h3>
@@ -158,6 +173,10 @@ export default function ShopifyCheckoutModal({ product, onClose }) {
               <div className="flex justify-between text-gray-300">
                 <span>Platform Service Fee (5%)</span>
                 <span>${platformFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-green-400 bg-green-500/10 rounded-lg px-2 py-1">
+                <span className="font-semibold">Your Commission (instant)</span>
+                <span className="font-bold">+${(subtotal * 0.05).toFixed(2)}</span>
               </div>
               <div className="border-t border-white/20 pt-2 mt-2">
                 <div className="flex justify-between text-white font-bold text-lg">
