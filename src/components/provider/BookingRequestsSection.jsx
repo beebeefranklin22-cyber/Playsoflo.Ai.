@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,31 @@ export default function BookingRequestsSection({ currentUser }) {
   const [providerNotes, setProviderNotes] = useState("");
   const [generatingResponse, setGeneratingResponse] = useState(false);
 
+  // Mark booking notifications as read when viewing
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const markAsRead = async () => {
+      try {
+        const unreadNotifications = await base44.entities.Notification.filter({
+          recipient_email: currentUser.email,
+          type: 'booking_request',
+          read: false
+        });
+
+        await Promise.all(
+          unreadNotifications.map(notification =>
+            base44.entities.Notification.update(notification.id, { read: true })
+          )
+        );
+      } catch (error) {
+        console.error('Failed to mark notifications as read:', error);
+      }
+    };
+
+    markAsRead();
+  }, [currentUser]);
+
   const { data: bookingRequests = [] } = useQuery({
     queryKey: ['provider-booking-requests', currentUser?.email],
     queryFn: async () => {
@@ -27,38 +52,41 @@ export default function BookingRequestsSection({ currentUser }) {
   });
 
   const updateBookingMutation = useMutation({
-    mutationFn: async ({ bookingId, status, notes }) => {
-      return await base44.entities.ServiceBooking.update(bookingId, {
+    mutationFn: async ({ booking, status, notes }) => {
+      await base44.entities.ServiceBooking.update(booking.id, {
         status,
         provider_notes: notes
       });
+
+      // Send comprehensive notifications
+      const notificationType = status === 'confirmed' ? 'booking_confirmed' : 'booking_cancelled';
+      await base44.functions.invoke('sendBookingNotifications', {
+        booking_id: booking.id,
+        notification_type: notificationType,
+        provider_email: booking.provider_email,
+        customer_email: booking.customer_email,
+        service_title: booking.service_title,
+        booking_date: booking.booking_date,
+        booking_time: booking.booking_time,
+        total_price: booking.total_price,
+        confirmation_code: booking.confirmation_code,
+        cancellation_reason: status === 'cancelled' ? 'Declined by provider' : null
+      });
+
+      return booking;
     },
-    onSuccess: async (_, variables) => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries(['provider-booking-requests']);
       queryClient.invalidateQueries(['provider-bookings']);
       setSelectedBooking(null);
-      
-      const booking = bookingRequests.find(b => b.id === variables.bookingId);
-      
-      // Send notification to customer
-      await base44.entities.Notification.create({
-        recipient_email: booking.customer_email,
-        type: 'booking_confirmed',
-        title: variables.status === 'confirmed' ? 'Booking Confirmed!' : 'Booking Declined',
-        message: variables.status === 'confirmed' 
-          ? `Your booking for ${booking.service_title} has been confirmed.`
-          : `Your booking request for ${booking.service_title} was declined.`,
-        reference_type: 'booking',
-        reference_id: variables.bookingId
-      });
-
-      toast.success(variables.status === 'confirmed' ? 'Booking confirmed!' : 'Booking declined');
+      setProviderNotes("");
+      toast.success(variables.status === 'confirmed' ? 'Booking confirmed! Customer notified.' : 'Booking declined. Customer notified.');
     }
   });
 
   const handleAccept = (booking) => {
     updateBookingMutation.mutate({
-      bookingId: booking.id,
+      booking,
       status: 'confirmed',
       notes: providerNotes
     });
@@ -66,7 +94,7 @@ export default function BookingRequestsSection({ currentUser }) {
 
   const handleDecline = (booking) => {
     updateBookingMutation.mutate({
-      bookingId: booking.id,
+      booking,
       status: 'cancelled',
       notes: providerNotes
     });
