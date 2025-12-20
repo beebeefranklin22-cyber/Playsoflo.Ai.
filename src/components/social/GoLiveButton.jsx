@@ -19,16 +19,24 @@ export default function GoLiveButton({ currentUser }) {
 
   const goLiveMutation = useMutation({
     mutationFn: async () => {
+      // Generate unique channel name before creating stream
+      const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
+      
       // Create livestream content
       const stream = await base44.entities.StreamingContent.create({
         title: title || `${currentUser.full_name}'s Live Stream`,
         description: description || "Join me live!",
-        content_type: "live_event",
+        type: "live_event",
+        category: "entertainment",
         creator_email: currentUser.email,
         is_live: true,
         status: "live",
         visibility: "public",
-        stream_started_at: new Date().toISOString()
+        stream_started_at: new Date().toISOString(),
+        agora_channel_name: channelName,
+        rating: 0,
+        requires_subscription: false,
+        betting_available: false
       });
 
       // Update user status
@@ -45,13 +53,14 @@ export default function GoLiveButton({ currentUser }) {
       await Promise.all(
         followers.map(f => 
           base44.entities.Notification.create({
-            recipient_email: f.follower_email,
+            user_email: f.follower_email,
             type: "livestream_started",
             title: `${currentUser.full_name} is live!`,
             message: title || "Join the livestream now",
             reference_type: "livestream",
             reference_id: stream.id,
-            action_url: `/LivestreamViewer?id=${stream.id}`
+            action_url: `/LivestreamViewer?id=${stream.id}`,
+            read: false
           })
         )
       );
@@ -60,11 +69,13 @@ export default function GoLiveButton({ currentUser }) {
     },
     onSuccess: (stream) => {
       queryClient.invalidateQueries(['streaming-content']);
+      queryClient.invalidateQueries(['active-streams']);
       toast.success('You are now live!');
       setShowModal(false);
       navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`);
     },
     onError: (error) => {
+      console.error('Go live error:', error);
       toast.error('Failed to go live: ' + error.message);
     }
   });

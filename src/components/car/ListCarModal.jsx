@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Upload, Loader2, Plus, Car } from "lucide-react";
+import { X, Upload, Loader2, Plus, Car, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -15,22 +15,40 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
   const [car, setCar] = useState({
     title: "",
     description: "",
-    car_make: "",
-    car_model: "",
-    car_year: new Date().getFullYear(),
-    price: 0,
     category: "automotive",
+    price_type: "per_day",
+    price: 0,
     image_url: "",
-    images: [],
-    license_plate: "",
-    mileage_limit: 200,
-    security_deposit: 500,
+    portfolio_images: [],
+    availability: "available",
+    provider_name: currentUser?.full_name || "",
+    is_rental: true,
     rental_details: {
+      asset_type: "car",
+      security_deposit: 500,
+      min_rental_period: 24,
+      max_rental_period: 720,
+      mileage_limit_per_day: 200,
+      excess_mileage_fee: 0.50,
+      fuel_policy: "full_to_full",
+      insurance_included: true,
       delivery_available: false,
-      fuel_policy: "full_to_full"
+      delivery_fee: 0,
+      pickup_location: "",
+      specs: {
+        make: "",
+        model: "",
+        year: new Date().getFullYear(),
+        capacity: 4,
+        engine: "",
+        features: []
+      },
+      requirements: ["Valid driver's license", "Age 25+", "Clean driving record"],
+      cancellation_policy: "moderate",
+      instant_confirmation: true
     },
     add_ons: [],
-    availability: "available"
+    variations: []
   });
 
   const [newAddOn, setNewAddOn] = useState({ name: "", price: 0, description: "" });
@@ -39,10 +57,50 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
     mutationFn: (data) => base44.entities.MarketplaceItem.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['available-cars']);
+      queryClient.invalidateQueries(['my-cars']);
       toast.success('Car listed successfully!');
       onClose();
+      setCar({
+        title: "",
+        description: "",
+        category: "automotive",
+        price_type: "per_day",
+        price: 0,
+        image_url: "",
+        portfolio_images: [],
+        availability: "available",
+        provider_name: currentUser?.full_name || "",
+        is_rental: true,
+        rental_details: {
+          asset_type: "car",
+          security_deposit: 500,
+          min_rental_period: 24,
+          max_rental_period: 720,
+          mileage_limit_per_day: 200,
+          excess_mileage_fee: 0.50,
+          fuel_policy: "full_to_full",
+          insurance_included: true,
+          delivery_available: false,
+          delivery_fee: 0,
+          pickup_location: "",
+          specs: {
+            make: "",
+            model: "",
+            year: new Date().getFullYear(),
+            capacity: 4,
+            engine: "",
+            features: []
+          },
+          requirements: ["Valid driver's license", "Age 25+", "Clean driving record"],
+          cancellation_policy: "moderate",
+          instant_confirmation: true
+        },
+        add_ons: [],
+        variations: []
+      });
     },
     onError: (error) => {
+      console.error('Car listing error:', error);
       toast.error(error.message || 'Failed to list car');
     }
   });
@@ -55,10 +113,11 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
       if (!car.image_url) {
         setCar(prev => ({ ...prev, image_url: file_url }));
       } else {
-        setCar(prev => ({ ...prev, images: [...prev.images, file_url] }));
+        setCar(prev => ({ ...prev, portfolio_images: [...prev.portfolio_images, file_url] }));
       }
       toast.success('Image uploaded!');
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error('Upload failed');
     } finally {
       setUploading(false);
@@ -66,13 +125,19 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
   };
 
   const handleSubmit = () => {
-    if (!car.title || !car.car_make || !car.car_model || !car.price || !car.image_url) {
-      toast.error('Please fill in all required fields and upload at least one image');
+    const make = car.rental_details.specs.make;
+    const model = car.rental_details.specs.model;
+    
+    if (!make || !model || !car.price || !car.image_url) {
+      toast.error('Please fill in car make, model, price and upload at least one image');
       return;
     }
 
+    const finalTitle = `${make} ${model}`.trim();
+
     createCarMutation.mutate({
       ...car,
+      title: finalTitle,
       provider_email: currentUser.email
     });
   };
@@ -110,8 +175,14 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
               <div>
                 <label className="text-white font-semibold mb-2 block">Make *</label>
                 <Input
-                  value={car.car_make}
-                  onChange={(e) => setCar({ ...car, car_make: e.target.value, title: `${e.target.value} ${car.car_model}`.trim() })}
+                  value={car.rental_details.specs.make}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: {
+                      ...car.rental_details,
+                      specs: { ...car.rental_details.specs, make: e.target.value }
+                    }
+                  })}
                   placeholder="Ferrari"
                   className="bg-white/10 border-white/20 text-white"
                 />
@@ -119,8 +190,14 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
               <div>
                 <label className="text-white font-semibold mb-2 block">Model *</label>
                 <Input
-                  value={car.car_model}
-                  onChange={(e) => setCar({ ...car, car_model: e.target.value, title: `${car.car_make} ${e.target.value}`.trim() })}
+                  value={car.rental_details.specs.model}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: {
+                      ...car.rental_details,
+                      specs: { ...car.rental_details.specs, model: e.target.value }
+                    }
+                  })}
                   placeholder="488 GTB"
                   className="bg-white/10 border-white/20 text-white"
                 />
@@ -129,8 +206,14 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
                 <label className="text-white font-semibold mb-2 block">Year</label>
                 <Input
                   type="number"
-                  value={car.car_year}
-                  onChange={(e) => setCar({ ...car, car_year: Number(e.target.value) })}
+                  value={car.rental_details.specs.year}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: {
+                      ...car.rental_details,
+                      specs: { ...car.rental_details.specs, year: Number(e.target.value) }
+                    }
+                  })}
                   className="bg-white/10 border-white/20 text-white"
                 />
               </div>
@@ -163,8 +246,11 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
                 <label className="text-white font-semibold mb-2 block">Security Deposit</label>
                 <Input
                   type="number"
-                  value={car.security_deposit}
-                  onChange={(e) => setCar({ ...car, security_deposit: Number(e.target.value) })}
+                  value={car.rental_details.security_deposit}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: { ...car.rental_details, security_deposit: Number(e.target.value) }
+                  })}
                   className="bg-white/10 border-white/20 text-white"
                 />
               </div>
@@ -172,11 +258,14 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="text-white font-semibold mb-2 block">License Plate</label>
+                <label className="text-white font-semibold mb-2 block">Pickup Location</label>
                 <Input
-                  value={car.license_plate}
-                  onChange={(e) => setCar({ ...car, license_plate: e.target.value })}
-                  placeholder="ABC123"
+                  value={car.rental_details.pickup_location}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: { ...car.rental_details, pickup_location: e.target.value }
+                  })}
+                  placeholder="Miami, FL"
                   className="bg-white/10 border-white/20 text-white"
                 />
               </div>
@@ -184,8 +273,11 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
                 <label className="text-white font-semibold mb-2 block">Daily Mileage Limit</label>
                 <Input
                   type="number"
-                  value={car.mileage_limit}
-                  onChange={(e) => setCar({ ...car, mileage_limit: Number(e.target.value) })}
+                  value={car.rental_details.mileage_limit_per_day}
+                  onChange={(e) => setCar({ 
+                    ...car, 
+                    rental_details: { ...car.rental_details, mileage_limit_per_day: Number(e.target.value) }
+                  })}
                   className="bg-white/10 border-white/20 text-white"
                 />
               </div>
@@ -201,13 +293,13 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
                     <div className="absolute top-1 left-1 px-2 py-0.5 bg-blue-500 rounded text-xs text-white">Main</div>
                   </div>
                 )}
-                {car.images.map((img, idx) => (
+                {car.portfolio_images.map((img, idx) => (
                   <div key={idx} className="relative">
                     <img src={img} className="w-full h-24 object-cover rounded-lg" />
                     <button
                       onClick={() => setCar(prev => ({
                         ...prev,
-                        images: prev.images.filter((_, i) => i !== idx)
+                        portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx)
                       }))}
                       className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
                     >
@@ -298,7 +390,7 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
                     ...car, 
                     rental_details: { ...car.rental_details, delivery_available: e.target.checked }
                   })}
-                  className="w-5 h-5 rounded"
+                  className="w-5 h-5 rounded accent-blue-500"
                 />
                 <span className="text-white">Offer Delivery</span>
               </label>

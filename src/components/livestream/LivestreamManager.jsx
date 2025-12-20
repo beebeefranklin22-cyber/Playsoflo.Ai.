@@ -171,6 +171,9 @@ export default function LivestreamManager({ currentUser }) {
   // Start scheduled stream
   const startScheduledMutation = useMutation({
     mutationFn: async (schedule) => {
+      // Generate unique channel name
+      const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
+      
       const stream = await base44.entities.StreamingContent.create({
         title: schedule.title,
         type: 'live_event',
@@ -180,7 +183,9 @@ export default function LivestreamManager({ currentUser }) {
         is_live: true,
         rating: 0,
         requires_subscription: false,
-        betting_available: false
+        betting_available: false,
+        agora_channel_name: channelName,
+        creator_email: currentUser.email
       });
 
       await base44.asServiceRole.entities.LivestreamSchedule.update(schedule.id, {
@@ -190,10 +195,11 @@ export default function LivestreamManager({ currentUser }) {
 
       return stream;
     },
-    onSuccess: () => {
+    onSuccess: (stream) => {
       queryClient.invalidateQueries({ queryKey: ['active-streams'] });
       queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] });
       toast.success('Livestream started!');
+      navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`);
     }
   });
 
@@ -357,13 +363,6 @@ export default function LivestreamManager({ currentUser }) {
                         {schedule.is_recurring && (
                           <Badge className="bg-indigo-500/20 text-indigo-300">
                             {schedule.recurrence_pattern}
-                          </Badge>
-                        )}
-                        {schedule.access_type !== 'public' && (
-                          <Badge className="bg-yellow-500/20 text-yellow-300 flex items-center gap-1">
-                            {schedule.access_type === 'members_only' && <Crown className="w-3 h-3" />}
-                            {(schedule.access_type === 'ppv' || schedule.access_type === 'ppv_with_member_discount') && <Lock className="w-3 h-3" />}
-                            {schedule.access_type.replace(/_/g, ' ')}
                           </Badge>
                         )}
                       </div>

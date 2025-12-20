@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Gift, Video } from "lucide-react";
+import { ArrowLeft, Users, Video } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
-import LivestreamTipping from "../components/livestream/LivestreamTipping.jsx";
 import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
 import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
@@ -17,7 +16,6 @@ export default function LivestreamViewer() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [streamId, setStreamId] = useState(null);
-  const [showTipping, setShowTipping] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
 
   useEffect(() => {
@@ -42,9 +40,11 @@ export default function LivestreamViewer() {
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
-    queryFn: () => base44.entities.StreamingContent.filter({ id: streamId }),
-    enabled: !!streamId,
-    select: (data) => data[0]
+    queryFn: async () => {
+      const streams = await base44.entities.StreamingContent.filter({ id: streamId });
+      return streams[0];
+    },
+    enabled: !!streamId
   });
 
   // Check if stream is PPV
@@ -123,9 +123,9 @@ export default function LivestreamViewer() {
           {/* Video Player */}
           <div className="lg:col-span-2 space-y-4">
             <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/10">
-              {stream.is_live ? (
+              {stream.is_live && stream.agora_channel_name ? (
                 <AgoraVideoPlayer 
-                  channelName={`stream_${streamId}`}
+                  channelName={stream.agora_channel_name}
                   role={isBroadcaster ? "host" : "audience"}
                   onViewerJoin={() => {
                     // Track viewer analytics
