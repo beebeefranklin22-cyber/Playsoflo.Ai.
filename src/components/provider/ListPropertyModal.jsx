@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,7 +80,6 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -406,6 +405,5 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }

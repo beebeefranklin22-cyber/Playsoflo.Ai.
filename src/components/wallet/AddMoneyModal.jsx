@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Plus, CreditCard, Building, Wallet, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -124,7 +124,6 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   };
 
   return (
-    <AnimatePresence mode="wait">
       <div 
         className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
         onClick={(e) => {
@@ -366,6 +365,5 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
   );
 }
