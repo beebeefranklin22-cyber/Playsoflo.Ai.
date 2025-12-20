@@ -11,7 +11,7 @@ import {
   Radio, Users, MessageSquare, Ban, Trash2, Calendar,
   Eye, Plus, StopCircle, Play, Clock, X
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -402,12 +402,10 @@ export default function LivestreamManager({ currentUser }) {
       </Card>
 
       {/* Schedule Modal */}
-      <AnimatePresence>
         {showScheduleModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowScheduleModal(false)}
           >
@@ -578,7 +576,6 @@ export default function LivestreamManager({ currentUser }) {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -622,11 +619,9 @@ function StreamModerationPanel({ streamId }) {
   }
 
   return (
-    <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
         onClick={() => setShowPanel(false)}
       >
@@ -673,6 +668,5 @@ function StreamModerationPanel({ streamId }) {
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
   );
 }

@@ -7,7 +7,7 @@ import {
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
   DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock, AlertTriangle
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -268,7 +268,7 @@ export default function Profile() {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               onClick={() => setShowCustomization(true)}
               variant="outline"
@@ -926,12 +926,10 @@ export default function Profile() {
       </div>
 
       {/* Privacy Settings Modal */}
-      <AnimatePresence>
         {showPrivacySettings && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowPrivacySettings(false)}
           >
@@ -1037,7 +1035,6 @@ export default function Profile() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
 
       {/* Profile Customization Modal */}
       <ProfileCustomization
@@ -1089,12 +1086,10 @@ export default function Profile() {
       )}
 
       {/* Interests Modal */}
-      <AnimatePresence>
         {showInterests && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowInterests(false)}
           >
@@ -1153,7 +1148,6 @@ export default function Profile() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
