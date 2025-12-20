@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Send, Image, Check, CheckCheck, Circle, Loader2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 
 export default function DirectChatModal({ 
@@ -298,12 +298,10 @@ export default function DirectChatModal({
           )}
           
           {/* Typing indicator */}
-          <AnimatePresence>
             {isTargetTyping && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
                 className="flex items-center gap-2"
               >
                 <div className="px-4 py-2 bg-white/10 rounded-2xl rounded-bl-md">
@@ -327,7 +325,6 @@ export default function DirectChatModal({
                 </div>
               </motion.div>
             )}
-          </AnimatePresence>
           
           <div ref={messagesEndRef} />
         </div>

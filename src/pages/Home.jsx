@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import ViewerRecommendations from "../components/discovery/ViewerRecommendations
 import EditPostModal from "../components/social/EditPostModal";
 import AdDisplay from "../components/ads/AdDisplay";
 import DiscoverySection from "../components/discovery/DiscoverySection";
+import GoLiveButton from "../components/social/GoLiveButton";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -337,6 +338,7 @@ export default function Home() {
             </button>
           </div>
           <div className="flex gap-2">
+            <GoLiveButton currentUser={currentUser} />
             <button
               onClick={() => setShowFollowRequests(true)}
               className="relative flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-medium hover:bg-white/20 transition"
