@@ -51,15 +51,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
     try {
       console.log('💰 Payment completed:', paymentIntent);
       setStep(3);
-      toast.success("Payment successful!");
+      toast.success("Money added to wallet!");
 
       // Trigger immediate balance refresh
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 1500);
     } catch (err) {
       console.error('Success handler error:', err);
-      toast.error(String(err?.message || 'Error processing success'));
+      const errorMsg = err?.message || err?.toString() || 'Error processing payment';
+      toast.error(errorMsg);
     }
   };
 
@@ -252,9 +253,11 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     onError={(error) => {
                       console.error("💥 Payment error:", error);
                       const errorMsg = typeof error === 'string' ? error : 
-                                      (error?.message ? String(error.message) : 
-                                      'Payment failed. Please try again.');
+                                      error?.message || 
+                                      error?.toString() || 
+                                      'Payment failed. Please try again.';
                       toast.error(errorMsg);
+                      setPaymentError(errorMsg);
                     }}
                   />
                 )}
