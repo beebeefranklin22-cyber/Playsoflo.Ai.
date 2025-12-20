@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StreamCalendarView from "../creator/StreamCalendarView.jsx";
 import CoStreamManager from "../creator/CoStreamManager.jsx";
 
 export default function LivestreamManager({ currentUser }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({
     title: "",
@@ -308,10 +309,17 @@ export default function LivestreamManager({ currentUser }) {
 
                     {/* Actions */}
                     <div className="flex gap-2 mt-4">
+                      <Button 
+                        onClick={() => navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`)}
+                        className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+                      >
+                        <Radio className="w-4 h-4 mr-2" />
+                        Broadcast
+                      </Button>
                       <Link to={`${createPageUrl("LivestreamViewer")}?id=${stream.id}`}>
                         <Button className="bg-purple-600 hover:bg-purple-700">
                           <Eye className="w-4 h-4 mr-2" />
-                          View Stream
+                          View as Viewer
                         </Button>
                       </Link>
                       <StreamModerationPanel streamId={stream.id} />
