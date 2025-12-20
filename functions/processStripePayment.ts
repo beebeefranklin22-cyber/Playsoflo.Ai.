@@ -129,8 +129,9 @@ Deno.serve(async (req) => {
     console.error('❌ Unexpected error:', error);
     console.error('❌ Error message:', error.message);
     console.error('❌ Error stack:', error.stack);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return Response.json({ 
-      error: error.message || 'An unexpected error occurred'
+      error: errorMessage || 'An unexpected error occurred'
     }, { status: 500 });
   }
 });
