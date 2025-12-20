@@ -11,6 +11,7 @@ import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
 import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 import TippingIntegration from "../components/creator/TippingIntegration.jsx";
+import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
@@ -34,6 +35,10 @@ export default function LivestreamViewer() {
     const params = new URLSearchParams(window.location.search);
     setStreamId(params.get('id'));
   }, []);
+
+  // Determine if user is broadcaster
+  const params = new URLSearchParams(window.location.search);
+  const isBroadcaster = params.get('broadcaster') === 'true';
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
@@ -118,23 +123,31 @@ export default function LivestreamViewer() {
           {/* Video Player */}
           <div className="lg:col-span-2 space-y-4">
             <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/10">
-              {stream.thumbnail_url ? (
-                <img 
-                  src={stream.thumbnail_url} 
-                  alt={stream.title}
-                  className="w-full h-full object-cover"
+              {stream.is_live ? (
+                <AgoraVideoPlayer 
+                  channelName={`stream_${streamId}`}
+                  role={isBroadcaster ? "host" : "audience"}
+                  onViewerJoin={() => {
+                    // Track viewer analytics
+                  }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900 to-pink-900">
-                  <Video className="w-16 h-16 text-white/40" />
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+                  <div className="text-center">
+                    <Video className="w-16 h-16 text-white/40 mx-auto mb-4" />
+                    <p className="text-white text-lg font-semibold">Stream Ended</p>
+                    <p className="text-gray-400 text-sm">This livestream is no longer active</p>
+                  </div>
                 </div>
               )}
               
               {/* Live Badge */}
-              <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                LIVE
-              </div>
+              {stream.is_live && (
+                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  LIVE
+                </div>
+              )}
             </div>
 
             {/* Reactions */}
