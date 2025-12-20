@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2024-11-20.acacia',
     });
 
     // Get raw body for signature verification
@@ -58,8 +58,10 @@ Deno.serve(async (req) => {
           
           if (users.length > 0) {
             const user = users[0];
-            const currentBalance = user.usd_balance || 0;
+            const currentBalance = parseFloat(user.usd_balance) || 0;
             const newBalance = currentBalance + netAmount;
+            
+            console.log(`💰 Updating balance for ${userEmail}: ${currentBalance} + ${netAmount} = ${newBalance}`);
             
             await base44.asServiceRole.entities.User.update(user.id, {
               usd_balance: newBalance
@@ -160,8 +162,10 @@ Deno.serve(async (req) => {
 
             if (users.length > 0) {
               const user = users[0];
-              const currentBalance = user.usd_balance || 0;
+              const currentBalance = parseFloat(user.usd_balance) || 0;
               const newBalance = currentBalance + baseAmount;
+
+              console.log(`💰 [payment_intent.succeeded] Updating balance for ${payment.user_email}: ${currentBalance} + ${baseAmount} = ${newBalance}`);
 
               await base44.asServiceRole.entities.User.update(user.id, {
                 usd_balance: newBalance
