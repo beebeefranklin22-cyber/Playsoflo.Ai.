@@ -10,7 +10,7 @@ import {
   Plus, X, ExternalLink, Play, Image as ImageIcon, 
   Star, Eye, Heart, Trash2, Edit2, Loader2, Upload
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 const categories = [
@@ -186,12 +186,10 @@ export default function PortfolioSection({ userEmail, isOwnProfile, currentUser 
       )}
 
       {/* Add Modal */}
-      <AnimatePresence>
         {showAddModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowAddModal(false)}
           >
@@ -322,15 +320,12 @@ export default function PortfolioSection({ userEmail, isOwnProfile, currentUser 
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
 
       {/* Item Detail Modal */}
-      <AnimatePresence>
         {selectedItem && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
             onClick={() => setSelectedItem(null)}
           >
@@ -369,7 +364,6 @@ export default function PortfolioSection({ userEmail, isOwnProfile, currentUser 
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

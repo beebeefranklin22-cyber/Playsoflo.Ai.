@@ -113,10 +113,11 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
     } catch (err) {
         console.error('Payment submission error:', err);
         const errorDetails = getErrorDetails(err);
-        setErrorMessage(errorDetails.message);
+        const errorMsg = errorDetails.message || (err instanceof Error ? err.message : String(err));
+        setErrorMessage(errorMsg);
         setSuggestedAction(errorDetails.action);
         setIsProcessing(false);
-        if (onError) onError(errorDetails.message);
+        if (onError) onError(errorMsg);
     }
   };
 

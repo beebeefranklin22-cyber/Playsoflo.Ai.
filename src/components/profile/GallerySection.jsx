@@ -7,7 +7,7 @@ import {
   Plus, X, Play, Image as ImageIcon, Heart, Pin, 
   Trash2, Loader2, Upload, MapPin, Grid, LayoutGrid
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function GallerySection({ userEmail, isOwnProfile, currentUser }) {
@@ -217,12 +217,10 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
       )}
 
       {/* Upload Modal */}
-      <AnimatePresence>
         {showUploadModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowUploadModal(false)}
           >
@@ -316,15 +314,12 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
 
       {/* Media Viewer */}
-      <AnimatePresence>
         {selectedMedia && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95"
             onClick={() => setSelectedMedia(null)}
           >
@@ -375,7 +370,6 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
     </div>
   );
 }
