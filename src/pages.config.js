@@ -1,181 +1,183 @@
-import Universe from './pages/Universe';
-import Wallet from './pages/Wallet';
-import Profile from './pages/Profile';
-import Vibe from './pages/Vibe';
-import Marketplace from './pages/Marketplace';
-import Streaming from './pages/Streaming';
 import AIStudio from './pages/AIStudio';
-import Social from './pages/Social';
-import Home from './pages/Home';
-import RonronAI from './pages/RonronAI';
-import explore from './pages/explore';
-import Travel from './pages/Travel';
-import RealEstate from './pages/RealEstate';
-import CreatorHub from './pages/CreatorHub';
-import ProviderHub from './pages/ProviderHub';
-import DriverHub from './pages/DriverHub';
-import Rewards from './pages/Rewards';
-import Utilities from './pages/Utilities';
-import Messages from './pages/Messages';
-import GiveBack from './pages/GiveBack';
-import MyBookings from './pages/MyBookings';
-import Notifications from './pages/Notifications';
-import Disputes from './pages/Disputes';
-import CollaborationHub from './pages/CollaborationHub';
-import ProviderProfile from './pages/ProviderProfile';
-import OnboardingFlow from './pages/OnboardingFlow';
-import Discover from './pages/Discover';
-import CreatorStorefront from './pages/CreatorStorefront';
-import Wellness from './pages/Wellness';
+import ARShowroom from './pages/ARShowroom';
+import AdminPanel from './pages/AdminPanel';
+import AdsManager from './pages/AdsManager';
+import AffiliateHub from './pages/AffiliateHub';
+import AffiliateProgram from './pages/AffiliateProgram';
+import ArtistProfile from './pages/ArtistProfile';
 import CarRentals from './pages/CarRentals';
-import MusicStudio from './pages/MusicStudio';
-import ProviderListings from './pages/ProviderListings';
-import MemeCreator from './pages/MemeCreator';
-import MyRides from './pages/MyRides';
-import UserProfile from './pages/UserProfile';
-import FoodDelivery from './pages/FoodDelivery';
-import RestaurantMenu from './pages/RestaurantMenu';
+import CollaborationHub from './pages/CollaborationHub';
+import CollaboratorDashboard from './pages/CollaboratorDashboard';
+import CommunityHub from './pages/CommunityHub';
+import ContentCreator from './pages/ContentCreator';
+import CreatorDiscovery from './pages/CreatorDiscovery';
+import CreatorHub from './pages/CreatorHub';
+import CreatorOnboarding from './pages/CreatorOnboarding';
+import CreatorStorefront from './pages/CreatorStorefront';
+import DeliveryDriverHub from './pages/DeliveryDriverHub';
+import Discover from './pages/Discover';
+import Disputes from './pages/Disputes';
+import DriverHub from './pages/DriverHub';
+import EarningsDashboard from './pages/EarningsDashboard';
+import EntertainmentExperiences from './pages/EntertainmentExperiences';
+import FleetManager from './pages/FleetManager';
 import FoodCart from './pages/FoodCart';
+import FoodDelivery from './pages/FoodDelivery';
+import FoodDriverHub from './pages/FoodDriverHub';
 import FoodOrderTracking from './pages/FoodOrderTracking';
-import SoFloVault from './pages/SoFloVault';
+import FranchiseHub from './pages/FranchiseHub';
+import Gaming from './pages/Gaming';
+import GiveBack from './pages/GiveBack';
+import Home from './pages/Home';
 import LandlordDashboard from './pages/LandlordDashboard';
 import LeaseDetails from './pages/LeaseDetails';
-import FoodDriverHub from './pages/FoodDriverHub';
-import RestaurantOwnerHub from './pages/RestaurantOwnerHub';
-import ContentCreator from './pages/ContentCreator';
-import StripeSetup from './pages/StripeSetup';
-import Payouts from './pages/Payouts';
-import StripeOnboarding from './pages/StripeOnboarding';
-import ServiceProviders from './pages/ServiceProviders';
-import EntertainmentExperiences from './pages/EntertainmentExperiences';
-import UniversalSearch from './pages/UniversalSearch';
-import ArtistProfile from './pages/ArtistProfile';
-import MusicDiscover from './pages/MusicDiscover';
-import StripeConnectOnboarding from './pages/StripeConnectOnboarding';
-import StripeProductManager from './pages/StripeProductManager';
-import StripeStorefront from './pages/StripeStorefront';
-import PaymentSuccess from './pages/PaymentSuccess';
 import LivestreamViewer from './pages/LivestreamViewer';
-import CreatorOnboarding from './pages/CreatorOnboarding';
-import CreatorDiscovery from './pages/CreatorDiscovery';
-import PersonalizedFeed from './pages/PersonalizedFeed';
-import StripeConnectProducts from './pages/StripeConnectProducts';
-import StripeConnectStorefront from './pages/StripeConnectStorefront';
-import EarningsDashboard from './pages/EarningsDashboard';
-import FleetManager from './pages/FleetManager';
-import CommunityHub from './pages/CommunityHub';
-import TestPayment from './pages/TestPayment';
-import CollaboratorDashboard from './pages/CollaboratorDashboard';
-import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
-import PropertyProviderHub from './pages/PropertyProviderHub';
-import PropertyHostProfile from './pages/PropertyHostProfile';
-import MyPropertyBookings from './pages/MyPropertyBookings';
+import Marketplace from './pages/Marketplace';
+import MemeCreator from './pages/MemeCreator';
+import Messages from './pages/Messages';
+import MusicDiscover from './pages/MusicDiscover';
+import MusicStudio from './pages/MusicStudio';
+import MyBookings from './pages/MyBookings';
 import MyP2POrders from './pages/MyP2POrders';
-import AdminPanel from './pages/AdminPanel';
-import Gaming from './pages/Gaming';
-import ARShowroom from './pages/ARShowroom';
-import AffiliateHub from './pages/AffiliateHub';
+import MyPropertyBookings from './pages/MyPropertyBookings';
+import MyRides from './pages/MyRides';
+import Notifications from './pages/Notifications';
+import OnboardingFlow from './pages/OnboardingFlow';
 import OrderSuccess from './pages/OrderSuccess';
 import PackageDelivery from './pages/PackageDelivery';
-import DeliveryDriverHub from './pages/DeliveryDriverHub';
-import FranchiseHub from './pages/FranchiseHub';
-import SupportDashboard from './pages/SupportDashboard';
 import PassengerProfile from './pages/PassengerProfile';
-import AdsManager from './pages/AdsManager';
-import SystemDiagnostics from './pages/SystemDiagnostics';
+import PaymentSuccess from './pages/PaymentSuccess';
+import Payouts from './pages/Payouts';
+import PersonalizedFeed from './pages/PersonalizedFeed';
+import Profile from './pages/Profile';
+import PropertyHostProfile from './pages/PropertyHostProfile';
+import PropertyProviderHub from './pages/PropertyProviderHub';
+import ProviderHub from './pages/ProviderHub';
+import ProviderListings from './pages/ProviderListings';
+import ProviderProfile from './pages/ProviderProfile';
+import RealEstate from './pages/RealEstate';
+import RestaurantMenu from './pages/RestaurantMenu';
+import RestaurantOwnerHub from './pages/RestaurantOwnerHub';
+import Rewards from './pages/Rewards';
+import RonronAI from './pages/RonronAI';
+import ServiceProviders from './pages/ServiceProviders';
 import SmartOnboarding from './pages/SmartOnboarding';
-import AffiliateProgram from './pages/AffiliateProgram';
+import SoFloVault from './pages/SoFloVault';
+import Social from './pages/Social';
+import Streaming from './pages/Streaming';
+import StripeConnectOnboarding from './pages/StripeConnectOnboarding';
+import StripeConnectProducts from './pages/StripeConnectProducts';
+import StripeConnectStorefront from './pages/StripeConnectStorefront';
+import StripeOnboarding from './pages/StripeOnboarding';
+import StripeProductManager from './pages/StripeProductManager';
+import StripeSetup from './pages/StripeSetup';
+import StripeStorefront from './pages/StripeStorefront';
+import SupportDashboard from './pages/SupportDashboard';
+import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
+import SystemDiagnostics from './pages/SystemDiagnostics';
+import TestPayment from './pages/TestPayment';
+import Travel from './pages/Travel';
+import UniversalSearch from './pages/UniversalSearch';
+import Universe from './pages/Universe';
+import UserProfile from './pages/UserProfile';
+import Utilities from './pages/Utilities';
+import Vibe from './pages/Vibe';
+import Wallet from './pages/Wallet';
+import Wellness from './pages/Wellness';
+import explore from './pages/explore';
+import ContentHub from './pages/ContentHub';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Universe": Universe,
-    "Wallet": Wallet,
-    "Profile": Profile,
-    "Vibe": Vibe,
-    "Marketplace": Marketplace,
-    "Streaming": Streaming,
     "AIStudio": AIStudio,
-    "Social": Social,
-    "Home": Home,
-    "RonronAI": RonronAI,
-    "explore": explore,
-    "Travel": Travel,
-    "RealEstate": RealEstate,
-    "CreatorHub": CreatorHub,
-    "ProviderHub": ProviderHub,
-    "DriverHub": DriverHub,
-    "Rewards": Rewards,
-    "Utilities": Utilities,
-    "Messages": Messages,
-    "GiveBack": GiveBack,
-    "MyBookings": MyBookings,
-    "Notifications": Notifications,
-    "Disputes": Disputes,
-    "CollaborationHub": CollaborationHub,
-    "ProviderProfile": ProviderProfile,
-    "OnboardingFlow": OnboardingFlow,
-    "Discover": Discover,
-    "CreatorStorefront": CreatorStorefront,
-    "Wellness": Wellness,
+    "ARShowroom": ARShowroom,
+    "AdminPanel": AdminPanel,
+    "AdsManager": AdsManager,
+    "AffiliateHub": AffiliateHub,
+    "AffiliateProgram": AffiliateProgram,
+    "ArtistProfile": ArtistProfile,
     "CarRentals": CarRentals,
-    "MusicStudio": MusicStudio,
-    "ProviderListings": ProviderListings,
-    "MemeCreator": MemeCreator,
-    "MyRides": MyRides,
-    "UserProfile": UserProfile,
-    "FoodDelivery": FoodDelivery,
-    "RestaurantMenu": RestaurantMenu,
+    "CollaborationHub": CollaborationHub,
+    "CollaboratorDashboard": CollaboratorDashboard,
+    "CommunityHub": CommunityHub,
+    "ContentCreator": ContentCreator,
+    "CreatorDiscovery": CreatorDiscovery,
+    "CreatorHub": CreatorHub,
+    "CreatorOnboarding": CreatorOnboarding,
+    "CreatorStorefront": CreatorStorefront,
+    "DeliveryDriverHub": DeliveryDriverHub,
+    "Discover": Discover,
+    "Disputes": Disputes,
+    "DriverHub": DriverHub,
+    "EarningsDashboard": EarningsDashboard,
+    "EntertainmentExperiences": EntertainmentExperiences,
+    "FleetManager": FleetManager,
     "FoodCart": FoodCart,
+    "FoodDelivery": FoodDelivery,
+    "FoodDriverHub": FoodDriverHub,
     "FoodOrderTracking": FoodOrderTracking,
-    "SoFloVault": SoFloVault,
+    "FranchiseHub": FranchiseHub,
+    "Gaming": Gaming,
+    "GiveBack": GiveBack,
+    "Home": Home,
     "LandlordDashboard": LandlordDashboard,
     "LeaseDetails": LeaseDetails,
-    "FoodDriverHub": FoodDriverHub,
-    "RestaurantOwnerHub": RestaurantOwnerHub,
-    "ContentCreator": ContentCreator,
-    "StripeSetup": StripeSetup,
-    "Payouts": Payouts,
-    "StripeOnboarding": StripeOnboarding,
-    "ServiceProviders": ServiceProviders,
-    "EntertainmentExperiences": EntertainmentExperiences,
-    "UniversalSearch": UniversalSearch,
-    "ArtistProfile": ArtistProfile,
-    "MusicDiscover": MusicDiscover,
-    "StripeConnectOnboarding": StripeConnectOnboarding,
-    "StripeProductManager": StripeProductManager,
-    "StripeStorefront": StripeStorefront,
-    "PaymentSuccess": PaymentSuccess,
     "LivestreamViewer": LivestreamViewer,
-    "CreatorOnboarding": CreatorOnboarding,
-    "CreatorDiscovery": CreatorDiscovery,
-    "PersonalizedFeed": PersonalizedFeed,
-    "StripeConnectProducts": StripeConnectProducts,
-    "StripeConnectStorefront": StripeConnectStorefront,
-    "EarningsDashboard": EarningsDashboard,
-    "FleetManager": FleetManager,
-    "CommunityHub": CommunityHub,
-    "TestPayment": TestPayment,
-    "CollaboratorDashboard": CollaboratorDashboard,
-    "SyncLicensingAdmin": SyncLicensingAdmin,
-    "PropertyProviderHub": PropertyProviderHub,
-    "PropertyHostProfile": PropertyHostProfile,
-    "MyPropertyBookings": MyPropertyBookings,
+    "Marketplace": Marketplace,
+    "MemeCreator": MemeCreator,
+    "Messages": Messages,
+    "MusicDiscover": MusicDiscover,
+    "MusicStudio": MusicStudio,
+    "MyBookings": MyBookings,
     "MyP2POrders": MyP2POrders,
-    "AdminPanel": AdminPanel,
-    "Gaming": Gaming,
-    "ARShowroom": ARShowroom,
-    "AffiliateHub": AffiliateHub,
+    "MyPropertyBookings": MyPropertyBookings,
+    "MyRides": MyRides,
+    "Notifications": Notifications,
+    "OnboardingFlow": OnboardingFlow,
     "OrderSuccess": OrderSuccess,
     "PackageDelivery": PackageDelivery,
-    "DeliveryDriverHub": DeliveryDriverHub,
-    "FranchiseHub": FranchiseHub,
-    "SupportDashboard": SupportDashboard,
     "PassengerProfile": PassengerProfile,
-    "AdsManager": AdsManager,
-    "SystemDiagnostics": SystemDiagnostics,
+    "PaymentSuccess": PaymentSuccess,
+    "Payouts": Payouts,
+    "PersonalizedFeed": PersonalizedFeed,
+    "Profile": Profile,
+    "PropertyHostProfile": PropertyHostProfile,
+    "PropertyProviderHub": PropertyProviderHub,
+    "ProviderHub": ProviderHub,
+    "ProviderListings": ProviderListings,
+    "ProviderProfile": ProviderProfile,
+    "RealEstate": RealEstate,
+    "RestaurantMenu": RestaurantMenu,
+    "RestaurantOwnerHub": RestaurantOwnerHub,
+    "Rewards": Rewards,
+    "RonronAI": RonronAI,
+    "ServiceProviders": ServiceProviders,
     "SmartOnboarding": SmartOnboarding,
-    "AffiliateProgram": AffiliateProgram,
+    "SoFloVault": SoFloVault,
+    "Social": Social,
+    "Streaming": Streaming,
+    "StripeConnectOnboarding": StripeConnectOnboarding,
+    "StripeConnectProducts": StripeConnectProducts,
+    "StripeConnectStorefront": StripeConnectStorefront,
+    "StripeOnboarding": StripeOnboarding,
+    "StripeProductManager": StripeProductManager,
+    "StripeSetup": StripeSetup,
+    "StripeStorefront": StripeStorefront,
+    "SupportDashboard": SupportDashboard,
+    "SyncLicensingAdmin": SyncLicensingAdmin,
+    "SystemDiagnostics": SystemDiagnostics,
+    "TestPayment": TestPayment,
+    "Travel": Travel,
+    "UniversalSearch": UniversalSearch,
+    "Universe": Universe,
+    "UserProfile": UserProfile,
+    "Utilities": Utilities,
+    "Vibe": Vibe,
+    "Wallet": Wallet,
+    "Wellness": Wellness,
+    "explore": explore,
+    "ContentHub": ContentHub,
 }
 
 export const pagesConfig = {
