@@ -11,6 +11,8 @@ import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 import TippingIntegration from "../components/creator/TippingIntegration.jsx";
 import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";
+import CoHostManager from "../components/livestream/CoHostManager.jsx";
+import ReactionEffects from "../components/livestream/ReactionEffects.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
@@ -124,13 +126,16 @@ export default function LivestreamViewer() {
           <div className="lg:col-span-2 space-y-4">
             <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/10">
               {stream.is_live && stream.agora_channel_name ? (
-                <AgoraVideoPlayer 
-                  channelName={stream.agora_channel_name}
-                  role={isBroadcaster ? "host" : "audience"}
-                  onViewerJoin={() => {
-                    // Track viewer analytics
-                  }}
-                />
+                <>
+                  <AgoraVideoPlayer 
+                    channelName={stream.agora_channel_name}
+                    role={isBroadcaster ? "host" : "audience"}
+                    onViewerJoin={() => {
+                      // Track viewer analytics
+                    }}
+                  />
+                  <ReactionEffects streamId={streamId} />
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
                   <div className="text-center">
@@ -140,18 +145,13 @@ export default function LivestreamViewer() {
                   </div>
                 </div>
               )}
-              
-              {/* Live Badge */}
-              {stream.is_live && (
-                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  LIVE
-                </div>
-              )}
             </div>
 
             {/* Reactions */}
             <LivestreamReactions streamId={streamId} currentUser={currentUser} />
+
+            {/* Co-Host Manager */}
+            <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isCreator} />
 
             {/* Stream Info */}
             <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">

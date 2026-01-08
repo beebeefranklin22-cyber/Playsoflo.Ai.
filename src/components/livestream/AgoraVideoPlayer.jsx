@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Loader2, Video, AlertCircle } from "lucide-react";
+import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin }) {
@@ -11,6 +12,8 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
   const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
   const localVideoRef = useRef(null);
   const remoteVideoContainerRef = useRef(null);
 
@@ -166,18 +169,53 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
     );
   }
 
+  const toggleMute = () => {
+    if (localAudioTrack) {
+      localAudioTrack.setEnabled(isMuted);
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleVideo = () => {
+    if (localVideoTrack) {
+      localVideoTrack.setEnabled(isVideoOff);
+      setIsVideoOff(!isVideoOff);
+    }
+  };
+
   return (
     <div className="relative w-full h-full bg-black">
       {role === "host" ? (
-        <div ref={localVideoRef} className="w-full h-full" />
+        <>
+          <div ref={localVideoRef} className="w-full h-full" style={{ backgroundColor: '#000' }} />
+          
+          {/* Host Controls */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+            <Button
+              onClick={toggleMute}
+              size="icon"
+              className={`rounded-full ${isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30'}`}
+            >
+              {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Button>
+            <Button
+              onClick={toggleVideo}
+              size="icon"
+              className={`rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30'}`}
+            >
+              {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            </Button>
+          </div>
+        </>
       ) : (
         <>
-          <div ref={remoteVideoContainerRef} className="w-full h-full" />
+          <div ref={remoteVideoContainerRef} className="w-full h-full" style={{ backgroundColor: '#000' }} />
           {Object.keys(remoteUsers).length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
               <div className="text-center">
-                <Video className="w-16 h-16 text-white/40 mx-auto mb-4" />
-                <p className="text-white/60 text-sm">Waiting for broadcaster...</p>
+                <Video className="w-16 h-16 text-white/40 mx-auto mb-4 animate-pulse" />
+                <p className="text-white/80 text-lg font-semibold mb-2">Waiting for broadcaster...</p>
+                <p className="text-white/60 text-sm">The stream will start shortly</p>
               </div>
             </div>
           )}
@@ -185,9 +223,17 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
       )}
       
       {/* HD Badge */}
-      <div className="absolute top-4 right-4 bg-green-500/20 border border-green-500/50 text-green-300 px-3 py-1 rounded-full text-xs font-bold">
+      <div className="absolute top-4 right-4 bg-green-500/20 border border-green-500/50 text-green-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
         HD 1080p
       </div>
+
+      {/* Live Indicator */}
+      {isJoined && (
+        <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
+          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+          {role === "host" ? "BROADCASTING" : "LIVE"}
+        </div>
+      )}
     </div>
   );
 }
