@@ -10,15 +10,18 @@ import { Input } from "@/components/ui/input";
 import { 
   Anchor, Wine, Music, Car, PartyPopper, Camera, 
   Sparkles, Search, Filter, Plus, Loader2, TrendingUp,
-  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare
+  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare, Ticket
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 import ListExperienceModal from "../components/entertainment/ListExperienceModal";
+import TicketAffiliateStats from "../components/affiliate/TicketAffiliateStats";
+import AffiliatePayoutManager from "../components/affiliate/AffiliatePayoutManager";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
+  { id: "live_events", label: "Live Events", icon: Ticket },
   { id: "yacht_charter", label: "Yacht Charter", icon: Anchor },
   { id: "exotic_car", label: "Exotic Cars", icon: Car },
   { id: "wine_tasting", label: "Wine Tasting", icon: Wine },
@@ -51,6 +54,7 @@ export default function EntertainmentExperiences() {
   const [suggestedPackages, setSuggestedPackages] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [showListExperience, setShowListExperience] = useState(false);
+  const [eventsSearch, setEventsSearch] = useState({ keyword: "", city: "Miami" });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -73,7 +77,20 @@ export default function EntertainmentExperiences() {
       return await base44.entities.Experience.filter({ 
         category: selectedCategory 
       }, '-created_date');
-    }
+    },
+    enabled: selectedCategory !== 'live_events'
+  });
+
+  const { data: liveEvents = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['ticketmaster-events', eventsSearch.keyword, eventsSearch.city],
+    queryFn: async () => {
+      const result = await base44.functions.invoke('fetchTicketmasterEvents', {
+        keyword: eventsSearch.keyword,
+        city: eventsSearch.city
+      });
+      return result.data?.events || [];
+    },
+    enabled: selectedCategory === 'live_events'
   });
 
   const filteredExperiences = experiences.filter(exp =>
@@ -194,15 +211,35 @@ Return as JSON array with this structure:
 
         {/* Search Bar */}
         <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search experiences..."
-              className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400"
-            />
-          </div>
+          {selectedCategory === 'live_events' ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  value={eventsSearch.keyword}
+                  onChange={(e) => setEventsSearch({...eventsSearch, keyword: e.target.value})}
+                  placeholder="Search concerts, sports, theater..."
+                  className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400"
+                />
+              </div>
+              <Input
+                value={eventsSearch.city}
+                onChange={(e) => setEventsSearch({...eventsSearch, city: e.target.value})}
+                placeholder="City..."
+                className="bg-white/10 border-white/20 text-white placeholder-gray-400"
+              />
+            </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search experiences..."
+                className="pl-12 bg-white/10 border-white/20 text-white placeholder-gray-400"
+              />
+            </div>
+          )}
         </div>
 
         {/* Category Filters */}
@@ -334,8 +371,91 @@ Return as JSON array with this structure:
           </CardContent>
         </Card>
 
-        {/* Main Experiences Grid */}
-        {isLoading ? (
+        {/* Admin Affiliate Dashboard */}
+        {currentUser?.role === 'admin' && selectedCategory === 'live_events' && (
+          <div className="mb-8 space-y-6">
+            <div>
+              <h3 className="text-white font-bold text-2xl mb-2">Ticketmaster Affiliate Dashboard</h3>
+              <p className="text-gray-400 text-sm">Track your ticket affiliate earnings (Admin Only)</p>
+            </div>
+            <TicketAffiliateStats currentUser={currentUser} />
+            <AffiliatePayoutManager currentUser={currentUser} />
+          </div>
+        )}
+
+        {/* Main Content */}
+        {selectedCategory === 'live_events' ? (
+          eventsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+            </div>
+          ) : liveEvents.length === 0 ? (
+            <div className="text-center py-20">
+              <Ticket className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-400">No events found. Try different search terms.</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {liveEvents.map((event) => {
+                const trackClick = async () => {
+                  try {
+                    const result = await base44.functions.invoke('trackTicketClick', {
+                      event_id: event.id,
+                      event_name: event.name,
+                      ticket_url: event.url
+                    });
+                    window.open(result.data.tracking_url, '_blank');
+                  } catch (error) {
+                    console.error('Tracking error:', error);
+                    window.open(event.url, '_blank');
+                  }
+                };
+
+                return (
+                  <Card key={event.id} className="bg-white/5 border-white/10 hover:border-purple-500/30 transition group">
+                    <CardContent className="p-0">
+                      {event.images?.[0]?.url && (
+                        <img
+                          src={event.images[0].url}
+                          alt={event.name}
+                          className="w-full h-48 object-cover rounded-t-xl"
+                        />
+                      )}
+                      <div className="p-6">
+                        <h3 className="text-white font-bold text-lg mb-2 group-hover:text-purple-400 transition">
+                          {event.name}
+                        </h3>
+                        <div className="space-y-2 text-sm text-gray-400 mb-4">
+                          {event.dates?.start?.localDate && (
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              {new Date(event.dates.start.localDate).toLocaleDateString()}
+                            </div>
+                          )}
+                          {event._embedded?.venues?.[0]?.name && (
+                            <p>📍 {event._embedded.venues[0].name}</p>
+                          )}
+                          {event.priceRanges?.[0] && (
+                            <p className="text-green-400 font-bold">
+                              From ${event.priceRanges[0].min}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          onClick={trackClick}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        >
+                          <Ticket className="w-4 h-4 mr-2" />
+                          Buy Tickets
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
           </div>

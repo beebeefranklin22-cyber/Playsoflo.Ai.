@@ -21,6 +21,7 @@ import Disputes from './pages/Disputes';
 import DriverHub from './pages/DriverHub';
 import EarningsDashboard from './pages/EarningsDashboard';
 import EntertainmentExperiences from './pages/EntertainmentExperiences';
+import Events from './pages/Events';
 import FleetManager from './pages/FleetManager';
 import FoodCart from './pages/FoodCart';
 import FoodDelivery from './pages/FoodDelivery';
@@ -86,7 +87,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import Events from './pages/Events';
 import __Layout from './Layout.jsx';
 
 
@@ -114,6 +114,7 @@ export const PAGES = {
     "DriverHub": DriverHub,
     "EarningsDashboard": EarningsDashboard,
     "EntertainmentExperiences": EntertainmentExperiences,
+    "Events": Events,
     "FleetManager": FleetManager,
     "FoodCart": FoodCart,
     "FoodDelivery": FoodDelivery,
@@ -179,7 +180,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "Events": Events,
 }
 
 export const pagesConfig = {

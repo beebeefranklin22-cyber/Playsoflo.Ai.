@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import HailRideModal from "../components/travel/HailRideModal";
 import TravelMap from "../components/travel/TravelMap";
+import BecomeDriverButton from "../components/driver/BecomeDriverButton";
 
 const defaultTravelOptions = [
   {
@@ -110,6 +111,19 @@ export default function Travel() {
   const [editMode, setEditMode] = React.useState(false);
   const [uploadingId, setUploadingId] = React.useState(null);
   const [travelOptions, setTravelOptions] = React.useState(defaultTravelOptions);
+  const [currentUser, setCurrentUser] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.log("User not authenticated");
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleImageUpload = async (file, optionId) => {
     try {
@@ -151,15 +165,18 @@ export default function Travel() {
                 Your journey, reimagined. Explore the world effortlessly.
               </p>
             </div>
-            <button
-              onClick={() => setEditMode(!editMode)}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 transition ${
-                editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-white/10 hover:bg-white/20'
-              } text-white backdrop-blur-xl border border-white/20`}
-            >
-              {editMode ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-              {editMode ? 'Done' : 'Edit Cards'}
-            </button>
+            <div className="flex items-center gap-3">
+              {currentUser && <BecomeDriverButton currentUser={currentUser} />}
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className={`px-4 py-2 rounded-xl flex items-center gap-2 transition ${
+                  editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-white/10 hover:bg-white/20'
+                } text-white backdrop-blur-xl border border-white/20`}
+              >
+                {editMode ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                {editMode ? 'Done' : 'Edit Cards'}
+              </button>
+            </div>
           </div>
         </div>
 
