@@ -33,7 +33,43 @@ export default function LivestreamViewer() {
 
     // Get stream ID from URL
     const params = new URLSearchParams(window.location.search);
-    setStreamId(params.get('id'));
+    const id = params.get('id');
+    setStreamId(id);
+
+    // Track viewer analytics
+    if (id) {
+      const trackViewing = async () => {
+        try {
+          await base44.entities.ViewerAnalytics.create({
+            content_id: id,
+            is_currently_watching: true
+          });
+        } catch (err) {
+          console.log("Analytics tracking error:", err);
+        }
+      };
+      trackViewing();
+
+      // Cleanup when leaving
+      return () => {
+        const cleanup = async () => {
+          try {
+            const analytics = await base44.entities.ViewerAnalytics.filter({
+              content_id: id,
+              created_by: user?.email
+            });
+            if (analytics[0]) {
+              await base44.entities.ViewerAnalytics.update(analytics[0].id, {
+                is_currently_watching: false
+              });
+            }
+          } catch (err) {
+            console.log("Cleanup error:", err);
+          }
+        };
+        cleanup();
+      };
+    }
   }, []);
 
   // Determine if user is broadcaster

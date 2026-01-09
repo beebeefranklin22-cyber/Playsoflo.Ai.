@@ -87,11 +87,18 @@ export default function LivestreamManager({ currentUser }) {
       initialData: []
     });
 
-    // Simulate viewer count
-    const viewerCount = Math.floor(Math.random() * 500) + 50;
+    const { data: viewers = [] } = useQuery({
+      queryKey: ['stream-stats-viewers', streamId],
+      queryFn: () => base44.entities.ViewerAnalytics.filter({ 
+        content_id: streamId,
+        is_currently_watching: true
+      }),
+      refetchInterval: 5000,
+      initialData: []
+    });
 
     return {
-      viewers: viewerCount,
+      viewers: viewers.length,
       messages: chatMessages.length,
       reactions: reactions.length
     };

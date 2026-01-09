@@ -49,32 +49,39 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
 
         // If host, create and publish tracks with HD settings
         if (role === "host") {
-          const videoTrack = await AgoraRTC.createCameraVideoTrack({
-            encoderConfig: {
-              width: 1920,
-              height: 1080,
-              frameRate: 30,
-              bitrateMin: 2000,
-              bitrateMax: 4000,
-            },
-            optimizationMode: "detail" // Better for high-detail content
-          });
+          try {
+            // Request camera and microphone permissions
+            const videoTrack = await AgoraRTC.createCameraVideoTrack({
+              encoderConfig: {
+                width: { ideal: 1920, max: 1920 },
+                height: { ideal: 1080, max: 1080 },
+                frameRate: { ideal: 30, max: 30 },
+                bitrateMin: 1000,
+                bitrateMax: 3000,
+              },
+              optimizationMode: "detail"
+            });
 
-          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            encoderConfig: "high_quality_stereo",
-          });
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+              encoderConfig: "high_quality_stereo",
+            });
 
-          setLocalVideoTrack(videoTrack);
-          setLocalAudioTrack(audioTrack);
+            setLocalVideoTrack(videoTrack);
+            setLocalAudioTrack(audioTrack);
 
-          // Play local video
-          if (localVideoRef.current) {
-            videoTrack.play(localVideoRef.current);
+            // Play local video immediately
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (localVideoRef.current) {
+              videoTrack.play(localVideoRef.current, { fit: "cover" });
+            }
+
+            // Publish tracks
+            await client.publish([videoTrack, audioTrack]);
+            toast.success("You're now live!");
+          } catch (mediaError) {
+            console.error("Media device error:", mediaError);
+            throw new Error("Camera/microphone access denied. Please allow permissions and refresh.");
           }
-
-          // Publish tracks
-          await client.publish([videoTrack, audioTrack]);
-          toast.success("You're now broadcasting in HD!");
         }
 
         // Handle remote users
