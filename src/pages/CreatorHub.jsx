@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   TrendingUp, DollarSign, Users, Heart, 
   Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
-  Upload, X, Loader2, Video, Radio
+  Upload, X, Loader2, Video, Radio, Star, ShoppingBag, Briefcase
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -363,13 +363,16 @@ export default function CreatorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="flex flex-wrap gap-2 bg-white/10 backdrop-blur-xl border border-white/20 p-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="livestream">Livestream</TabsTrigger>
             <TabsTrigger value="ppv">PPV</TabsTrigger>
             <TabsTrigger value="memberships">Memberships</TabsTrigger>
+            <TabsTrigger value="tiers">Tiers</TabsTrigger>
+            <TabsTrigger value="store">Store</TabsTrigger>
+            <TabsTrigger value="crowdfund">Crowdfund</TabsTrigger>
+            <TabsTrigger value="sponsors">Sponsors</TabsTrigger>
             <TabsTrigger value="content">Content</TabsTrigger>
-            <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
@@ -401,6 +404,26 @@ export default function CreatorHub() {
             <SharedLibraryManager currentUser={currentUser} />
             <ContentEditWorkflow currentUser={currentUser} />
             <CollaborativeContentManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Subscription Tiers Tab */}
+          <TabsContent value="tiers" className="space-y-6">
+            <SubscriptionTiersManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Digital Store Tab */}
+          <TabsContent value="store" className="space-y-6">
+            <DigitalGoodsStore currentUser={currentUser} viewMode="manage" />
+          </TabsContent>
+
+          {/* Crowdfunding Tab */}
+          <TabsContent value="crowdfund" className="space-y-6">
+            <CrowdfundingManager currentUser={currentUser} viewMode="manage" />
+          </TabsContent>
+
+          {/* Sponsorships Tab */}
+          <TabsContent value="sponsors" className="space-y-6">
+            <SponsoredContentManager currentUser={currentUser} />
           </TabsContent>
 
           {/* Content Tab */}
