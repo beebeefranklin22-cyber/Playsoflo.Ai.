@@ -14,6 +14,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import TicketAffiliateStats from "../components/affiliate/TicketAffiliateStats";
+import AffiliatePayoutManager from "../components/affiliate/AffiliatePayoutManager";
 
 const eventCategories = [
   { id: "", label: "All Events", icon: Calendar },
@@ -115,11 +116,17 @@ export default function Events() {
         </div>
       </div>
 
-      {/* Affiliate Stats */}
+      {/* Affiliate Dashboard - Admin Only */}
       {currentUser?.role === 'admin' && (
-        <div className="px-6 mb-8">
-          <h3 className="text-white font-bold text-lg mb-4">Affiliate Performance</h3>
+        <div className="px-6 mb-8 space-y-6">
+          <div>
+            <h3 className="text-white font-bold text-2xl mb-2">Affiliate Dashboard</h3>
+            <p className="text-gray-400 text-sm">Track your Ticketmaster affiliate earnings and request payouts</p>
+          </div>
+          
           <TicketAffiliateStats currentUser={currentUser} />
+          
+          <AffiliatePayoutManager currentUser={currentUser} />
         </div>
       )}
 
