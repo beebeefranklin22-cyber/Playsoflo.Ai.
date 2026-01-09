@@ -158,8 +158,9 @@ export default function Marketplace() {
     },
     initialData: [],
     retry: 1,
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 2000
   });
 
   // Fetch Shopify affiliate products
@@ -191,8 +192,9 @@ export default function Marketplace() {
       }
     },
     initialData: [],
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 2000
   });
 
   // Also fetch P2P orders

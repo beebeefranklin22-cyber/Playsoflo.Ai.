@@ -54,7 +54,10 @@ export default function RealEstate() {
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ['properties'],
     queryFn: () => base44.entities.Property.list(),
-    initialData: []
+    initialData: [],
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 2000
   });
 
   const fetchPropertiesMutation = useMutation({
