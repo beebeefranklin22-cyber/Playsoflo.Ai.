@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export default function ListCarModal({ isOpen, onClose, currentUser }) {
+export default function ListCarModal({ isOpen, onClose, currentUser, onSuccess }) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [car, setCar] = useState({
@@ -58,8 +58,8 @@ export default function ListCarModal({ isOpen, onClose, currentUser }) {
     onSuccess: () => {
       queryClient.invalidateQueries(['available-cars']);
       queryClient.invalidateQueries(['my-cars']);
-      toast.success('Car listed successfully!');
-      onClose();
+      queryClient.invalidateQueries(['my-fleet']);
+      if (onSuccess) onSuccess();
       setCar({
         title: "",
         description: "",

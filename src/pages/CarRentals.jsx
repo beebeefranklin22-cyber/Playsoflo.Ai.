@@ -1215,6 +1215,11 @@ export default function CarRentals() {
           isOpen={showListCar}
           onClose={() => setShowListCar(false)}
           currentUser={currentUser}
+          onSuccess={() => {
+            setShowListCar(false);
+            queryClient.invalidateQueries(['available-cars']);
+            toast.success('Car listed successfully!');
+          }}
         />
       </div>
     </div>
