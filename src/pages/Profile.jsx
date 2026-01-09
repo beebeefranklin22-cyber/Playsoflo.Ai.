@@ -512,6 +512,7 @@ export default function Profile() {
                   <Car className="w-4 h-4 mr-2" />
                   My Vehicle Info (Driver)
                 </Button>
+                {currentUser && <BecomeDriverButton currentUser={currentUser} />}
               </CardContent>
             </Card>
 
