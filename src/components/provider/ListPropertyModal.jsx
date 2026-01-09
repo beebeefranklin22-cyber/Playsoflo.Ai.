@@ -36,11 +36,40 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
   const [newAmenity, setNewAmenity] = useState("");
 
   const createPropertyMutation = useMutation({
-    mutationFn: (data) => base44.entities.Property.create(data),
+    mutationFn: async (data) => {
+      const propertyData = {
+        ...data,
+        host_email: currentUser.email,
+        rating: 5.0,
+        reviews_count: 0,
+        verified_host: false,
+        data_source: 'user_listing'
+      };
+      return await base44.entities.Property.create(propertyData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['properties']);
       toast.success('Property listed successfully!');
       onClose();
+      setProperty({
+        title: "",
+        description: "",
+        property_type: "apartment",
+        listing_type: "short_term",
+        location: "",
+        bedrooms: 1,
+        bathrooms: 1,
+        square_feet: 0,
+        price_per_night: 0,
+        price_per_month: 0,
+        sale_price: 0,
+        main_image: "",
+        images: [],
+        amenities: [],
+        host_name: currentUser?.full_name || "",
+        instant_book: false,
+        verified_host: false
+      });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to list property');
@@ -71,10 +100,21 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
       return;
     }
 
-    createPropertyMutation.mutate({
-      ...property,
-      host_email: currentUser.email
-    });
+    // Validate pricing based on listing type
+    if (property.listing_type === "short_term" && !property.price_per_night) {
+      toast.error('Please set a price per night for short-term rental');
+      return;
+    }
+    if (property.listing_type === "for_rent" && !property.price_per_month) {
+      toast.error('Please set a monthly rent price');
+      return;
+    }
+    if (property.listing_type === "for_sale" && !property.sale_price) {
+      toast.error('Please set a sale price');
+      return;
+    }
+
+    createPropertyMutation.mutate(property);
   };
 
   if (!isOpen) return null;

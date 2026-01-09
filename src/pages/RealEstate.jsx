@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import PropertyBookingModal from "../components/property/PropertyBookingModal";
 import ListPropertyModal from "../components/provider/ListPropertyModal";
+import ContactSellerModal from "../components/property/ContactSellerModal";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -43,6 +44,7 @@ export default function RealEstate() {
   const [bookingProperty, setBookingProperty] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [showListProperty, setShowListProperty] = useState(false);
+  const [contactProperty, setContactProperty] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -305,11 +307,18 @@ export default function RealEstate() {
                       className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition"
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (!currentUser) {
+                          toast.error('Please log in to continue');
+                          base44.auth.redirectToLogin();
+                          return;
+                        }
                         if (property.listing_type === "short_term") {
                           setBookingProperty(property);
                           setShowBookingModal(true);
+                        } else if (property.listing_type === "for_rent") {
+                          navigate(createPageUrl("Messages") + `?contact=${property.created_by}&subject=Lease Application for ${property.title}`);
                         } else {
-                          toast.info('Contact functionality coming soon');
+                          navigate(createPageUrl("Messages") + `?contact=${property.created_by}&subject=Interested in ${property.title}`);
                         }
                       }}
                     >
@@ -494,12 +503,21 @@ export default function RealEstate() {
                   <button 
                     className="px-8 py-4 rounded-2xl text-xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:scale-105 transition-transform glow-effect"
                     onClick={() => {
+                      if (!currentUser) {
+                        toast.error('Please log in to continue');
+                        base44.auth.redirectToLogin();
+                        return;
+                      }
                       if (selectedProperty.listing_type === "short_term") {
                         setBookingProperty(selectedProperty);
                         setShowBookingModal(true);
                         setSelectedProperty(null);
+                      } else if (selectedProperty.listing_type === "for_rent") {
+                        navigate(createPageUrl("Messages") + `?contact=${selectedProperty.created_by}&subject=Lease Application for ${selectedProperty.title}`);
+                        setSelectedProperty(null);
                       } else {
-                        toast.info('Contact functionality coming soon');
+                        navigate(createPageUrl("Messages") + `?contact=${selectedProperty.created_by}&subject=Interested in ${selectedProperty.title}`);
+                        setSelectedProperty(null);
                       }
                     }}
                   >
@@ -513,7 +531,7 @@ export default function RealEstate() {
         )}
       </AnimatePresence>
 
-      {showBookingModal && bookingProperty && currentUser && (
+      {showBookingModal && bookingProperty && (
         <PropertyBookingModal
           property={bookingProperty}
           onClose={() => {
@@ -528,6 +546,13 @@ export default function RealEstate() {
         onClose={() => setShowListProperty(false)}
         currentUser={currentUser}
       />
+
+      {contactProperty && (
+        <ContactSellerModal
+          property={contactProperty}
+          onClose={() => setContactProperty(null)}
+        />
+      )}
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
