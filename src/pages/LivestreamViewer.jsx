@@ -62,10 +62,13 @@ export default function LivestreamViewer() {
   const { data: viewerCount = 0 } = useQuery({
     queryKey: ['viewer-count', streamId],
     queryFn: async () => {
-      // Simulate viewer count - in production, track with presence
-      return Math.floor(Math.random() * 1000) + 100;
+      const analytics = await base44.entities.ViewerAnalytics.filter({ 
+        content_id: streamId,
+        is_currently_watching: true
+      });
+      return analytics.length;
     },
-    refetchInterval: 10000,
+    refetchInterval: 5000,
     enabled: !!streamId
   });
 

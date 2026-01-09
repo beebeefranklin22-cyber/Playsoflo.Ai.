@@ -10,6 +10,7 @@ import CollaborationHub from './pages/CollaborationHub';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import CommunityHub from './pages/CommunityHub';
 import ContentCreator from './pages/ContentCreator';
+import ContentHub from './pages/ContentHub';
 import CreatorDiscovery from './pages/CreatorDiscovery';
 import CreatorHub from './pages/CreatorHub';
 import CreatorOnboarding from './pages/CreatorOnboarding';
@@ -85,7 +86,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import ContentHub from './pages/ContentHub';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +102,7 @@ export const PAGES = {
     "CollaboratorDashboard": CollaboratorDashboard,
     "CommunityHub": CommunityHub,
     "ContentCreator": ContentCreator,
+    "ContentHub": ContentHub,
     "CreatorDiscovery": CreatorDiscovery,
     "CreatorHub": CreatorHub,
     "CreatorOnboarding": CreatorOnboarding,
@@ -177,7 +178,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "ContentHub": ContentHub,
 }
 
 export const pagesConfig = {
