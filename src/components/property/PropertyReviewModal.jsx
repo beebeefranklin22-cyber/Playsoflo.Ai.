@@ -1,52 +1,78 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, X } from "lucide-react";
+import { X, Star, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export default function PropertyReviewModal({ booking, onClose, isHost = false }) {
-  const qc = useQueryClient();
+export default function PropertyReviewModal({ booking, property, onClose }) {
+  const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState("");
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [review, setReview] = useState("");
 
-  const reviewMutation = useMutation({
-    mutationFn: async (reviewData) => {
-      return await base44.entities.UserReview.create(reviewData);
-    },
-    onSuccess: async () => {
-      // Update booking with rating
-      await base44.entities.Booking.update(booking.id, {
-        rating: rating,
-        review_text: comment
+  const submitReviewMutation = useMutation({
+    mutationFn: async (data) => {
+      // Create review
+      const newReview = await base44.entities.UserReview.create({
+        reviewed_user_email: property.created_by,
+        rating: data.rating,
+        review_text: data.review,
+        booking_id: booking.id,
+        property_id: property.id,
+        property_title: property.title
+      });
+
+      // Update property rating
+      const reviews = await base44.asServiceRole.entities.UserReview.filter({
+        property_id: property.id
       });
       
-      qc.invalidateQueries(["property-bookings"]);
-      qc.invalidateQueries(["my-bookings"]);
-      qc.invalidateQueries(["host-user"]);
-      toast.success("Review submitted successfully!");
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      const avgRating = totalRating / reviews.length;
+
+      await base44.asServiceRole.entities.Property.update(property.id, {
+        rating: parseFloat(avgRating.toFixed(1)),
+        reviews_count: reviews.length
+      });
+
+      // Notify host
+      await base44.asServiceRole.entities.Notification.create({
+        recipient_email: property.created_by,
+        type: 'new_review',
+        title: '⭐ New Review Received',
+        message: `You received a ${data.rating}-star review for ${property.title}`,
+        reference_type: 'review',
+        reference_id: newReview.id,
+        read: false
+      });
+
+      return newReview;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['properties']);
+      queryClient.invalidateQueries(['property-reviews']);
+      toast.success('Review submitted! Thank you for your feedback.');
       onClose();
+    },
+    onError: (error) => {
+      toast.error('Failed to submit review');
     }
   });
 
   const handleSubmit = () => {
-    if (!rating) {
-      toast.error("Please select a rating");
+    if (rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+    if (!review.trim()) {
+      toast.error('Please write a review');
       return;
     }
 
-    const reviewData = {
-      reviewed_email: isHost ? booking.created_by : booking.provider_email,
-      rating: rating,
-      comment: comment,
-      review_type: isHost ? "guest" : "host",
-      booking_id: booking.id
-    };
-
-    reviewMutation.mutate(reviewData);
+    submitReviewMutation.mutate({ rating, review });
   };
 
   return (
@@ -58,90 +84,87 @@ export default function PropertyReviewModal({ booking, onClose, isHost = false }
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-gray-900 rounded-3xl overflow-hidden"
+        className="w-full max-w-lg bg-gray-900 rounded-3xl p-6"
       >
-        <div className="relative p-6 border-b border-white/10">
-          <h2 className="text-2xl font-bold text-white">
-            {isHost ? "Review Guest" : "Review Your Stay"}
-          </h2>
-          <p className="text-gray-400 mt-1">{booking.experience_title}</p>
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"
-          >
-            <X className="w-4 h-4 text-white" />
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-2xl font-bold text-white">Leave a Review</h3>
+          <button onClick={onClose}>
+            <X className="w-6 h-6 text-gray-400" />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="space-y-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+            <h4 className="text-white font-semibold mb-1">{property.title}</h4>
+            <p className="text-gray-400 text-sm">{property.location}</p>
+          </div>
+
           <div>
-            <label className="text-white font-semibold mb-3 block">
-              {isHost ? "How was your guest?" : "How was your experience?"}
-            </label>
-            <div className="flex items-center justify-center gap-2">
+            <label className="text-gray-400 text-sm mb-2 block">Your Rating</label>
+            <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
+                  type="button"
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
                   onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
                   className="transition-transform hover:scale-110"
                 >
                   <Star
                     className={`w-10 h-10 ${
-                      star <= (hoverRating || rating)
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-gray-600"
+                      star <= (hoveredRating || rating)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-600'
                     }`}
                   />
                 </button>
               ))}
             </div>
-            <p className="text-center text-gray-400 text-sm mt-2">
-              {rating > 0 && (
-                <>
-                  {rating === 5 && "Excellent!"}
-                  {rating === 4 && "Very Good"}
-                  {rating === 3 && "Good"}
-                  {rating === 2 && "Fair"}
-                  {rating === 1 && "Needs Improvement"}
-                </>
-              )}
-            </p>
+            {rating > 0 && (
+              <p className="text-white text-sm mt-2">
+                {rating === 5 && '⭐ Excellent!'}
+                {rating === 4 && '👍 Great!'}
+                {rating === 3 && '😊 Good'}
+                {rating === 2 && '😐 Okay'}
+                {rating === 1 && '😞 Needs improvement'}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="text-white font-semibold mb-2 block">
-              Share your experience (optional)
-            </label>
+            <label className="text-gray-400 text-sm mb-2 block">Your Review</label>
             <Textarea
-              placeholder={isHost 
-                ? "How was communication? Did they follow house rules?"
-                : "What did you like? Any suggestions for improvement?"
-              }
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="bg-white/10 border-white/20 text-white h-32"
+              placeholder="Share your experience with future guests..."
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              rows={5}
+              className="bg-white/10 border-white/20 text-white"
             />
+            <p className="text-gray-500 text-xs mt-1">{review.length}/500 characters</p>
           </div>
 
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={onClose} className="flex-1">
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!rating || reviewMutation.isPending}
+              disabled={submitReviewMutation.isPending}
               className="flex-1 bg-emerald-600 hover:bg-emerald-700"
             >
-              {reviewMutation.isPending ? "Submitting..." : "Submit Review"}
+              {submitReviewMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Review'
+              )}
             </Button>
           </div>
         </div>

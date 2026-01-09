@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import PropertyBookingModal from "../components/property/PropertyBookingModal";
 import ListPropertyModal from "../components/provider/ListPropertyModal";
 import ContactSellerModal from "../components/property/ContactSellerModal";
+import PropertyReviewsList from "../components/property/PropertyReviewsList";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -486,6 +487,18 @@ export default function RealEstate() {
                     </div>
                   </div>
                 )}
+
+                {/* Reviews Section */}
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Star className="w-6 h-6 text-yellow-400" />
+                    Reviews {selectedProperty.reviews_count > 0 && `(${selectedProperty.reviews_count})`}
+                  </h3>
+                  <PropertyReviewsList 
+                    propertyId={selectedProperty.id} 
+                    hostEmail={selectedProperty.created_by}
+                  />
+                </div>
 
                 <div className="flex items-center justify-between p-6 glass-effect rounded-2xl">
                   <div>
