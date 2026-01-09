@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -85,7 +85,7 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { icon: Brain, label: "Ronron", path: "RonronAI" },
     { icon: Home, label: "Home", path: "Home" },
-    { icon: Music, label: "Music", path: "Vibe" },
+    { icon: Ticket, label: "Events", path: "Events" },
     { icon: Compass, label: "Universe", path: "Universe" },
     { icon: Wallet, label: "Wallet", path: "Wallet" },
     { icon: User, label: "Profile", path: "Profile" },
