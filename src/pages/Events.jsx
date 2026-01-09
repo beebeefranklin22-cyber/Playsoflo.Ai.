@@ -13,6 +13,7 @@ import {
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import TicketAffiliateStats from "../components/affiliate/TicketAffiliateStats";
 
 const eventCategories = [
   { id: "", label: "All Events", icon: Calendar },
@@ -113,6 +114,14 @@ export default function Events() {
           </form>
         </div>
       </div>
+
+      {/* Affiliate Stats */}
+      {currentUser?.role === 'admin' && (
+        <div className="px-6 mb-8">
+          <h3 className="text-white font-bold text-lg mb-4">Affiliate Performance</h3>
+          <TicketAffiliateStats currentUser={currentUser} />
+        </div>
+      )}
 
       {/* Category Filter */}
       <div className="px-6 mb-8">
@@ -236,18 +245,32 @@ export default function Events() {
                           <p className="text-gray-400 text-xs mb-4 line-clamp-2">{event.info}</p>
                         )}
 
-                        <a
-                          href={event.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => toast.success('Opening Ticketmaster...')}
+                        <Button 
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                          onClick={async () => {
+                            try {
+                              const response = await base44.functions.invoke('trackTicketClick', {
+                                event_id: event.id,
+                                event_name: event.name,
+                                ticket_url: event.url,
+                                price_min: event.priceRange?.min,
+                                price_max: event.priceRange?.max
+                              });
+                              
+                              // Open tracked URL in new tab
+                              window.open(response.data.tracking_url, '_blank');
+                              toast.success('Opening Ticketmaster... Earning commission on sale!');
+                            } catch (error) {
+                              // Fallback to direct link
+                              window.open(event.url, '_blank');
+                              toast.success('Opening Ticketmaster...');
+                            }
+                          }}
                         >
-                          <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                            <Ticket className="w-4 h-4 mr-2" />
-                            Buy Tickets
-                            <ExternalLink className="w-4 h-4 ml-2" />
-                          </Button>
-                        </a>
+                          <Ticket className="w-4 h-4 mr-2" />
+                          Buy Tickets
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
