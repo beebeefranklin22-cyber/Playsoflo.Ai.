@@ -70,8 +70,9 @@ export default function CarRentals() {
       return cars;
     },
     initialData: [],
-    refetchInterval: 60000,
-    refetchOnWindowFocus: true
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 2000
   });
 
   const { data: myRentals = [] } = useQuery({

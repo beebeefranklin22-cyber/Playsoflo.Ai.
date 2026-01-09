@@ -66,7 +66,7 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      await base44.entities.MarketplaceItem.create({
+      const listing = await base44.entities.MarketplaceItem.create({
         ...formData,
         price: parseFloat(formData.price),
         security_deposit: parseFloat(formData.security_deposit) || 500,
@@ -74,6 +74,18 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
         verified_provider: true,
         is_rental: true
       });
+      
+      // Notify users about new listing
+      try {
+        await base44.functions.invoke('notifyListingUpdate', {
+          listing_type: 'car rental',
+          listing_id: listing.id,
+          action: 'created'
+        });
+      } catch (error) {
+        console.log('Notification error:', error);
+      }
+      
       toast.success("Vehicle added successfully!");
       if (onSuccess) onSuccess();
     } catch (error) {

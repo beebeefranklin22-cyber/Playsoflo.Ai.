@@ -54,7 +54,22 @@ export default function ListCarModal({ isOpen, onClose, currentUser, onSuccess }
   const [newAddOn, setNewAddOn] = useState({ name: "", price: 0, description: "" });
 
   const createCarMutation = useMutation({
-    mutationFn: (data) => base44.entities.MarketplaceItem.create(data),
+    mutationFn: async (data) => {
+      const listing = await base44.entities.MarketplaceItem.create(data);
+      
+      // Notify all users about new listing
+      try {
+        await base44.functions.invoke('notifyListingUpdate', {
+          listing_type: 'car rental',
+          listing_id: listing.id,
+          action: 'created'
+        });
+      } catch (error) {
+        console.log('Notification broadcast error:', error);
+      }
+      
+      return listing;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['available-cars']);
       queryClient.invalidateQueries(['my-cars']);

@@ -1,0 +1,297 @@
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Bell, Check, Trash2, Settings, Car, Home, DollarSign,
+  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+
+const notificationIcons = {
+  'ride_request': Car,
+  'ride_update': Car,
+  'booking_request': Home,
+  'booking_update': Home,
+  'settlement': AlertCircle,
+  'message': MessageCircle,
+  'social': Heart,
+  'payment': DollarSign,
+  'system': Bell,
+  'new_listing': Sparkles,
+  'default': Bell
+};
+
+export default function NotificationCenter({ currentUser, compact = false }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState('all');
+
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['notifications', currentUser?.email, filter],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const query = filter === 'unread' 
+        ? { user_email: currentUser.email, read: false }
+        : { user_email: currentUser.email };
+      return await base44.entities.Notification.filter(query, '-created_date', 50);
+    },
+    enabled: !!currentUser,
+    refetchInterval: 10000,
+    initialData: []
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: (id) => base44.entities.Notification.update(id, { read: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['unread-notifications']);
+    }
+  });
+
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      const unread = notifications.filter(n => !n.read);
+      await Promise.all(unread.map(n => 
+        base44.entities.Notification.update(n.id, { read: true })
+      ));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['unread-notifications']);
+      toast.success('All notifications marked as read');
+    }
+  });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (id) => base44.entities.Notification.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['unread-notifications']);
+      toast.success('Notification deleted');
+    }
+  });
+
+  const handleNotificationClick = (notification) => {
+    markAsReadMutation.mutate(notification.id);
+
+    // Navigate based on notification type
+    const metadata = notification.metadata || {};
+    
+    if (notification.type === 'ride_request' || notification.type === 'ride_update') {
+      navigate(createPageUrl('DriverHub'));
+    } else if (notification.type === 'booking_request' || notification.type === 'booking_update') {
+      navigate(createPageUrl('ProviderHub'));
+    } else if (notification.type === 'settlement') {
+      navigate(createPageUrl('CarRentals'));
+    } else if (notification.type === 'message') {
+      navigate(createPageUrl('Messages'));
+    } else if (notification.type === 'social') {
+      navigate(createPageUrl('Profile'));
+    } else if (notification.type === 'payment') {
+      navigate(createPageUrl('Wallet'));
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const groupedNotifications = notifications.reduce((acc, notif) => {
+    const today = new Date().toDateString();
+    const notifDate = new Date(notif.created_date).toDateString();
+    const key = notifDate === today ? 'Today' : 
+                notifDate === new Date(Date.now() - 86400000).toDateString() ? 'Yesterday' : 
+                'Earlier';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(notif);
+    return acc;
+  }, {});
+
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        {notifications.slice(0, 5).map((notif) => {
+          const Icon = notificationIcons[notif.type] || notificationIcons.default;
+          return (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={() => handleNotificationClick(notif)}
+              className={`p-3 rounded-xl cursor-pointer transition ${
+                notif.read ? 'bg-white/5' : 'bg-purple-500/10 border border-purple-500/30'
+              } hover:bg-white/10`}
+            >
+              <div className="flex items-start gap-3">
+                <Icon className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-medium text-sm">{notif.title}</p>
+                  <p className="text-gray-400 text-xs line-clamp-1">{notif.message}</p>
+                </div>
+                {!notif.read && <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-1" />}
+              </div>
+            </motion.div>
+          );
+        })}
+        {notifications.length > 5 && (
+          <Button
+            onClick={() => navigate(createPageUrl('Notifications'))}
+            variant="ghost"
+            className="w-full text-purple-400 hover:text-purple-300"
+          >
+            View All Notifications
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-white">Notifications</h2>
+          {unreadCount > 0 && (
+            <Badge className="bg-purple-500">{unreadCount}</Badge>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => navigate(createPageUrl('NotificationPreferences'))}
+            variant="outline"
+            size="sm"
+            className="bg-white/5 border-white/20"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+          {unreadCount > 0 && (
+            <Button
+              onClick={() => markAllAsReadMutation.mutate()}
+              disabled={markAllAsReadMutation.isPending}
+              size="sm"
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Mark All Read
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <Tabs value={filter} onValueChange={setFilter} className="space-y-4">
+        <TabsList className="bg-white/10 border border-white/20">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="unread">
+            Unread {unreadCount > 0 && `(${unreadCount})`}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={filter}>
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          ) : notifications.length === 0 ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-12 text-center">
+                <Bell className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">All caught up!</h3>
+                <p className="text-gray-400">No notifications to show</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(groupedNotifications).map(([group, notifs]) => (
+                <div key={group}>
+                  <h3 className="text-gray-400 text-sm font-semibold mb-3">{group}</h3>
+                  <div className="space-y-2">
+                    <AnimatePresence>
+                      {notifs.map((notif) => {
+                        const Icon = notificationIcons[notif.type] || notificationIcons.default;
+                        return (
+                          <motion.div
+                            key={notif.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, x: -100 }}
+                            layout
+                          >
+                            <Card className={`${
+                              notif.read 
+                                ? 'bg-white/5 border-white/10' 
+                                : 'bg-purple-500/10 border-purple-500/30'
+                            } hover:bg-white/10 transition cursor-pointer`}>
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-4">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                    notif.read ? 'bg-white/10' : 'bg-purple-500/20'
+                                  }`}>
+                                    <Icon className="w-5 h-5 text-purple-400" />
+                                  </div>
+                                  
+                                  <div 
+                                    className="flex-1 min-w-0"
+                                    onClick={() => handleNotificationClick(notif)}
+                                  >
+                                    <div className="flex items-start justify-between gap-3 mb-1">
+                                      <h4 className="text-white font-semibold">{notif.title}</h4>
+                                      {!notif.read && (
+                                        <div className="w-2 h-2 bg-purple-500 rounded-full flex-shrink-0 mt-1" />
+                                      )}
+                                    </div>
+                                    <p className="text-gray-300 text-sm mb-2">{notif.message}</p>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-gray-500 text-xs">
+                                        {new Date(notif.created_date).toLocaleString()}
+                                      </span>
+                                      <div className="flex gap-2">
+                                        {!notif.read && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              markAsReadMutation.mutate(notif.id);
+                                            }}
+                                            className="text-purple-400 hover:text-purple-300 text-xs flex items-center gap-1"
+                                          >
+                                            <Check className="w-3 h-3" />
+                                            Mark read
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteNotificationMutation.mutate(notif.id);
+                                          }}
+                                          className="text-red-400 hover:text-red-300 text-xs flex items-center gap-1"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                          Delete
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

@@ -78,7 +78,10 @@ export default function EntertainmentExperiences() {
         category: selectedCategory 
       }, '-created_date');
     },
-    enabled: selectedCategory !== 'live_events'
+    enabled: selectedCategory !== 'live_events',
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 2000
   });
 
   const { data: liveEvents = [], isLoading: eventsLoading } = useQuery({
