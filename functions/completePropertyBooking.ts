@@ -102,14 +102,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Notify guest
+    // Get property for notification
+    const properties = await base44.asServiceRole.entities.Property.filter({ id: booking.property_id });
+    const property = properties[0];
+
+    // Notify guest with review prompt
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: booking.created_by,
-      type: 'system_alert',
-      title: '🏠 Stay Completed',
-      message: `Your stay has been completed! Please rate your experience.`,
+      type: 'booking_update',
+      title: 'Rate Your Stay',
+      message: `How was your stay at ${property?.title || 'the property'}?`,
       reference_type: 'booking',
-      reference_id: booking.id
+      reference_id: booking.id,
+      metadata: {
+        action: 'review',
+        booking_id: booking.id,
+        property_id: booking.property_id,
+        host_email: booking.provider_email
+      }
     });
 
     return Response.json({

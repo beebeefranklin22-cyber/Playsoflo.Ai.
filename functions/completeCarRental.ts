@@ -90,14 +90,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Notify renter
+    // Get car info for notification
+    const cars = await base44.asServiceRole.entities.MarketplaceItem.filter({ id: rental.car_id });
+    const car = cars[0];
+
+    // Notify renter with review prompt
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: rental.renter_email,
-      type: 'system_alert',
-      title: '🚗 Rental Completed',
-      message: `Your car rental has been completed! Please leave a review.`,
+      type: 'booking_update',
+      title: 'Rate Your Rental',
+      message: `How was your experience with ${car?.title || 'the vehicle'}?`,
       reference_type: 'car_rental',
-      reference_id: rental.id
+      reference_id: rental.id,
+      metadata: {
+        action: 'review',
+        rental_id: rental.id,
+        car_id: rental.car_id,
+        owner_email: rental.provider_email
+      }
     });
 
     return Response.json({

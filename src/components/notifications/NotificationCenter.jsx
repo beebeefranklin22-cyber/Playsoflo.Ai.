@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, Check, Trash2, Settings, Car, Home, DollarSign,
-  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X
+  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -276,6 +276,18 @@ export default function NotificationCenter({ currentUser, compact = false }) {
                                         {new Date(notif.created_date).toLocaleString()}
                                       </span>
                                       <div className="flex gap-2">
+                                        {notif.metadata?.action === 'review' && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleNotificationClick(notif);
+                                            }}
+                                            className="text-yellow-400 hover:text-yellow-300 text-xs flex items-center gap-1 font-semibold"
+                                          >
+                                            <Star className="w-3 h-3" />
+                                            Leave Review
+                                          </button>
+                                        )}
                                         {!notif.read && (
                                           <button
                                             onClick={(e) => {

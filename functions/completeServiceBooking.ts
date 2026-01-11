@@ -67,14 +67,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Notify customer to leave a review
+    // Notify customer with review prompt
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: booking.user_email,
-      type: 'system_alert',
-      title: '⭐ Service Completed',
-      message: `Your booking with ${booking.provider_email} is complete! Please leave a review.`,
+      type: 'booking_update',
+      title: 'Rate Your Service',
+      message: `How was your ${booking.service_title || 'service'} experience?`,
       reference_type: 'booking',
-      reference_id: booking.id
+      reference_id: booking.id,
+      metadata: {
+        action: 'review',
+        booking_id: booking.id,
+        provider_email: booking.provider_email
+      }
     });
 
     return Response.json({

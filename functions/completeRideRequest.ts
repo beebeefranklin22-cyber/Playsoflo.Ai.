@@ -96,14 +96,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Notify passenger
+    // Notify passenger with review prompt
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: ride.created_by,
-      type: 'system_alert',
-      title: '🚗 Ride Completed',
-      message: `Your ride has been completed! Please rate your driver.`,
+      type: 'ride_update',
+      title: 'Rate Your Driver',
+      message: `Your ride has been completed! How was your experience?`,
       reference_type: 'ride',
-      reference_id: ride.id
+      reference_id: ride.id,
+      metadata: {
+        action: 'review',
+        ride_id: ride.id,
+        driver_email: ride.driver_email
+      }
     });
 
     return Response.json({

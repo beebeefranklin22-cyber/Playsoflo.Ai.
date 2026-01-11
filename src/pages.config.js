@@ -43,6 +43,7 @@ import MyBookings from './pages/MyBookings';
 import MyP2POrders from './pages/MyP2POrders';
 import MyPropertyBookings from './pages/MyPropertyBookings';
 import MyRides from './pages/MyRides';
+import NotificationPreferences from './pages/NotificationPreferences';
 import Notifications from './pages/Notifications';
 import OnboardingFlow from './pages/OnboardingFlow';
 import OrderSuccess from './pages/OrderSuccess';
@@ -87,7 +88,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import NotificationPreferences from './pages/NotificationPreferences';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +137,7 @@ export const PAGES = {
     "MyP2POrders": MyP2POrders,
     "MyPropertyBookings": MyPropertyBookings,
     "MyRides": MyRides,
+    "NotificationPreferences": NotificationPreferences,
     "Notifications": Notifications,
     "OnboardingFlow": OnboardingFlow,
     "OrderSuccess": OrderSuccess,
@@ -181,7 +182,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "NotificationPreferences": NotificationPreferences,
 }
 
 export const pagesConfig = {

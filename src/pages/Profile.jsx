@@ -21,8 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import PortfolioSection from "../components/profile/PortfolioSection";
-import ReviewsSection from "../components/profile/ReviewsSection";
 import GallerySection from "../components/profile/GallerySection";
+import ReviewsList from "../components/reviews/ReviewsList";
 import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
 import RidePreferencesModal from "../components/ride/RidePreferencesModal";
@@ -672,11 +672,7 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4">
-            <ReviewsSection 
-              userEmail={currentUser?.email} 
-              isOwnProfile={true} 
-              currentUser={currentUser} 
-            />
+            <ReviewsList userEmail={currentUser?.email} />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
