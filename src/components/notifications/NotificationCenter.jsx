@@ -174,7 +174,6 @@ export default function NotificationCenter({ currentUser, compact = false }) {
           }}
         />
       )}
-    (
     <div className="space-y-4">
       {/* Header Actions */}
       <div className="flex items-center justify-between">
@@ -328,5 +327,6 @@ export default function NotificationCenter({ currentUser, compact = false }) {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
