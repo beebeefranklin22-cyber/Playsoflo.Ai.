@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import UniversalReviewModal from "../reviews/UniversalReviewModal";
 
 const notificationIcons = {
   'ride_request': Car,
@@ -32,6 +33,7 @@ export default function NotificationCenter({ currentUser, compact = false }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('all');
+  const [showReviewModal, setShowReviewModal] = useState(null);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', currentUser?.email, filter],
@@ -83,6 +85,12 @@ export default function NotificationCenter({ currentUser, compact = false }) {
 
     // Navigate based on notification type
     const metadata = notification.metadata || {};
+    
+    // Check if this is a review prompt
+    if (metadata.action === 'review') {
+      setShowReviewModal(notification);
+      return;
+    }
     
     if (notification.type === 'ride_request' || notification.type === 'ride_update') {
       navigate(createPageUrl('DriverHub'));
@@ -152,6 +160,21 @@ export default function NotificationCenter({ currentUser, compact = false }) {
   }
 
   return (
+    <>
+      {showReviewModal && (
+        <UniversalReviewModal
+          reviewedUserEmail={showReviewModal.metadata.driver_email || showReviewModal.metadata.provider_email || showReviewModal.metadata.host_email || showReviewModal.metadata.owner_email}
+          reviewedUserName="Provider"
+          reviewType={showReviewModal.metadata.ride_id ? 'driver' : showReviewModal.metadata.property_id ? 'property' : 'service'}
+          bookingId={showReviewModal.metadata.booking_id || showReviewModal.metadata.rental_id || showReviewModal.metadata.ride_id}
+          propertyId={showReviewModal.metadata.property_id}
+          onClose={() => setShowReviewModal(null)}
+          onSuccess={() => {
+            deleteNotificationMutation.mutate(showReviewModal.id);
+          }}
+        />
+      )}
+    (
     <div className="space-y-4">
       {/* Header Actions */}
       <div className="flex items-center justify-between">
