@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff } from "lucide-react";
+import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -14,6 +14,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
   const [error, setError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState("user"); // 'user' = front, 'environment' = back
   const localVideoRef = useRef(null);
   const remoteVideoContainerRef = useRef(null);
 
@@ -47,54 +48,71 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         await client.join(appId, channelName, token, uid);
         setIsJoined(true);
 
-        // If host, create and publish tracks with HD settings
+        // If host, create and publish tracks
         if (role === "host") {
           try {
-            // Request camera and microphone permissions with error handling
+            // Get available devices first
             const devices = await AgoraRTC.getDevices();
-            const hasCamera = devices.some(d => d.kind === 'videoinput');
-            const hasMic = devices.some(d => d.kind === 'audioinput');
+            const cameras = devices.filter(d => d.kind === 'videoinput');
+            const mics = devices.filter(d => d.kind === 'audioinput');
 
-            if (!hasCamera) {
-              throw new Error("No camera found. Please connect a camera.");
+            console.log("Available cameras:", cameras.length);
+            console.log("Available microphones:", mics.length);
+
+            if (cameras.length === 0) {
+              throw new Error("No camera found. Please connect a camera and allow permissions.");
             }
-            if (!hasMic) {
+            if (mics.length === 0) {
               throw new Error("No microphone found. Please connect a microphone.");
             }
 
+            // Create video track with facingMode for mobile
             const videoTrack = await AgoraRTC.createCameraVideoTrack({
+              facingMode: cameraFacing,
               encoderConfig: {
-                width: 1280,
-                height: 720,
+                width: 640,
+                height: 480,
                 frameRate: 30,
-                bitrateMin: 600,
-                bitrateMax: 1200,
+                bitrateMin: 400,
+                bitrateMax: 800,
               },
               optimizationMode: "detail"
             });
 
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-              encoderConfig: "high_quality",
+              encoderConfig: "music_standard",
             });
+
+            console.log("Tracks created successfully");
 
             setLocalVideoTrack(videoTrack);
             setLocalAudioTrack(audioTrack);
 
-            // Wait for ref to be ready and play local video
-            await new Promise(resolve => setTimeout(resolve, 200));
+            // Ensure container is ready before playing
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
             if (localVideoRef.current) {
-              console.log("Playing local video track...");
-              videoTrack.play(localVideoRef.current);
+              console.log("Container dimensions:", {
+                width: localVideoRef.current.offsetWidth,
+                height: localVideoRef.current.offsetHeight
+              });
+              
+              // Play video in container with explicit settings
+              videoTrack.play(localVideoRef.current, { fit: "contain" });
+              console.log("Video track playing in container");
+            } else {
+              console.error("Video container ref not available!");
             }
 
-            // Publish tracks to channel
+            // Publish to channel
             await client.publish([videoTrack, audioTrack]);
-            console.log("Published tracks successfully");
+            console.log("Tracks published to channel");
             toast.success("You're now live!");
           } catch (mediaError) {
-            console.error("Media device error:", mediaError);
-            setError(mediaError.message);
-            throw new Error(mediaError.message || "Camera/microphone access denied. Please allow permissions and refresh.");
+            console.error("Media error:", mediaError);
+            const errorMsg = mediaError.message || "Camera/microphone access denied";
+            setError(errorMsg);
+            toast.error(errorMsg);
           }
         }
 
@@ -204,43 +222,93 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
     }
   };
 
+  const switchCamera = async () => {
+    if (!localVideoTrack) return;
+    
+    try {
+      const newFacing = cameraFacing === "user" ? "environment" : "user";
+      
+      // Stop current video track
+      localVideoTrack.stop();
+      localVideoTrack.close();
+      
+      // Create new track with opposite facing mode
+      const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
+        facingMode: newFacing,
+        encoderConfig: {
+          width: 640,
+          height: 480,
+          frameRate: 30,
+        }
+      });
+      
+      // Update state
+      setLocalVideoTrack(newVideoTrack);
+      setCameraFacing(newFacing);
+      
+      // Play in container
+      if (localVideoRef.current) {
+        newVideoTrack.play(localVideoRef.current, { fit: "contain" });
+      }
+      
+      // Unpublish old and publish new
+      await client.unpublish([localVideoTrack]);
+      await client.publish([newVideoTrack]);
+      
+      toast.success(`Switched to ${newFacing === "user" ? "front" : "back"} camera`);
+    } catch (error) {
+      console.error("Camera switch error:", error);
+      toast.error("Failed to switch camera: " + error.message);
+    }
+  };
+
   return (
     <div className="relative w-full h-full bg-black">
       {role === "host" ? (
         <>
           <div 
             ref={localVideoRef} 
-            className="w-full h-full"
+            className="w-full h-full absolute inset-0"
             style={{ 
               backgroundColor: '#000',
-              minHeight: '400px'
+              width: '100%',
+              height: '100%'
             }} 
           />
           
           {!localVideoTrack && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black">
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
               <div className="text-center">
                 <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
                 <p className="text-white">Initializing camera...</p>
+                <p className="text-gray-400 text-sm mt-2">Please allow camera and microphone access</p>
               </div>
             </div>
           )}
           
           {/* Host Controls */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
             <Button
               onClick={toggleMute}
               size="icon"
-              className={`rounded-full ${isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30'}`}
+              className={`rounded-full ${isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm'}`}
             >
               {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
             <Button
               onClick={toggleVideo}
               size="icon"
-              className={`rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30'}`}
+              className={`rounded-full ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm'}`}
             >
               {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            </Button>
+            <Button
+              onClick={switchCamera}
+              size="icon"
+              className="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+              title={`Switch to ${cameraFacing === "user" ? "back" : "front"} camera`}
+            >
+              <RefreshCw className="w-5 h-5" />
             </Button>
           </div>
         </>
@@ -248,14 +316,15 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         <>
           <div 
             ref={remoteVideoContainerRef} 
-            className="w-full h-full" 
+            className="w-full h-full absolute inset-0" 
             style={{ 
               backgroundColor: '#000',
-              minHeight: '400px'
+              width: '100%',
+              height: '100%'
             }} 
           />
           {Object.keys(remoteUsers).length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 z-10">
               <div className="text-center">
                 <Video className="w-16 h-16 text-white/40 mx-auto mb-4 animate-pulse" />
                 <p className="text-white/80 text-lg font-semibold mb-2">Waiting for broadcaster...</p>
@@ -266,14 +335,16 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         </>
       )}
       
-      {/* HD Badge */}
-      <div className="absolute top-4 right-4 bg-green-500/20 border border-green-500/50 text-green-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
-        HD 1080p
-      </div>
+      {/* Camera Facing Badge (for host only) */}
+      {role === "host" && localVideoTrack && (
+        <div className="absolute top-4 right-4 bg-purple-500/20 border border-purple-500/50 text-purple-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm z-20">
+          {cameraFacing === "user" ? "Front Camera" : "Back Camera"}
+        </div>
+      )}
 
       {/* Live Indicator */}
       {isJoined && (
-        <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
+        <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 z-20">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
           {role === "host" ? "BROADCASTING" : "LIVE"}
         </div>
