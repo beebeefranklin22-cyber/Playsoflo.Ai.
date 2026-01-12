@@ -51,6 +51,7 @@ import OrderSuccess from './pages/OrderSuccess';
 import PackageDelivery from './pages/PackageDelivery';
 import PassengerProfile from './pages/PassengerProfile';
 import PaymentSuccess from './pages/PaymentSuccess';
+import PayoutDashboard from './pages/PayoutDashboard';
 import Payouts from './pages/Payouts';
 import PersonalizedFeed from './pages/PersonalizedFeed';
 import Profile from './pages/Profile';
@@ -89,7 +90,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import PayoutDashboard from './pages/PayoutDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -147,6 +147,7 @@ export const PAGES = {
     "PackageDelivery": PackageDelivery,
     "PassengerProfile": PassengerProfile,
     "PaymentSuccess": PaymentSuccess,
+    "PayoutDashboard": PayoutDashboard,
     "Payouts": Payouts,
     "PersonalizedFeed": PersonalizedFeed,
     "Profile": Profile,
@@ -185,7 +186,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "PayoutDashboard": PayoutDashboard,
 }
 
 export const pagesConfig = {

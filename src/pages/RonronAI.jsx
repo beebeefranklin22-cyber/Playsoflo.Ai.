@@ -35,12 +35,12 @@ export default function RonronAI() {
       // Personalized greeting
       setMessages([{
         role: "assistant",
-        content: `Hey ${user?.full_name || 'there'}! I'm Ronron, your multilingual AI assistant. I can help you:\n\n🎯 Book experiences & services\n💰 Manage payments & wallet\n🌍 Translate & communicate in any language\n🗣️ Respond to voice commands\n🔍 Search & discover\n\nTry saying "Book me a yacht" or "Check my balance" - I understand natural language!`
+        content: `Hey ${user?.full_name || 'there'}! I'm Beebee, your multilingual AI assistant. I can help you:\n\n🎯 Book experiences & services\n💰 Manage payments & wallet\n🌍 Translate & communicate in any language\n🗣️ Respond to voice commands\n🔍 Search & discover\n\nTry saying "Book me a yacht" or "Check my balance" - I understand natural language!`
       }]);
     }).catch(() => {
       setMessages([{
         role: "assistant",
-        content: "Hey! I'm Ronron, your AI assistant. I can help with general questions, but you'll need to sign in for personalized features!"
+        content: "Hey! I'm Beebee, your AI assistant. I can help with general questions, but you'll need to sign in for personalized features!"
       }]);
     });
 
@@ -163,7 +163,7 @@ export default function RonronAI() {
 
     try {
       // Enhanced multilingual context-aware prompting with real-time data
-      const contextPrompt = `You are Ronron, the ultra-intelligent multilingual AI assistant for PlaySoFlo - a lifestyle super-app with experiences, marketplace services, wallet, real estate, travel, and more.
+      const contextPrompt = `You are Beebee, the ultra-intelligent multilingual AI assistant for PlaySoFlo - a lifestyle super-app with experiences, marketplace services, wallet, real estate, travel, and more.
 
       CRITICAL SECURITY RULES - YOU MUST FOLLOW THESE:
       - NEVER provide sensitive information (passwords, API keys, database credentials)
@@ -274,7 +274,7 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
       await handlePaymentIntent(messageText);
 
     } catch (error) {
-      console.error("Ronron error:", error);
+      console.error("Beebee error:", error);
       
       // Report error to diagnostics
       try {
@@ -510,7 +510,7 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
             </motion.div>
             <div>
               <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                Ronron AI
+                Beebee AI
                 <Sparkles className="w-4 h-4 text-yellow-400" />
               </h1>
               <p className="text-sm text-gray-400">14 Languages • Voice AI • Ultra Smart</p>
@@ -630,7 +630,7 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={`Ask Ronron in ${selectedLanguage}...`}
+              placeholder={`Ask Beebee in ${selectedLanguage}...`}
               className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none"
             />
             
@@ -661,7 +661,7 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
         </div>
 
         <p className="text-xs text-gray-500 mt-2 text-center">
-          Ronron can book, pay, translate, and navigate • Voice & text supported
+          Beebee can book, pay, translate, and navigate • Voice & text supported
         </p>
       </div>
     </div>
