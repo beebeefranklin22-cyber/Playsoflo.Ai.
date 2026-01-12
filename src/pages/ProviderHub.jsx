@@ -644,6 +644,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           <div className="overflow-x-auto -mx-2 px-2">
             <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
               <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
+              <TabsTrigger value="video-editor" className="whitespace-nowrap px-4">Video Editor</TabsTrigger>
               <TabsTrigger value="requests" className="relative whitespace-nowrap px-4">
                 Requests
                 {unreadBookingRequests > 0 && (
@@ -672,6 +673,11 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <PerformanceDashboard currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Video Editor Tab */}
+          <TabsContent value="video-editor" className="space-y-6">
+            <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 
           {/* Booking Requests Tab */}
