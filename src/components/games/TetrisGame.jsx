@@ -23,6 +23,7 @@ export default function TetrisGame({ currentUser, onExit }) {
   const [score, setScore] = useState(0);
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
   const boardRef = useRef(Array(20).fill(null).map(() => Array(10).fill(0)));
   const pieceRef = useRef(null);
   const gameLoopRef = useRef(null);
@@ -31,6 +32,10 @@ export default function TetrisGame({ currentUser, onExit }) {
   const ROWS = 20;
   const COLS = 10;
   const CELL_SIZE = 28;
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -297,8 +302,8 @@ export default function TetrisGame({ currentUser, onExit }) {
                 <h2 className="text-5xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-600">
                   Neon Tetris
                 </h2>
-                <p className="text-gray-300 mb-2">Arrow Keys or WASD</p>
-                <p className="text-cyan-400 mb-6">Space/Up to Rotate</p>
+                <p className="text-gray-300 mb-2">{isMobile ? 'Tap buttons to play' : 'Arrow Keys or WASD'}</p>
+                {!isMobile && <p className="text-cyan-400 mb-6">Space/Up to Rotate</p>}
                 <Button onClick={startGame} className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 px-10 py-7 text-xl shadow-2xl">
                   <Play className="w-6 h-6 mr-3" />
                   Start Game
@@ -361,6 +366,36 @@ export default function TetrisGame({ currentUser, onExit }) {
             height={ROWS * CELL_SIZE}
             className="border-4 border-cyan-500/50 rounded-xl shadow-2xl"
           />
+          
+          {/* Mobile Controls */}
+          {isMobile && gameState === 'playing' && (
+            <div className="mt-4 flex gap-2 justify-center">
+              <Button
+                onTouchStart={() => { movePiece(-1, 0); drawGame(canvasRef.current.getContext('2d')); }}
+                className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
+              >
+                ←
+              </Button>
+              <Button
+                onTouchStart={() => { movePiece(0, 1); drawGame(canvasRef.current.getContext('2d')); }}
+                className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
+              >
+                ↓
+              </Button>
+              <Button
+                onTouchStart={() => { rotatePiece(); drawGame(canvasRef.current.getContext('2d')); }}
+                className="bg-yellow-600 hover:bg-yellow-700 h-16 px-8 text-2xl"
+              >
+                ↻
+              </Button>
+              <Button
+                onTouchStart={() => { movePiece(1, 0); drawGame(canvasRef.current.getContext('2d')); }}
+                className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
+              >
+                →
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

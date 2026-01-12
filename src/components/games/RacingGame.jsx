@@ -10,6 +10,7 @@ export default function RacingGame({ currentUser, onExit }) {
   const [gameState, setGameState] = useState('menu');
   const [score, setScore] = useState(0);
   const [speed, setSpeed] = useState(5);
+  const [isMobile, setIsMobile] = useState(false);
   const gameLoopRef = useRef(null);
   const playerRef = useRef({ x: 180, y: 450, width: 40, height: 70 });
   const carsRef = useRef([]);
@@ -20,6 +21,10 @@ export default function RacingGame({ currentUser, onExit }) {
 
   const CANVAS_WIDTH = 400;
   const CANVAS_HEIGHT = 600;
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -250,7 +255,7 @@ export default function RacingGame({ currentUser, onExit }) {
                 <h2 className="text-5xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-pink-600">
                   Neon Racer
                 </h2>
-                <p className="text-gray-300 mb-6">Arrow Keys or A-D to Steer</p>
+                <p className="text-gray-300 mb-6">{isMobile ? 'Tap to steer' : 'Arrow Keys or A-D to Steer'}</p>
                 <Button onClick={startGame} className="bg-gradient-to-r from-cyan-600 to-pink-600 hover:from-cyan-700 hover:to-pink-700 px-10 py-7 text-xl shadow-2xl">
                   <Play className="w-6 h-6 mr-3" />
                   Start Race
@@ -299,6 +304,26 @@ export default function RacingGame({ currentUser, onExit }) {
             height={CANVAS_HEIGHT}
             className="border-4 border-cyan-500/50 rounded-xl shadow-2xl"
           />
+          
+          {/* Mobile Controls */}
+          {isMobile && gameState === 'playing' && (
+            <div className="mt-4 flex gap-4 justify-center">
+              <Button
+                onTouchStart={() => keysRef.current['ArrowLeft'] = true}
+                onTouchEnd={() => keysRef.current['ArrowLeft'] = false}
+                className="bg-cyan-600 hover:bg-cyan-700 h-20 px-12 text-3xl"
+              >
+                ←
+              </Button>
+              <Button
+                onTouchStart={() => keysRef.current['ArrowRight'] = true}
+                onTouchEnd={() => keysRef.current['ArrowRight'] = false}
+                className="bg-cyan-600 hover:bg-cyan-700 h-20 px-12 text-3xl"
+              >
+                →
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

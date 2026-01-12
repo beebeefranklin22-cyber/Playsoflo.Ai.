@@ -11,6 +11,7 @@ export default function SpaceInvaders({ currentUser, onExit }) {
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [wave, setWave] = useState(1);
+  const [isMobile, setIsMobile] = useState(false);
   const gameLoopRef = useRef(null);
   const playerRef = useRef({ x: 280, y: 520, width: 40, height: 30 });
   const bulletsRef = useRef([]);
@@ -21,6 +22,10 @@ export default function SpaceInvaders({ currentUser, onExit }) {
 
   const CANVAS_WIDTH = 600;
   const CANVAS_HEIGHT = 600;
+
+  useEffect(() => {
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+  }, []);
 
   useEffect(() => {
     if (gameState === 'playing') {
@@ -322,8 +327,8 @@ export default function SpaceInvaders({ currentUser, onExit }) {
                 <h2 className="text-5xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-600">
                   Space Invaders
                 </h2>
-                <p className="text-gray-300 mb-2">Arrow Keys / A-D to Move</p>
-                <p className="text-cyan-400 mb-6">Space to Shoot</p>
+                <p className="text-gray-300 mb-2">{isMobile ? 'Tap to move and shoot' : 'Arrow Keys / A-D to Move'}</p>
+                {!isMobile && <p className="text-cyan-400 mb-6">Space to Shoot</p>}
                 <Button onClick={startGame} className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 px-10 py-7 text-xl shadow-2xl">
                   <Play className="w-6 h-6 mr-3" />
                   Start Game
@@ -379,6 +384,47 @@ export default function SpaceInvaders({ currentUser, onExit }) {
             height={CANVAS_HEIGHT}
             className="border-4 border-cyan-500/50 rounded-xl shadow-2xl bg-black"
           />
+          
+          {/* Mobile Controls */}
+          {isMobile && gameState === 'playing' && (
+            <div className="mt-4 flex gap-2 justify-center">
+              <Button
+                onTouchStart={() => {
+                  const player = playerRef.current;
+                  player.x = Math.max(0, player.x - 30);
+                }}
+                className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
+              >
+                ←
+              </Button>
+              <Button
+                onTouchStart={() => {
+                  if (bulletsRef.current.length < 3) {
+                    const player = playerRef.current;
+                    bulletsRef.current.push({
+                      x: player.x + player.width / 2 - 2,
+                      y: player.y,
+                      width: 4,
+                      height: 15,
+                      speed: 10
+                    });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 h-16 px-10 text-2xl"
+              >
+                🔥
+              </Button>
+              <Button
+                onTouchStart={() => {
+                  const player = playerRef.current;
+                  player.x = Math.min(CANVAS_WIDTH - player.width, player.x + 30);
+                }}
+                className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
+              >
+                →
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

@@ -11,6 +11,7 @@ export default function SnakeGame({ currentUser, onExit }) {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [combo, setCombo] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const gameLoopRef = useRef(null);
   const snakeRef = useRef([{ x: 10, y: 10 }]);
   const directionRef = useRef({ x: 1, y: 0 });
@@ -26,6 +27,7 @@ export default function SnakeGame({ currentUser, onExit }) {
 
   useEffect(() => {
     loadHighScore();
+    setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   }, []);
 
   const loadHighScore = async () => {
@@ -368,7 +370,7 @@ export default function SnakeGame({ currentUser, onExit }) {
                 <h2 className="text-5xl font-bold text-white mb-3 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
                   Neon Snake
                 </h2>
-                <p className="text-gray-300 mb-2">Arrow Keys or WASD</p>
+                <p className="text-gray-300 mb-2">{isMobile ? 'Tap buttons to move' : 'Arrow Keys or WASD'}</p>
                 <p className="text-purple-400 font-bold text-xl mb-6">High Score: {highScore}</p>
                 <Button onClick={startGame} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-10 py-7 text-xl shadow-2xl">
                   <Play className="w-6 h-6 mr-3" />
@@ -455,6 +457,38 @@ export default function SnakeGame({ currentUser, onExit }) {
             height={GRID_SIZE * CELL_SIZE}
             className="border-4 border-purple-500/50 rounded-xl shadow-2xl"
           />
+          
+          {/* Mobile Controls */}
+          {isMobile && gameState === 'playing' && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div />
+              <Button
+                onTouchStart={() => nextDirectionRef.current = { x: 0, y: -1 }}
+                className="bg-purple-600 hover:bg-purple-700 h-16 text-2xl"
+              >
+                ↑
+              </Button>
+              <div />
+              <Button
+                onTouchStart={() => nextDirectionRef.current = { x: -1, y: 0 }}
+                className="bg-purple-600 hover:bg-purple-700 h-16 text-2xl"
+              >
+                ←
+              </Button>
+              <Button
+                onTouchStart={() => nextDirectionRef.current = { x: 0, y: 1 }}
+                className="bg-purple-600 hover:bg-purple-700 h-16 text-2xl"
+              >
+                ↓
+              </Button>
+              <Button
+                onTouchStart={() => nextDirectionRef.current = { x: 1, y: 0 }}
+                className="bg-purple-600 hover:bg-purple-700 h-16 text-2xl"
+              >
+                →
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
