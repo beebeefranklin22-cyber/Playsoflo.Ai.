@@ -18,6 +18,7 @@ import RacingGame from "../components/games/RacingGame";
 import BrickBreaker3D from "../components/games/BrickBreaker3D";
 import EndlessRunner3D from "../components/games/EndlessRunner3D";
 import BubbleShooter from "../components/games/BubbleShooter";
+import Highway95Racing from "../components/games/Highway95Racing";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -106,14 +107,14 @@ export default function Gaming() {
       multiplayer: false
     },
     {
-      id: 'racing',
-      name: 'Neon Racer',
-      description: 'High-speed racing action',
+      id: 'i95-racing',
+      name: 'I-95 Highway Racing',
+      description: 'Realistic 3D highway racing with traffic',
       icon: '🏎️',
       category: 'action',
       difficulty: 'Hard',
-      component: RacingGame,
-      is3D: false,
+      component: Highway95Racing,
+      is3D: true,
       multiplayer: false
     },
     {
