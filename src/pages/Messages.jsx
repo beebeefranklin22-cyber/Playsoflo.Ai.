@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import {
   Plus, Search, Image as ImageIcon, Paperclip,
   Smile, Check, CheckCheck, ArrowLeft, Users,
   X, Camera, Mic, MapPin, Edit2, Trash2, FileText,
-  Download, Lock
+  Download, Lock, Pin, BellOff, Reply, Forward
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoCallModal from "../components/VideoCallModal";
@@ -20,6 +21,7 @@ import { toast } from "sonner";
 
 export default function Messages() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messageInput, setMessageInput] = useState("");
@@ -34,6 +36,7 @@ export default function Messages() {
   const [editContent, setEditContent] = useState("");
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -41,11 +44,36 @@ export default function Messages() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // Handle URL params for direct conversation
+  useEffect(() => {
+    const userParam = searchParams.get("user");
+    const convParam = searchParams.get("conv");
+    
+    if (convParam && conversations.length > 0) {
+      const conv = conversations.find(c => c.id === convParam);
+      if (conv) setSelectedConversation(conv);
+    } else if (userParam && currentUser && conversations.length > 0) {
+      const conv = conversations.find(c => 
+        !c.is_group && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
+      );
+      if (conv) {
+        setSelectedConversation(conv);
+      } else {
+        createConversationMutation.mutate(userParam);
+      }
+    }
+  }, [searchParams, conversations, currentUser]);
+
   const { data: conversations = [] } = useQuery({
-    queryKey: ['conversations'],
-    queryFn: () => base44.entities.ChatConversation.list('-last_message_time'),
+    queryKey: ['conversations', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const allConvs = await base44.entities.ChatConversation.list('-last_message_time');
+      return allConvs.filter(conv => conv.participants.includes(currentUser.email));
+    },
+    enabled: !!currentUser,
     initialData: [],
-    refetchInterval: 1500 // Real-time updates - poll every 1.5 seconds
+    refetchInterval: 2000
   });
 
   const { data: messages = [] } = useQuery({
@@ -101,7 +129,12 @@ export default function Messages() {
       
       // Update conversation
       await base44.entities.ChatConversation.update(selectedConversation.id, {
-        last_message: encryptionEnabled ? "🔒 Encrypted message" : data.content.substring(0, 50),
+        last_message: encryptionEnabled ? "🔒 Encrypted message" : 
+                     (data.message_type === 'image' ? "📷 Photo" :
+                      data.message_type === 'video' ? "🎥 Video" :
+                      data.message_type === 'audio' ? "🎵 Audio" :
+                      data.message_type === 'file' ? "📎 File" :
+                      data.content.substring(0, 50)),
         last_message_time: new Date().toISOString(),
         last_message_sender: currentUser.email
       });
@@ -114,14 +147,21 @@ export default function Messages() {
       const notificationPromises = otherParticipants.map(recipient => 
         base44.entities.Notification.create({
           recipient_email: recipient,
-          type: "chat_message",
-          title: `New message from ${currentUser.full_name || currentUser.email}`,
-          message: encryptionEnabled ? "🔒 Encrypted message" : data.content.substring(0, 100),
-          reference_type: "conversation",
+          type: "new_message",
+          title: `${currentUser.full_name || currentUser.email}`,
+          message: encryptionEnabled ? "🔒 Encrypted message" : 
+                   (data.message_type === 'image' ? "Sent a photo" :
+                    data.message_type === 'video' ? "Sent a video" :
+                    data.message_type === 'audio' ? "Sent an audio" :
+                    data.message_type === 'file' ? "Sent a file" :
+                    data.content),
+          reference_type: "direct_message",
           reference_id: selectedConversation.id,
           sender_email: currentUser.email,
           sender_name: currentUser.full_name,
-          sender_photo: currentUser.profile_photo
+          sender_photo: currentUser.profile_photo,
+          action_url: `/messages?conv=${selectedConversation.id}`,
+          read: false
         })
       );
       
@@ -195,7 +235,9 @@ export default function Messages() {
   const createConversationMutation = useMutation({
     mutationFn: async (participantEmail) => {
       // Check if conversation already exists
-      const existing = conversations.find(conv => 
+      const allConvs = await base44.entities.ChatConversation.list();
+      const existing = allConvs.find(conv => 
+        !conv.is_group &&
         conv.participants.length === 2 &&
         conv.participants.includes(currentUser.email) &&
         conv.participants.includes(participantEmail)
@@ -203,9 +245,12 @@ export default function Messages() {
 
       if (existing) return existing;
 
+      const participant = allUsers.find(u => u.email === participantEmail);
       return await base44.entities.ChatConversation.create({
         participants: [currentUser.email, participantEmail],
-        name: participantEmail,
+        name: participant?.full_name || participantEmail,
+        is_group: false,
+        type: "general",
         unread_count: {}
       });
     },
@@ -213,6 +258,7 @@ export default function Messages() {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setSelectedConversation(conversation);
       setShowNewChat(false);
+      setSearchQuery("");
     }
   });
 
@@ -222,6 +268,7 @@ export default function Messages() {
         participants: [currentUser.email, ...selectedParticipants],
         name: groupName,
         is_group: true,
+        type: "general",
         unread_count: {}
       });
     },
@@ -231,6 +278,7 @@ export default function Messages() {
       setShowGroupChat(false);
       setGroupName("");
       setSelectedParticipants([]);
+      setSearchQuery("");
       toast.success('Group chat created!');
     }
   });
@@ -238,12 +286,15 @@ export default function Messages() {
   const markAsReadMutation = useMutation({
     mutationFn: async (messageId) => {
       const message = messages.find(m => m.id === messageId);
-      if (!message) return;
+      if (!message || message.sender_email === currentUser.email) return;
 
       const readBy = message.read_by || [];
+      const deliveredTo = message.delivered_to || [];
+      
       if (!readBy.includes(currentUser.email)) {
         await base44.entities.ChatMessage.update(messageId, {
-          read_by: [...readBy, currentUser.email]
+          read_by: [...readBy, currentUser.email],
+          delivered_to: deliveredTo.includes(currentUser.email) ? deliveredTo : [...deliveredTo, currentUser.email]
         });
       }
     },
@@ -259,8 +310,39 @@ export default function Messages() {
       conversation_id: selectedConversation.id,
       sender_email: currentUser.email,
       content: messageInput,
-      message_type: "text"
+      message_type: "text",
+      ...(replyingTo && { reply_to_message_id: replyingTo.id })
     });
+    
+    setReplyingTo(null);
+  };
+
+  const handlePinConversation = async (conv) => {
+    const isPinned = conv.pinned_by?.includes(currentUser.email);
+    const newPinnedBy = isPinned
+      ? (conv.pinned_by || []).filter(email => email !== currentUser.email)
+      : [...(conv.pinned_by || []), currentUser.email];
+    
+    await base44.entities.ChatConversation.update(conv.id, {
+      pinned_by: newPinnedBy
+    });
+    
+    queryClient.invalidateQueries(['conversations']);
+    toast.success(isPinned ? "Conversation unpinned" : "Conversation pinned");
+  };
+
+  const handleMuteConversation = async (conv) => {
+    const isMuted = conv.muted_by?.includes(currentUser.email);
+    const newMutedBy = isMuted
+      ? (conv.muted_by || []).filter(email => email !== currentUser.email)
+      : [...(conv.muted_by || []), currentUser.email];
+    
+    await base44.entities.ChatConversation.update(conv.id, {
+      muted_by: newMutedBy
+    });
+    
+    queryClient.invalidateQueries(['conversations']);
+    toast.success(isMuted ? "Conversation unmuted" : "Conversation muted");
   };
 
   const handleFileUpload = async (file) => {
@@ -412,10 +494,23 @@ export default function Messages() {
     return () => clearTimeout(timeout);
   }, [messageInput]);
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredConversations = conversations
+    .filter(conv =>
+      conv.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      // Sort pinned first
+      const aPinned = a.pinned_by?.includes(currentUser?.email);
+      const bPinned = b.pinned_by?.includes(currentUser?.email);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      
+      // Then by last message time
+      const aTime = new Date(a.last_message_time || 0);
+      const bTime = new Date(b.last_message_time || 0);
+      return bTime - aTime;
+    });
 
   const filteredUsers = allUsers.filter(user =>
     user.email !== currentUser?.email &&
@@ -471,20 +566,23 @@ export default function Messages() {
               <motion.div
                 key={conv.id}
                 whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                onClick={() => setSelectedConversation(conv)}
-                className={`p-4 cursor-pointer border-b border-white/5 ${
+                className={`p-4 cursor-pointer border-b border-white/5 relative group ${
                   selectedConversation?.id === conv.id ? 'bg-purple-500/20' : ''
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {conv.is_group ? (
-                        <Users className="w-6 h-6" />
-                      ) : (
-                        otherParticipant?.[0]?.toUpperCase() || "U"
-                      )}
-                    </div>
+                <div onClick={() => setSelectedConversation(conv)} className="flex items-center gap-3">
+                  <div className="relative flex-shrink-0">
+                    {conv.group_photo ? (
+                      <img src={conv.group_photo} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {conv.is_group ? (
+                          <Users className="w-6 h-6" />
+                        ) : (
+                          otherParticipant?.[0]?.toUpperCase() || "U"
+                        )}
+                      </div>
+                    )}
                     {!conv.is_group && (() => {
                       const status = getUserPresence(otherParticipant);
                       return (
@@ -499,9 +597,17 @@ export default function Messages() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className={`font-semibold truncate ${isUnread ? 'text-white' : 'text-gray-300'}`}>
-                        {conv.is_group ? conv.name : otherParticipant}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        {conv.pinned_by?.includes(currentUser?.email) && (
+                          <Pin className="w-3 h-3 text-purple-400" />
+                        )}
+                        <h3 className={`font-semibold truncate ${isUnread ? 'text-white' : 'text-gray-300'}`}>
+                          {conv.is_group ? conv.name : otherParticipant}
+                        </h3>
+                        {conv.muted_by?.includes(currentUser?.email) && (
+                          <BellOff className="w-3 h-3 text-gray-500" />
+                        )}
+                      </div>
                       {conv.last_message_time && (
                         <span className="text-xs text-gray-500">
                           {new Date(conv.last_message_time).toLocaleTimeString([], {
@@ -512,14 +618,40 @@ export default function Messages() {
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className={`text-sm truncate ${isUnread ? 'text-white font-medium' : 'text-gray-400'}`}>
+                      <p className={`text-sm truncate flex-1 ${isUnread ? 'text-white font-medium' : 'text-gray-400'}`}>
                         {conv.last_message || "No messages yet"}
                       </p>
-                      {isUnread && (
-                        <div className="w-2 h-2 bg-purple-500 rounded-full" />
+                      {isUnread && !conv.muted_by?.includes(currentUser?.email) && (
+                        <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold ml-2">
+                          {(conv.unread_count?.[currentUser?.email] || 1)}
+                        </div>
                       )}
                     </div>
                   </div>
+                </div>
+                
+                {/* Quick actions on hover */}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePinConversation(conv);
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-full"
+                    title="Pin"
+                  >
+                    <Pin className="w-4 h-4 text-gray-400" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMuteConversation(conv);
+                    }}
+                    className="p-2 hover:bg-white/20 rounded-full"
+                    title="Mute"
+                  >
+                    <BellOff className="w-4 h-4 text-gray-400" />
+                  </button>
                 </div>
               </motion.div>
             );
@@ -669,7 +801,15 @@ export default function Messages() {
                         {!isOwn && selectedConversation.is_group && (
                           <p className="text-xs text-gray-500 mb-1 px-2">{message.sender_email}</p>
                         )}
-                        
+
+                        {message.reply_to_message_id && (
+                          <div className="mb-1 p-2 bg-black/20 rounded-lg border-l-2 border-purple-500">
+                            <p className="text-xs text-gray-400">
+                              {messages.find(m => m.id === message.reply_to_message_id)?.content || "Original message"}
+                            </p>
+                          </div>
+                        )}
+
                         {message.message_type === 'image' && !message.is_deleted && (
                           <img
                             src={message.file_url}
@@ -757,22 +897,35 @@ export default function Messages() {
                               <span className="text-xs opacity-60 ml-2">(edited)</span>
                             )}
                             
-                            {isOwn && !message.is_deleted && (
-                              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition flex gap-1">
+                            {!message.is_deleted && (
+                              <div className={`absolute ${isOwn ? 'top-1 right-1' : 'top-1 left-1'} opacity-0 group-hover:opacity-100 transition flex gap-1`}>
+                                {isOwn && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setEditingMessage(message);
+                                        setEditContent(message.content);
+                                      }}
+                                      className="p-1 hover:bg-white/20 rounded"
+                                      title="Edit"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteMessageMutation.mutate(message.id)}
+                                      className="p-1 hover:bg-red-500/20 rounded"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                )}
                                 <button
-                                  onClick={() => {
-                                    setEditingMessage(message);
-                                    setEditContent(message.content);
-                                  }}
+                                  onClick={() => setReplyingTo(message)}
                                   className="p-1 hover:bg-white/20 rounded"
+                                  title="Reply"
                                 >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => deleteMessageMutation.mutate(message.id)}
-                                  className="p-1 hover:bg-red-500/20 rounded"
-                                >
-                                  <Trash2 className="w-3 h-3" />
+                                  <Reply className="w-3 h-3" />
                                 </button>
                               </div>
                             )}
@@ -825,6 +978,17 @@ export default function Messages() {
 
             {/* Message Input */}
             <div className="p-4 border-t border-white/10 bg-gray-900/50 backdrop-blur-xl">
+              {replyingTo && (
+                <div className="mb-2 p-3 bg-white/5 rounded-lg flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-400">Replying to</p>
+                    <p className="text-sm text-white truncate">{replyingTo.content}</p>
+                  </div>
+                  <button onClick={() => setReplyingTo(null)} className="p-1 hover:bg-white/10 rounded">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <input
                   ref={fileInputRef}
