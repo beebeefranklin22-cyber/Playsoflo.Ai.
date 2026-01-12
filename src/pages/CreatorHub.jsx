@@ -23,6 +23,7 @@ import DigitalGoodsStore from "../components/monetization/DigitalGoodsStore.jsx"
 import CrowdfundingManager from "../components/monetization/CrowdfundingManager.jsx";
 import SponsoredContentManager from "../components/monetization/SponsoredContentManager.jsx";
 import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
+import ComprehensiveAnalyticsDashboard from "../components/analytics/ComprehensiveAnalyticsDashboard.jsx";
 import CollaborativeContentManager from "../components/creator/CollaborativeContentManager.jsx";
 import CreatorContentSuggestions from "../components/creator/CreatorContentSuggestions.jsx";
 import SharedLibraryManager from "../components/collaboration/SharedLibraryManager.jsx";
