@@ -19,6 +19,7 @@ import BrickBreaker3D from "../components/games/BrickBreaker3D";
 import EndlessRunner3D from "../components/games/EndlessRunner3D";
 import BubbleShooter from "../components/games/BubbleShooter";
 import Highway95Racing from "../components/games/Highway95Racing";
+import SkyRunner3D from "../components/games/SkyRunner3D";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -203,6 +204,17 @@ export default function Gaming() {
       difficulty: 'Easy',
       component: BubbleShooter,
       is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'sky-runner',
+      name: 'Sky Runner 3D',
+      description: '3D platformer with dynamic levels',
+      icon: '🏃',
+      category: 'action',
+      difficulty: 'Medium',
+      component: SkyRunner3D,
+      is3D: true,
       multiplayer: false
     }
   ];
