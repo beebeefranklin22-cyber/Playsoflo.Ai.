@@ -34,6 +34,7 @@ export default function Gaming() {
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   React.useEffect(() => {
     const loadUser = async () => {
@@ -326,19 +327,25 @@ export default function Gaming() {
         </div>
 
         {myStats && (
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-              <p className="text-purple-100 text-xs">Games Played</p>
-              <p className="text-white text-2xl font-bold">{myStats.totalGames}</p>
+          <div className="flex items-center gap-3 mt-4">
+            <div className="flex-1 grid grid-cols-3 gap-3">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                <p className="text-purple-100 text-xs">Games Played</p>
+                <p className="text-white text-2xl font-bold">{myStats.totalGames}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                <p className="text-purple-100 text-xs">Best Score</p>
+                <p className="text-white text-2xl font-bold">{myStats.bestScore}</p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
+                <p className="text-purple-100 text-xs">Favorite</p>
+                <p className="text-white text-sm font-bold truncate">{myStats.favoriteGame || 'None'}</p>
+              </div>
             </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-              <p className="text-purple-100 text-xs">Best Score</p>
-              <p className="text-white text-2xl font-bold">{myStats.bestScore}</p>
-            </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3">
-              <p className="text-purple-100 text-xs">Favorite</p>
-              <p className="text-white text-sm font-bold truncate">{myStats.favoriteGame || 'None'}</p>
-            </div>
+            <Button onClick={() => setShowLeaderboard(true)} className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 h-full px-6">
+              <Trophy className="w-5 h-5 mr-2" />
+              View Leaderboard
+            </Button>
           </div>
         )}
       </div>
@@ -447,6 +454,8 @@ export default function Gaming() {
           </div>
         </div>
       </div>
+
+      {showLeaderboard && <GlobalLeaderboard currentUser={currentUser} onClose={() => setShowLeaderboard(false)} />}
     </div>
   );
 }
