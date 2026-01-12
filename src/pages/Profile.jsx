@@ -5,7 +5,8 @@ import {
   Lock, Eye, EyeOff, Upload, Loader2, Tag, Plus, X, Check,
   Share2, Shield, Bell, Globe, Heart, Star, Award, Trophy,
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
-  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock, AlertTriangle
+  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock, AlertTriangle,
+  Link as LinkIcon, Twitter, Instagram, Facebook, Youtube, Linkedin
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -63,6 +64,15 @@ export default function Profile() {
     full_name: "",
     username: "",
     bio: "",
+    website: "",
+    social_links: {
+      twitter: "",
+      instagram: "",
+      facebook: "",
+      tiktok: "",
+      youtube: "",
+      linkedin: ""
+    },
     phone: "",
     address: "",
     interests: [],
@@ -94,6 +104,15 @@ export default function Profile() {
           full_name: user.full_name || "",
           username: user.username || "",
           bio: user.bio || "",
+          website: user.website || "",
+          social_links: user.social_links || {
+            twitter: "",
+            instagram: "",
+            facebook: "",
+            tiktok: "",
+            youtube: "",
+            linkedin: ""
+          },
           phone: user.phone || "",
           address: user.address || "",
           interests: user.interests || [],
@@ -398,6 +417,65 @@ export default function Profile() {
                       onChange={(e) => setEditedUser({ ...editedUser, address: e.target.value })}
                       className="bg-white/10 border-white/20 text-white"
                     />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Website</label>
+                    <Input
+                      value={editedUser.website}
+                      onChange={(e) => setEditedUser({ ...editedUser, website: e.target.value })}
+                      placeholder="https://yourwebsite.com"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Social Links</label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Twitter className="w-4 h-4 text-gray-400" />
+                        <Input
+                          value={editedUser.social_links.twitter}
+                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, twitter: e.target.value }})}
+                          placeholder="Twitter username"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Instagram className="w-4 h-4 text-gray-400" />
+                        <Input
+                          value={editedUser.social_links.instagram}
+                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, instagram: e.target.value }})}
+                          placeholder="Instagram username"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Facebook className="w-4 h-4 text-gray-400" />
+                        <Input
+                          value={editedUser.social_links.facebook}
+                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, facebook: e.target.value }})}
+                          placeholder="Facebook username"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Youtube className="w-4 h-4 text-gray-400" />
+                        <Input
+                          value={editedUser.social_links.youtube}
+                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, youtube: e.target.value }})}
+                          placeholder="YouTube channel"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Linkedin className="w-4 h-4 text-gray-400" />
+                        <Input
+                          value={editedUser.social_links.linkedin}
+                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, linkedin: e.target.value }})}
+                          placeholder="LinkedIn username"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <Button onClick={handleSave} className="w-full bg-purple-600 hover:bg-purple-700">
                     Save Changes

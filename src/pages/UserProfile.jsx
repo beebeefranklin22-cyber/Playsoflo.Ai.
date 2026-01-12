@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart, Users } from "lucide-react";
+import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart, Users, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { createPageUrl } from "@/utils";
@@ -175,6 +175,73 @@ export default function UserProfile() {
             )}
             {profileUser.bio && (
               <p className="text-gray-300 text-sm mb-3">{profileUser.bio}</p>
+            )}
+
+            {/* Website and Social Links */}
+            {(profileUser.website || profileUser.social_links) && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {profileUser.website && (
+                  <a 
+                    href={profileUser.website} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Website
+                  </a>
+                )}
+                {profileUser.social_links?.twitter && (
+                  <a 
+                    href={`https://twitter.com/${profileUser.social_links.twitter}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                  >
+                    <Twitter className="w-4 h-4" />
+                  </a>
+                )}
+                {profileUser.social_links?.instagram && (
+                  <a 
+                    href={`https://instagram.com/${profileUser.social_links.instagram}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-pink-400 hover:text-pink-300 text-sm"
+                  >
+                    <Instagram className="w-4 h-4" />
+                  </a>
+                )}
+                {profileUser.social_links?.facebook && (
+                  <a 
+                    href={`https://facebook.com/${profileUser.social_links.facebook}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-500 hover:text-blue-400 text-sm"
+                  >
+                    <Facebook className="w-4 h-4" />
+                  </a>
+                )}
+                {profileUser.social_links?.youtube && (
+                  <a 
+                    href={`https://youtube.com/${profileUser.social_links.youtube}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-red-400 hover:text-red-300 text-sm"
+                  >
+                    <Youtube className="w-4 h-4" />
+                  </a>
+                )}
+                {profileUser.social_links?.linkedin && (
+                  <a 
+                    href={`https://linkedin.com/in/${profileUser.social_links.linkedin}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-500 text-sm"
+                  >
+                    <Linkedin className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
             )}
             
             <div className="flex gap-6 mb-4">
