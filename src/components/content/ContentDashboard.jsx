@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Video, TrendingUp, Eye, DollarSign, Clock, BarChart3 } from "lucide-react";
+import { Video, TrendingUp, Eye, DollarSign, Clock, BarChart3, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
