@@ -17,11 +17,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StreamCalendarView from "../creator/StreamCalendarView.jsx";
 import CoStreamManager from "../creator/CoStreamManager.jsx";
+import CreatePPVStreamModal from "./CreatePPVStreamModal.jsx";
 
 export default function LivestreamManager({ currentUser }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showPPVModal, setShowPPVModal] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({
     title: "",
     description: "",
@@ -228,13 +230,22 @@ export default function LivestreamManager({ currentUser }) {
           <h2 className="text-3xl font-bold text-white">Livestream Management</h2>
           <p className="text-gray-400 mt-1">Manage your active and scheduled livestreams</p>
         </div>
-        <Button
-          onClick={() => setShowScheduleModal(true)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          Schedule Stream
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowPPVModal(true)}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+          >
+            <DollarSign className="w-4 h-4 mr-2" />
+            Create PPV Stream
+          </Button>
+          <Button
+            onClick={() => setShowScheduleModal(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Schedule Stream
+          </Button>
+        </div>
       </div>
 
       {/* Calendar View */}
@@ -590,6 +601,17 @@ export default function LivestreamManager({ currentUser }) {
             </motion.div>
           </motion.div>
         )}
+
+      {/* PPV Stream Modal */}
+      <CreatePPVStreamModal
+        isOpen={showPPVModal}
+        onClose={() => setShowPPVModal(false)}
+        currentUser={currentUser}
+        onSuccess={(stream) => {
+          queryClient.invalidateQueries({ queryKey: ['active-streams'] });
+          navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`);
+        }}
+      />
     </div>
   );
 }

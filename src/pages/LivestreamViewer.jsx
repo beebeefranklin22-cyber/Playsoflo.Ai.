@@ -13,6 +13,8 @@ import TippingIntegration from "../components/creator/TippingIntegration.jsx";
 import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";
 import CoHostManager from "../components/livestream/CoHostManager.jsx";
 import ReactionEffects from "../components/livestream/ReactionEffects.jsx";
+import PPVTicketGate from "../components/livestream/PPVTicketGate.jsx";
+import LiveTippingOverlay from "../components/livestream/LiveTippingOverlay.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
@@ -85,14 +87,28 @@ export default function LivestreamViewer() {
     enabled: !!streamId
   });
 
-  // Check if stream is PPV
-  const { data: ppvContent } = useQuery({
-    queryKey: ['stream-ppv', streamId],
+  // Check if stream has pricing tiers
+  const { data: streamTiers = [] } = useQuery({
+    queryKey: ['stream-tiers', streamId],
     queryFn: async () => {
-      const ppvs = await base44.entities.PPVContent.filter({ stream_id: streamId });
-      return ppvs[0];
+      return await base44.entities.LivestreamPricingTier.filter({ stream_id: streamId });
     },
     enabled: !!streamId
+  });
+
+  // Check user's membership status
+  const { data: myMembership } = useQuery({
+    queryKey: ['my-membership', stream?.created_by, currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser || !stream) return null;
+      const memberships = await base44.entities.MembershipSubscription.filter({
+        creator_email: stream.created_by,
+        subscriber_email: currentUser.email,
+        status: 'active'
+      });
+      return memberships[0];
+    },
+    enabled: !!currentUser && !!stream
   });
 
   const { data: viewerCount = 0 } = useQuery({
@@ -116,7 +132,7 @@ export default function LivestreamViewer() {
     );
   }
 
-  const isCreator = currentUser?.email === stream.created_by;
+  const isStreamCreator = currentUser?.email === stream?.created_by;
 
   // Wrap content in PPV gate if applicable
   const content = (
@@ -149,12 +165,19 @@ export default function LivestreamViewer() {
             </div>
           </div>
 
-          <TippingIntegration
-            creatorEmail={stream.created_by}
-            contentId={streamId}
-            currentUser={currentUser}
-            variant="button"
-          />
+          <div className="flex items-center gap-2">
+            {myMembership && (
+              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0">
+                <Crown className="w-3 h-3 mr-1" />
+                Member
+              </Badge>
+            )}
+            <LiveTippingOverlay
+              streamId={streamId}
+              creatorEmail={stream.created_by}
+              currentUser={currentUser}
+            />
+          </div>
         </div>
       </div>
 
@@ -190,7 +213,7 @@ export default function LivestreamViewer() {
             <LivestreamReactions streamId={streamId} currentUser={currentUser} />
 
             {/* Co-Host Manager */}
-            <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isCreator} />
+            <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
 
             {/* Stream Info */}
             <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
@@ -243,7 +266,7 @@ export default function LivestreamViewer() {
                 {activeTab === 'chat' && (
                   <LivestreamChat 
                     streamId={streamId} 
-                    isCreator={isCreator}
+                    isCreator={isStreamCreator}
                     currentUser={currentUser}
                   />
                 )}
@@ -251,7 +274,7 @@ export default function LivestreamViewer() {
                   <div className="h-full overflow-y-auto p-4">
                     <LivestreamPolls
                       streamId={streamId}
-                      isCreator={isCreator}
+                      isCreator={isStreamCreator}
                       currentUser={currentUser}
                     />
                   </div>
@@ -260,7 +283,7 @@ export default function LivestreamViewer() {
                   <div className="h-full overflow-y-auto p-4">
                     <LivestreamQA
                       streamId={streamId}
-                      isCreator={isCreator}
+                      isCreator={isStreamCreator}
                       currentUser={currentUser}
                     />
                   </div>
@@ -275,12 +298,12 @@ export default function LivestreamViewer() {
     </div>
   );
 
-  // Check if PPV and user needs access
-  if (ppvContent && !isCreator) {
+  // Check if stream has paid tiers and user needs access  
+  if (streamTiers.length > 0 && !isStreamCreator) {
     return (
-      <PPVAccessGate ppvContentId={ppvContent.id} currentUser={currentUser}>
+      <PPVTicketGate stream={stream} currentUser={currentUser}>
         {content}
-      </PPVAccessGate>
+      </PPVTicketGate>
     );
   }
 

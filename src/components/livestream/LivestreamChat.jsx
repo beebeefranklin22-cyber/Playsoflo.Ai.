@@ -112,20 +112,39 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
               exit={{ opacity: 0 }}
               className="group relative"
             >
-              <div className="flex items-start gap-2">
+              <div className={`flex items-start gap-2 ${msg.is_priority ? 'order-first' : ''}`}>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   {msg.user_name?.[0]?.toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-purple-300 font-semibold text-sm">
                       {msg.user_name}
                     </span>
+                    {msg.user_badge && (
+                      <Badge 
+                        className="text-xs px-2 py-0"
+                        style={{ 
+                          backgroundColor: msg.badge_color ? msg.badge_color + '40' : '#FFD70040',
+                          color: msg.badge_color || '#FFD700',
+                          border: `1px solid ${msg.badge_color || '#FFD700'}`
+                        }}
+                      >
+                        {msg.user_badge === 'VIP' && <Crown className="w-3 h-3 mr-1 inline" />}
+                        {msg.user_badge === 'Premium' && <Star className="w-3 h-3 mr-1 inline" />}
+                        {msg.user_badge}
+                      </Badge>
+                    )}
+                    {msg.is_priority && (
+                      <Badge className="bg-yellow-500/20 text-yellow-300 text-xs">
+                        Priority
+                      </Badge>
+                    )}
                     <span className="text-gray-500 text-xs">
                       {new Date(msg.created_date).toLocaleTimeString()}
                     </span>
                   </div>
-                  <p className="text-white text-sm break-words">{msg.message}</p>
+                  <p className="text-white text-sm break-words mt-1">{msg.message}</p>
                 </div>
                 
                 {isCreator && (
