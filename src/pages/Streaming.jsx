@@ -3,12 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { 
   Play, ChevronLeft, Tv, Gamepad2, Music, Radio,
-  TrendingUp, Clock, Users, Sparkles, Film
+  TrendingUp, Clock, Users, Sparkles, Film, Filter, SlidersHorizontal,
+  Upload, Star, Calendar, DollarSign, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
@@ -29,12 +34,86 @@ const movieTypes = [
   { id: "thriller", label: "Thriller" },
   { id: "horror", label: "Horror" },
   { id: "romance", label: "Romance" },
+  { id: "animation", label: "Animation" },
+  { id: "documentary", label: "Documentary" },
+];
+
+const showTypes = [
+  { id: "all_shows", label: "All Shows" },
+  { id: "reality", label: "Reality TV" },
+  { id: "sitcom", label: "Sitcom" },
+  { id: "drama_series", label: "Drama Series" },
+  { id: "documentary_series", label: "Documentary" },
+  { id: "talk_show", label: "Talk Show" },
+  { id: "competition", label: "Competition" },
+  { id: "news", label: "News" },
+];
+
+const sportsTypes = [
+  { id: "all_sports", label: "All Sports" },
+  { id: "football", label: "Football" },
+  { id: "basketball", label: "Basketball" },
+  { id: "soccer", label: "Soccer" },
+  { id: "baseball", label: "Baseball" },
+  { id: "tennis", label: "Tennis" },
+  { id: "mma", label: "MMA/Boxing" },
+  { id: "racing", label: "Racing" },
+];
+
+const availabilityOptions = [
+  { value: "all", label: "All" },
+  { value: "free", label: "Free" },
+  { value: "subscription", label: "Subscription" },
+  { value: "rent_buy", label: "Rent/Buy" },
+];
+
+const sortOptions = [
+  { value: "popularity", label: "Most Popular" },
+  { value: "release_date", label: "Release Date" },
+  { value: "rating", label: "Highest Rated" },
+  { value: "title", label: "Title (A-Z)" },
 ];
 
 export default function Streaming() {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMovieType, setSelectedMovieType] = useState("all_movies");
+  const [selectedShowType, setSelectedShowType] = useState("all_shows");
+  const [selectedSportType, setSelectedSportType] = useState("all_sports");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+  
+  // Filter states
+  const [yearFilter, setYearFilter] = useState("");
+  const [ratingFilter, setRatingFilter] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("popularity");
+
+  // Upload states
+  const [uploadData, setUploadData] = useState({
+    title: "",
+    type: "movie",
+    category: "entertainment",
+    description: "",
+    thumbnail_url: "",
+    duration: "",
+    rating: "",
+    requires_subscription: false,
+  });
+  const [uploading, setUploading] = useState(false);
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await base44.auth.me();
+        setCurrentUser(user);
+      } catch (error) {
+        console.log("User not authenticated");
+      }
+    };
+    fetchUser();
+  }, []);
 
   const { data: content = [], isLoading } = useQuery({
     queryKey: ['streaming-content'],
@@ -48,20 +127,126 @@ export default function Streaming() {
     // Filter by main category
     if (selectedCategory === "movies") {
       filtered = content.filter(item => item.type === "movie");
+      
+      // Filter movies by subcategory
+      if (selectedMovieType !== "all_movies") {
+        filtered = filtered.filter(item => 
+          item.description?.toLowerCase().includes(selectedMovieType) ||
+          item.title?.toLowerCase().includes(selectedMovieType)
+        );
+      }
+    } else if (selectedCategory === "entertainment") {
+      filtered = content.filter(item => item.type === "series" || item.category === "entertainment");
+      
+      // Filter shows by subcategory
+      if (selectedShowType !== "all_shows") {
+        filtered = filtered.filter(item => 
+          item.description?.toLowerCase().includes(selectedShowType.replace('_', ' ')) ||
+          item.title?.toLowerCase().includes(selectedShowType.replace('_', ' '))
+        );
+      }
+    } else if (selectedCategory === "sports") {
+      filtered = content.filter(item => item.category === "sports");
+      
+      // Filter sports by subcategory
+      if (selectedSportType !== "all_sports") {
+        filtered = filtered.filter(item => 
+          item.description?.toLowerCase().includes(selectedSportType) ||
+          item.title?.toLowerCase().includes(selectedSportType)
+        );
+      }
     } else if (selectedCategory !== "all") {
       filtered = content.filter(item => item.category === selectedCategory);
     }
     
-    // Filter movies by subcategory if applicable
-    if (selectedCategory === "movies" && selectedMovieType !== "all_movies") {
+    // Filter by year
+    if (yearFilter) {
       filtered = filtered.filter(item => 
-        item.description?.toLowerCase().includes(selectedMovieType) ||
-        item.title?.toLowerCase().includes(selectedMovieType)
+        item.description?.includes(yearFilter) || item.title?.includes(yearFilter)
       );
     }
     
+    // Filter by rating
+    if (ratingFilter) {
+      const minRating = parseFloat(ratingFilter);
+      filtered = filtered.filter(item => 
+        item.rating && parseFloat(item.rating) >= minRating
+      );
+    }
+    
+    // Filter by availability
+    if (availabilityFilter !== "all") {
+      if (availabilityFilter === "free") {
+        filtered = filtered.filter(item => !item.requires_subscription);
+      } else if (availabilityFilter === "subscription") {
+        filtered = filtered.filter(item => item.requires_subscription);
+      }
+    }
+    
+    // Sort content
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === "popularity") {
+        return (b.views || 0) - (a.views || 0);
+      } else if (sortBy === "release_date") {
+        return new Date(b.created_date) - new Date(a.created_date);
+      } else if (sortBy === "rating") {
+        return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+      } else if (sortBy === "title") {
+        return a.title.localeCompare(b.title);
+      }
+      return 0;
+    });
+    
     return filtered;
   })();
+
+  const handleUpload = async () => {
+    if (!currentUser) {
+      toast.error("Please log in to upload content");
+      return;
+    }
+    
+    if (!uploadData.title || !uploadData.thumbnail_url) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      await base44.entities.StreamingContent.create({
+        ...uploadData,
+        creator_email: currentUser.email,
+        rating: parseFloat(uploadData.rating) || 0,
+      });
+      toast.success("Content uploaded successfully!");
+      setShowUpload(false);
+      setUploadData({
+        title: "",
+        type: "movie",
+        category: "entertainment",
+        description: "",
+        thumbnail_url: "",
+        duration: "",
+        rating: "",
+        requires_subscription: false,
+      });
+    } catch (error) {
+      toast.error("Upload failed: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadData({ ...uploadData, thumbnail_url: file_url });
+      toast.success("Thumbnail uploaded!");
+    } catch (error) {
+      toast.error("Image upload failed");
+    }
+  };
 
   const liveContent = content.filter(item => item.is_live);
 
@@ -90,12 +275,21 @@ export default function Streaming() {
       {/* Content Discovery Section */}
       <div className="px-6 mb-8">
         <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl p-6 border border-white/10">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
             <div>
               <h2 className="text-2xl font-bold text-white mb-2">Discover Content</h2>
               <p className="text-gray-300">Personalized recommendations based on your interests</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {currentUser && (
+                <Button
+                  onClick={() => setShowUpload(true)}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
+                </Button>
+              )}
               <Button
                 onClick={() => navigate(createPageUrl("Gaming"))}
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
@@ -181,25 +375,113 @@ export default function Streaming() {
       )}
 
       <div className="px-6 mb-8">
-        <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                if (cat.id !== "movies") setSelectedMovieType("all_movies");
-              }}
-              className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
-                selectedCategory === cat.id
-                  ? "bg-red-500 text-white"
-                  : "bg-white/10 text-gray-300 hover:bg-white/20"
-              }`}
-            >
-              <cat.icon className="w-4 h-4" />
-              {cat.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar flex-1">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  if (cat.id !== "movies") setSelectedMovieType("all_movies");
+                  if (cat.id !== "entertainment") setSelectedShowType("all_shows");
+                  if (cat.id !== "sports") setSelectedSportType("all_sports");
+                }}
+                className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
+                  selectedCategory === cat.id
+                    ? "bg-red-500 text-white"
+                    : "bg-white/10 text-gray-300 hover:bg-white/20"
+                }`}
+              >
+                <cat.icon className="w-4 h-4" />
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outline"
+            className="bg-white/10 border-white/20 hover:bg-white/20 flex-shrink-0 ml-4"
+          >
+            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            Filters
+          </Button>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white/5 rounded-xl p-4 mb-4 border border-white/10"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Sort By</label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Availability</label>
+                <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availabilityOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Min Rating</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  placeholder="e.g., 7.5"
+                  value={ratingFilter}
+                  onChange={(e) => setRatingFilter(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Year</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., 2024"
+                  value={yearFilter}
+                  onChange={(e) => setYearFilter(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                onClick={() => {
+                  setYearFilter("");
+                  setRatingFilter("");
+                  setAvailabilityFilter("all");
+                  setSortBy("popularity");
+                }}
+                variant="outline"
+                className="bg-white/5 border-white/20"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Movie Subcategories */}
         {selectedCategory === "movies" && (
@@ -210,6 +492,44 @@ export default function Streaming() {
                 onClick={() => setSelectedMovieType(type.id)}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
                   selectedMovieType === type.id
+                    ? "bg-purple-500 text-white"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Shows Subcategories */}
+        {selectedCategory === "entertainment" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
+            {showTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedShowType(type.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  selectedShowType === type.id
+                    ? "bg-purple-500 text-white"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Sports Subcategories */}
+        {selectedCategory === "sports" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
+            {sportsTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedSportType(type.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  selectedSportType === type.id
                     ? "bg-purple-500 text-white"
                     : "bg-white/5 text-gray-400 hover:bg-white/10"
                 }`}
@@ -304,6 +624,162 @@ export default function Streaming() {
           </div>
         )}
       </div>
+
+      {/* Upload Modal */}
+      {showUpload && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+          onClick={() => setShowUpload(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Upload className="w-6 h-6" />
+                Upload Content
+              </h2>
+              <button onClick={() => setShowUpload(false)}>
+                <X className="w-6 h-6 text-gray-400 hover:text-white" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Title *</label>
+                <Input
+                  value={uploadData.title}
+                  onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
+                  placeholder="Enter content title"
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Type</label>
+                  <Select 
+                    value={uploadData.type} 
+                    onValueChange={(v) => setUploadData({ ...uploadData, type: v })}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="movie">Movie</SelectItem>
+                      <SelectItem value="series">TV Series</SelectItem>
+                      <SelectItem value="live_sports">Live Sports</SelectItem>
+                      <SelectItem value="live_event">Live Event</SelectItem>
+                      <SelectItem value="gaming_stream">Gaming Stream</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Category</label>
+                  <Select 
+                    value={uploadData.category} 
+                    onValueChange={(v) => setUploadData({ ...uploadData, category: v })}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sports">Sports</SelectItem>
+                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
+                      <SelectItem value="music">Music</SelectItem>
+                      <SelectItem value="news">News</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Description</label>
+                <Textarea
+                  value={uploadData.description}
+                  onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
+                  placeholder="Describe your content..."
+                  className="bg-white/10 border-white/20 text-white"
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Thumbnail *</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                  className="hidden"
+                  id="thumbnail-upload"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('thumbnail-upload').click()}
+                    variant="outline"
+                    className="bg-white/10 border-white/20"
+                  >
+                    Choose Image
+                  </Button>
+                  {uploadData.thumbnail_url && (
+                    <img src={uploadData.thumbnail_url} className="h-10 w-16 object-cover rounded" />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Duration</label>
+                  <Input
+                    value={uploadData.duration}
+                    onChange={(e) => setUploadData({ ...uploadData, duration: e.target.value })}
+                    placeholder="e.g., 2h 30m"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Rating (0-10)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    value={uploadData.rating}
+                    onChange={(e) => setUploadData({ ...uploadData, rating: e.target.value })}
+                    placeholder="e.g., 8.5"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl">
+                <input
+                  type="checkbox"
+                  checked={uploadData.requires_subscription}
+                  onChange={(e) => setUploadData({ ...uploadData, requires_subscription: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <label className="text-white text-sm">Requires subscription</label>
+              </div>
+
+              <Button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              >
+                {uploading ? "Uploading..." : "Upload Content"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
