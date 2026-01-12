@@ -27,6 +27,7 @@ import CollaborativeContentManager from "../components/creator/CollaborativeCont
 import CreatorContentSuggestions from "../components/creator/CreatorContentSuggestions.jsx";
 import SharedLibraryManager from "../components/collaboration/SharedLibraryManager.jsx";
 import ContentEditWorkflow from "../components/collaboration/ContentEditWorkflow.jsx";
+import VideoReviewWorkflow from "../components/collaboration/VideoReviewWorkflow.jsx";
 import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
 
@@ -409,6 +410,7 @@ export default function CreatorHub() {
           {/* Collaboration Tab */}
           <TabsContent value="collaboration" className="space-y-6">
             <SharedLibraryManager currentUser={currentUser} />
+            <VideoReviewWorkflow currentUser={currentUser} />
             <ContentEditWorkflow currentUser={currentUser} />
             <CollaborativeContentManager currentUser={currentUser} />
           </TabsContent>
