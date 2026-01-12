@@ -7,6 +7,7 @@ import { base44 } from "@/api/base44Client";
 import { processP2PPayment } from "@/functions/processP2PPayment";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import PaymentConfirmation from "../payment/PaymentConfirmation";
 
 export default function SendMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
@@ -16,6 +17,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Search for users
   const { data: searchResults = [] } = useQuery({
@@ -52,18 +54,45 @@ export default function SendMoneyModal({ currentUser, onClose }) {
       }
 
       if (currency === "USD") {
-        // Use backend function for atomic P2P payments
-        const response = await processP2PPayment({
-          recipient_email: recipient,
-          amount: sendAmount,
-          memo: message || `Transfer to ${recipientUser.full_name || recipient}`
-        });
-
-        if (!response.data?.success) {
-          toast.error(response.data?.error || "Transfer failed");
+        // Check sender balance
+        if (currentUser.balance_usd < sendAmount) {
+          toast.error("Insufficient USD balance");
           setLoading(false);
           return;
         }
+
+        // Deduct from sender
+        await base44.auth.updateMe({
+          balance_usd: currentUser.balance_usd - sendAmount
+        });
+
+        // Add to recipient using service role
+        await base44.asServiceRole.entities.User.update(recipientUser.id, {
+          balance_usd: (recipientUser.balance_usd || 0) + sendAmount
+        });
+
+        // Create payment record
+        await base44.entities.Payment.create({
+          amount_usd: sendAmount,
+          amount_rri: 0,
+          method: "internal_transfer",
+          status: "completed",
+          reference_type: "sent",
+          sender_email: currentUser.email,
+          recipient_email: recipient,
+          memo: message || `Transfer to ${recipientUser.full_name || recipient}`
+        });
+
+        // Create notification with sound
+        await base44.entities.Notification.create({
+          recipient_email: recipient,
+          type: "payment_received",
+          title: "Money Received",
+          message: `${currentUser.full_name || currentUser.email} sent you $${sendAmount.toFixed(2)}${message ? `: "${message}"` : ''}`,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          read: false
+        });
       } else if (currency === "SoFloCoin") {
         const currentCoins = currentUser.soflo_coins || 0;
         if (currentCoins < sendAmount) {
@@ -97,30 +126,19 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           memo: message || `SoFloCoin transfer to ${recipientUser.full_name || recipient}`
         });
 
-        // Notifications
-        await base44.entities.Notification.create({
-          recipient_email: currentUser.email,
-          type: "payment_received",
-          title: "SoFloCoin Sent",
-          message: `You sent ${sendAmount} SFC to ${recipientUser.full_name}. New balance: ${senderNewCoins} SFC`,
-          read: false
-        });
-
+        // Notification with sound
         await base44.entities.Notification.create({
           recipient_email: recipient,
           type: "payment_received",
           title: "SoFloCoin Received",
-          message: `${currentUser.full_name} sent you ${sendAmount} SFC${message ? `: "${message}"` : ''}. New balance: ${recipientNewCoins} SFC`,
+          message: `${currentUser.full_name || currentUser.email} sent you ${sendAmount} SFC${message ? `: "${message}"` : ''}`,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
           read: false
         });
       }
 
-      setStep(2);
-      
-      // Reload after short delay to refresh balances
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      setShowConfirmation(true);
     } catch (err) {
       console.error("Send failed:", err);
       toast.error(err?.message || "Failed to send money");
@@ -130,6 +148,22 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   };
 
   return (
+    <>
+      {showConfirmation && (
+        <PaymentConfirmation
+          amount={amount}
+          currency={currency}
+          recipient={searchQuery}
+          type="transfer"
+          onClose={() => {
+            setShowConfirmation(false);
+            onClose();
+            window.location.reload();
+          }}
+        />
+      )}
+      
+      {!showConfirmation && (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -268,5 +302,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
         </motion.div>
       </motion.div>
     </AnimatePresence>
+      )}
+    </>
   );
 }
