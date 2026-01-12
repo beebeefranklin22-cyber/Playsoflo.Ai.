@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Play, Trophy, ShoppingBag, Settings, Zap } from "lucide-react";
+import { X, Play, Trophy, ShoppingBag, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -29,10 +29,9 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   const coinsObjRef = useRef([]);
   const obstaclesRef = useRef([]);
   const playerVelocityRef = useRef({ x: 0, y: 0, z: 0 });
-  const isJumpingRef = useRef(false);
+  const isGroundedRef = useRef(false);
   const keysRef = useRef({});
-  const worldZRef = useRef(0);
-  const startTimeRef = useRef(null);
+  const animationMixerRef = useRef(null);
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -75,13 +74,13 @@ export default function SkyRunner3D({ currentUser, onExit }) {
       gainNode.connect(audioCtx.destination);
       
       switch(type) {
-        case 'jump': oscillator.frequency.value = 400; gainNode.gain.value = 0.2; break;
-        case 'coin': oscillator.frequency.value = 800; gainNode.gain.value = 0.15; break;
-        case 'hit': oscillator.frequency.value = 150; gainNode.gain.value = 0.3; break;
+        case 'jump': oscillator.frequency.value = 500; gainNode.gain.value = 0.15; break;
+        case 'coin': oscillator.frequency.value = 900; gainNode.gain.value = 0.12; break;
+        case 'hit': oscillator.frequency.value = 150; gainNode.gain.value = 0.25; break;
       }
       
       oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.1);
+      oscillator.stop(audioCtx.currentTime + 0.08);
     } catch (e) {}
   };
 
@@ -90,67 +89,103 @@ export default function SkyRunner3D({ currentUser, onExit }) {
     const playerColor = equippedItems.skin?.effect_data?.color || '#00ffff';
     const colorNum = parseInt(playerColor.replace('#', ''), 16);
     
-    // Body
-    const bodyGeometry = new THREE.BoxGeometry(1, 1.5, 1);
-    const bodyMaterial = new THREE.MeshStandardMaterial({ 
+    // Torso (capsule for smoother look)
+    const torsoGeometry = new THREE.CapsuleGeometry(0.35, 1.2, 12, 24);
+    const torsoMaterial = new THREE.MeshStandardMaterial({ 
       color: colorNum, 
-      metalness: 0.6, 
-      roughness: 0.3,
+      metalness: 0.4, 
+      roughness: 0.5,
       emissive: colorNum,
-      emissiveIntensity: 0.2
+      emissiveIntensity: 0.15
     });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 0.75;
-    body.castShadow = true;
-    group.add(body);
+    const torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
+    torso.position.y = 1.2;
+    torso.castShadow = true;
+    group.add(torso);
+    group.userData.torso = torso;
     
     // Head
-    const headGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-    const head = new THREE.Mesh(headGeometry, bodyMaterial);
-    head.position.y = 2;
+    const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+    const head = new THREE.Mesh(headGeometry, torsoMaterial);
+    head.position.y = 2.2;
     head.castShadow = true;
     group.add(head);
+    
+    // Arms
+    const armGeometry = new THREE.CapsuleGeometry(0.12, 0.7, 8, 16);
+    const leftArm = new THREE.Mesh(armGeometry, torsoMaterial);
+    leftArm.position.set(-0.5, 1.3, 0);
+    leftArm.rotation.z = 0.3;
+    leftArm.castShadow = true;
+    const rightArm = new THREE.Mesh(armGeometry, torsoMaterial);
+    rightArm.position.set(0.5, 1.3, 0);
+    rightArm.rotation.z = -0.3;
+    rightArm.castShadow = true;
+    group.add(leftArm, rightArm);
+    group.userData.arms = [leftArm, rightArm];
+    
+    // Legs
+    const legGeometry = new THREE.CapsuleGeometry(0.15, 0.8, 8, 16);
+    const leftLeg = new THREE.Mesh(legGeometry, torsoMaterial);
+    leftLeg.position.set(-0.25, 0.4, 0);
+    leftLeg.castShadow = true;
+    const rightLeg = new THREE.Mesh(legGeometry, torsoMaterial);
+    rightLeg.position.set(0.25, 0.4, 0);
+    rightLeg.castShadow = true;
+    group.add(leftLeg, rightLeg);
+    group.userData.legs = [leftLeg, rightLeg];
     
     // Trail effect
     if (settings.visualEffects && equippedItems.trail) {
       const trailColor = equippedItems.trail.effect_data?.color || '#ff00ff';
-      const trailGeometry = new THREE.ConeGeometry(0.3, 2, 8);
+      const trailGeometry = new THREE.ConeGeometry(0.4, 2, 8);
       const trailMaterial = new THREE.MeshBasicMaterial({ 
         color: parseInt(trailColor.replace('#', ''), 16),
         transparent: true,
-        opacity: 0.6
+        opacity: 0.5
       });
       const trail = new THREE.Mesh(trailGeometry, trailMaterial);
-      trail.position.set(0, 0.5, 0.5);
+      trail.position.set(0, 0.8, 0.6);
       trail.rotation.x = Math.PI;
       group.add(trail);
+      group.userData.trail = trail;
     }
     
     return group;
   };
 
-  const createPlatform = (x, y, z, width = 4, depth = 4) => {
-    const geometry = new THREE.BoxGeometry(width, 0.5, depth);
+  const createPlatform = (x, y, z, width = 5, depth = 5) => {
+    const geometry = new THREE.BoxGeometry(width, 0.6, depth);
     const material = new THREE.MeshStandardMaterial({ 
-      color: 0x4a5568,
+      color: 0x3b4a6b,
       metalness: 0.3,
-      roughness: 0.7
+      roughness: 0.6
     });
     const platform = new THREE.Mesh(geometry, material);
     platform.position.set(x, y, z);
     platform.castShadow = true;
     platform.receiveShadow = true;
+    
+    // Edge glow
+    if (settings.visualEffects) {
+      const edgeGeometry = new THREE.BoxGeometry(width + 0.2, 0.1, depth + 0.2);
+      const edgeMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.4 });
+      const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
+      edge.position.y = 0.35;
+      platform.add(edge);
+    }
+    
     return platform;
   };
 
   const createCoin = (x, y, z) => {
-    const geometry = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16);
+    const geometry = new THREE.CylinderGeometry(0.35, 0.35, 0.15, 20);
     const material = new THREE.MeshStandardMaterial({ 
       color: 0xffd700,
-      metalness: 0.8,
-      roughness: 0.2,
-      emissive: 0xffd700,
-      emissiveIntensity: 0.5
+      metalness: 0.9,
+      roughness: 0.1,
+      emissive: 0xffaa00,
+      emissiveIntensity: 0.6
     });
     const coin = new THREE.Mesh(geometry, material);
     coin.position.set(x, y, z);
@@ -160,63 +195,53 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   };
 
   const createObstacle = (x, y, z) => {
-    const geometry = new THREE.BoxGeometry(1, 2, 1);
+    const geometry = new THREE.BoxGeometry(1.2, 2.5, 1.2);
     const material = new THREE.MeshStandardMaterial({ 
-      color: 0xff0000,
-      metalness: 0.5,
+      color: 0xff1a1a,
+      metalness: 0.6,
+      roughness: 0.4,
       emissive: 0xff0000,
-      emissiveIntensity: 0.3
+      emissiveIntensity: 0.4
     });
     const obstacle = new THREE.Mesh(geometry, material);
     obstacle.position.set(x, y, z);
     obstacle.castShadow = true;
-    obstacle.userData.isObstacle = true;
     return obstacle;
   };
 
   const generateLevel = (startZ) => {
-    const platforms = [];
-    const coins = [];
-    const obstacles = [];
-    
-    for (let i = 0; i < 15; i++) {
-      const z = startZ - i * 8;
-      const x = (Math.random() - 0.5) * 10;
-      const y = Math.random() * 3;
-      const width = 3 + Math.random() * 3;
+    for (let i = 0; i < 12; i++) {
+      const z = startZ - i * 10;
+      const x = (Math.random() - 0.5) * 12;
+      const y = i * 0.5 + Math.random() * 2;
+      const width = 4 + Math.random() * 3;
       
-      const platform = createPlatform(x, y, z, width, 4);
-      platforms.push(platform);
+      const platform = createPlatform(x, y, z, width, 5);
+      platformsRef.current.push(platform);
       sceneRef.current.add(platform);
       
-      // Add coins
-      if (Math.random() > 0.4) {
-        const coin = createCoin(x, y + 1, z);
-        coins.push(coin);
+      if (Math.random() > 0.3) {
+        const coin = createCoin(x, y + 1.5, z);
+        coinsObjRef.current.push(coin);
         sceneRef.current.add(coin);
       }
       
-      // Add obstacles
-      if (Math.random() > 0.7) {
-        const obstacle = createObstacle(x + (Math.random() - 0.5) * 2, y + 1, z);
-        obstacles.push(obstacle);
+      if (Math.random() > 0.65) {
+        const obstacle = createObstacle(x + (Math.random() - 0.5) * 2, y + 1.3, z);
+        obstaclesRef.current.push(obstacle);
         sceneRef.current.add(obstacle);
       }
     }
-    
-    platformsRef.current.push(...platforms);
-    coinsObjRef.current.push(...coins);
-    obstaclesRef.current.push(...obstacles);
   };
 
   const initThreeJS = () => {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+    scene.fog = new THREE.Fog(0x87ceeb, 80, 250);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(75, mountRef.current.clientWidth / mountRef.current.clientHeight, 0.1, 1000);
-    camera.position.set(0, 10, 15);
+    camera.position.set(0, 12, 18);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -225,32 +250,28 @@ export default function SkyRunner3D({ currentUser, onExit }) {
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
     
-    const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-    sun.position.set(20, 30, 20);
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(30, 50, 30);
     sun.castShadow = true;
-    sun.shadow.camera.left = -50;
-    sun.shadow.camera.right = 50;
-    sun.shadow.camera.top = 50;
-    sun.shadow.camera.bottom = -50;
+    sun.shadow.camera.left = -60;
+    sun.shadow.camera.right = 60;
+    sun.shadow.camera.top = 60;
+    sun.shadow.camera.bottom = -60;
     scene.add(sun);
 
-    // Starting platform
-    const startPlatform = createPlatform(0, 0, 0, 6, 6);
+    const startPlatform = createPlatform(0, 0, 0, 8, 8);
     platformsRef.current.push(startPlatform);
     scene.add(startPlatform);
 
-    // Player
     const player = createPlayer();
-    player.position.set(0, 2, 0);
+    player.position.set(0, 1.5, 0);
     scene.add(player);
     playerRef.current = player;
 
-    // Generate initial level
-    generateLevel(-10);
+    generateLevel(-15);
 
     handleControls();
     animate();
@@ -259,9 +280,9 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   const handleControls = () => {
     const handleKeyDown = (e) => {
       keysRef.current[e.key.toLowerCase()] = true;
-      if ((e.key === ' ' || e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') && !isJumpingRef.current) {
-        isJumpingRef.current = true;
-        playerVelocityRef.current.y = 0.4;
+      if ((e.key === ' ' || e.key === 'ArrowUp' || e.key.toLowerCase() === 'w') && isGroundedRef.current) {
+        playerVelocityRef.current.y = 0.3;
+        isGroundedRef.current = false;
         playSound('jump');
       }
     };
@@ -275,9 +296,9 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   };
 
   const jump = () => {
-    if (!isJumpingRef.current) {
-      isJumpingRef.current = true;
-      playerVelocityRef.current.y = 0.4;
+    if (isGroundedRef.current) {
+      playerVelocityRef.current.y = 0.3;
+      isGroundedRef.current = false;
       playSound('jump');
     }
   };
@@ -287,38 +308,55 @@ export default function SkyRunner3D({ currentUser, onExit }) {
 
     const sensitivity = settings.controlSensitivity / 5;
     
-    // Movement
+    // Horizontal movement
     if (keysRef.current['a'] || keysRef.current['arrowleft']) {
-      playerVelocityRef.current.x = Math.max(-0.3 * sensitivity, playerVelocityRef.current.x - 0.02);
+      playerVelocityRef.current.x = Math.max(-0.15 * sensitivity, playerVelocityRef.current.x - 0.015);
     } else if (keysRef.current['d'] || keysRef.current['arrowright']) {
-      playerVelocityRef.current.x = Math.min(0.3 * sensitivity, playerVelocityRef.current.x + 0.02);
+      playerVelocityRef.current.x = Math.min(0.15 * sensitivity, playerVelocityRef.current.x + 0.015);
     } else {
-      playerVelocityRef.current.x *= 0.9;
+      playerVelocityRef.current.x *= 0.88;
     }
 
     // Gravity
-    playerVelocityRef.current.y -= 0.02;
+    playerVelocityRef.current.y -= 0.015;
     
-    // Auto forward movement
+    // Forward movement (slower)
     const speedBoost = equippedItems.boost?.effect_data?.speed_multiplier || 1;
-    playerVelocityRef.current.z = -0.3 * speedBoost;
+    playerVelocityRef.current.z = -0.12 * speedBoost;
 
-    // Update player position
+    // Update position
     if (playerRef.current) {
       playerRef.current.position.x += playerVelocityRef.current.x;
       playerRef.current.position.y += playerVelocityRef.current.y;
       playerRef.current.position.z += playerVelocityRef.current.z;
 
-      // Rotate player based on movement
-      if (Math.abs(playerVelocityRef.current.x) > 0.01) {
-        playerRef.current.rotation.z = -playerVelocityRef.current.x * 0.5;
+      // Running animation
+      if (isGroundedRef.current && Math.abs(playerVelocityRef.current.z) > 0.01) {
+        const runPhase = Date.now() * 0.01;
+        if (playerRef.current.userData.legs) {
+          playerRef.current.userData.legs[0].rotation.x = Math.sin(runPhase) * 0.5;
+          playerRef.current.userData.legs[1].rotation.x = Math.sin(runPhase + Math.PI) * 0.5;
+        }
+        if (playerRef.current.userData.arms) {
+          playerRef.current.userData.arms[0].rotation.x = Math.sin(runPhase + Math.PI) * 0.4;
+          playerRef.current.userData.arms[1].rotation.x = Math.sin(runPhase) * 0.4;
+        }
+        if (playerRef.current.userData.torso) {
+          playerRef.current.userData.torso.rotation.y = Math.sin(runPhase * 2) * 0.08;
+        }
+      }
+
+      // Tilt based on movement
+      playerRef.current.rotation.z = -playerVelocityRef.current.x * 1.5;
+      
+      // Trail animation
+      if (playerRef.current.userData.trail) {
+        playerRef.current.userData.trail.material.opacity = 0.3 + Math.abs(playerVelocityRef.current.z) * 2;
       }
     }
 
-    worldZRef.current = playerRef.current.position.z;
-
     // Platform collision
-    let onPlatform = false;
+    isGroundedRef.current = false;
     platformsRef.current.forEach(platform => {
       const px = playerRef.current.position.x;
       const py = playerRef.current.position.y;
@@ -332,75 +370,95 @@ export default function SkyRunner3D({ currentUser, onExit }) {
       
       if (px > platX - platWidth && px < platX + platWidth &&
           pz > platZ - platDepth && pz < platZ + platDepth &&
-          py > platY && py < platY + 1 &&
+          py > platY + 0.3 && py < platY + 2 &&
           playerVelocityRef.current.y <= 0) {
-        playerRef.current.position.y = platY + 0.25;
+        playerRef.current.position.y = platY + 0.3;
         playerVelocityRef.current.y = 0;
-        isJumpingRef.current = false;
-        onPlatform = true;
+        isGroundedRef.current = true;
       }
     });
 
     // Coin collection
     coinsObjRef.current.forEach((coin, idx) => {
-      coin.rotation.y += 0.05;
+      coin.rotation.y += 0.08;
+      coin.position.y += Math.sin(Date.now() * 0.003 + idx) * 0.003;
       
       const dist = playerRef.current.position.distanceTo(coin.position);
-      if (dist < 1) {
+      if (dist < 1.2) {
         sceneRef.current.remove(coin);
         coinsObjRef.current.splice(idx, 1);
         const scoreMultiplier = equippedItems.boost?.effect_data?.score_multiplier || 1;
         setCoins(prev => prev + 1);
-        setScore(prev => prev + Math.floor(10 * scoreMultiplier));
+        setScore(prev => prev + Math.floor(15 * scoreMultiplier));
         playSound('coin');
       }
     });
 
     // Obstacle collision
-    obstaclesRef.current.forEach(obstacle => {
+    obstaclesRef.current.forEach((obstacle, idx) => {
+      obstacle.rotation.y += 0.02;
+      
       const dist = playerRef.current.position.distanceTo(obstacle.position);
-      if (dist < 1.5) {
+      if (dist < 1.3) {
         playSound('hit');
+        sceneRef.current.remove(obstacle);
+        obstaclesRef.current.splice(idx, 1);
         setLives(prev => {
           const newLives = prev - 1;
           if (newLives <= 0) {
             endGame();
           } else {
-            // Reset position
-            playerRef.current.position.set(0, 5, playerRef.current.position.z - 5);
-            playerVelocityRef.current = { x: 0, y: 0, z: 0 };
+            toast.error('Hit obstacle! 💥', { duration: 1000 });
           }
           return newLives;
         });
-        sceneRef.current.remove(obstacle);
-        obstaclesRef.current = obstaclesRef.current.filter(o => o !== obstacle);
       }
     });
 
-    // Clean up old platforms
+    // Clean old platforms
     platformsRef.current = platformsRef.current.filter(platform => {
-      if (platform.position.z > playerRef.current.position.z + 50) {
+      if (platform.position.z > playerRef.current.position.z + 40) {
         sceneRef.current.remove(platform);
         return false;
       }
       return true;
     });
 
+    coinsObjRef.current = coinsObjRef.current.filter(coin => {
+      if (coin.position.z > playerRef.current.position.z + 40) {
+        sceneRef.current.remove(coin);
+        return false;
+      }
+      return true;
+    });
+
+    obstaclesRef.current = obstaclesRef.current.filter(obs => {
+      if (obs.position.z > playerRef.current.position.z + 40) {
+        sceneRef.current.remove(obs);
+        return false;
+      }
+      return true;
+    });
+
     // Generate new platforms
-    if (platformsRef.current.length < 20) {
-      const lastZ = Math.min(...platformsRef.current.map(p => p.position.z));
-      generateLevel(lastZ - 10);
+    if (platformsRef.current.length < 18) {
+      const lastZ = Math.min(...platformsRef.current.map(p => p.position.z), playerRef.current.position.z);
+      generateLevel(lastZ - 15);
     }
 
     // Fall off
-    if (playerRef.current.position.y < -10) {
+    if (playerRef.current.position.y < -15) {
       setLives(prev => {
         const newLives = prev - 1;
         if (newLives <= 0) {
           endGame();
         } else {
-          playerRef.current.position.set(0, 5, playerRef.current.position.z);
+          const nearestPlatform = platformsRef.current.reduce((nearest, p) => 
+            Math.abs(p.position.z - playerRef.current.position.z) < Math.abs(nearest.position.z - playerRef.current.position.z) ? p : nearest
+          );
+          playerRef.current.position.set(nearestPlatform.position.x, nearestPlatform.position.y + 5, nearestPlatform.position.z);
           playerVelocityRef.current = { x: 0, y: 0, z: 0 };
+          toast.error('Fell off! 💀', { duration: 1000 });
         }
         return newLives;
       });
@@ -408,13 +466,11 @@ export default function SkyRunner3D({ currentUser, onExit }) {
 
     // Camera follow
     if (cameraRef.current && playerRef.current) {
-      cameraRef.current.position.x = playerRef.current.position.x;
-      cameraRef.current.position.y = playerRef.current.position.y + 8;
-      cameraRef.current.position.z = playerRef.current.position.z + 12;
-      cameraRef.current.lookAt(playerRef.current.position);
+      cameraRef.current.position.x += (playerRef.current.position.x - cameraRef.current.position.x) * 0.08;
+      cameraRef.current.position.y = playerRef.current.position.y + 10;
+      cameraRef.current.position.z = playerRef.current.position.z + 16;
+      cameraRef.current.lookAt(playerRef.current.position.x, playerRef.current.position.y, playerRef.current.position.z - 5);
     }
-
-    setScore(prev => prev + 1);
 
     if (rendererRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -424,9 +480,7 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   };
 
   const cleanupThreeJS = () => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (rendererRef.current && mountRef.current && mountRef.current.contains(rendererRef.current.domElement)) {
       mountRef.current.removeChild(rendererRef.current.domElement);
       rendererRef.current.dispose();
@@ -440,12 +494,10 @@ export default function SkyRunner3D({ currentUser, onExit }) {
     setScore(0);
     setCoins(0);
     setLives(3);
-    worldZRef.current = 0;
     playerVelocityRef.current = { x: 0, y: 0, z: 0 };
-    isJumpingRef.current = false;
+    isGroundedRef.current = false;
     keysRef.current = {};
     setGameState('playing');
-    startTimeRef.current = Date.now();
   };
 
   const endGame = async () => {
@@ -458,7 +510,7 @@ export default function SkyRunner3D({ currentUser, onExit }) {
         user_email: currentUser.email,
         game_name: 'sky-runner',
         score: score,
-        duration_seconds: Math.floor((Date.now() - startTimeRef.current) / 1000),
+        duration_seconds: Math.floor(score / 10),
         reward_earned: coins
       });
     } catch (error) {
@@ -467,7 +519,7 @@ export default function SkyRunner3D({ currentUser, onExit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-sky-400 to-blue-600">
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-sky-300 via-sky-400 to-blue-500">
       <div className="absolute top-4 right-4 z-50 flex gap-2">
         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setShowSettings(true)} className="p-3 bg-gray-700/80 backdrop-blur-sm rounded-full hover:bg-gray-600 transition shadow-lg">
           <Settings className="w-6 h-6 text-white" />
@@ -482,14 +534,16 @@ export default function SkyRunner3D({ currentUser, onExit }) {
 
       <AnimatePresence>
         {gameState === 'menu' && (
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-500/30 via-blue-500/30 to-purple-500/30 backdrop-blur-xl z-10">
-            <div className="text-center">
-              <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="text-8xl mb-6">🏃</motion.div>
-              <motion.h2 initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-7xl font-black text-white mb-4 drop-shadow-2xl">SKY RUNNER 3D</motion.h2>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="text-white text-xl mb-2 drop-shadow-lg">{isMobile ? '🎮 Tap to Jump • Tilt to Move' : '⌨️ W/↑/SPACE: Jump • A/D/←/→: Move'}</motion.p>
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="text-cyan-200 mb-8 text-lg drop-shadow-lg">🪙 Collect coins • 🚫 Avoid obstacles • 🏆 Beat your high score!</motion.p>
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, type: "spring" }}>
-                <Button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 px-12 py-8 text-2xl shadow-2xl">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.4 }} className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-cyan-400/40 via-blue-500/40 to-purple-600/40 backdrop-blur-xl z-10">
+            <div className="text-center px-4">
+              <motion.div initial={{ y: -60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 100 }} className="text-8xl mb-6">🏃</motion.div>
+              <motion.h2 initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-6xl md:text-7xl font-black text-white mb-4 drop-shadow-2xl">SKY RUNNER 3D</motion.h2>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mb-8 space-y-2">
+                <p className="text-white text-lg md:text-xl drop-shadow-lg">{isMobile ? '🎮 Tap JUMP • Tilt to move' : '⌨️ SPACE/W/↑: Jump • A/D/←/→: Move'}</p>
+                <p className="text-cyan-100 text-base md:text-lg drop-shadow-lg">🪙 Collect coins • 🚫 Avoid red obstacles • 🏆 Don't fall!</p>
+              </motion.div>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.6, type: "spring" }}>
+                <Button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 px-12 py-8 text-xl md:text-2xl shadow-2xl">
                   <Play className="w-8 h-8 mr-3" />
                   START RUNNING
                 </Button>
@@ -499,19 +553,19 @@ export default function SkyRunner3D({ currentUser, onExit }) {
         )}
 
         {gameState === 'gameover' && (
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="absolute inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-10">
-            <div className="text-center">
-              <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", duration: 0.8 }}>
-                <Trophy className="w-32 h-32 text-yellow-400 mx-auto mb-8" />
+          <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="absolute inset-0 bg-black/85 backdrop-blur-2xl flex items-center justify-center z-10">
+            <div className="text-center px-4">
+              <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", duration: 0.9 }}>
+                <Trophy className="w-28 h-28 md:w-36 md:h-36 text-yellow-400 mx-auto mb-8 drop-shadow-2xl" />
               </motion.div>
-              <motion.h3 initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-6xl font-bold text-white mb-6">GAME OVER!</motion.h3>
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }} className="bg-gradient-to-r from-cyan-600/20 to-blue-600/20 rounded-2xl p-8 mb-8 border-2 border-cyan-500/50">
-                <p className="text-gray-300 text-xl mb-3">Final Score</p>
-                <p className="text-7xl font-black text-cyan-400 mb-4">{score}</p>
-                <p className="text-yellow-400 text-2xl">🪙 Coins: {coins}</p>
+              <motion.h3 initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-5xl md:text-6xl font-bold text-white mb-6">GAME OVER!</motion.h3>
+              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5, type: "spring" }} className="bg-gradient-to-r from-cyan-500/30 to-blue-600/30 rounded-3xl p-8 mb-8 border-2 border-cyan-400/60 backdrop-blur-sm">
+                <p className="text-gray-200 text-xl mb-3">Final Score</p>
+                <p className="text-6xl md:text-7xl font-black bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 to-blue-400 mb-4">{score}</p>
+                <p className="text-yellow-300 text-xl md:text-2xl">🪙 Coins Collected: {coins}</p>
               </motion.div>
               <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.7 }}>
-                <Button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 px-10 py-7 text-xl">RUN AGAIN</Button>
+                <Button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 px-10 py-7 text-xl">RUN AGAIN</Button>
               </motion.div>
             </div>
           </motion.div>
@@ -522,30 +576,27 @@ export default function SkyRunner3D({ currentUser, onExit }) {
 
       {gameState === 'playing' && (
         <>
-          <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="absolute top-4 left-4 z-20 bg-black/50 backdrop-blur-md rounded-2xl p-5 border border-cyan-400/50">
-            <div className="text-white space-y-3">
-              <div className="text-sm font-bold">Score: <span className="text-cyan-400 text-xl">{score}</span></div>
-              <div className="text-sm font-bold">Coins: <span className="text-yellow-400 text-xl">{coins} 🪙</span></div>
-              <div className="text-sm font-bold">Lives: <span className="text-red-400 text-xl">{"❤️".repeat(lives)}</span></div>
+          <motion.div initial={{ x: -100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md rounded-2xl p-4 md:p-5 border border-cyan-400/50">
+            <div className="text-white space-y-2 md:space-y-3">
+              <div className="text-xs md:text-sm font-bold">Score: <span className="text-cyan-400 text-lg md:text-xl">{score}</span></div>
+              <div className="text-xs md:text-sm font-bold">Coins: <span className="text-yellow-400 text-lg md:text-xl">{coins} 🪙</span></div>
+              <div className="text-xs md:text-sm font-bold">Lives: <span className="text-red-400 text-lg md:text-xl">{"❤️".repeat(lives)}</span></div>
             </div>
           </motion.div>
 
           {isMobile && (
             <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute bottom-6 left-0 right-0 z-20 px-4">
               <div className="flex justify-center items-center gap-4">
-                <Button onTouchStart={() => keysRef.current['a'] = true} onTouchEnd={() => keysRef.current['a'] = false} className="bg-cyan-600/80 backdrop-blur-sm hover:bg-cyan-700 h-20 px-10 text-3xl font-bold shadow-xl">←</Button>
-                <Button onTouchStart={jump} className="bg-green-600/80 backdrop-blur-sm hover:bg-green-700 h-20 px-10 text-3xl font-bold shadow-xl">JUMP</Button>
-                <Button onTouchStart={() => keysRef.current['d'] = true} onTouchEnd={() => keysRef.current['d'] = false} className="bg-cyan-600/80 backdrop-blur-sm hover:bg-cyan-700 h-20 px-10 text-3xl font-bold shadow-xl">→</Button>
+                <Button onTouchStart={() => keysRef.current['a'] = true} onTouchEnd={() => keysRef.current['a'] = false} className="bg-cyan-600/90 backdrop-blur-sm hover:bg-cyan-700 h-16 w-16 text-3xl font-bold shadow-xl">←</Button>
+                <Button onTouchStart={jump} className="bg-green-600/90 backdrop-blur-sm hover:bg-green-700 h-20 px-8 text-lg font-bold shadow-xl">JUMP</Button>
+                <Button onTouchStart={() => keysRef.current['d'] = true} onTouchEnd={() => keysRef.current['d'] = false} className="bg-cyan-600/90 backdrop-blur-sm hover:bg-cyan-700 h-16 w-16 text-3xl font-bold shadow-xl">→</Button>
               </div>
             </motion.div>
           )}
         </>
       )}
 
-      {showShop && (
-        <GameShop currentUser={currentUser} gameName="sky-runner" onClose={() => { setShowShop(false); loadEquippedItems(); }} />
-      )}
-
+      {showShop && <GameShop currentUser={currentUser} gameName="sky-runner" onClose={() => { setShowShop(false); loadEquippedItems(); }} />}
       <GameSettings isOpen={showSettings} onClose={() => setShowSettings(false)} gameName="sky-runner" onSettingsChange={setSettings} />
     </div>
   );
