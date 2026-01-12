@@ -24,7 +24,12 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: (data) => base44.entities.LivestreamChat.create(data),
+    mutationFn: (data) => base44.entities.LivestreamChat.create({
+      ...data,
+      is_priority: myTicket?.chat_priority || false,
+      user_badge: myTicket?.exclusive_badge || null,
+      badge_color: myTicket?.badge_color || null
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       setMessage("");
