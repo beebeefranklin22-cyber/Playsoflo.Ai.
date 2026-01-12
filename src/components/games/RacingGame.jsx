@@ -44,7 +44,7 @@ export default function RacingGame({ currentUser, onExit }) {
       
       // Initialize road lines
       for (let i = 0; i < 10; i++) {
-        roadLinesRef.current.push({ x: CANVAS_WIDTH / 2 - 2, y: i * 60, height: 40 });
+        roadLinesRef.current.push({ x: canvasWidth / 2 - 2, y: i * 60, height: 40 });
       }
 
       const gameLoop = setInterval(() => {
@@ -87,7 +87,7 @@ export default function RacingGame({ currentUser, onExit }) {
     keysRef.current = {};
     
     for (let i = 0; i < 10; i++) {
-      roadLinesRef.current.push({ x: CANVAS_WIDTH / 2 - 2, y: i * 60, height: 40 });
+      roadLinesRef.current.push({ x: canvasWidth / 2 - 2, y: i * 60, height: 40 });
     }
     
     setGameState('playing');
@@ -103,13 +103,13 @@ export default function RacingGame({ currentUser, onExit }) {
       player.x = Math.max(50, player.x - 6);
     }
     if (keysRef.current['ArrowRight'] || keysRef.current['d']) {
-      player.x = Math.min(CANVAS_WIDTH - 90, player.x + 6);
+      player.x = Math.min(canvasWidth - 90, player.x + 6);
     }
 
     // Update road lines
     roadLinesRef.current.forEach(line => {
       line.y += currentSpeed;
-      if (line.y > CANVAS_HEIGHT) {
+      if (line.y > canvasHeight) {
         line.y = -40;
       }
     });
@@ -140,7 +140,7 @@ export default function RacingGame({ currentUser, onExit }) {
       }
 
       // Remove off-screen cars and add score
-      if (car.y > CANVAS_HEIGHT) {
+      if (car.y > canvasHeight) {
         setScore(prev => prev + 10);
         distanceRef.current += 10;
         return false;
@@ -152,20 +152,22 @@ export default function RacingGame({ currentUser, onExit }) {
 
   const drawGame = (ctx) => {
     // Sky gradient
-    const skyGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    const skyGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
     skyGradient.addColorStop(0, '#1e3a8a');
     skyGradient.addColorStop(1, '#7c3aed');
     ctx.fillStyle = skyGradient;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Road
+    const roadWidth = canvasWidth * 0.75;
+    const roadStart = (canvasWidth - roadWidth) / 2;
     ctx.fillStyle = '#374151';
-    ctx.fillRect(50, 0, 300, CANVAS_HEIGHT);
+    ctx.fillRect(roadStart, 0, roadWidth, canvasHeight);
 
     // Road edges
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(50, 0, 8, CANVAS_HEIGHT);
-    ctx.fillRect(342, 0, 8, CANVAS_HEIGHT);
+    ctx.fillRect(roadStart, 0, 8, canvasHeight);
+    ctx.fillRect(roadStart + roadWidth - 8, 0, 8, canvasHeight);
 
     // Road lines
     ctx.fillStyle = '#ffffff';

@@ -62,7 +62,7 @@ export default function SpaceInvaders({ currentUser, onExit }) {
         player.x = Math.max(0, player.x - 15);
       }
       if (e.key === 'ArrowRight' || e.key === 'd') {
-        player.x = Math.min(CANVAS_WIDTH - player.width, player.x + 15);
+        player.x = Math.min(canvasWidth - player.width, player.x + 15);
       }
       if (e.key === ' ' && bulletsRef.current.length < 3) {
         bulletsRef.current.push({
@@ -151,14 +151,14 @@ export default function SpaceInvaders({ currentUser, onExit }) {
         return false;
       }
       
-      return bullet.y < CANVAS_HEIGHT;
+      return bullet.y < canvasHeight;
     });
 
     // Update aliens
     let moveDown = false;
     aliensRef.current.forEach(alien => {
       alien.x += alien.speed * alien.direction;
-      if (alien.x <= 0 || alien.x + alien.width >= CANVAS_WIDTH) {
+      if (alien.x <= 0 || alien.x + alien.width >= canvasWidth) {
         moveDown = true;
       }
 
@@ -221,17 +221,17 @@ export default function SpaceInvaders({ currentUser, onExit }) {
 
   const drawGame = (ctx) => {
     // Space background
-    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
     gradient.addColorStop(0, '#0a0118');
     gradient.addColorStop(1, '#1a0533');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     // Stars
     ctx.fillStyle = '#ffffff';
     for (let i = 0; i < 50; i++) {
-      const x = (i * 137) % CANVAS_WIDTH;
-      const y = (i * 197) % CANVAS_HEIGHT;
+      const x = (i * 137) % canvasWidth;
+      const y = (i * 197) % canvasHeight;
       ctx.fillRect(x, y, 2, 2);
     }
 
@@ -428,7 +428,7 @@ export default function SpaceInvaders({ currentUser, onExit }) {
               <Button
                 onTouchStart={() => {
                   const player = playerRef.current;
-                  player.x = Math.min(CANVAS_WIDTH - player.width, player.x + 30);
+                  player.x = Math.min(canvasWidth - player.width, player.x + 30);
                 }}
                 className="bg-cyan-600 hover:bg-cyan-700 h-16 px-8 text-2xl"
               >
