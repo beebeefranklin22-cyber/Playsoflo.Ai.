@@ -25,6 +25,9 @@ import TowerDefense from "../components/games/TowerDefense";
 import PhysicsCatapult from "../components/games/PhysicsCatapult";
 import MultiplayerCards from "../components/games/MultiplayerCards";
 import HiddenObjects from "../components/games/HiddenObjects";
+import FPSShooter from "../components/games/FPSShooter";
+import Basketball from "../components/games/Basketball";
+import GlobalLeaderboard from "../components/games/GlobalLeaderboard";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -276,6 +279,28 @@ export default function Gaming() {
       component: HiddenObjects,
       is3D: false,
       multiplayer: false
+    },
+    {
+      id: 'fps-shooter',
+      name: 'FPS Shooter',
+      description: 'First-person shooter action',
+      icon: '🔫',
+      category: 'action',
+      difficulty: 'Hard',
+      component: FPSShooter,
+      is3D: true,
+      multiplayer: false
+    },
+    {
+      id: 'basketball',
+      name: 'Basketball',
+      description: 'Shoot hoops and score points',
+      icon: '🏀',
+      category: 'sports',
+      difficulty: 'Medium',
+      component: Basketball,
+      is3D: false,
+      multiplayer: false
     }
   ];
 
@@ -320,7 +345,7 @@ export default function Gaming() {
 
       {/* Tabs */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 overflow-x-auto">
-        {['all', 'classic', 'action', 'puzzle', 'strategy', 'multiplayer'].map(tab => (
+        {['all', 'classic', 'action', 'puzzle', 'strategy', 'sports', 'multiplayer'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
