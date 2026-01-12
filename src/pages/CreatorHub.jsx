@@ -31,7 +31,7 @@ import ContentEditWorkflow from "../components/collaboration/ContentEditWorkflow
 import VideoReviewWorkflow from "../components/collaboration/VideoReviewWorkflow.jsx";
 import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
-import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor.jsx";
+import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
