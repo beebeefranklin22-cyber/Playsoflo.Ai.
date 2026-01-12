@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import PaymentConfirmation from "../components/payment/PaymentConfirmation";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
@@ -113,6 +114,8 @@ export default function Streaming() {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [purchaseType, setPurchaseType] = useState("buy");
   const [processing, setProcessing] = useState(false);
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
+  const [confirmedPurchase, setConfirmedPurchase] = useState(null);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -295,11 +298,11 @@ export default function Streaming() {
         balance_usd: currentUser.balance_usd - price
       });
       
-      // Get creator to update their balance
+      // Add to creator's balance using service role
       const creators = await base44.entities.User.filter({ email: selectedContent.creator_email });
       if (creators.length > 0) {
         const creator = creators[0];
-        await base44.entities.User.update(creator.id, {
+        await base44.asServiceRole.entities.User.update(creator.id, {
           balance_usd: (creator.balance_usd || 0) + creatorEarnings
         });
       }
@@ -309,7 +312,7 @@ export default function Streaming() {
         ? new Date(Date.now() + (selectedContent.rental_duration_hours || 48) * 60 * 60 * 1000).toISOString()
         : null;
         
-      await base44.entities.ContentPurchase.create({
+      const purchase = await base44.entities.ContentPurchase.create({
         content_id: selectedContent.id,
         buyer_email: currentUser.email,
         creator_email: selectedContent.creator_email,
@@ -320,12 +323,33 @@ export default function Streaming() {
         platform_fee: platformFee,
         creator_earnings: creatorEarnings
       });
+
+      // Create payment record
+      await base44.entities.Payment.create({
+        amount_usd: price,
+        amount_rri: 0,
+        method: "wallet",
+        status: "completed",
+        reference_type: "other",
+        reference_id: purchase.id,
+        sender_email: currentUser.email,
+        recipient_email: selectedContent.creator_email,
+        memo: `${purchaseType === "rent" ? "Rental" : "Purchase"}: ${selectedContent.title}`
+      });
+
+      // Notify creator
+      await base44.entities.Notification.create({
+        recipient_email: selectedContent.creator_email,
+        type: "payment_received",
+        title: "Content Purchase",
+        message: `${currentUser.full_name || currentUser.email} ${purchaseType === "rent" ? "rented" : "purchased"} your content "${selectedContent.title}" for $${price.toFixed(2)}`,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        read: false
+      });
       
-      // Update user state
-      const updatedUser = await base44.auth.me();
-      setCurrentUser(updatedUser);
-      
-      toast.success(`Successfully ${purchaseType === "rent" ? "rented" : "purchased"} content!`);
+      setConfirmedPurchase({ amount: price, title: selectedContent.title });
+      setShowPaymentConfirmation(true);
       setShowPurchaseModal(false);
     } catch (error) {
       toast.error("Purchase failed: " + error.message);
@@ -351,11 +375,11 @@ export default function Streaming() {
         balance_usd: currentUser.balance_usd - amount
       });
       
-      // Add to creator's wallet
+      // Add to creator's wallet using service role
       const creators = await base44.entities.User.filter({ email: content.creator_email || content.created_by });
       if (creators.length > 0) {
         const creator = creators[0];
-        await base44.entities.User.update(creator.id, {
+        await base44.asServiceRole.entities.User.update(creator.id, {
           balance_usd: (creator.balance_usd || 0) + amount
         });
       }
@@ -367,12 +391,36 @@ export default function Streaming() {
         amount_usd: amount,
         content_id: String(content.id)
       });
+
+      // Create payment record
+      await base44.entities.Payment.create({
+        amount_usd: amount,
+        amount_rri: 0,
+        method: "wallet",
+        status: "completed",
+        reference_type: "other",
+        sender_email: currentUser.email,
+        recipient_email: content.creator_email || content.created_by,
+        memo: `Tip for: ${content.title}`
+      });
+
+      // Notify creator
+      await base44.entities.Notification.create({
+        recipient_email: content.creator_email || content.created_by,
+        type: "payment_received",
+        title: "Tip Received",
+        message: `${currentUser.full_name || currentUser.email} tipped you $${amount.toFixed(2)}!`,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        read: false
+      });
       
       // Update user state
       const updatedUser = await base44.auth.me();
       setCurrentUser(updatedUser);
       
-      toast.success(`Tipped $${amount.toFixed(2)}!`);
+      setConfirmedPurchase({ amount, title: "Tip sent" });
+      setShowPaymentConfirmation(true);
     } catch (error) {
       toast.error("Tip failed: " + error.message);
     }
@@ -1078,6 +1126,20 @@ export default function Streaming() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Payment Confirmation */}
+      {showPaymentConfirmation && confirmedPurchase && (
+        <PaymentConfirmation
+          amount={confirmedPurchase.amount}
+          currency="USD"
+          type="purchase"
+          onClose={() => {
+            setShowPaymentConfirmation(false);
+            setConfirmedPurchase(null);
+            window.location.reload();
+          }}
+        />
       )}
 
       {/* Purchase Modal */}
