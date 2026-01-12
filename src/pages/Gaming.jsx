@@ -15,6 +15,9 @@ import MultiplayerPong from "../components/games/MultiplayerPong";
 import SpaceInvaders from "../components/games/SpaceInvaders";
 import TetrisGame from "../components/games/TetrisGame";
 import RacingGame from "../components/games/RacingGame";
+import BrickBreaker3D from "../components/games/BrickBreaker3D";
+import EndlessRunner3D from "../components/games/EndlessRunner3D";
+import BubbleShooter from "../components/games/BubbleShooter";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -167,6 +170,39 @@ export default function Gaming() {
       component: MultiplayerPong,
       is3D: false,
       multiplayer: true
+    },
+    {
+      id: 'brick-breaker',
+      name: 'Brick Breaker 3D',
+      description: 'Smash bricks with neon effects',
+      icon: '🧱',
+      category: 'classic',
+      difficulty: 'Medium',
+      component: BrickBreaker3D,
+      is3D: true,
+      multiplayer: false
+    },
+    {
+      id: 'endless-runner',
+      name: 'Endless Runner 3D',
+      description: 'Run forever in 3D space',
+      icon: '🏃',
+      category: 'action',
+      difficulty: 'Hard',
+      component: EndlessRunner3D,
+      is3D: true,
+      multiplayer: false
+    },
+    {
+      id: 'bubble-shooter',
+      name: 'Bubble Shooter',
+      description: 'Match and pop colorful bubbles',
+      icon: '🫧',
+      category: 'puzzle',
+      difficulty: 'Easy',
+      component: BubbleShooter,
+      is3D: false,
+      multiplayer: false
     }
   ];
 
