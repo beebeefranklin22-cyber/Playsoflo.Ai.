@@ -30,6 +30,7 @@ import ContentEditWorkflow from "../components/collaboration/ContentEditWorkflow
 import VideoReviewWorkflow from "../components/collaboration/VideoReviewWorkflow.jsx";
 import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
+import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -389,6 +390,7 @@ export default function CreatorHub() {
 
           {/* Video Editor Tab */}
           <TabsContent value="video-editor" className="space-y-6">
+            <AdvancedVideoEditor currentUser={currentUser} />
             <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 

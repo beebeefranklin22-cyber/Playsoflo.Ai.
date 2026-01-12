@@ -50,37 +50,51 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         // If host, create and publish tracks with HD settings
         if (role === "host") {
           try {
-            // Request camera and microphone permissions
+            // Request camera and microphone permissions with error handling
+            const devices = await AgoraRTC.getDevices();
+            const hasCamera = devices.some(d => d.kind === 'videoinput');
+            const hasMic = devices.some(d => d.kind === 'audioinput');
+
+            if (!hasCamera) {
+              throw new Error("No camera found. Please connect a camera.");
+            }
+            if (!hasMic) {
+              throw new Error("No microphone found. Please connect a microphone.");
+            }
+
             const videoTrack = await AgoraRTC.createCameraVideoTrack({
               encoderConfig: {
-                width: { ideal: 1920, max: 1920 },
-                height: { ideal: 1080, max: 1080 },
-                frameRate: { ideal: 30, max: 30 },
-                bitrateMin: 1000,
-                bitrateMax: 3000,
+                width: 1280,
+                height: 720,
+                frameRate: 30,
+                bitrateMin: 600,
+                bitrateMax: 1200,
               },
               optimizationMode: "detail"
             });
 
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-              encoderConfig: "high_quality_stereo",
+              encoderConfig: "high_quality",
             });
 
             setLocalVideoTrack(videoTrack);
             setLocalAudioTrack(audioTrack);
 
-            // Play local video immediately
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait for ref to be ready and play local video
+            await new Promise(resolve => setTimeout(resolve, 200));
             if (localVideoRef.current) {
-              videoTrack.play(localVideoRef.current, { fit: "cover" });
+              console.log("Playing local video track...");
+              videoTrack.play(localVideoRef.current);
             }
 
-            // Publish tracks
+            // Publish tracks to channel
             await client.publish([videoTrack, audioTrack]);
+            console.log("Published tracks successfully");
             toast.success("You're now live!");
           } catch (mediaError) {
             console.error("Media device error:", mediaError);
-            throw new Error("Camera/microphone access denied. Please allow permissions and refresh.");
+            setError(mediaError.message);
+            throw new Error(mediaError.message || "Camera/microphone access denied. Please allow permissions and refresh.");
           }
         }
 
@@ -194,7 +208,23 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
     <div className="relative w-full h-full bg-black">
       {role === "host" ? (
         <>
-          <div ref={localVideoRef} className="w-full h-full" style={{ backgroundColor: '#000' }} />
+          <div 
+            ref={localVideoRef} 
+            className="w-full h-full"
+            style={{ 
+              backgroundColor: '#000',
+              minHeight: '400px'
+            }} 
+          />
+          
+          {!localVideoTrack && !error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-4" />
+                <p className="text-white">Initializing camera...</p>
+              </div>
+            </div>
+          )}
           
           {/* Host Controls */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
@@ -216,7 +246,14 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         </>
       ) : (
         <>
-          <div ref={remoteVideoContainerRef} className="w-full h-full" style={{ backgroundColor: '#000' }} />
+          <div 
+            ref={remoteVideoContainerRef} 
+            className="w-full h-full" 
+            style={{ 
+              backgroundColor: '#000',
+              minHeight: '400px'
+            }} 
+          />
           {Object.keys(remoteUsers).length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
               <div className="text-center">

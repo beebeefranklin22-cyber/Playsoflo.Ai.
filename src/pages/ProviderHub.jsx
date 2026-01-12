@@ -677,6 +677,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
           {/* Video Editor Tab */}
           <TabsContent value="video-editor" className="space-y-6">
+            <AdvancedVideoEditor currentUser={currentUser} />
             <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 
