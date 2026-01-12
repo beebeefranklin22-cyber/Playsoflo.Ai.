@@ -49,12 +49,14 @@ export default function AddFriendButton({ targetUser, currentUser }) {
       });
 
       await base44.entities.Notification.create({
-        user_email: targetUser.email,
+        recipient_email: targetUser.email,
         type: "follow_request",
         title: "New Friend Request",
         message: `${currentUser.full_name} sent you a friend request`,
         read: false,
-        action_url: "/Profile?tab=friend-requests"
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_photo
       });
     },
     onSuccess: () => {
