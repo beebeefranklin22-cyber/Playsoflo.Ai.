@@ -12,6 +12,9 @@ import SoFloRunner from "../components/games/SoFloRunner";
 import CryptoCollector from "../components/games/CryptoCollector";
 import VibeMatch from "../components/games/VibeMatch";
 import MultiplayerPong from "../components/games/MultiplayerPong";
+import SpaceInvaders from "../components/games/SpaceInvaders";
+import TetrisGame from "../components/games/TetrisGame";
+import RacingGame from "../components/games/RacingGame";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -68,8 +71,8 @@ export default function Gaming() {
   const games = [
     {
       id: 'snake',
-      name: 'Classic Snake',
-      description: 'Eat, grow, don\'t crash',
+      name: 'Neon Snake',
+      description: 'Modern twist on classic snake with combos',
       icon: '🐍',
       category: 'classic',
       difficulty: 'Easy',
@@ -78,9 +81,42 @@ export default function Gaming() {
       multiplayer: false
     },
     {
+      id: 'tetris',
+      name: 'Neon Tetris',
+      description: 'Stack blocks and clear lines',
+      icon: '🟦',
+      category: 'classic',
+      difficulty: 'Medium',
+      component: TetrisGame,
+      is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'space-invaders',
+      name: 'Space Invaders',
+      description: 'Defend Earth from alien invasion',
+      icon: '👾',
+      category: 'classic',
+      difficulty: 'Medium',
+      component: SpaceInvaders,
+      is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'racing',
+      name: 'Neon Racer',
+      description: 'High-speed racing action',
+      icon: '🏎️',
+      category: 'action',
+      difficulty: 'Hard',
+      component: RacingGame,
+      is3D: false,
+      multiplayer: false
+    },
+    {
       id: 'pong',
       name: 'Retro Pong',
-      description: 'Classic paddle action',
+      description: 'Classic paddle vs AI',
       icon: '🏓',
       category: 'classic',
       difficulty: 'Easy',
@@ -93,7 +129,7 @@ export default function Gaming() {
       name: 'SoFlo Runner 3D',
       description: 'Run through Miami in 3D',
       icon: '🏃',
-      category: 'unique',
+      category: 'action',
       difficulty: 'Medium',
       component: SoFloRunner,
       is3D: true,
@@ -104,7 +140,7 @@ export default function Gaming() {
       name: 'Crypto Collector',
       description: 'Catch falling coins',
       icon: '💰',
-      category: 'unique',
+      category: 'action',
       difficulty: 'Medium',
       component: CryptoCollector,
       is3D: false,
@@ -115,7 +151,7 @@ export default function Gaming() {
       name: 'Vibe Match',
       description: 'Match the vibes & colors',
       icon: '🎨',
-      category: 'unique',
+      category: 'puzzle',
       difficulty: 'Hard',
       component: VibeMatch,
       is3D: false,
@@ -124,7 +160,7 @@ export default function Gaming() {
     {
       id: 'multiplayer-pong',
       name: 'Pong Battle',
-      description: 'Challenge your friends',
+      description: 'Challenge your friends online',
       icon: '⚔️',
       category: 'multiplayer',
       difficulty: 'Medium',
@@ -175,7 +211,7 @@ export default function Gaming() {
 
       {/* Tabs */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 overflow-x-auto">
-        {['all', 'classic', 'unique', 'multiplayer'].map(tab => (
+        {['all', 'classic', 'action', 'puzzle', 'multiplayer'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
