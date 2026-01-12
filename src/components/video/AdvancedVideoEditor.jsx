@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { 
   Video, Upload, Scissors, Download, Play, Pause, Plus,
   Sparkles, Volume2, VolumeX, RotateCcw, Loader2, X,
-  Music, Layers, FilePlus, Combine, Copy, Split
+  Music, Layers, FilePlus, Combine, Copy, Split, Type,
+  Wand2, Mic, Sliders, Zap, FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -29,6 +30,16 @@ export default function AdvancedVideoEditor({ currentUser }) {
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [selectedTransition, setSelectedTransition] = useState("fade");
+  const [textOverlays, setTextOverlays] = useState([]);
+  const [selectedLUT, setSelectedLUT] = useState("none");
+  const [voiceoverUrl, setVoiceoverUrl] = useState("");
+  const [voiceoverVolume, setVoiceoverVolume] = useState(70);
+  const [audioEchoEffect, setAudioEchoEffect] = useState(false);
+  const [audioReverbEffect, setAudioReverbEffect] = useState(false);
+  const [transcriptionData, setTranscriptionData] = useState(null);
+  const [generatingTranscription, setGeneratingTranscription] = useState(false);
   const [backgroundMusicUrl, setBackgroundMusicUrl] = useState("");
   const [musicVolume, setMusicVolume] = useState(50);
   const [processing, setProcessing] = useState(false);
@@ -45,15 +56,35 @@ export default function AdvancedVideoEditor({ currentUser }) {
     { id: "dreamy", name: "Dreamy", css: "blur(1px) brightness(110%)" }
   ];
 
+  const luts = [
+    { id: "none", name: "None", settings: { brightness: 100, contrast: 100, saturation: 100, hue: 0 } },
+    { id: "cinematic", name: "Cinematic", settings: { brightness: 95, contrast: 125, saturation: 110, hue: 5 } },
+    { id: "teal_orange", name: "Teal & Orange", settings: { brightness: 105, contrast: 120, saturation: 130, hue: 15 } },
+    { id: "film_noir", name: "Film Noir", settings: { brightness: 80, contrast: 160, saturation: 50, hue: 0 } },
+    { id: "sunset", name: "Sunset", settings: { brightness: 110, contrast: 115, saturation: 140, hue: 25 } },
+    { id: "arctic", name: "Arctic", settings: { brightness: 115, contrast: 105, saturation: 85, hue: -20 } }
+  ];
+
+  const transitions = [
+    { id: "fade", name: "Fade", duration: 0.5 },
+    { id: "slide_left", name: "Slide Left", duration: 0.3 },
+    { id: "slide_right", name: "Slide Right", duration: 0.3 },
+    { id: "zoom_in", name: "Zoom In", duration: 0.4 },
+    { id: "zoom_out", name: "Zoom Out", duration: 0.4 },
+    { id: "dissolve", name: "Dissolve", duration: 0.6 },
+    { id: "wipe", name: "Wipe", duration: 0.5 }
+  ];
+
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.volume = volume / 100;
       videoRef.current.muted = isMuted;
+      videoRef.current.playbackRate = playbackSpeed;
     }
     if (audioRef.current) {
       audioRef.current.volume = musicVolume / 100;
     }
-  }, [volume, isMuted, musicVolume]);
+  }, [volume, isMuted, musicVolume, playbackSpeed]);
 
   useEffect(() => {
     if (currentClip && videoRef.current) {
@@ -151,11 +182,140 @@ export default function AdvancedVideoEditor({ currentUser }) {
   const applyFilterToClip = () => {
     const updatedClips = clips.map(c =>
       c.id === currentClip.id 
-        ? { ...c, filter, brightness, contrast, saturation }
+        ? { ...c, filter, brightness, contrast, saturation, lut: selectedLUT, speed: playbackSpeed }
         : c
     );
     setClips(updatedClips);
     toast.success('Effects applied to clip');
+  };
+
+  const applyLUT = (lutId) => {
+    const lut = luts.find(l => l.id === lutId);
+    if (lut) {
+      setSelectedLUT(lutId);
+      setBrightness(lut.settings.brightness);
+      setContrast(lut.settings.contrast);
+      setSaturation(lut.settings.saturation);
+      toast.success(`${lut.name} LUT applied`);
+    }
+  };
+
+  const addTextOverlay = () => {
+    const newOverlay = {
+      id: Date.now(),
+      text: "Add your text",
+      x: 50,
+      y: 50,
+      fontSize: 32,
+      color: "#FFFFFF",
+      startTime: currentTime,
+      endTime: currentTime + 5
+    };
+    setTextOverlays([...textOverlays, newOverlay]);
+    toast.success('Text overlay added');
+  };
+
+  const removeTextOverlay = (id) => {
+    setTextOverlays(textOverlays.filter(t => t.id !== id));
+  };
+
+  const handleVoiceoverUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please select an audio file');
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    setVoiceoverUrl(url);
+    toast.success('Voiceover added');
+  };
+
+  const generateTranscription = async () => {
+    if (!videoFile) {
+      toast.error('Upload a video first');
+      return;
+    }
+
+    setGeneratingTranscription(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: videoFile });
+      
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Generate accurate subtitles/transcription for this video. Return timestamps and text in SRT format.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            subtitles: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  start_time: { type: "number" },
+                  end_time: { type: "number" },
+                  text: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      setTranscriptionData(result.subtitles);
+      toast.success('Transcription generated!');
+    } catch (error) {
+      toast.error('Transcription failed: ' + error.message);
+    } finally {
+      setGeneratingTranscription(false);
+    }
+  };
+
+  const generateHighlightClip = async () => {
+    if (!videoFile) {
+      toast.error('Upload a video first');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: videoFile });
+      
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Analyze this video and identify the most engaging moments for a highlight reel. Return 3-5 timestamp ranges that would make the best highlight clips (action, emotion, key moments).`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: "object",
+          properties: {
+            highlights: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  start: { type: "number" },
+                  end: { type: "number" },
+                  description: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      toast.success(`Found ${result.highlights.length} highlight moments!`);
+      
+      // Apply first highlight as trim suggestion
+      if (result.highlights[0]) {
+        setTrimStart(result.highlights[0].start);
+        setTrimEnd(result.highlights[0].end);
+      }
+    } catch (error) {
+      toast.error('Highlight generation failed: ' + error.message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const duplicateClip = () => {
@@ -493,10 +653,38 @@ export default function AdvancedVideoEditor({ currentUser }) {
                   </div>
                 </div>
 
-                {/* Background Music */}
+                {/* Audio tracks */}
                 {backgroundMusicUrl && (
                   <audio ref={audioRef} src={backgroundMusicUrl} loop />
                 )}
+                {voiceoverUrl && (
+                  <audio src={voiceoverUrl} volume={voiceoverVolume / 100} />
+                )}
+
+                {/* Text Overlays Render */}
+                {textOverlays.map((overlay) => {
+                  if (currentTime >= overlay.startTime && currentTime <= overlay.endTime) {
+                    return (
+                      <div
+                        key={overlay.id}
+                        className="absolute pointer-events-none"
+                        style={{
+                          left: `${overlay.x}%`,
+                          top: `${overlay.y}%`,
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: `${overlay.fontSize}px`,
+                          color: overlay.color,
+                          fontWeight: 'bold',
+                          textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                          zIndex: 10
+                        }}
+                      >
+                        {overlay.text}
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
               </div>
             </CardContent>
           </Card>
@@ -544,30 +732,31 @@ export default function AdvancedVideoEditor({ currentUser }) {
               </CardContent>
             </Card>
 
-            {/* Audio Controls */}
+            {/* Audio Mixing */}
             <Card className="bg-white/5 border-white/10">
               <CardContent className="p-4">
                 <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                   <Music className="w-5 h-5 text-blue-400" />
-                  Background Music
+                  Audio Mixing
                 </h4>
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* Background Music */}
                   {backgroundMusicUrl ? (
-                    <>
-                      <div className="flex items-center justify-between p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                        <span className="text-green-300 text-sm">Music Added</span>
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-green-300 text-sm font-medium">Background Music</span>
                         <Button
                           onClick={() => setBackgroundMusicUrl("")}
                           size="sm"
                           variant="ghost"
-                          className="text-red-400"
+                          className="text-red-400 h-6 w-6 p-0"
                         >
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm mb-2 block">
-                          Music Volume: {musicVolume}%
+                        <label className="text-gray-400 text-xs mb-1 block">
+                          Volume: {musicVolume}%
                         </label>
                         <Slider
                           value={[musicVolume]}
@@ -576,7 +765,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
                           step={1}
                         />
                       </div>
-                    </>
+                    </div>
                   ) : (
                     <>
                       <Button
@@ -584,7 +773,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
                         className="w-full bg-blue-600 hover:bg-blue-700"
                       >
                         <Music className="w-4 h-4 mr-2" />
-                        Upload Background Music
+                        Add Background Music
                       </Button>
                       <input
                         id="music-upload"
@@ -595,6 +784,171 @@ export default function AdvancedVideoEditor({ currentUser }) {
                       />
                     </>
                   )}
+
+                  {/* Voiceover */}
+                  {voiceoverUrl ? (
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-purple-300 text-sm font-medium flex items-center gap-1">
+                          <Mic className="w-4 h-4" />
+                          Voiceover
+                        </span>
+                        <Button
+                          onClick={() => setVoiceoverUrl("")}
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 h-6 w-6 p-0"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1 block">
+                          Volume: {voiceoverVolume}%
+                        </label>
+                        <Slider
+                          value={[voiceoverVolume]}
+                          onValueChange={(v) => setVoiceoverVolume(v[0])}
+                          max={100}
+                          step={1}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => document.getElementById('voiceover-upload').click()}
+                        className="w-full bg-purple-600 hover:bg-purple-700"
+                      >
+                        <Mic className="w-4 h-4 mr-2" />
+                        Add Voiceover
+                      </Button>
+                      <input
+                        id="voiceover-upload"
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleVoiceoverUpload}
+                        className="hidden"
+                      />
+                    </>
+                  )}
+
+                  {/* Audio Effects */}
+                  <div className="space-y-2">
+                    <label className="text-gray-400 text-xs block">Audio Effects</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setAudioEchoEffect(!audioEchoEffect)}
+                        className={`flex-1 p-2 rounded-lg text-xs font-medium transition ${
+                          audioEchoEffect
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        }`}
+                      >
+                        Echo
+                      </button>
+                      <button
+                        onClick={() => setAudioReverbEffect(!audioReverbEffect)}
+                        className={`flex-1 p-2 rounded-lg text-xs font-medium transition ${
+                          audioReverbEffect
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        }`}
+                      >
+                        Reverb
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* AI-Powered Features */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/30">
+              <CardContent className="p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Wand2 className="w-5 h-5 text-purple-400" />
+                  AI Tools
+                </h4>
+                <div className="space-y-2">
+                  <Button
+                    onClick={generateTranscription}
+                    disabled={generatingTranscription || !videoFile}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    {generatingTranscription ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Transcribing...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Auto-Generate Subtitles
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={generateHighlightClip}
+                    disabled={processing || !videoFile}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
+                        Find Best Moments
+                      </>
+                    )}
+                  </Button>
+                  {transcriptionData && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-green-300 text-xs">
+                      ✓ {transcriptionData.length} subtitle segments ready
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Type className="w-5 h-5 text-yellow-400" />
+                  Text Overlays
+                </h4>
+                <Button
+                  onClick={addTextOverlay}
+                  className="w-full bg-yellow-600 hover:bg-yellow-700 mb-3"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Text Overlay
+                </Button>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {textOverlays.map((overlay) => (
+                    <div key={overlay.id} className="bg-white/5 rounded-lg p-2 flex items-center justify-between">
+                      <Input
+                        value={overlay.text}
+                        onChange={(e) => {
+                          setTextOverlays(textOverlays.map(t => 
+                            t.id === overlay.id ? {...t, text: e.target.value} : t
+                          ));
+                        }}
+                        className="bg-white/10 border-white/20 text-white text-xs mr-2"
+                      />
+                      <button
+                        onClick={() => removeTextOverlay(overlay.id)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -603,7 +957,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
           {/* Color Adjustments & Filters */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-4">
-              <h4 className="text-white font-semibold mb-3">Color & Effects</h4>
+              <h4 className="text-white font-semibold mb-3">Advanced Editing</h4>
               
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Adjustments */}
@@ -670,59 +1024,105 @@ export default function AdvancedVideoEditor({ currentUser }) {
                 </div>
               </div>
 
-              <Button 
-                onClick={applyFilterToClip}
-                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Apply Effects to Clip
-              </Button>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <Button 
+                  onClick={applyFilterToClip}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Apply All Effects
+                </Button>
+                <Button
+                  onClick={() => {
+                    setBrightness(100);
+                    setContrast(100);
+                    setSaturation(100);
+                    setFilter("none");
+                    setSelectedLUT("none");
+                    setPlaybackSpeed(1);
+                  }}
+                  variant="outline"
+                  className="bg-white/5"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset All
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
           {/* Export Settings */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-4">
-              <h4 className="text-white font-semibold mb-3">Export Settings</h4>
-              <div className="grid grid-cols-4 gap-2">
-                {['mp4', 'webm', 'mov', 'avi'].map((format) => (
-                  <button
-                    key={format}
-                    onClick={() => setExportFormat(format)}
-                    className={`p-3 rounded-lg text-sm font-medium uppercase transition ${
-                      exportFormat === format
-                        ? 'bg-green-600 text-white'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                    }`}
-                  >
-                    {format}
-                  </button>
-                ))}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-white font-semibold mb-3">Export Format</h4>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['mp4', 'webm', 'mov', 'avi'].map((format) => (
+                      <button
+                        key={format}
+                        onClick={() => setExportFormat(format)}
+                        className={`p-3 rounded-lg text-sm font-medium uppercase transition ${
+                          exportFormat === format
+                            ? 'bg-green-600 text-white'
+                            : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                        }`}
+                      >
+                        {format}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold mb-3">Export Quality</h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['720p', '1080p', '4K'].map((quality) => (
+                      <button
+                        key={quality}
+                        className="p-3 rounded-lg text-sm font-medium bg-white/10 text-gray-300 hover:bg-white/20 transition"
+                      >
+                        {quality}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
-              <div className="text-purple-400 text-sm mb-1">Total Clips</div>
-              <div className="text-white text-2xl font-bold">{clips.length}</div>
-            </div>
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-              <div className="text-blue-400 text-sm mb-1">Total Duration</div>
-              <div className="text-white text-2xl font-bold">
-                {clips.reduce((sum, c) => sum + ((c.trimEnd || 0) - (c.trimStart || 0)), 0).toFixed(0)}s
+          {/* Project Summary */}
+          <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/30">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                  <div className="text-purple-400 text-sm mb-1">Total Clips</div>
+                  <div className="text-white text-2xl font-bold">{clips.length}</div>
+                </div>
+                <div>
+                  <div className="text-blue-400 text-sm mb-1">Duration</div>
+                  <div className="text-white text-2xl font-bold">
+                    {clips.reduce((sum, c) => sum + ((c.trimEnd || 0) - (c.trimStart || 0)), 0).toFixed(0)}s
+                  </div>
+                </div>
+                <div>
+                  <div className="text-green-400 text-sm mb-1">Audio Tracks</div>
+                  <div className="text-white text-2xl font-bold">
+                    {(backgroundMusicUrl ? 1 : 0) + (voiceoverUrl ? 1 : 0)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-yellow-400 text-sm mb-1">Text Overlays</div>
+                  <div className="text-white text-2xl font-bold">{textOverlays.length}</div>
+                </div>
+                <div>
+                  <div className="text-pink-400 text-sm mb-1">Effects</div>
+                  <div className="text-white text-2xl font-bold">
+                    {(filter !== 'none' ? 1 : 0) + (selectedLUT !== 'none' ? 1 : 0)}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-              <div className="text-green-400 text-sm mb-1">Current Clip</div>
-              <div className="text-white text-2xl font-bold">{currentClipIndex + 1}</div>
-            </div>
-            <div className="bg-pink-500/10 border border-pink-500/30 rounded-xl p-4">
-              <div className="text-pink-400 text-sm mb-1">Format</div>
-              <div className="text-white text-2xl font-bold uppercase">{exportFormat}</div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>
