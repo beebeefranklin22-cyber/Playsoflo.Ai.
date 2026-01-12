@@ -85,10 +85,12 @@ export default function Streaming() {
   const [showUpload, setShowUpload] = useState(false);
   
   // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("popularity");
+  const [genreFilter, setGenreFilter] = useState("");
 
   // Upload states
   const [uploadData, setUploadData] = useState({
@@ -121,8 +123,20 @@ export default function Streaming() {
     initialData: []
   });
 
+  const trendingContent = [...content]
+    .sort((a, b) => (b.views || 0) - (a.views || 0))
+    .slice(0, 10);
+
   const filteredContent = (() => {
     let filtered = content;
+    
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(item => 
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
     
     // Filter by main category
     if (selectedCategory === "movies") {
@@ -157,6 +171,14 @@ export default function Streaming() {
       }
     } else if (selectedCategory !== "all") {
       filtered = content.filter(item => item.category === selectedCategory);
+    }
+    
+    // Filter by genre
+    if (genreFilter) {
+      filtered = filtered.filter(item => 
+        item.description?.toLowerCase().includes(genreFilter.toLowerCase()) ||
+        item.title?.toLowerCase().includes(genreFilter.toLowerCase())
+      );
     }
     
     // Filter by year
@@ -326,6 +348,66 @@ export default function Streaming() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="px-6 mb-8">
+        <Input
+          type="text"
+          placeholder="Search content by title, description, genre..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-12 text-lg"
+        />
+      </div>
+
+      {/* Trending Now Section */}
+      {trendingContent.length > 0 && !searchQuery && (
+        <div className="px-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-orange-500" />
+            Trending Now
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {trendingContent.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className="group cursor-pointer relative"
+              >
+                <div className="absolute top-2 left-2 z-10 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                  #{idx + 1}
+                </div>
+                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900">
+                  <img 
+                    src={item.thumbnail_url} 
+                    alt={item.title}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 bg-orange-500/90 rounded-full flex items-center justify-center">
+                      <Play className="w-6 h-6 text-white fill-white" />
+                    </div>
+                  </div>
+
+                  <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
+                    <h3 className="text-white font-bold text-sm line-clamp-2 mb-1">
+                      {item.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-gray-300 text-xs">
+                      <Users className="w-3 h-3" />
+                      {item.views || 0} views
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {liveContent.length > 0 && (
         <div className="px-6 mb-8">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
@@ -415,7 +497,7 @@ export default function Streaming() {
             exit={{ opacity: 0, height: 0 }}
             className="bg-white/5 rounded-xl p-4 mb-4 border border-white/10"
           >
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="text-gray-400 text-sm mb-2 block">Sort By</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
@@ -428,6 +510,16 @@ export default function Streaming() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Genre</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., Action, Drama"
+                  value={genreFilter}
+                  onChange={(e) => setGenreFilter(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white"
+                />
               </div>
               <div>
                 <label className="text-gray-400 text-sm mb-2 block">Availability</label>
@@ -469,6 +561,8 @@ export default function Streaming() {
             <div className="mt-4 flex justify-end gap-2">
               <Button
                 onClick={() => {
+                  setSearchQuery("");
+                  setGenreFilter("");
                   setYearFilter("");
                   setRatingFilter("");
                   setAvailabilityFilter("all");
@@ -477,7 +571,7 @@ export default function Streaming() {
                 variant="outline"
                 className="bg-white/5 border-white/20"
               >
-                Clear Filters
+                Clear All Filters
               </Button>
             </div>
           </motion.div>
