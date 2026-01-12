@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
+import TemplateLibrary from "./TemplateLibrary";
 
 export default function AdvancedVideoEditor({ currentUser }) {
   const videoRef = useRef(null);
@@ -40,6 +41,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
   const [audioReverbEffect, setAudioReverbEffect] = useState(false);
   const [transcriptionData, setTranscriptionData] = useState(null);
   const [generatingTranscription, setGeneratingTranscription] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [backgroundMusicUrl, setBackgroundMusicUrl] = useState("");
   const [musicVolume, setMusicVolume] = useState(50);
   const [processing, setProcessing] = useState(false);
@@ -459,26 +461,60 @@ export default function AdvancedVideoEditor({ currentUser }) {
           </h2>
           <p className="text-gray-400">Multi-clip editing with advanced features</p>
         </div>
-        {clips.length > 0 && (
+        <div className="flex gap-2">
           <Button
-            onClick={exportVideo}
-            disabled={processing}
-            className="bg-green-600 hover:bg-green-700"
+            onClick={() => setShowTemplateLibrary(!showTemplateLibrary)}
+            className="bg-purple-600 hover:bg-purple-700"
           >
-            {processing ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Export Project
-              </>
-            )}
+            <Sparkles className="w-4 h-4 mr-2" />
+            Templates
           </Button>
-        )}
+          {clips.length > 0 && (
+            <Button
+              onClick={exportVideo}
+              disabled={processing}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {processing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Project
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Template Library Modal */}
+      <AnimatePresence>
+        {showTemplateLibrary && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl overflow-y-auto p-6"
+          >
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-white">Template Library</h2>
+                <Button onClick={() => setShowTemplateLibrary(false)} variant="ghost">
+                  <X className="w-6 h-6 text-white" />
+                </Button>
+              </div>
+              <TemplateLibrary 
+                onApplyTemplate={applyTemplate}
+                currentUser={currentUser}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Upload Area */}
       {clips.length === 0 ? (
