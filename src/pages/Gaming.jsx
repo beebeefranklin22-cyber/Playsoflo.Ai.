@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Gamepad2, Trophy, Users, Zap, Sparkles, Crown, Star, TrendingUp } from "lucide-react";
+import { Gamepad2, Trophy, Users, Zap, Sparkles, Crown, Star, TrendingUp, UserPlus, Video } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import SnakeGame from "../components/games/SnakeGame";
@@ -28,6 +28,13 @@ import HiddenObjects from "../components/games/HiddenObjects";
 import FPSShooter from "../components/games/FPSShooter";
 import Basketball from "../components/games/Basketball";
 import GlobalLeaderboard from "../components/games/GlobalLeaderboard";
+import GamingFriendsList from "../components/gaming/GamingFriendsList";
+import FriendsLeaderboard from "../components/gaming/FriendsLeaderboard";
+import GamingChat from "../components/gaming/GamingChat";
+import LivestreamSetup from "../components/gaming/LivestreamSetup";
+import ScreenShareStreamer from "../components/gaming/ScreenShareStreamer";
+import GameStreamViewer from "../components/gaming/GameStreamViewer";
+import LiveGamingStreams from "../components/gaming/LiveGamingStreams";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -35,6 +42,13 @@ export default function Gaming() {
   const [selectedGame, setSelectedGame] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [showFriendsLeaderboard, setShowFriendsLeaderboard] = useState(false);
+  const [chatWithFriend, setChatWithFriend] = useState(null);
+  const [showLivestreamSetup, setShowLivestreamSetup] = useState(false);
+  const [activeStream, setActiveStream] = useState(null);
+  const [showLiveStreams, setShowLiveStreams] = useState(false);
+  const [viewingStream, setViewingStream] = useState(null);
 
   React.useEffect(() => {
     const loadUser = async () => {
@@ -342,10 +356,17 @@ export default function Gaming() {
                 <p className="text-white text-sm font-bold truncate">{myStats.favoriteGame || 'None'}</p>
               </div>
             </div>
-            <Button onClick={() => setShowLeaderboard(true)} className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 h-full px-6">
-              <Trophy className="w-5 h-5 mr-2" />
-              View Leaderboard
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowLeaderboard(true)} className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 px-4 py-6">
+                <Trophy className="w-5 h-5" />
+              </Button>
+              <Button onClick={() => setShowFriends(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-6">
+                <UserPlus className="w-5 h-5" />
+              </Button>
+              <Button onClick={() => setShowLiveStreams(true)} className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 px-4 py-6">
+                <Video className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -409,9 +430,17 @@ export default function Gaming() {
                 </span>
               </div>
 
-              <Button className="w-full mt-4 bg-gradient-to-r from-purple-600 to-pink-600 group-hover:from-purple-700 group-hover:to-pink-700">
-                Play Now
-              </Button>
+              <div className="flex gap-2 mt-4">
+                <Button onClick={(e) => { e.stopPropagation(); setSelectedGame(game); }} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 group-hover:from-purple-700 group-hover:to-pink-700">
+                  Play Now
+                </Button>
+                <Button onClick={(e) => { e.stopPropagation(); setShowFriendsLeaderboard(game.id); }} size="sm" variant="outline" className="border-purple-500/50">
+                  <Trophy className="w-4 h-4" />
+                </Button>
+                <Button onClick={(e) => { e.stopPropagation(); setShowLivestreamSetup(game.id); }} size="sm" className="bg-red-600 hover:bg-red-700">
+                  <Video className="w-4 h-4" />
+                </Button>
+              </div>
             </motion.div>
           ))}
         </div>
@@ -456,6 +485,13 @@ export default function Gaming() {
       </div>
 
       {showLeaderboard && <GlobalLeaderboard currentUser={currentUser} onClose={() => setShowLeaderboard(false)} />}
+      {showFriends && <GamingFriendsList currentUser={currentUser} onClose={() => setShowFriends(false)} onChatWith={(email) => { setShowFriends(false); setChatWithFriend(email); }} />}
+      {showFriendsLeaderboard && <FriendsLeaderboard currentUser={currentUser} gameName={showFriendsLeaderboard} onClose={() => setShowFriendsLeaderboard(false)} />}
+      {chatWithFriend && <GamingChat currentUser={currentUser} friendEmail={chatWithFriend} onClose={() => setChatWithFriend(null)} />}
+      {showLivestreamSetup && <LivestreamSetup currentUser={currentUser} gameName={showLivestreamSetup} onClose={() => setShowLivestreamSetup(false)} onStartStream={(stream, channel) => { setActiveStream({ stream, channel }); setShowLivestreamSetup(false); }} />}
+      {activeStream && <ScreenShareStreamer currentUser={currentUser} stream={activeStream.stream} channelName={activeStream.channel} onClose={() => setActiveStream(null)} />}
+      {showLiveStreams && <LiveGamingStreams currentUser={currentUser} onClose={() => setShowLiveStreams(false)} onJoinStream={(stream) => { setViewingStream(stream); setShowLiveStreams(false); }} />}
+      {viewingStream && <GameStreamViewer stream={viewingStream} currentUser={currentUser} onClose={() => setViewingStream(null)} />}
     </div>
   );
 }
