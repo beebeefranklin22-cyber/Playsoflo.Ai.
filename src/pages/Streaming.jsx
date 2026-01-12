@@ -3,15 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { 
   Play, ChevronLeft, Tv, Gamepad2, Music, Radio,
-  TrendingUp, Clock, Users, Sparkles
+  TrendingUp, Clock, Users, Sparkles, Film
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Button } from "@/components/ui/button";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
+  { id: "movies", label: "Movies", icon: Film },
   { id: "sports", label: "Sports", icon: TrendingUp },
   { id: "gaming", label: "Gaming", icon: Gamepad2 },
   { id: "entertainment", label: "Shows", icon: Play },
@@ -19,9 +20,21 @@ const categories = [
   { id: "betting", label: "Betting", icon: TrendingUp },
 ];
 
+const movieTypes = [
+  { id: "all_movies", label: "All Movies" },
+  { id: "action", label: "Action" },
+  { id: "comedy", label: "Comedy" },
+  { id: "drama", label: "Drama" },
+  { id: "sci-fi", label: "Sci-Fi" },
+  { id: "thriller", label: "Thriller" },
+  { id: "horror", label: "Horror" },
+  { id: "romance", label: "Romance" },
+];
+
 export default function Streaming() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedMovieType, setSelectedMovieType] = useState("all_movies");
 
   const { data: content = [], isLoading } = useQuery({
     queryKey: ['streaming-content'],
@@ -29,9 +42,26 @@ export default function Streaming() {
     initialData: []
   });
 
-  const filteredContent = selectedCategory === "all" 
-    ? content 
-    : content.filter(item => item.category === selectedCategory);
+  const filteredContent = (() => {
+    let filtered = content;
+    
+    // Filter by main category
+    if (selectedCategory === "movies") {
+      filtered = content.filter(item => item.type === "movie");
+    } else if (selectedCategory !== "all") {
+      filtered = content.filter(item => item.category === selectedCategory);
+    }
+    
+    // Filter movies by subcategory if applicable
+    if (selectedCategory === "movies" && selectedMovieType !== "all_movies") {
+      filtered = filtered.filter(item => 
+        item.description?.toLowerCase().includes(selectedMovieType) ||
+        item.title?.toLowerCase().includes(selectedMovieType)
+      );
+    }
+    
+    return filtered;
+  })();
 
   const liveContent = content.filter(item => item.is_live);
 
@@ -155,7 +185,10 @@ export default function Streaming() {
           {categories.map((cat) => (
             <button
               key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
+              onClick={() => {
+                setSelectedCategory(cat.id);
+                if (cat.id !== "movies") setSelectedMovieType("all_movies");
+              }}
               className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
                 selectedCategory === cat.id
                   ? "bg-red-500 text-white"
@@ -167,6 +200,25 @@ export default function Streaming() {
             </button>
           ))}
         </div>
+
+        {/* Movie Subcategories */}
+        {selectedCategory === "movies" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
+            {movieTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedMovieType(type.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  selectedMovieType === type.id
+                    ? "bg-purple-500 text-white"
+                    : "bg-white/5 text-gray-400 hover:bg-white/10"
+                }`}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-6">
@@ -200,16 +252,20 @@ export default function Streaming() {
                     <Button
                       size="sm"
                       className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent the parent div's click handler (if any)
+                      onClick={async (e) => {
+                        e.stopPropagation();
                         const amount = prompt('Tip amount in USD (demo)');
                         if (!amount) return;
-                        base44.entities.TipTransaction.create({
-                          creator_email: item.created_by || "creator@example.com", // Using a fallback email
-                          amount_usd: parseFloat(amount),
-                          content_id: String(item.id)
-                        });
-                        alert('Tip sent! (demo)');
+                        try {
+                          await base44.entities.TipTransaction.create({
+                            creator_email: item.creator_email || item.created_by || "creator@example.com",
+                            amount_usd: parseFloat(amount),
+                            content_id: String(item.id)
+                          });
+                          alert('Tip sent!');
+                        } catch (error) {
+                          alert('Error sending tip');
+                        }
                       }}
                     >
                       Tip
