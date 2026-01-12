@@ -20,6 +20,11 @@ import EndlessRunner3D from "../components/games/EndlessRunner3D";
 import BubbleShooter from "../components/games/BubbleShooter";
 import Highway95Racing from "../components/games/Highway95Racing";
 import SkyRunner3D from "../components/games/SkyRunner3D";
+import SudokuGame from "../components/games/SudokuGame";
+import TowerDefense from "../components/games/TowerDefense";
+import PhysicsCatapult from "../components/games/PhysicsCatapult";
+import MultiplayerCards from "../components/games/MultiplayerCards";
+import HiddenObjects from "../components/games/HiddenObjects";
 
 export default function Gaming() {
   const navigate = useNavigate();
@@ -216,6 +221,61 @@ export default function Gaming() {
       component: SkyRunner3D,
       is3D: true,
       multiplayer: false
+    },
+    {
+      id: 'sudoku',
+      name: 'Neon Sudoku',
+      description: 'Classic number puzzle with style',
+      icon: '🧩',
+      category: 'puzzle',
+      difficulty: 'Medium',
+      component: SudokuGame,
+      is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'tower-defense',
+      name: 'Tower Defense',
+      description: 'Strategic tower placement defense',
+      icon: '🗼',
+      category: 'strategy',
+      difficulty: 'Hard',
+      component: TowerDefense,
+      is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'physics-catapult',
+      name: 'Physics Catapult',
+      description: 'Launch projectiles to hit targets',
+      icon: '🎯',
+      category: 'action',
+      difficulty: 'Medium',
+      component: PhysicsCatapult,
+      is3D: false,
+      multiplayer: false
+    },
+    {
+      id: 'card-battle',
+      name: 'Card Battle',
+      description: 'Turn-based card combat',
+      icon: '🃏',
+      category: 'multiplayer',
+      difficulty: 'Medium',
+      component: MultiplayerCards,
+      is3D: false,
+      multiplayer: true
+    },
+    {
+      id: 'hidden-objects',
+      name: 'Hidden Objects',
+      description: 'Find all the hidden items',
+      icon: '🔍',
+      category: 'puzzle',
+      difficulty: 'Easy',
+      component: HiddenObjects,
+      is3D: false,
+      multiplayer: false
     }
   ];
 
@@ -260,7 +320,7 @@ export default function Gaming() {
 
       {/* Tabs */}
       <div className="flex gap-2 px-4 py-3 border-b border-white/10 overflow-x-auto">
-        {['all', 'classic', 'action', 'puzzle', 'multiplayer'].map(tab => (
+        {['all', 'classic', 'action', 'puzzle', 'strategy', 'multiplayer'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
