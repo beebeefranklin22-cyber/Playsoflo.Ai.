@@ -11,6 +11,7 @@ import {
   AlertCircle, Loader2, User, Phone, Mail, Users, Bell, Sparkles, Send
 } from "lucide-react";
 import StripePaymentForm from "@/components/payment/StripePaymentForm";
+import PaymentConfirmation from "./payment/PaymentConfirmation";
 
 export default function BookingModal({ service, onClose }) {
   const queryClient = useQueryClient();
@@ -38,6 +39,8 @@ export default function BookingModal({ service, onClose }) {
   const [aiLoading, setAiLoading] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingBooking, setPendingBooking] = useState(null);
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
+  const [paymentType, setPaymentType] = useState("wallet");
 
   useEffect(() => {
     const loadUser = async () => {
@@ -270,34 +273,66 @@ export default function BookingModal({ service, onClose }) {
     try {
       const confirmationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
       
-      // Create booking after successful payment
-      const booking = await base44.entities.ServiceBooking.create({
-        ...pendingBooking,
-        payment_status: 'paid',
-        status: 'confirmed',
-        customer_email: currentUser.email,
-        confirmation_code: confirmationCode
-      });
-
-      // Send booking confirmation notifications
-      await base44.functions.invoke('sendBookingNotifications', {
-        booking_id: booking.id,
-        notification_type: 'booking_confirmed',
-        provider_email: service.created_by,
-        customer_email: currentUser.email,
-        service_title: service.title,
+      // Deduct from customer wallet if using wallet
+      if (paymentType === "wallet") {
+        if (currentUser.balance_usd < pendingBooking.amount_paid) {
+          toast.error("Insufficient wallet balance");
+          return;
+        }
+        
+        await base44.auth.updateMe({
+          balance_usd: currentUser.balance_usd - pendingBooking.amount_paid
+        });
+      }
+      
+      // Create booking
+      const booking = await base44.entities.Booking.create({
+        experience_id: service.id,
+        experience_title: service.title,
+        provider_email: service.created_by || service.provider_email,
         booking_date: pendingBooking.booking_date,
-        booking_time: pendingBooking.booking_time,
-        total_price: pendingBooking.total_price,
+        number_of_guests: pendingBooking.group_size || 1,
+        total_price_usd: pendingBooking.total_price,
+        payment_method: paymentType,
+        payment_status: "pending",
+        booking_status: "pending",
+        booking_type: "service",
+        special_requests: customerNotes,
         confirmation_code: confirmationCode
       });
 
-      setStep(3);
+      // Create payment record
+      await base44.entities.Payment.create({
+        amount_usd: pendingBooking.amount_paid,
+        amount_rri: 0,
+        method: paymentType,
+        status: "completed",
+        reference_type: "order",
+        reference_id: booking.id,
+        sender_email: currentUser.email,
+        recipient_email: service.created_by || service.provider_email,
+        memo: `Booking: ${service.title}`
+      });
+
+      // Notify provider
+      await base44.entities.Notification.create({
+        recipient_email: service.created_by || service.provider_email,
+        type: "booking_requests",
+        title: "New Booking Request",
+        message: `${currentUser.full_name || currentUser.email} booked ${service.title} on ${new Date(pendingBooking.booking_date).toLocaleDateString()}`,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        reference_type: "order",
+        reference_id: booking.id,
+        read: false
+      });
+
+      setShowPaymentConfirmation(true);
       queryClient.invalidateQueries(['my-bookings']);
       queryClient.invalidateQueries(['provider-bookings']);
     } catch (error) {
       console.error('Booking creation error:', error);
-      alert('Payment succeeded but booking failed. Please contact support.');
+      toast.error('Booking failed: ' + error.message);
     }
   };
 
@@ -401,6 +436,20 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
   if (!service) return null;
 
   return (
+    <>
+      {showPaymentConfirmation && (
+        <PaymentConfirmation
+          amount={pendingBooking?.amount_paid}
+          currency="USD"
+          recipient={service.provider_name || "Provider"}
+          type="booking"
+          onClose={() => {
+            setShowPaymentConfirmation(false);
+            setStep(3);
+          }}
+        />
+      )}
+      
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -694,31 +743,48 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
                   )}
                 </div>
 
-                <StripePaymentForm
-                  amount={pendingBooking.amount_paid}
-                  referenceType="booking"
-                  referenceId={service.id}
-                  description={`${service.title} - ${selectedDate} at ${selectedTime}`}
-                  onSuccess={handlePaymentSuccess}
-                  onError={(error) => {
-                    console.error('Payment error:', error);
-                    alert('Payment failed: ' + (error?.message || 'Unknown error'));
-                  }}
-                  metadata={{
-                    service_title: service.title,
-                    booking_date: selectedDate,
-                    booking_time: selectedTime,
-                    provider_email: service.created_by
-                  }}
-                />
+                {/* Payment Method Selection */}
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setPaymentType("wallet")}
+                    className={`w-full p-4 rounded-xl border-2 transition ${
+                      paymentType === "wallet"
+                        ? "border-purple-500 bg-purple-500/20"
+                        : "border-white/20 bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-5 h-5 text-purple-400" />
+                        <span className="text-white">Wallet Balance</span>
+                      </div>
+                      <span className="text-gray-400">${currentUser?.balance_usd?.toFixed(2) || "0.00"}</span>
+                    </div>
+                  </button>
 
-                <Button
-                  onClick={() => setShowPayment(false)}
-                  variant="outline"
-                  className="w-full bg-white/5"
-                >
-                  Back to Details
-                </Button>
+                  {paymentType === "wallet" && currentUser.balance_usd < pendingBooking.amount_paid && (
+                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
+                      Insufficient balance. Please add funds to your wallet.
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowPayment(false)}
+                    variant="outline"
+                    className="flex-1 bg-white/5"
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handlePaymentSuccess}
+                    disabled={paymentType === "wallet" && currentUser.balance_usd < pendingBooking.amount_paid}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                  >
+                    Pay ${pendingBooking.amount_paid.toFixed(2)}
+                  </Button>
+                </div>
               </motion.div>
             )}
 
@@ -990,5 +1056,6 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    </>
   );
 }
