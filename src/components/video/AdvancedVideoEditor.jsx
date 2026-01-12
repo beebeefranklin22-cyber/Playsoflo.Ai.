@@ -320,6 +320,42 @@ export default function AdvancedVideoEditor({ currentUser }) {
     }
   };
 
+  const applyTemplate = (template) => {
+    if (template.color_grade) {
+      setBrightness(template.color_grade.brightness || 100);
+      setContrast(template.color_grade.contrast || 100);
+      setSaturation(template.color_grade.saturation || 100);
+      setFilter(template.color_grade.filter || "none");
+      setSelectedLUT(template.color_grade.lut || "none");
+    }
+    if (template.speed_preset) {
+      setPlaybackSpeed(template.speed_preset);
+    }
+    if (template.text_overlays) {
+      const overlays = template.text_overlays.map((overlay, idx) => ({
+        id: Date.now() + idx,
+        text: overlay.preset_name,
+        fontSize: overlay.fontSize,
+        color: overlay.color,
+        x: 50,
+        y: 50,
+        startTime: 0,
+        endTime: 5
+      }));
+      setTextOverlays(overlays);
+    }
+    if (template.transitions) {
+      setSelectedTransition(template.transitions[0]?.type || "fade");
+    }
+    if (template.audio_settings) {
+      setMusicVolume(template.audio_settings.music_volume || 50);
+      setVoiceoverVolume(template.audio_settings.voiceover_volume || 70);
+      setAudioEchoEffect(template.audio_settings.effects?.includes("echo") || false);
+      setAudioReverbEffect(template.audio_settings.effects?.includes("reverb") || false);
+    }
+    setShowTemplateLibrary(false);
+  };
+
   const duplicateClip = () => {
     if (!currentClip) return;
     
