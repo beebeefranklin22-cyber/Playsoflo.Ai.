@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Store, DollarSign, Package, TrendingUp, Plus, Edit2, Trash2, CheckCircle, Upload, ChefHat, X
+  Store, DollarSign, Package, TrendingUp, Plus, Edit2, Trash2, CheckCircle, Upload, ChefHat, X, Code
 } from "lucide-react";
+import MenuWidgetEmbed from "../components/restaurant/MenuWidgetEmbed";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -21,6 +22,7 @@ export default function RestaurantOwnerHub() {
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState(null);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
+  const [showWidgetModal, setShowWidgetModal] = useState(false);
 
   const [menuItemForm, setMenuItemForm] = useState({
     name: "",
@@ -48,35 +50,57 @@ export default function RestaurantOwnerHub() {
     phone: ""
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => base44.auth.me()
+    queryFn: async () => {
+      try {
+        return await base44.auth.me();
+      } catch (error) {
+        console.error('Auth error:', error);
+        return null;
+      }
+    }
   });
 
-  const { data: myRestaurant } = useQuery({
+  const { data: myRestaurant, isLoading: restaurantLoading } = useQuery({
     queryKey: ['my-restaurant', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return null;
-      const restaurants = await base44.entities.Restaurant.filter({ created_by: currentUser.email });
-      return restaurants[0] || null;
+      try {
+        const restaurants = await base44.entities.Restaurant.filter({ created_by: currentUser.email });
+        return restaurants[0] || null;
+      } catch (error) {
+        console.error('Error loading restaurant:', error);
+        return null;
+      }
     },
     enabled: !!currentUser
   });
 
-  const { data: menuItems = [] } = useQuery({
+  const { data: menuItems = [], isLoading: menuLoading } = useQuery({
     queryKey: ['restaurant-menu-items', myRestaurant?.id],
     queryFn: async () => {
       if (!myRestaurant) return [];
-      return base44.entities.MenuItem.filter({ restaurant_id: myRestaurant.id });
+      try {
+        return await base44.entities.MenuItem.filter({ restaurant_id: myRestaurant.id });
+      } catch (error) {
+        console.error('Error loading menu:', error);
+        return [];
+      }
     },
     enabled: !!myRestaurant
   });
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['restaurant-orders', myRestaurant?.id],
     queryFn: async () => {
       if (!myRestaurant) return [];
-      return base44.entities.FoodOrder.filter({ restaurant_id: myRestaurant.id });
+      try {
+        return await base44.entities.FoodOrder.filter({ restaurant_id: myRestaurant.id }, '-created_date');
+      } catch (error) {
+        console.error('Error loading orders:', error);
+        return [];
+      }
     },
     enabled: !!myRestaurant,
     refetchInterval: 5000
@@ -89,11 +113,21 @@ export default function RestaurantOwnerHub() {
   }, [myRestaurant]);
 
   const createRestaurantMutation = useMutation({
-    mutationFn: (data) => base44.entities.Restaurant.create(data),
+    mutationFn: async (data) => {
+      try {
+        return await base44.entities.Restaurant.create(data);
+      } catch (error) {
+        console.error('Error creating restaurant:', error);
+        throw error;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['my-restaurant']);
       setShowRestaurantModal(false);
       toast.success('Restaurant created!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create restaurant. Please try again.');
     }
   });
 
@@ -149,38 +183,60 @@ export default function RestaurantOwnerHub() {
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, newStatus, customerEmail }) => {
-      await base44.entities.FoodOrder.update(orderId, { status: newStatus });
+      try {
+        await base44.entities.FoodOrder.update(orderId, { status: newStatus });
 
-      const statusMessages = {
-        'confirmed': '✅ Order Confirmed - Your order is being prepared',
-        'preparing': '👨‍🍳 Preparing - Your food is being made',
-        'ready': '📦 Ready - Your order is ready for pickup'
-      };
+        const statusMessages = {
+          'confirmed': '✅ Order Confirmed - Your order is being prepared',
+          'preparing': '👨‍🍳 Preparing - Your food is being made',
+          'ready': '📦 Ready - Your order is ready for pickup'
+        };
 
-      if (statusMessages[newStatus]) {
-        await base44.entities.Notification.create({
-          user_email: customerEmail,
-          type: 'order_update',
-          title: statusMessages[newStatus].split(' - ')[0],
-          message: `${myRestaurant.name}: ${statusMessages[newStatus].split(' - ')[1]}`,
-          reference_id: orderId,
-          reference_type: 'food_order'
-        });
+        if (statusMessages[newStatus] && myRestaurant) {
+          try {
+            await base44.entities.Notification.create({
+              user_email: customerEmail,
+              type: 'order_update',
+              title: statusMessages[newStatus].split(' - ')[0],
+              message: `${myRestaurant.name}: ${statusMessages[newStatus].split(' - ')[1]}`,
+              reference_id: orderId,
+              reference_type: 'food_order',
+              read: false
+            });
+          } catch (notifError) {
+            console.error('Notification error:', notifError);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating order:', error);
+        throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['restaurant-orders']);
       toast.success('Order status updated');
+    },
+    onError: () => {
+      toast.error('Failed to update order status');
     }
   });
 
   const handleImageUpload = async (file, field, isRestaurant = false) => {
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    if (isRestaurant) {
-      setRestaurantForm(prev => ({ ...prev, [field]: file_url }));
-    } else {
-      setMenuItemForm(prev => ({ ...prev, [field]: file_url }));
+    try {
+      toast.loading('Uploading image...');
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      if (isRestaurant) {
+        setRestaurantForm(prev => ({ ...prev, [field]: file_url }));
+      } else {
+        setMenuItemForm(prev => ({ ...prev, [field]: file_url }));
+      }
+      toast.dismiss();
+      toast.success('Image uploaded!');
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to upload image');
+      console.error('Upload error:', error);
     }
   };
 
@@ -213,6 +269,17 @@ export default function RestaurantOwnerHub() {
   const pendingOrders = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status));
   const completedOrders = orders.filter(o => o.status === 'delivered');
 
+  if (userLoading || restaurantLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!myRestaurant && !showRestaurantModal) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-6 flex items-center justify-center">
@@ -243,14 +310,24 @@ export default function RestaurantOwnerHub() {
             </h1>
             <p className="text-gray-300">{myRestaurant?.name || 'Manage your restaurant'}</p>
           </div>
-          <Button
-            onClick={() => setShowRestaurantModal(true)}
-            variant="outline"
-            className="bg-white/10 border-white/20"
-          >
-            <Edit2 className="w-4 h-4 mr-2" />
-            Edit Restaurant
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowWidgetModal(true)}
+              variant="outline"
+              className="bg-white/10 border-white/20"
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Widget & Import
+            </Button>
+            <Button
+              onClick={() => setShowRestaurantModal(true)}
+              variant="outline"
+              className="bg-white/10 border-white/20"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Edit Restaurant
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -902,6 +979,11 @@ export default function RestaurantOwnerHub() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Widget Modal */}
+        {showWidgetModal && myRestaurant && (
+          <MenuWidgetEmbed restaurant={myRestaurant} onClose={() => setShowWidgetModal(false)} />
+        )}
       </div>
     </div>
   );
