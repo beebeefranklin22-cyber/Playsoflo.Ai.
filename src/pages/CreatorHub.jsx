@@ -28,6 +28,7 @@ import CreatorContentSuggestions from "../components/creator/CreatorContentSugge
 import SharedLibraryManager from "../components/collaboration/SharedLibraryManager.jsx";
 import ContentEditWorkflow from "../components/collaboration/ContentEditWorkflow.jsx";
 import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
+import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -365,6 +366,7 @@ export default function CreatorHub() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 bg-white/10 backdrop-blur-xl border border-white/20 p-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="video-editor">Video Editor</TabsTrigger>
             <TabsTrigger value="livestream">Livestream</TabsTrigger>
             <TabsTrigger value="ppv">PPV</TabsTrigger>
             <TabsTrigger value="memberships">Memberships</TabsTrigger>
@@ -382,6 +384,11 @@ export default function CreatorHub() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <CreatorContentSuggestions currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Video Editor Tab */}
+          <TabsContent value="video-editor" className="space-y-6">
+            <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 
           {/* Livestream Management Tab */}

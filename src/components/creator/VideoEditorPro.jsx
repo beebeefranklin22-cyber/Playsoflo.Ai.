@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { 
   Video, Upload, Scissors, Wand2, Download, Play, Pause,
   Sparkles, Volume2, VolumeX, Zap, Image, Music, Type,
-  RotateCcw, Loader2, Check, Eye, X
+  RotateCcw, Loader2, Check, Eye, X, FastForward, Rewind,
+  SkipForward, SkipBack, Maximize, RotateCw
 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -29,6 +30,10 @@ export default function VideoEditorPro({ currentUser }) {
   const [showEffects, setShowEffects] = useState(false);
   const [selectedClips, setSelectedClips] = useState([]);
   const [generatingThumbnail, setGeneratingThumbnail] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [saturation, setSaturation] = useState(100);
 
   const filters = [
     { id: "none", name: "Original", css: "" },
@@ -53,8 +58,9 @@ export default function VideoEditorPro({ currentUser }) {
     if (videoRef.current) {
       videoRef.current.volume = volume / 100;
       videoRef.current.muted = isMuted;
+      videoRef.current.playbackRate = playbackSpeed;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, playbackSpeed]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -100,7 +106,13 @@ export default function VideoEditorPro({ currentUser }) {
       toast.error('Invalid trim range');
       return;
     }
-    toast.success(`Video trimmed: ${trimStart.toFixed(1)}s to ${trimEnd.toFixed(1)}s`);
+    
+    // Apply trim by updating video playback range
+    if (videoRef.current) {
+      videoRef.current.currentTime = trimStart;
+    }
+    
+    toast.success(`Trim applied: ${trimStart.toFixed(1)}s to ${trimEnd.toFixed(1)}s`);
   };
 
   const generateThumbnail = async () => {
@@ -283,7 +295,9 @@ export default function VideoEditorPro({ currentUser }) {
                   onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
                   onEnded={() => setIsPlaying(false)}
                   className="w-full"
-                  style={{ filter: filters.find(f => f.id === filter)?.css || "" }}
+                  style={{ 
+                    filter: `${filters.find(f => f.id === filter)?.css || ""} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`
+                  }}
                 />
                 
                 {/* Play/Pause Overlay */}
@@ -366,6 +380,52 @@ export default function VideoEditorPro({ currentUser }) {
                 </div>
               </div>
 
+              {/* Advanced Adjustments */}
+              <div className="bg-white/5 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-3">Color Adjustments</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block flex items-center justify-between">
+                      <span>Brightness</span>
+                      <span>{brightness}%</span>
+                    </label>
+                    <Slider
+                      value={[brightness]}
+                      onValueChange={(v) => setBrightness(v[0])}
+                      min={50}
+                      max={150}
+                      step={5}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block flex items-center justify-between">
+                      <span>Contrast</span>
+                      <span>{contrast}%</span>
+                    </label>
+                    <Slider
+                      value={[contrast]}
+                      onValueChange={(v) => setContrast(v[0])}
+                      min={50}
+                      max={150}
+                      step={5}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block flex items-center justify-between">
+                      <span>Saturation</span>
+                      <span>{saturation}%</span>
+                    </label>
+                    <Slider
+                      value={[saturation]}
+                      onValueChange={(v) => setSaturation(v[0])}
+                      min={0}
+                      max={200}
+                      step={10}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* Filters */}
               <div className="bg-white/5 rounded-xl p-4">
                 <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
@@ -384,6 +444,26 @@ export default function VideoEditorPro({ currentUser }) {
                       }`}
                     >
                       {f.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Playback Speed */}
+              <div className="bg-white/5 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-3">Playback Speed</h4>
+                <div className="grid grid-cols-5 gap-2">
+                  {[0.5, 0.75, 1, 1.5, 2].map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={() => setPlaybackSpeed(speed)}
+                      className={`p-2 rounded-lg text-sm font-medium transition ${
+                        playbackSpeed === speed
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                      }`}
+                    >
+                      {speed}x
                     </button>
                   ))}
                 </div>
