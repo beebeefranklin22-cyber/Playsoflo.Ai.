@@ -20,11 +20,22 @@ export default function SpaceInvaders({ currentUser, onExit }) {
   const particlesRef = useRef([]);
   const startTimeRef = useRef(null);
 
-  const CANVAS_WIDTH = 600;
-  const CANVAS_HEIGHT = 600;
+  const [canvasWidth, setCanvasWidth] = useState(600);
+  const [canvasHeight, setCanvasHeight] = useState(600);
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    
+    const updateSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 100, 600);
+      const maxHeight = Math.min(window.innerHeight - 300, 600);
+      setCanvasWidth(maxWidth);
+      setCanvasHeight(maxHeight);
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
 
   useEffect(() => {
@@ -301,15 +312,15 @@ export default function SpaceInvaders({ currentUser, onExit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-purple-950 via-blue-950 to-black flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-purple-950 via-blue-950 to-black flex items-center justify-center p-4 overflow-auto">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative"
+        className="relative max-w-full"
       >
         <button
           onClick={onExit}
-          className="absolute -top-14 right-0 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
+          className="absolute top-2 right-2 z-50 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
         >
           <X className="w-6 h-6 text-white" />
         </button>
@@ -380,9 +391,9 @@ export default function SpaceInvaders({ currentUser, onExit }) {
           </div>
           <canvas
             ref={canvasRef}
-            width={CANVAS_WIDTH}
-            height={CANVAS_HEIGHT}
-            className="border-4 border-cyan-500/50 rounded-xl shadow-2xl bg-black"
+            width={canvasWidth}
+            height={canvasHeight}
+            className="border-4 border-cyan-500/50 rounded-xl shadow-2xl bg-black max-w-full h-auto"
           />
           
           {/* Mobile Controls */}

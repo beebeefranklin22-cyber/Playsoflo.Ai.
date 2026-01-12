@@ -29,12 +29,24 @@ export default function TetrisGame({ currentUser, onExit }) {
   const gameLoopRef = useRef(null);
   const startTimeRef = useRef(null);
 
+  const [cellSize, setCellSize] = useState(28);
   const ROWS = 20;
   const COLS = 10;
-  const CELL_SIZE = 28;
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    
+    const updateSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 100, 400);
+      const maxHeight = Math.min(window.innerHeight - 300, 600);
+      const widthBasedSize = Math.floor(maxWidth / COLS);
+      const heightBasedSize = Math.floor(maxHeight / ROWS);
+      setCellSize(Math.min(widthBasedSize, heightBasedSize, 28));
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
 
   useEffect(() => {
@@ -196,25 +208,25 @@ export default function TetrisGame({ currentUser, onExit }) {
 
   const drawGame = (ctx) => {
     // Background
-    const gradient = ctx.createLinearGradient(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE);
+    const gradient = ctx.createLinearGradient(0, 0, COLS * cellSize, ROWS * cellSize);
     gradient.addColorStop(0, '#0f172a');
     gradient.addColorStop(1, '#1e293b');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, COLS * CELL_SIZE, ROWS * CELL_SIZE);
+    ctx.fillRect(0, 0, COLS * cellSize, ROWS * cellSize);
 
     // Grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= COLS; i++) {
       ctx.beginPath();
-      ctx.moveTo(i * CELL_SIZE, 0);
-      ctx.lineTo(i * CELL_SIZE, ROWS * CELL_SIZE);
+      ctx.moveTo(i * cellSize, 0);
+      ctx.lineTo(i * cellSize, ROWS * cellSize);
       ctx.stroke();
     }
     for (let i = 0; i <= ROWS; i++) {
       ctx.beginPath();
-      ctx.moveTo(0, i * CELL_SIZE);
-      ctx.lineTo(COLS * CELL_SIZE, i * CELL_SIZE);
+      ctx.moveTo(0, i * cellSize);
+      ctx.lineTo(COLS * cellSize, i * cellSize);
       ctx.stroke();
     }
 
@@ -225,7 +237,7 @@ export default function TetrisGame({ currentUser, onExit }) {
           ctx.shadowColor = boardRef.current[row][col];
           ctx.shadowBlur = 10;
           ctx.fillStyle = boardRef.current[row][col];
-          ctx.fillRect(col * CELL_SIZE + 2, row * CELL_SIZE + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+          ctx.fillRect(col * cellSize + 2, row * cellSize + 2, cellSize - 4, cellSize - 4);
           ctx.shadowBlur = 0;
         }
       }
@@ -241,10 +253,10 @@ export default function TetrisGame({ currentUser, onExit }) {
           if (cell) {
             ctx.fillStyle = piece.color;
             ctx.fillRect(
-              (piece.x + c) * CELL_SIZE + 2,
-              (piece.y + r) * CELL_SIZE + 2,
-              CELL_SIZE - 4,
-              CELL_SIZE - 4
+              (piece.x + c) * cellSize + 2,
+              (piece.y + r) * cellSize + 2,
+              cellSize - 4,
+              cellSize - 4
             );
           }
         });
@@ -276,15 +288,15 @@ export default function TetrisGame({ currentUser, onExit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-950 via-cyan-950 to-gray-950 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-950 via-cyan-950 to-gray-950 flex items-center justify-center p-4 overflow-auto">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative"
+        className="relative max-w-full"
       >
         <button
           onClick={onExit}
-          className="absolute -top-14 right-0 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
+          className="absolute top-2 right-2 z-50 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
         >
           <X className="w-6 h-6 text-white" />
         </button>
@@ -362,9 +374,9 @@ export default function TetrisGame({ currentUser, onExit }) {
           </div>
           <canvas
             ref={canvasRef}
-            width={COLS * CELL_SIZE}
-            height={ROWS * CELL_SIZE}
-            className="border-4 border-cyan-500/50 rounded-xl shadow-2xl"
+            width={COLS * cellSize}
+            height={ROWS * cellSize}
+            className="border-4 border-cyan-500/50 rounded-xl shadow-2xl max-w-full h-auto"
           />
           
           {/* Mobile Controls */}

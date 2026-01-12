@@ -22,8 +22,22 @@ export default function SnakeGame({ currentUser, onExit }) {
   const startTimeRef = useRef(null);
   const particlesRef = useRef([]);
 
-  const GRID_SIZE = 24;
-  const CELL_SIZE = 24;
+  const [gridSize, setGridSize] = useState(24);
+  const [cellSize, setCellSize] = useState(24);
+
+  useEffect(() => {
+    const updateSize = () => {
+      const maxWidth = Math.min(window.innerWidth - 100, 600);
+      const maxHeight = Math.min(window.innerHeight - 300, 600);
+      const size = Math.min(maxWidth, maxHeight);
+      const newCellSize = Math.floor(size / 24);
+      setCellSize(newCellSize);
+      setGridSize(24);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
 
   useEffect(() => {
     loadHighScore();
@@ -111,8 +125,8 @@ export default function SnakeGame({ currentUser, onExit }) {
     let newPos;
     do {
       newPos = {
-        x: Math.floor(Math.random() * GRID_SIZE),
-        y: Math.floor(Math.random() * GRID_SIZE)
+        x: Math.floor(Math.random() * gridSize),
+        y: Math.floor(Math.random() * gridSize)
       };
     } while (snakeRef.current.some(s => s.x === newPos.x && s.y === newPos.y));
     foodRef.current = newPos;
@@ -123,8 +137,8 @@ export default function SnakeGame({ currentUser, onExit }) {
       let newPos;
       do {
         newPos = {
-          x: Math.floor(Math.random() * GRID_SIZE),
-          y: Math.floor(Math.random() * GRID_SIZE),
+          x: Math.floor(Math.random() * gridSize),
+          y: Math.floor(Math.random() * gridSize),
           timer: 50
         };
       } while (snakeRef.current.some(s => s.x === newPos.x && s.y === newPos.y));
@@ -135,8 +149,8 @@ export default function SnakeGame({ currentUser, onExit }) {
   const createParticles = (x, y, color) => {
     for (let i = 0; i < 8; i++) {
       particlesRef.current.push({
-        x: x * CELL_SIZE + CELL_SIZE / 2,
-        y: y * CELL_SIZE + CELL_SIZE / 2,
+        x: x * cellSize + cellSize / 2,
+        y: y * cellSize + cellSize / 2,
         vx: (Math.random() - 0.5) * 8,
         vy: (Math.random() - 0.5) * 8,
         life: 20,
@@ -151,10 +165,10 @@ export default function SnakeGame({ currentUser, onExit }) {
     head.y += directionRef.current.y;
 
     // Wrap around walls
-    if (head.x < 0) head.x = GRID_SIZE - 1;
-    if (head.x >= GRID_SIZE) head.x = 0;
-    if (head.y < 0) head.y = GRID_SIZE - 1;
-    if (head.y >= GRID_SIZE) head.y = 0;
+    if (head.x < 0) head.x = gridSize - 1;
+    if (head.x >= gridSize) head.x = 0;
+    if (head.y < 0) head.y = gridSize - 1;
+    if (head.y >= gridSize) head.y = 0;
 
     // Check self collision
     if (snakeRef.current.some(segment => segment.x === head.x && segment.y === head.y)) {
@@ -207,23 +221,23 @@ export default function SnakeGame({ currentUser, onExit }) {
 
   const drawGame = (ctx) => {
     // Modern gradient background
-    const gradient = ctx.createLinearGradient(0, 0, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+    const gradient = ctx.createLinearGradient(0, 0, gridSize * cellSize, gridSize * cellSize);
     gradient.addColorStop(0, '#0f172a');
     gradient.addColorStop(1, '#1e293b');
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+    ctx.fillRect(0, 0, gridSize * cellSize, gridSize * cellSize);
 
     // Subtle grid
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID_SIZE; i++) {
+    for (let i = 0; i <= gridSize; i++) {
       ctx.beginPath();
-      ctx.moveTo(i * CELL_SIZE, 0);
-      ctx.lineTo(i * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+      ctx.moveTo(i * cellSize, 0);
+      ctx.lineTo(i * cellSize, gridSize * cellSize);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(0, i * CELL_SIZE);
-      ctx.lineTo(GRID_SIZE * CELL_SIZE, i * CELL_SIZE);
+      ctx.moveTo(0, i * cellSize);
+      ctx.lineTo(gridSize * cellSize, i * cellSize);
       ctx.stroke();
     }
 
@@ -236,12 +250,12 @@ export default function SnakeGame({ currentUser, onExit }) {
       ctx.shadowBlur = 15;
       
       const gradient = ctx.createRadialGradient(
-        segment.x * CELL_SIZE + CELL_SIZE/2, 
-        segment.y * CELL_SIZE + CELL_SIZE/2, 
+        segment.x * cellSize + cellSize/2, 
+        segment.y * cellSize + cellSize/2, 
         0,
-        segment.x * CELL_SIZE + CELL_SIZE/2, 
-        segment.y * CELL_SIZE + CELL_SIZE/2, 
-        CELL_SIZE
+        segment.x * cellSize + cellSize/2, 
+        segment.y * cellSize + cellSize/2, 
+        cellSize
       );
       
       if (idx === 0) {
@@ -254,10 +268,10 @@ export default function SnakeGame({ currentUser, onExit }) {
       
       ctx.fillStyle = gradient;
       ctx.fillRect(
-        segment.x * CELL_SIZE + 2, 
-        segment.y * CELL_SIZE + 2, 
-        CELL_SIZE - 4, 
-        CELL_SIZE - 4
+        segment.x * cellSize + 2, 
+        segment.y * cellSize + 2, 
+        cellSize - 4, 
+        cellSize - 4
       );
       
       ctx.shadowBlur = 0;
@@ -267,21 +281,21 @@ export default function SnakeGame({ currentUser, onExit }) {
     ctx.shadowColor = '#10b981';
     ctx.shadowBlur = 20;
     const foodGradient = ctx.createRadialGradient(
-      foodRef.current.x * CELL_SIZE + CELL_SIZE/2,
-      foodRef.current.y * CELL_SIZE + CELL_SIZE/2,
+      foodRef.current.x * cellSize + cellSize/2,
+      foodRef.current.y * cellSize + cellSize/2,
       0,
-      foodRef.current.x * CELL_SIZE + CELL_SIZE/2,
-      foodRef.current.y * CELL_SIZE + CELL_SIZE/2,
-      CELL_SIZE
+      foodRef.current.x * cellSize + cellSize/2,
+      foodRef.current.y * cellSize + cellSize/2,
+      cellSize
     );
     foodGradient.addColorStop(0, '#34d399');
     foodGradient.addColorStop(1, '#10b981');
     ctx.fillStyle = foodGradient;
     ctx.fillRect(
-      foodRef.current.x * CELL_SIZE + 3, 
-      foodRef.current.y * CELL_SIZE + 3, 
-      CELL_SIZE - 6, 
-      CELL_SIZE - 6
+      foodRef.current.x * cellSize + 3, 
+      foodRef.current.y * cellSize + 3, 
+      cellSize - 6, 
+      cellSize - 6
     );
     ctx.shadowBlur = 0;
 
@@ -291,21 +305,21 @@ export default function SnakeGame({ currentUser, onExit }) {
       ctx.shadowColor = '#fbbf24';
       ctx.shadowBlur = 25;
       const specialGradient = ctx.createRadialGradient(
-        specialFoodRef.current.x * CELL_SIZE + CELL_SIZE/2,
-        specialFoodRef.current.y * CELL_SIZE + CELL_SIZE/2,
+        specialFoodRef.current.x * cellSize + cellSize/2,
+        specialFoodRef.current.y * cellSize + cellSize/2,
         0,
-        specialFoodRef.current.x * CELL_SIZE + CELL_SIZE/2,
-        specialFoodRef.current.y * CELL_SIZE + CELL_SIZE/2,
-        CELL_SIZE
+        specialFoodRef.current.x * cellSize + cellSize/2,
+        specialFoodRef.current.y * cellSize + cellSize/2,
+        cellSize
       );
       specialGradient.addColorStop(0, '#fde047');
       specialGradient.addColorStop(1, '#fbbf24');
       ctx.fillStyle = specialGradient;
       ctx.fillRect(
-        specialFoodRef.current.x * CELL_SIZE + 3 - pulse, 
-        specialFoodRef.current.y * CELL_SIZE + 3 - pulse, 
-        CELL_SIZE - 6 + pulse * 2, 
-        CELL_SIZE - 6 + pulse * 2
+        specialFoodRef.current.x * cellSize + 3 - pulse, 
+        specialFoodRef.current.y * cellSize + 3 - pulse, 
+        cellSize - 6 + pulse * 2, 
+        cellSize - 6 + pulse * 2
       );
       ctx.shadowBlur = 0;
     }
@@ -344,15 +358,15 @@ export default function SnakeGame({ currentUser, onExit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 flex items-center justify-center p-4 overflow-auto">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="relative"
+        className="relative max-w-full"
       >
         <button
           onClick={onExit}
-          className="absolute -top-14 right-0 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
+          className="absolute top-2 right-2 z-50 p-3 bg-red-500 rounded-full hover:bg-red-600 transition shadow-lg"
         >
           <X className="w-6 h-6 text-white" />
         </button>
@@ -453,9 +467,9 @@ export default function SnakeGame({ currentUser, onExit }) {
           </div>
           <canvas
             ref={canvasRef}
-            width={GRID_SIZE * CELL_SIZE}
-            height={GRID_SIZE * CELL_SIZE}
-            className="border-4 border-purple-500/50 rounded-xl shadow-2xl"
+            width={gridSize * cellSize}
+            height={gridSize * cellSize}
+            className="border-4 border-purple-500/50 rounded-xl shadow-2xl max-w-full h-auto"
           />
           
           {/* Mobile Controls */}
