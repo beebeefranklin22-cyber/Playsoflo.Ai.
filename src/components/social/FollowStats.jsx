@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Users, X } from "lucide-react";
+import { Users, X, UserMinus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import FollowButton from "./FollowButton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function FollowStats({ userEmail, currentUser }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(null); // 'followers' | 'following' | null
 
   const { data: followers = [] } = useQuery({
@@ -21,6 +24,18 @@ export default function FollowStats({ userEmail, currentUser }) {
     queryKey: ['following', userEmail],
     queryFn: () => base44.entities.Follow.filter({ follower_email: userEmail }),
     enabled: !!userEmail
+  });
+
+  // Remove follower mutation (for when viewing your own profile)
+  const removeFollowerMutation = useMutation({
+    mutationFn: async (followId) => {
+      await base44.entities.Follow.delete(followId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      toast.success("Follower removed");
+    }
   });
 
   const UserListModal = ({ type, users, onClose }) => (
@@ -82,6 +97,19 @@ export default function FollowStats({ userEmail, currentUser }) {
                         currentUser={currentUser}
                         size="sm"
                       />
+                    )}
+                    
+                    {/* Allow removing followers when viewing own profile */}
+                    {type === 'followers' && currentUser && userEmail === currentUser.email && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => removeFollowerMutation.mutate(user.id)}
+                        disabled={removeFollowerMutation.isPending}
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/20"
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
                 );
