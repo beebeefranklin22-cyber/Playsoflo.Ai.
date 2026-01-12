@@ -236,14 +236,14 @@ export default function AdvancedVideoEditor({ currentUser }) {
   };
 
   const generateTranscription = async () => {
-    if (!videoFile) {
+    if (!currentClip?.file) {
       toast.error('Upload a video first');
       return;
     }
 
     setGeneratingTranscription(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: videoFile });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: currentClip.file });
       
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Generate accurate subtitles/transcription for this video. Return timestamps and text in SRT format.`,
@@ -276,14 +276,14 @@ export default function AdvancedVideoEditor({ currentUser }) {
   };
 
   const generateHighlightClip = async () => {
-    if (!videoFile) {
+    if (!currentClip?.file) {
       toast.error('Upload a video first');
       return;
     }
 
     setProcessing(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: videoFile });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: currentClip.file });
       
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `Analyze this video and identify the most engaging moments for a highlight reel. Return 3-5 timestamp ranges that would make the best highlight clips (action, emotion, key moments).`,
@@ -947,7 +947,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
                 <div className="space-y-2">
                   <Button
                     onClick={generateTranscription}
-                    disabled={generatingTranscription || !videoFile}
+                    disabled={generatingTranscription || !currentClip}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                   >
                     {generatingTranscription ? (
@@ -964,7 +964,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
                   </Button>
                   <Button
                     onClick={generateHighlightClip}
-                    disabled={processing || !videoFile}
+                    disabled={processing || !currentClip}
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
                     {processing ? (
