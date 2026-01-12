@@ -102,8 +102,17 @@ export default function Streaming() {
     duration: "",
     rating: "",
     requires_subscription: false,
+    is_monetized: false,
+    price_usd: 0,
+    rental_price_usd: 0,
   });
   const [uploading, setUploading] = useState(false);
+  
+  // Purchase states
+  const [selectedContent, setSelectedContent] = useState(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseType, setPurchaseType] = useState("buy");
+  const [processing, setProcessing] = useState(false);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -239,6 +248,8 @@ export default function Streaming() {
         ...uploadData,
         creator_email: currentUser.email,
         rating: parseFloat(uploadData.rating) || 0,
+        price_usd: parseFloat(uploadData.price_usd) || 0,
+        rental_price_usd: parseFloat(uploadData.rental_price_usd) || 0,
       });
       toast.success("Content uploaded successfully!");
       setShowUpload(false);
@@ -251,11 +262,152 @@ export default function Streaming() {
         duration: "",
         rating: "",
         requires_subscription: false,
+        is_monetized: false,
+        price_usd: 0,
+        rental_price_usd: 0,
       });
     } catch (error) {
       toast.error("Upload failed: " + error.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handlePurchase = async () => {
+    if (!currentUser || !selectedContent) return;
+    
+    setProcessing(true);
+    try {
+      const price = purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd;
+      const platformFeePercent = 0.15; // 15% platform fee
+      const platformFee = price * platformFeePercent;
+      const creatorEarnings = price - platformFee;
+      
+      // Check if user has enough balance
+      if (currentUser.balance_usd < price) {
+        toast.error("Insufficient wallet balance. Please add funds to your wallet.");
+        setProcessing(false);
+        return;
+      }
+      
+      // Deduct from buyer's wallet
+      await base44.auth.updateMe({
+        balance_usd: currentUser.balance_usd - price
+      });
+      
+      // Get creator to update their balance
+      const creators = await base44.entities.User.filter({ email: selectedContent.creator_email });
+      if (creators.length > 0) {
+        const creator = creators[0];
+        await base44.entities.User.update(creator.id, {
+          balance_usd: (creator.balance_usd || 0) + creatorEarnings
+        });
+      }
+      
+      // Create purchase record
+      const expiresAt = purchaseType === "rent" 
+        ? new Date(Date.now() + (selectedContent.rental_duration_hours || 48) * 60 * 60 * 1000).toISOString()
+        : null;
+        
+      await base44.entities.ContentPurchase.create({
+        content_id: selectedContent.id,
+        buyer_email: currentUser.email,
+        creator_email: selectedContent.creator_email,
+        amount_usd: price,
+        purchase_type: purchaseType,
+        payment_method: "wallet",
+        access_expires_at: expiresAt,
+        platform_fee: platformFee,
+        creator_earnings: creatorEarnings
+      });
+      
+      // Update user state
+      const updatedUser = await base44.auth.me();
+      setCurrentUser(updatedUser);
+      
+      toast.success(`Successfully ${purchaseType === "rent" ? "rented" : "purchased"} content!`);
+      setShowPurchaseModal(false);
+    } catch (error) {
+      toast.error("Purchase failed: " + error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleTip = async (content, amount) => {
+    if (!currentUser) {
+      toast.error("Please log in to send tips");
+      return;
+    }
+    
+    if (currentUser.balance_usd < amount) {
+      toast.error("Insufficient wallet balance. Please add funds to your wallet.");
+      return;
+    }
+    
+    try {
+      // Deduct from tipper's wallet
+      await base44.auth.updateMe({
+        balance_usd: currentUser.balance_usd - amount
+      });
+      
+      // Add to creator's wallet
+      const creators = await base44.entities.User.filter({ email: content.creator_email || content.created_by });
+      if (creators.length > 0) {
+        const creator = creators[0];
+        await base44.entities.User.update(creator.id, {
+          balance_usd: (creator.balance_usd || 0) + amount
+        });
+      }
+      
+      // Create tip transaction
+      await base44.entities.TipTransaction.create({
+        creator_email: content.creator_email || content.created_by,
+        tipper_email: currentUser.email,
+        amount_usd: amount,
+        content_id: String(content.id)
+      });
+      
+      // Update user state
+      const updatedUser = await base44.auth.me();
+      setCurrentUser(updatedUser);
+      
+      toast.success(`Tipped $${amount.toFixed(2)}!`);
+    } catch (error) {
+      toast.error("Tip failed: " + error.message);
+    }
+  };
+
+  const checkAccess = async (content) => {
+    if (!content.is_monetized) return true;
+    if (!currentUser) return false;
+    if (content.creator_email === currentUser.email) return true;
+    
+    const purchases = await base44.entities.ContentPurchase.filter({
+      content_id: content.id,
+      buyer_email: currentUser.email
+    });
+    
+    if (purchases.length === 0) return false;
+    
+    const purchase = purchases[0];
+    if (purchase.purchase_type === "buy") return true;
+    if (purchase.purchase_type === "rent") {
+      return new Date(purchase.access_expires_at) > new Date();
+    }
+    
+    return false;
+  };
+
+  const handleContentClick = async (content) => {
+    const hasAccess = await checkAccess(content);
+    
+    if (!hasAccess && content.is_monetized) {
+      setSelectedContent(content);
+      setShowPurchaseModal(true);
+    } else {
+      // Navigate to viewer or play content
+      toast.info("Playing content...");
     }
   };
 
@@ -646,6 +798,7 @@ export default function Streaming() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="group cursor-pointer"
+                onClick={() => handleContentClick(item)}
               >
                 <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900">
                   <img 
@@ -661,25 +814,29 @@ export default function Streaming() {
                     </div>
                   </div>
 
-                  {/* Add tipping on cards */}
-                  <div className="absolute right-2 top-2 z-10"> {/* Added z-10 for layering */}
+                  {/* Monetization badges */}
+                  {item.is_monetized && (
+                    <div className="absolute top-2 left-2 z-10 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                      <DollarSign className="w-3 h-3" />
+                      {item.rental_price_usd > 0 ? `$${item.rental_price_usd}` : `$${item.price_usd}`}
+                    </div>
+                  )}
+                  
+                  {/* Tip button */}
+                  <div className="absolute right-2 top-2 z-10">
                     <Button
                       size="sm"
                       className="bg-yellow-500 hover:bg-yellow-600 text-black"
                       onClick={async (e) => {
                         e.stopPropagation();
-                        const amount = prompt('Tip amount in USD (demo)');
-                        if (!amount) return;
-                        try {
-                          await base44.entities.TipTransaction.create({
-                            creator_email: item.creator_email || item.created_by || "creator@example.com",
-                            amount_usd: parseFloat(amount),
-                            content_id: String(item.id)
-                          });
-                          alert('Tip sent!');
-                        } catch (error) {
-                          alert('Error sending tip');
+                        const amountStr = prompt('Tip amount in USD:');
+                        if (!amountStr) return;
+                        const amount = parseFloat(amountStr);
+                        if (isNaN(amount) || amount <= 0) {
+                          toast.error("Invalid amount");
+                          return;
                         }
+                        await handleTip(item, amount);
                       }}
                     >
                       Tip
@@ -863,12 +1020,161 @@ export default function Streaming() {
                 <label className="text-white text-sm">Requires subscription</label>
               </div>
 
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center gap-2 p-3 bg-purple-500/10 rounded-xl mb-4">
+                  <input
+                    type="checkbox"
+                    checked={uploadData.is_monetized}
+                    onChange={(e) => setUploadData({ ...uploadData, is_monetized: e.target.checked })}
+                    className="w-4 h-4"
+                  />
+                  <label className="text-white text-sm font-medium">Enable monetization</label>
+                </div>
+
+                {uploadData.is_monetized && (
+                  <div className="space-y-4 pl-4">
+                    <div>
+                      <label className="text-gray-400 text-sm mb-2 block">Purchase Price (USD)</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={uploadData.price_usd}
+                        onChange={(e) => setUploadData({ ...uploadData, price_usd: e.target.value })}
+                        placeholder="e.g., 9.99"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Users can buy permanent access</p>
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-sm mb-2 block">Rental Price (USD)</label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={uploadData.rental_price_usd}
+                        onChange={(e) => setUploadData({ ...uploadData, rental_price_usd: e.target.value })}
+                        placeholder="e.g., 3.99"
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">48-hour rental access (optional)</p>
+                    </div>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                      <p className="text-blue-300 text-xs">
+                        <strong>Note:</strong> Platform takes 15% commission. You'll receive 85% of each sale.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Button
                 onClick={handleUpload}
                 disabled={uploading}
                 className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
               >
                 {uploading ? "Uploading..." : "Upload Content"}
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Purchase Modal */}
+      {showPurchaseModal && selectedContent && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+          onClick={() => setShowPurchaseModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-gray-900 rounded-3xl p-6"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Purchase Content</h2>
+              <button onClick={() => setShowPurchaseModal(false)}>
+                <X className="w-6 h-6 text-gray-400 hover:text-white" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-white/5 rounded-xl p-4">
+                <h3 className="text-white font-bold mb-2">{selectedContent.title}</h3>
+                {selectedContent.duration && (
+                  <p className="text-gray-400 text-sm">{selectedContent.duration}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {selectedContent.price_usd > 0 && (
+                  <button
+                    onClick={() => setPurchaseType("buy")}
+                    className={`w-full p-4 rounded-xl border-2 transition ${
+                      purchaseType === "buy"
+                        ? "border-green-500 bg-green-500/20"
+                        : "border-white/20 bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <p className="text-white font-bold">Buy</p>
+                        <p className="text-gray-400 text-sm">Permanent access</p>
+                      </div>
+                      <p className="text-green-400 font-bold text-xl">${selectedContent.price_usd}</p>
+                    </div>
+                  </button>
+                )}
+
+                {selectedContent.rental_price_usd > 0 && (
+                  <button
+                    onClick={() => setPurchaseType("rent")}
+                    className={`w-full p-4 rounded-xl border-2 transition ${
+                      purchaseType === "rent"
+                        ? "border-blue-500 bg-blue-500/20"
+                        : "border-white/20 bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-left">
+                        <p className="text-white font-bold">Rent</p>
+                        <p className="text-gray-400 text-sm">48-hour access</p>
+                      </div>
+                      <p className="text-blue-400 font-bold text-xl">${selectedContent.rental_price_usd}</p>
+                    </div>
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-white/5 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400">Your wallet balance:</span>
+                  <span className="text-white font-bold">${currentUser?.balance_usd?.toFixed(2) || "0.00"}</span>
+                </div>
+                {currentUser && currentUser.balance_usd < (purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd) && (
+                  <div className="mt-2 p-2 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
+                    Insufficient balance. Add funds to your wallet.
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={handlePurchase}
+                disabled={processing || !currentUser || currentUser.balance_usd < (purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd)}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                {processing ? "Processing..." : `Confirm ${purchaseType === "rent" ? "Rental" : "Purchase"}`}
+              </Button>
+
+              <Button
+                onClick={() => navigate(createPageUrl("Wallet"))}
+                variant="outline"
+                className="w-full bg-white/5 border-white/20"
+              >
+                Add Funds to Wallet
               </Button>
             </div>
           </motion.div>
