@@ -83,7 +83,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const navItems = [
-    { icon: Brain, label: "Ronron", path: "RonronAI" },
+    { icon: Brain, label: "Beebee", path: "RonronAI" },
     { icon: Home, label: "Home", path: "Home" },
     { icon: Compass, label: "Universe", path: "Universe" },
     { icon: Wallet, label: "Wallet", path: "Wallet" },
@@ -120,7 +120,7 @@ export default function Layout({ children, currentPageName }) {
     "FoodOrderTracking": ["Home", "Orders"],
     "Universe": ["Universe"],
     "Vibe": ["Home", "Music"],
-    "RonronAI": ["Home", "Ronron AI"],
+    "RonronAI": ["Home", "Beebee AI"],
   };
 
   const breadcrumbs = breadcrumbMap[currentPageName] || [currentPageName];
