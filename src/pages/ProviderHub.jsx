@@ -39,6 +39,8 @@ import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
 import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
 import FinancialDataExport from "../components/provider/FinancialDataExport";
 import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
+import NotificationPreferences from "../components/provider/NotificationPreferences";
+import RealtimeNotifications from "../components/provider/RealtimeNotifications";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -1993,6 +1995,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           currentUser={currentUser}
         />
       </div>
+
+      {/* Real-time Notifications */}
+      <RealtimeNotifications currentUser={currentUser} />
     </div>
   );
 }
