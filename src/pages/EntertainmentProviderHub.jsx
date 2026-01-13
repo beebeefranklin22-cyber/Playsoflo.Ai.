@@ -7,14 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Sparkles, Ticket, Calendar, DollarSign, TrendingUp, 
-  Users, BarChart3, Scan, Plus, Edit 
+  Users, BarChart3, Scan, Plus, Edit, AlertTriangle
 } from "lucide-react";
 import ListExperienceModal from "../components/entertainment/ListExperienceModal";
 import TicketRedemptionScanner from "../components/entertainment/TicketRedemptionScanner";
+import VoidPassModal from "../components/entertainment/VoidPassModal";
 
 export default function EntertainmentProviderHub() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showListModal, setShowListModal] = useState(false);
+  const [showVoidModal, setShowVoidModal] = useState(false);
+  const [selectedTicketToVoid, setSelectedTicketToVoid] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -188,6 +191,48 @@ export default function EntertainmentProviderHub() {
 
           <TabsContent value="scanner">
             <TicketRedemptionScanner currentUser={currentUser} />
+
+            {/* Active Passes Management */}
+            <Card className="bg-white/5 border-white/10 mt-6">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Active Passes Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activeTickets.filter(t => t.is_pass).length === 0 ? (
+                  <p className="text-gray-400 text-center py-6">No active passes</p>
+                ) : (
+                  <div className="space-y-2">
+                    {activeTickets.filter(t => t.is_pass).map((ticket) => {
+                      const experience = myExperiences.find(e => e.id === ticket.experience_id);
+                      return (
+                        <div key={ticket.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-white font-semibold">{ticket.buyer_name}</p>
+                            <p className="text-gray-400 text-sm">{ticket.ticket_number}</p>
+                            <p className="text-purple-400 text-xs">
+                              {ticket.pass_type?.replace(/_/g, ' ')} • {ticket.pass_visits_used || 0}/{ticket.pass_visits_allowed} visits
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setSelectedTicketToVoid(ticket);
+                              setShowVoidModal(true);
+                            }}
+                            size="sm"
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Void Pass
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="analytics">
@@ -260,6 +305,23 @@ export default function EntertainmentProviderHub() {
           onClose={() => setShowListModal(false)}
           currentUser={currentUser}
         />
+
+        {selectedTicketToVoid && (
+          <VoidPassModal
+            isOpen={showVoidModal}
+            onClose={() => {
+              setShowVoidModal(false);
+              setSelectedTicketToVoid(null);
+            }}
+            ticket={selectedTicketToVoid}
+            voidPolicies={
+              myExperiences.find(e => e.id === selectedTicketToVoid.experience_id)
+                ?.pass_types?.find(p => p.pass_type === selectedTicketToVoid.pass_type)
+                ?.void_policies || []
+            }
+            currentUser={currentUser}
+          />
+        )}
       </div>
     </div>
   );

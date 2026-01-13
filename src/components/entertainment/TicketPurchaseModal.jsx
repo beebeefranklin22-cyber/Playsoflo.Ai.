@@ -288,12 +288,44 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                                       ))}
                                     </div>
                                   )}
+                                  {pass.benefits?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {pass.benefits.map((benefit, i) => (
+                                        <span key={i} className="px-2 py-0.5 bg-blue-500/20 rounded text-blue-300 text-xs">
+                                          {benefit}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {pass.rules?.length > 0 && (
+                                    <details className="mt-2">
+                                      <summary className="text-orange-400 text-xs cursor-pointer">View Rules ({pass.rules.length})</summary>
+                                      <ul className="mt-2 space-y-1 pl-4 list-disc">
+                                        {pass.rules.map((rule, i) => (
+                                          <li key={i} className="text-gray-400 text-xs">{rule}</li>
+                                        ))}
+                                      </ul>
+                                    </details>
+                                  )}
                                 </div>
                                 <p className="text-green-400 font-bold text-xl ml-4">${pass.price}</p>
                               </div>
                             </button>
                           ))}
                         </div>
+
+                        {selectedPass?.void_policies?.length > 0 && (
+                          <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                            <p className="text-red-400 text-xs font-semibold mb-2">Voiding Policies:</p>
+                            <ul className="space-y-1">
+                              {selectedPass.void_policies.map((policy, i) => (
+                                <li key={i} className="text-red-300 text-xs">
+                                  • {policy.reason}: {policy.refund_percent}% refund
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div>

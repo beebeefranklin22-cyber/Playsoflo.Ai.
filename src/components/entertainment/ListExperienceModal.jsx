@@ -62,9 +62,15 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
     visit_limit: 999, 
     perks: [], 
     available_quantity: 100,
-    description: "" 
+    description: "",
+    benefits: [],
+    rules: [],
+    void_policies: []
   });
   const [newPerk, setNewPerk] = useState("");
+  const [newBenefit, setNewBenefit] = useState("");
+  const [newRule, setNewRule] = useState("");
+  const [newVoidPolicy, setNewVoidPolicy] = useState({ reason: "", refund_percent: 0 });
 
   const createExperienceMutation = useMutation({
     mutationFn: (data) => base44.entities.Experience.create(data),
@@ -743,7 +749,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                             }
                           }}
                           placeholder="Skip lines, Free drinks, etc."
-                          className="bg-white/10 border-white/20 text-white"
+                          className="bg-white/10 border-white/20 text-white text-sm"
                         />
                         <Button
                           type="button"
@@ -759,7 +765,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 mb-4">
                         {newPass.perks?.map((perk, idx) => (
                           <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
                             <span className="text-white text-xs">{perk}</span>
@@ -770,6 +776,167 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                               }))}
                             >
                               <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-white text-sm mb-2 block">Benefits & Features</label>
+                      <div className="flex gap-2 mb-3">
+                        <Input
+                          value={newBenefit}
+                          onChange={(e) => setNewBenefit(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newBenefit.trim()) {
+                              e.preventDefault();
+                              setNewPass(prev => ({ ...prev, benefits: [...(prev.benefits || []), newBenefit.trim()] }));
+                              setNewBenefit("");
+                            }
+                          }}
+                          placeholder="Priority seating, Discount on food, etc."
+                          className="bg-white/10 border-white/20 text-white text-sm"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (newBenefit.trim()) {
+                              setNewPass(prev => ({ ...prev, benefits: [...(prev.benefits || []), newBenefit.trim()] }));
+                              setNewBenefit("");
+                            }
+                          }}
+                          size="sm"
+                          className="bg-blue-600"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {newPass.benefits?.map((benefit, idx) => (
+                          <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full">
+                            <span className="text-white text-xs">{benefit}</span>
+                            <button
+                              onClick={() => setNewPass(prev => ({
+                                ...prev,
+                                benefits: prev.benefits.filter((_, i) => i !== idx)
+                              }))}
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-white text-sm mb-2 block">Rules & Regulations</label>
+                      <div className="flex gap-2 mb-3">
+                        <Input
+                          value={newRule}
+                          onChange={(e) => setNewRule(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newRule.trim()) {
+                              e.preventDefault();
+                              setNewPass(prev => ({ ...prev, rules: [...(prev.rules || []), newRule.trim()] }));
+                              setNewRule("");
+                            }
+                          }}
+                          placeholder="No outside food, Must show ID, etc."
+                          className="bg-white/10 border-white/20 text-white text-sm"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (newRule.trim()) {
+                              setNewPass(prev => ({ ...prev, rules: [...(prev.rules || []), newRule.trim()] }));
+                              setNewRule("");
+                            }
+                          }}
+                          size="sm"
+                          className="bg-orange-600"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {newPass.rules?.map((rule, idx) => (
+                          <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-orange-500/20 rounded-full">
+                            <span className="text-white text-xs">{rule}</span>
+                            <button
+                              onClick={() => setNewPass(prev => ({
+                                ...prev,
+                                rules: prev.rules.filter((_, i) => i !== idx)
+                              }))}
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-white text-sm mb-2 block">Voiding Policies</label>
+                      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-3">
+                        <div className="grid md:grid-cols-2 gap-3 mb-3">
+                          <Input
+                            value={newVoidPolicy.reason}
+                            onChange={(e) => setNewVoidPolicy({ ...newVoidPolicy, reason: e.target.value })}
+                            placeholder="e.g., Disruptive behavior, Intoxication"
+                            className="bg-white/10 border-white/20 text-white text-sm"
+                          />
+                          <Select
+                            value={String(newVoidPolicy.refund_percent)}
+                            onValueChange={(v) => setNewVoidPolicy({ ...newVoidPolicy, refund_percent: Number(v) })}
+                          >
+                            <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                              <SelectValue placeholder="Refund" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0">No Refund (0%)</SelectItem>
+                              <SelectItem value="25">Partial Refund (25%)</SelectItem>
+                              <SelectItem value="50">Half Refund (50%)</SelectItem>
+                              <SelectItem value="75">Mostly Refund (75%)</SelectItem>
+                              <SelectItem value="100">Full Refund (100%)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (newVoidPolicy.reason.trim()) {
+                              setNewPass(prev => ({ 
+                                ...prev, 
+                                void_policies: [...(prev.void_policies || []), newVoidPolicy] 
+                              }));
+                              setNewVoidPolicy({ reason: "", refund_percent: 0 });
+                            }
+                          }}
+                          size="sm"
+                          className="w-full bg-red-600"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Voiding Policy
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {newPass.void_policies?.map((policy, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <div className="flex-1">
+                              <p className="text-white text-sm font-semibold">{policy.reason}</p>
+                              <p className="text-gray-400 text-xs">
+                                {policy.refund_percent}% refund
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setNewPass(prev => ({
+                                ...prev,
+                                void_policies: prev.void_policies.filter((_, i) => i !== idx)
+                              }))}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <X className="w-4 h-4" />
                             </button>
                           </div>
                         ))}
@@ -794,7 +961,10 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                           visit_limit: 999, 
                           perks: [], 
                           available_quantity: 100,
-                          description: "" 
+                          description: "",
+                          benefits: [],
+                          rules: [],
+                          void_policies: []
                         });
                         toast.success('Pass added!');
                       }}
@@ -823,6 +993,21 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                                   </span>
                                 ))}
                               </div>
+                            )}
+                            {pass.benefits?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {pass.benefits.map((benefit, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-blue-500/20 rounded text-xs text-blue-300">
+                                    ✓ {benefit}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {pass.rules?.length > 0 && (
+                              <p className="text-orange-400 text-xs mt-1">{pass.rules.length} rules apply</p>
+                            )}
+                            {pass.void_policies?.length > 0 && (
+                              <p className="text-red-400 text-xs mt-1">{pass.void_policies.length} voiding policies</p>
                             )}
                           </div>
                           <div className="text-right ml-4">
