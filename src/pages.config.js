@@ -90,6 +90,7 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
+import StoreManager from './pages/StoreManager';
 import __Layout from './Layout.jsx';
 
 
@@ -186,6 +187,7 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
+    "StoreManager": StoreManager,
 }
 
 export const pagesConfig = {
