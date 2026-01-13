@@ -211,15 +211,26 @@ LANGUAGE SUPPORT:
 
 ADVANCED CAPABILITIES YOU MUST HANDLE:
 1. LOCAL RECOMMENDATIONS: Proactively suggest what's hot, trending, and popular RIGHT NOW in the user's area
-2. BOOKING: If user wants to book (experiences, services, rides, properties), provide specific options with CURRENT pricing and availability
-3. PAYMENTS: If asking about wallet/balance, explain SoFloCoin balance and payment methods with exact numbers
-4. TRANSLATION: Provide accurate translations with cultural context in ${selectedLanguage}
-5. NAVIGATION & DIRECTIONS: If user asks to navigate to a place, address, business, or coordinates (e.g., "navigate to Miami Beach", "directions to Starbucks", "take me to 123 Main St"), provide detailed turn-by-turn directions with the exact destination address or coordinates
-6. SEARCH: Provide detailed, relevant results using REAL-TIME data from internet with current info
-7. REAL-TIME INFO: Answer questions with current, accurate information (2025 data, not outdated info)
-8. MULTILINGUAL: Always respond in ${selectedLanguage} naturally, fluently, and conversationally
-9. CONTEXT AWARENESS: Remember previous conversation context and provide coherent responses
-10. TREND AWARENESS: Know what's viral, trending, and popular on social media and in the local area RIGHT NOW
+2. SMART BOOKING: If user wants to book services:
+   - Analyze their booking history to suggest personalized services
+   - Check real-time provider availability
+   - Suggest optimal booking times based on provider schedule and customer preferences (morning/afternoon/evening)
+   - Consider provider ratings, distance, and availability
+   - If user says "book something relaxing" - understand they want spa/wellness services
+   - If user says "I need a haircut tomorrow afternoon" - find barbers available tomorrow afternoon
+3. RESCHEDULE MANAGEMENT: If user wants to reschedule:
+   - Identify their existing bookings
+   - Check provider availability for new times
+   - Suggest 3 alternative time slots
+   - Explain that provider approval is needed
+4. PAYMENTS: If asking about wallet/balance, explain SoFloCoin balance and payment methods with exact numbers
+5. TRANSLATION: Provide accurate translations with cultural context in ${selectedLanguage}
+6. NAVIGATION & DIRECTIONS: If user asks to navigate to a place, address, business, or coordinates (e.g., "navigate to Miami Beach", "directions to Starbucks", "take me to 123 Main St"), provide detailed turn-by-turn directions with the exact destination address or coordinates
+7. SEARCH: Provide detailed, relevant results using REAL-TIME data from internet with current info
+8. REAL-TIME INFO: Answer questions with current, accurate information (2025 data, not outdated info)
+9. MULTILINGUAL: Always respond in ${selectedLanguage} naturally, fluently, and conversationally
+10. CONTEXT AWARENESS: Remember previous conversation context and booking history to provide personalized recommendations
+11. TREND AWARENESS: Know what's viral, trending, and popular on social media and in the local area RIGHT NOW
 
 NAVIGATION FORMAT: When user requests directions, respond with:
 - The exact destination address or coordinates
@@ -422,14 +433,153 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
   const handleBookingIntent = async (userText) => {
     const lowerText = userText.toLowerCase();
     
-    if (lowerText.includes('book') || lowerText.includes('reserve')) {
-      // Create a follow-up message with booking options
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          role: "assistant",
-          content: "Great! I can help you book that. Would you like to:\n\n1. Browse all experiences\n2. Search for something specific\n3. See today's deals\n\nJust let me know!"
-        }]);
-      }, 1000);
+    if (lowerText.includes('book') || lowerText.includes('reserve') || lowerText.includes('appointment')) {
+      try {
+        // Get available services
+        const services = await base44.entities.MarketplaceItem.list();
+        
+        // Extract service type from user request
+        const serviceKeywords = {
+          'barber': ['barber', 'haircut', 'hair'],
+          'spa': ['spa', 'massage', 'wellness'],
+          'restaurant': ['restaurant', 'dinner', 'lunch', 'eat'],
+          'car': ['car', 'vehicle', 'rental'],
+          'property': ['property', 'house', 'apartment', 'rent'],
+          'yacht': ['yacht', 'boat', 'charter'],
+          'jet': ['jet', 'plane', 'flight']
+        };
+        
+        let matchedServices = [];
+        for (const [category, keywords] of Object.entries(serviceKeywords)) {
+          if (keywords.some(kw => lowerText.includes(kw))) {
+            matchedServices = services.filter(s => 
+              s.category?.includes(category) || 
+              s.title.toLowerCase().includes(category)
+            );
+            break;
+          }
+        }
+        
+        // Get provider availability for matched services
+        if (matchedServices.length > 0) {
+          const availabilityPromises = matchedServices.slice(0, 3).map(async service => {
+            const availability = await base44.entities.ProviderAvailability.filter({
+              provider_email: service.provider_email
+            });
+            
+            const bookings = await base44.entities.ServiceBooking.filter({
+              service_id: service.id,
+              status: { $in: ['confirmed', 'pending'] }
+            });
+            
+            return { service, availability, bookings };
+          });
+          
+          const servicesWithAvailability = await Promise.all(availabilityPromises);
+          
+          // Suggest optimal times
+          const suggestions = servicesWithAvailability.map(({ service, availability, bookings }) => {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            const todayAvail = availability.find(a => a.day_of_week === today && a.is_available);
+            
+            if (todayAvail) {
+              // Find free slots
+              const bookedTimes = bookings.map(b => b.booking_time);
+              const availableSlots = [];
+              
+              if (todayAvail.start_time && !bookedTimes.includes(todayAvail.start_time)) {
+                availableSlots.push(todayAvail.start_time);
+              }
+              
+              return {
+                service: service.title,
+                provider: service.provider_name,
+                price: service.price,
+                availableToday: true,
+                suggestedTime: availableSlots[0] || todayAvail.start_time,
+                serviceId: service.id
+              };
+            }
+            
+            return {
+              service: service.title,
+              provider: service.provider_name,
+              price: service.price,
+              availableToday: false,
+              serviceId: service.id
+            };
+          });
+          
+          // Create booking recommendations message
+          let recommendationMsg = `🎯 I found some great options for you:\n\n`;
+          
+          suggestions.forEach((sug, idx) => {
+            recommendationMsg += `${idx + 1}. **${sug.service}** by ${sug.provider}\n`;
+            recommendationMsg += `   💰 $${sug.price}`;
+            
+            if (sug.availableToday && sug.suggestedTime) {
+              recommendationMsg += ` • ✅ Available today at ${sug.suggestedTime}`;
+            } else {
+              recommendationMsg += ` • 📅 Check availability`;
+            }
+            recommendationMsg += `\n\n`;
+          });
+          
+          recommendationMsg += `Would you like to book any of these? Just say "Book option 1" or similar!`;
+          
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: recommendationMsg
+            }]);
+            speak(recommendationMsg);
+          }, 800);
+          
+        } else {
+          // No specific match, show booking options
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: "I can help you book services! What are you looking for?\n\n• Barber/Beauty\n• Spa/Wellness\n• Restaurants\n• Cars/Vehicles\n• Properties\n• Yachts/Boats\n• Private Jets\n\nJust tell me what you need!"
+            }]);
+          }, 800);
+        }
+        
+        // Handle reschedule requests
+        if (lowerText.includes('reschedule') || lowerText.includes('change appointment')) {
+          const userBookings = await base44.entities.ServiceBooking.filter({
+            customer_email: currentUser?.email,
+            status: { $in: ['confirmed', 'pending'] }
+          });
+          
+          if (userBookings.length > 0) {
+            let rescheduleMsg = `📅 I can help you reschedule! You have these upcoming bookings:\n\n`;
+            
+            userBookings.slice(0, 3).forEach((booking, idx) => {
+              rescheduleMsg += `${idx + 1}. ${booking.service_title} on ${new Date(booking.booking_date).toLocaleDateString()} at ${booking.booking_time}\n`;
+            });
+            
+            rescheduleMsg += `\nWhich one would you like to reschedule? (Say "Reschedule booking 1" or similar)`;
+            
+            setTimeout(() => {
+              setMessages(prev => [...prev, {
+                role: "assistant",
+                content: rescheduleMsg
+              }]);
+              speak(rescheduleMsg);
+            }, 1000);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Booking intent error:', error);
+        setTimeout(() => {
+          setMessages(prev => [...prev, {
+            role: "assistant",
+            content: "I can help you book experiences and services! What would you like to book today?"
+          }]);
+        }, 800);
+      }
     }
   };
 
