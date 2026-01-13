@@ -196,16 +196,19 @@ export default function FPSShooter({ currentUser, onExit }) {
     };
 
     const handleMouseMove = (e) => {
-      if (document.pointerLockElement === rendererRef.current.domElement) {
-        mouseRef.current.x += e.movementX * 0.002;
-        mouseRef.current.y -= e.movementY * 0.002;
+      if (rendererRef.current?.domElement && document.pointerLockElement === rendererRef.current.domElement) {
+        const sensitivity = (settings.controlSensitivity / 5) * 0.002;
+        mouseRef.current.x += e.movementX * sensitivity;
+        mouseRef.current.y -= e.movementY * sensitivity;
         mouseRef.current.y = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, mouseRef.current.y));
       }
     };
 
     const handleClick = () => {
-      if (gameState === 'playing') {
-        rendererRef.current.domElement.requestPointerLock();
+      if (gameState === 'playing' && rendererRef.current?.domElement) {
+        if (rendererRef.current.domElement.requestPointerLock) {
+          rendererRef.current.domElement.requestPointerLock();
+        }
         shoot();
       }
     };
@@ -213,7 +216,10 @@ export default function FPSShooter({ currentUser, onExit }) {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
-    rendererRef.current.domElement.addEventListener('click', handleClick);
+    
+    if (rendererRef.current?.domElement) {
+      rendererRef.current.domElement.addEventListener('click', handleClick);
+    }
   };
 
   const animate = () => {
@@ -262,12 +268,17 @@ export default function FPSShooter({ currentUser, onExit }) {
 
   const cleanupThreeJS = () => {
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    
+    if (document.pointerLockElement) document.exitPointerLock();
+    
     if (rendererRef.current && mountRef.current && mountRef.current.contains(rendererRef.current.domElement)) {
       mountRef.current.removeChild(rendererRef.current.domElement);
       rendererRef.current.dispose();
     }
+    
     targetsRef.current = [];
     bulletsRef.current = [];
+    keysRef.current = {};
   };
 
   const startGame = () => {
