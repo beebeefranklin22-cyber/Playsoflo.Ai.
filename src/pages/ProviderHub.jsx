@@ -38,6 +38,7 @@ import ContractTemplateManager from "../components/provider/ContractTemplateMana
 import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
 import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
 import FinancialDataExport from "../components/provider/FinancialDataExport";
+import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
