@@ -30,6 +30,9 @@ import ServicePackageManager from "../components/provider/ServicePackageManager"
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
 import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
 import VideoEditorPro from "../components/creator/VideoEditorPro";
+import DashboardMetrics from "../components/provider/DashboardMetrics";
+import RentalNotifications from "../components/provider/RentalNotifications";
+import StripeExpressDashboard from "../components/provider/StripeExpressDashboard";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -675,6 +678,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
+            <DashboardMetrics currentUser={currentUser} />
+            <RentalNotifications currentUser={currentUser} />
+            <StripeExpressDashboard currentUser={currentUser} />
             <PerformanceDashboard currentUser={currentUser} />
           </TabsContent>
 
