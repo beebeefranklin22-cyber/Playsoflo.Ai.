@@ -14,6 +14,7 @@ import {
 import StripePaymentForm from "@/components/payment/StripePaymentForm";
 import PaymentConfirmation from "./payment/PaymentConfirmation";
 import ContractSigningModal from "./booking/ContractSigningModal";
+import CustomerBookingCalendar from "./booking/CustomerBookingCalendar";
 
 export default function BookingModal({ service, onClose }) {
   const queryClient = useQueryClient();
@@ -656,27 +657,14 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <div>
-                  <label className="text-white font-semibold mb-3 block flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-purple-400" />
-                    Select Date
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {getAvailableDates().map((date) => (
-                      <button
-                        key={date}
-                        onClick={() => setSelectedDate(date)}
-                        className={`p-3 rounded-xl text-center transition ${
-                          selectedDate === date
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                        }`}
-                      >
-                        <div className="text-xs">{formatDate(date)}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <CustomerBookingCalendar 
+                  provider={{ email: service.created_by }}
+                  service={service}
+                  onBookingSelect={(booking) => {
+                    setSelectedDate(booking.date.toISOString().split('T')[0]);
+                    setSelectedTime(booking.time);
+                  }}
+                />
 
                 {selectedDate && (
                   <div>
@@ -685,7 +673,7 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
                       {availableSlots.length === 0 ? 'Preferred Time' : 'Select Time'}
                     </label>
                     {loadingBookings || loadingAvailability ? (
-                      <div className="flex items-center justify-center py-8">
+                      <div className="flex items-center justify-center py-8 hidden">
                         <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
                       </div>
                     ) : availableSlots.length === 0 ? (
