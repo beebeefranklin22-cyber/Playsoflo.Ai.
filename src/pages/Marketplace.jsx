@@ -535,21 +535,37 @@ export default function Marketplace() {
       )}
 
       <div className="px-6 mb-8">
+        <h2 className="text-white font-bold text-xl mb-4">Browse by Category</h2>
         <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
-                selectedCategory === cat.id
-                  ? "bg-orange-500 text-white"
-                  : "bg-white/10 text-gray-300 hover:bg-white/20"
-              }`}
-            >
-              <cat.icon className="w-4 h-4" />
-              {cat.label}
-            </button>
-          ))}
+          {categories.map((cat) => {
+            const categoryCount = allItems.filter(item => 
+              item.category === cat.id && !wellnessCategoryIds.includes(item.category)
+            ).length;
+            
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition relative ${
+                  selectedCategory === cat.id
+                    ? "bg-orange-500 text-white shadow-lg shadow-orange-500/30"
+                    : "bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20"
+                }`}
+              >
+                <cat.icon className="w-4 h-4" />
+                <span>{cat.label}</span>
+                {cat.id !== 'all' && categoryCount > 0 && (
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    selectedCategory === cat.id
+                      ? "bg-white/20"
+                      : "bg-orange-500/20 text-orange-400"
+                  }`}>
+                    {categoryCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

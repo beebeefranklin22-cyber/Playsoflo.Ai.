@@ -1131,20 +1131,109 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 />
 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <Select 
-                    value={form.category} 
-                    onValueChange={(v) => {
-                      const isRental = isRentalCategory(v);
-                      setForm({...form, category: v, is_rental: isRental});
-                    }}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue placeholder="Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => <SelectItem key={c} value={c}>{c.replace("_"," ").toUpperCase()}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Service Category *</label>
+                    <Select 
+                      value={form.category} 
+                      onValueChange={(v) => {
+                        const isRental = isRentalCategory(v);
+                        setForm({...form, category: v, is_rental: isRental});
+                      }}
+                    >
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-96">
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Insurance & Protection</div>
+                        <SelectItem value="health_insurance">Health Insurance</SelectItem>
+                        <SelectItem value="car_insurance">Car Insurance</SelectItem>
+                        <SelectItem value="home_insurance">Home Insurance</SelectItem>
+                        <SelectItem value="life_insurance">Life Insurance</SelectItem>
+                        <SelectItem value="bail_bonding">Bail Bonds</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Beauty & Personal Care</div>
+                        <SelectItem value="barber_beauty">Barber & Beauty</SelectItem>
+                        <SelectItem value="hair_extensions">Hair Extensions</SelectItem>
+                        <SelectItem value="hair_makeup">Hair & Makeup</SelectItem>
+                        <SelectItem value="massage_therapy">Massage Therapy</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Home Services</div>
+                        <SelectItem value="home_services">Home Services (General)</SelectItem>
+                        <SelectItem value="cleaning">Cleaning</SelectItem>
+                        <SelectItem value="plumbing">Plumbing</SelectItem>
+                        <SelectItem value="electrical">Electrical</SelectItem>
+                        <SelectItem value="hvac">HVAC</SelectItem>
+                        <SelectItem value="landscaping">Landscaping</SelectItem>
+                        <SelectItem value="pool_maintenance">Pool Maintenance</SelectItem>
+                        <SelectItem value="pest_control">Pest Control</SelectItem>
+                        <SelectItem value="roofing">Roofing</SelectItem>
+                        <SelectItem value="painting">Painting</SelectItem>
+                        <SelectItem value="window_cleaning">Window Cleaning</SelectItem>
+                        <SelectItem value="pressure_washing">Pressure Washing</SelectItem>
+                        <SelectItem value="junk_removal">Junk Removal</SelectItem>
+                        <SelectItem value="locksmith">Locksmith</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Food & Hospitality</div>
+                        <SelectItem value="restaurant">Restaurant</SelectItem>
+                        <SelectItem value="food_truck">Food Truck</SelectItem>
+                        <SelectItem value="groceries">Groceries</SelectItem>
+                        <SelectItem value="personal_chef">Personal Chef</SelectItem>
+                        <SelectItem value="catering">Catering</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Transportation</div>
+                        <SelectItem value="chauffeur">Chauffeur Service</SelectItem>
+                        <SelectItem value="moving_services">Moving Services</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Real Estate & Property</div>
+                        <SelectItem value="property_rental">Property Rental</SelectItem>
+                        <SelectItem value="real_estate">Real Estate</SelectItem>
+                        <SelectItem value="interior_design">Interior Design</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Professional Services</div>
+                        <SelectItem value="legal_services">Legal Services</SelectItem>
+                        <SelectItem value="accounting">Accounting</SelectItem>
+                        <SelectItem value="consulting">Consulting</SelectItem>
+                        <SelectItem value="financial_planning">Financial Planning</SelectItem>
+                        <SelectItem value="tax_preparation">Tax Preparation</SelectItem>
+                        <SelectItem value="notary">Notary</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Construction & Trades</div>
+                        <SelectItem value="construction">Construction</SelectItem>
+                        <SelectItem value="automotive">Automotive</SelectItem>
+                        <SelectItem value="contractor_license">Contractor</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Events & Entertainment</div>
+                        <SelectItem value="wedding_planning">Wedding Planning</SelectItem>
+                        <SelectItem value="event_planning">Event Planning</SelectItem>
+                        <SelectItem value="photography">Photography</SelectItem>
+                        <SelectItem value="video_production">Video Production</SelectItem>
+                        <SelectItem value="dj_entertainment">DJ & Entertainment</SelectItem>
+                        <SelectItem value="equipment_rental">Equipment Rental</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Creative Services</div>
+                        <SelectItem value="graphic_design">Graphic Design</SelectItem>
+                        <SelectItem value="marketing">Marketing</SelectItem>
+                        <SelectItem value="web_development">Web Development</SelectItem>
+                        <SelectItem value="content_writing">Content Writing</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Education & Coaching</div>
+                        <SelectItem value="tutoring">Tutoring</SelectItem>
+                        <SelectItem value="music_lessons">Music Lessons</SelectItem>
+                        <SelectItem value="fitness_training">Fitness Training</SelectItem>
+                        <SelectItem value="life_coaching">Life Coaching</SelectItem>
+                        <SelectItem value="career_coaching">Career Coaching</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Care Services</div>
+                        <SelectItem value="childcare">Childcare</SelectItem>
+                        <SelectItem value="pet_services">Pet Services</SelectItem>
+
+                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Tech & Digital</div>
+                        <SelectItem value="tech_support">Tech Support</SelectItem>
+                        <SelectItem value="computer_repair">Computer Repair</SelectItem>
+                        <SelectItem value="virtual_assistant">Virtual Assistant</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <Select value={form.price_type} onValueChange={(v) => setForm({...form, price_type: v})}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
