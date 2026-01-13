@@ -459,8 +459,13 @@ export default function Streaming() {
       setSelectedContent(content);
       setShowPurchaseModal(true);
     } else {
-      // Navigate to viewer or play content
-      toast.info("Playing content...");
+      // Navigate to appropriate viewer based on content type
+      if (content.is_live || content.type === "live_event" || content.type === "live_sports") {
+        navigate(createPageUrl("LivestreamViewer") + `?id=${content.id}`);
+      } else {
+        // For movies, series, and other VOD content
+        navigate(createPageUrl("LivestreamViewer") + `?id=${content.id}`);
+      }
     }
   };
 
