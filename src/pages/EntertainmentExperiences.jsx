@@ -10,7 +10,9 @@ import { Input } from "@/components/ui/input";
 import { 
   Anchor, Wine, Music, Car, PartyPopper, Camera, 
   Sparkles, Search, Filter, Plus, Loader2, TrendingUp,
-  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare, Ticket
+  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare, Ticket,
+  Theater, Laugh, Zap, Globe, Mic, Flame, Moon, Trophy,
+  Smile, Activity, Cpu, Utensils, Drum, Palette
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -27,7 +29,37 @@ const entertainmentCategories = [
   { id: "wine_tasting", label: "Wine Tasting", icon: Wine },
   { id: "photography", label: "Photography", icon: Camera },
   { id: "event_planning", label: "Event Planning", icon: PartyPopper },
-  { id: "nightlife", label: "Nightlife", icon: Music }
+  { id: "nightlife", label: "Nightlife", icon: Music },
+  { id: "comedy_clubs", label: "Comedy Clubs", icon: Laugh },
+  { id: "concerts", label: "Concerts & Shows", icon: Music },
+  { id: "theatre", label: "Theatre & Broadway", icon: Theater },
+  { id: "festivals", label: "Music Festivals", icon: Flame },
+  { id: "karaoke", label: "Karaoke Bars", icon: Mic },
+  { id: "escape_rooms", label: "Escape Rooms", icon: Zap },
+  { id: "arcade", label: "Arcade Centers", icon: Trophy },
+  { id: "bowling", label: "Bowling Alleys", icon: Activity },
+  { id: "cinema", label: "Cinema & IMAX", icon: Camera },
+  { id: "theme_parks", label: "Theme Parks", icon: Activity },
+  { id: "water_parks", label: "Water Parks", icon: Activity },
+  { id: "casinos", label: "Casinos", icon: Sparkles },
+  { id: "paint_sip", label: "Paint & Sip", icon: Palette },
+  { id: "axe_throwing", label: "Axe Throwing", icon: Activity },
+  { id: "silent_disco", label: "Silent Disco", icon: Music },
+  { id: "drag_shows", label: "Drag Shows", icon: Sparkles },
+  { id: "roller_skating", label: "Roller Skating", icon: Activity },
+  { id: "trivia_nights", label: "Trivia Nights", icon: Cpu },
+  { id: "food_festivals", label: "Food Festivals", icon: Utensils },
+  { id: "beer_gardens", label: "Beer Gardens", icon: Wine },
+  { id: "rooftop_bars", label: "Rooftop Bars", icon: Moon },
+  { id: "speakeasy", label: "Speakeasy Bars", icon: Wine },
+  { id: "poetry_slams", label: "Poetry Slams", icon: Heart },
+  { id: "jazz_clubs", label: "Jazz Clubs", icon: Music },
+  { id: "gaming_cafes", label: "Gaming Cafes", icon: Cpu },
+  { id: "haunted_houses", label: "Haunted Houses", icon: Moon },
+  { id: "laser_tag", label: "Laser Tag", icon: Zap },
+  { id: "go_karts", label: "Go-Kart Racing", icon: Car },
+  { id: "trampoline_parks", label: "Trampoline Parks", icon: Activity },
+  { id: "mini_golf", label: "Mini Golf", icon: Activity }
 ];
 
 const occasions = [
