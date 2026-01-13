@@ -16,12 +16,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { toast } from "sonner";
+import PortfolioSection from "../components/profile/PortfolioSection";
+import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
+import DataManagementModal from "../components/provider/DataManagementModal";
 
 export default function ProviderProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDataManagement, setShowDataManagement] = useState(false);
   const [editData, setEditData] = useState({
     about_me: "",
     linkedin_url: "",
@@ -182,13 +186,23 @@ export default function ProviderProfile() {
           </div>
 
           {/* Edit Button */}
-          <Button
-            onClick={() => setIsEditing(true)}
-            className="absolute bottom-4 right-4 bg-purple-600 hover:bg-purple-700"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
+          <div className="absolute bottom-4 right-4 flex gap-3">
+            <Button
+              onClick={() => setShowDataManagement(true)}
+              variant="outline"
+              className="bg-white/10 border-white/20 hover:bg-white/20"
+            >
+              <Shield className="w-4 h-4 mr-2" />
+              Data Management
+            </Button>
+            <Button
+              onClick={() => setIsEditing(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+          </div>
         </div>
 
         {/* Trust Score Card */}
@@ -386,6 +400,22 @@ export default function ProviderProfile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Portfolio Section */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Portfolio</h2>
+          <PortfolioSection 
+            userEmail={currentUser?.email} 
+            isOwnProfile={true}
+            currentUser={currentUser}
+          />
+        </div>
+
+        {/* Availability Calendar */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">My Availability</h2>
+          <ProviderCalendarManager currentUser={currentUser} />
+        </div>
 
         {/* Customer Reviews */}
         <div className="mb-6">
@@ -602,6 +632,14 @@ export default function ProviderProfile() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Data Management Modal */}
+      {showDataManagement && (
+        <DataManagementModal
+          currentUser={currentUser}
+          onClose={() => setShowDataManagement(false)}
+        />
+      )}
     </div>
   );
 }
