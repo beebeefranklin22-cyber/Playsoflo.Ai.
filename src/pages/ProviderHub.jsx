@@ -551,6 +551,32 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           </Link>
         </div>
 
+        {/* New Provider Onboarding Banner */}
+        {currentUser && !currentUser.provider_onboarding_completed && (
+          <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-white text-lg font-bold mb-1">Complete Your Provider Setup</h3>
+                    <p className="text-gray-300 text-sm">Get started in just 5 easy steps - set up your profile, availability, and first service!</p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => navigate(createPageUrl("ProviderOnboarding"))}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Start Onboarding
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stripe Connect Onboarding Banner */}
         {!currentUser?.stripe_account_id && (
           <Card className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border-green-500/30 mb-6">
@@ -682,6 +708,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               <TabsTrigger value="verification" className="whitespace-nowrap px-4">Verification</TabsTrigger>
               <TabsTrigger value="contracts" className="whitespace-nowrap px-4">Contracts</TabsTrigger>
               <TabsTrigger value="profile" className="whitespace-nowrap px-4">Profile</TabsTrigger>
+              <TabsTrigger value="settings" className="whitespace-nowrap px-4">Settings</TabsTrigger>
             </TabsList>
           </div>
 
