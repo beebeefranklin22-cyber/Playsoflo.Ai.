@@ -18,6 +18,7 @@ import PaymentConfirmation from "../components/payment/PaymentConfirmation";
 import StreamScheduler from "../components/livestream/StreamScheduler";
 import WatchPartyModal from "../components/livestream/WatchPartyModal";
 import StreamGoalsWidget from "../components/livestream/StreamGoalsWidget";
+import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
@@ -121,6 +122,7 @@ export default function Streaming() {
   const [confirmedPurchase, setConfirmedPurchase] = useState(null);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showWatchParty, setShowWatchParty] = useState(null);
+  const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -538,6 +540,13 @@ export default function Streaming() {
               >
                 <Gamepad2 className="w-4 h-4 mr-2" />
                 Play Games
+              </Button>
+              <Button
+                onClick={() => setShowTMDBBrowser(true)}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              >
+                <Film className="w-4 h-4 mr-2" />
+                Browse Movies
               </Button>
               <Button
                 onClick={() => navigate(createPageUrl("PersonalizedFeed"))}
@@ -1289,6 +1298,10 @@ export default function Streaming() {
           currentUser={currentUser}
           onClose={() => setShowWatchParty(null)}
         />
+      )}
+
+      {showTMDBBrowser && (
+        <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />
       )}
 
       <style>{`
