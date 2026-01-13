@@ -41,6 +41,7 @@ import FinancialDataExport from "../components/provider/FinancialDataExport";
 import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
 import NotificationPreferences from "../components/provider/NotificationPreferences";
 import RealtimeNotifications from "../components/provider/RealtimeNotifications";
+import MultiAssetDashboard from "../components/provider/MultiAssetDashboard";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -684,6 +685,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           <div className="overflow-x-auto -mx-2 px-2">
             <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
               <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
+              <TabsTrigger value="assets" className="whitespace-nowrap px-4">
+                My Assets ({myServices.length})
+              </TabsTrigger>
               <TabsTrigger value="video-editor" className="whitespace-nowrap px-4">Video Editor</TabsTrigger>
               <TabsTrigger value="requests" className="relative whitespace-nowrap px-4">
                 Requests
@@ -721,6 +725,11 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           <BusinessReportGenerator currentUser={currentUser} />
           <FinancialDataExport currentUser={currentUser} />
           <PerformanceDashboard currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Multi-Asset Management Tab */}
+          <TabsContent value="assets" className="space-y-6">
+            <MultiAssetDashboard currentUser={currentUser} />
           </TabsContent>
 
           {/* Video Editor Tab */}
