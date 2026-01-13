@@ -30,7 +30,7 @@ export default function MyTickets() {
     refetchInterval: 10000
   });
 
-  const activeTickets = tickets.filter(t => t.status === 'active');
+  const activeTickets = tickets.filter(t => t.status === 'active' || t.status === 'partially_used');
   const redeemedTickets = tickets.filter(t => t.status === 'redeemed');
   const cancelledTickets = tickets.filter(t => t.status === 'cancelled');
 
