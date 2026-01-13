@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import PaymentConfirmation from "../components/payment/PaymentConfirmation";
+import StreamScheduler from "../components/livestream/StreamScheduler";
+import WatchPartyModal from "../components/livestream/WatchPartyModal";
+import StreamGoalsWidget from "../components/livestream/StreamGoalsWidget";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
@@ -116,6 +119,8 @@ export default function Streaming() {
   const [processing, setProcessing] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState(null);
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [showWatchParty, setShowWatchParty] = useState(null);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -504,13 +509,23 @@ export default function Streaming() {
             </div>
             <div className="flex gap-2 flex-wrap">
               {currentUser && (
-                <Button
-                  onClick={() => setShowUpload(true)}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </Button>
+                <>
+                  <Button
+                    onClick={() => setShowScheduler(true)}
+                    variant="outline"
+                    className="bg-white/10 border-white/20"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Schedule
+                  </Button>
+                  <Button
+                    onClick={() => setShowUpload(true)}
+                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload
+                  </Button>
+                </>
               )}
               <Button
                 onClick={() => navigate(createPageUrl("Gaming"))}
@@ -870,32 +885,42 @@ export default function Streaming() {
                     </div>
                   )}
                   
-                  {/* Tip button */}
-                  <div className="absolute right-2 top-2 z-10">
-                    <Button
-                      size="sm"
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const amountStr = prompt('Tip amount in USD:');
-                        if (!amountStr) return;
-                        const amount = parseFloat(amountStr);
-                        if (isNaN(amount) || amount <= 0) {
-                          toast.error("Invalid amount");
-                          return;
-                        }
-                        await handleTip(item, amount);
-                      }}
-                    >
-                      Tip
-                    </Button>
+                  {/* Action buttons */}
+                  <div className="absolute right-2 top-2 z-10 flex gap-1">
+                   <Button
+                     size="sm"
+                     className="bg-purple-500 hover:bg-purple-600"
+                     onClick={(e) => {
+                       e.stopPropagation();
+                       setShowWatchParty(item);
+                     }}
+                   >
+                     <Users className="w-3 h-3" />
+                   </Button>
+                   <Button
+                     size="sm"
+                     className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                     onClick={async (e) => {
+                       e.stopPropagation();
+                       const amountStr = prompt('Tip amount in USD:');
+                       if (!amountStr) return;
+                       const amount = parseFloat(amountStr);
+                       if (isNaN(amount) || amount <= 0) {
+                         toast.error("Invalid amount");
+                         return;
+                       }
+                       await handleTip(item, amount);
+                     }}
+                   >
+                     Tip
+                   </Button>
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
                     <h3 className="text-white font-bold mb-1 line-clamp-2">
                       {item.title}
                     </h3>
-                    <div className="flex items-center gap-2 text-gray-300 text-xs">
+                    <div className="flex items-center gap-2 text-gray-300 text-xs mb-2">
                       {item.duration && (
                         <div className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -906,6 +931,9 @@ export default function Streaming() {
                         <span>★ {item.rating}</span>
                       )}
                     </div>
+                    {item.is_live && item.id && (
+                      <StreamGoalsWidget streamId={item.id} />
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -1241,6 +1269,21 @@ export default function Streaming() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {showScheduler && (
+        <StreamScheduler
+          currentUser={currentUser}
+          onClose={() => setShowScheduler(false)}
+        />
+      )}
+
+      {showWatchParty && (
+        <WatchPartyModal
+          content={showWatchParty}
+          currentUser={currentUser}
+          onClose={() => setShowWatchParty(null)}
+        />
       )}
 
       <style>{`
