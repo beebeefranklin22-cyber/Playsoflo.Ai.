@@ -214,11 +214,11 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           </div>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            {[1, 2, 3, 4, 5].map((s) => (
+          <div className="flex items-center justify-center gap-2 mb-8">
+            {[1, 2, 3, 4, 5, 6].map((s) => (
               <div
                 key={s}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition ${
                   s === step ? 'bg-purple-600 text-white' : s < step ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-400'
                 }`}
               >
@@ -643,6 +643,20 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             )}
 
             {step === 4 && (
+              <>
+                <RecurringEventScheduler
+                  schedule={experience.recurring_schedule || {}}
+                  onChange={(schedule) => setExperience({ ...experience, recurring_schedule: schedule })}
+                />
+
+                <SeatingChartManager
+                  zones={experience.seating_zones || []}
+                  onChange={(zones) => setExperience({ ...experience, seating_zones: zones, seating_enabled: zones.length > 0 })}
+                />
+              </>
+            )}
+
+            {step === 5 && (
               <>
                 <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4 mb-6">
                   <h3 className="text-white font-bold flex items-center gap-2 mb-3">
@@ -1098,7 +1112,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 Back
               </Button>
             )}
-            {step < 5 ? (
+            {step < 6 ? (
               <Button onClick={() => setStep(step + 1)} className="flex-1 bg-purple-600 hover:bg-purple-700">
                 Next Step
               </Button>

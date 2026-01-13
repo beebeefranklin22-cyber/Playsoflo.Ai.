@@ -12,6 +12,7 @@ import {
 import ListExperienceModal from "../components/entertainment/ListExperienceModal";
 import TicketRedemptionScanner from "../components/entertainment/TicketRedemptionScanner";
 import VoidPassModal from "../components/entertainment/VoidPassModal";
+import CalendarSyncManager from "../components/entertainment/CalendarSyncManager";
 
 export default function EntertainmentProviderHub() {
   const [currentUser, setCurrentUser] = useState(null);
