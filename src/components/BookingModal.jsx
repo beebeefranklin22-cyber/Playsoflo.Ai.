@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import StripePaymentForm from "@/components/payment/StripePaymentForm";
 import PaymentConfirmation from "./payment/PaymentConfirmation";
+import ContractSigningModal from "./booking/ContractSigningModal";
 
 export default function BookingModal({ service, onClose }) {
   const queryClient = useQueryClient();
@@ -41,6 +42,8 @@ export default function BookingModal({ service, onClose }) {
   const [pendingBooking, setPendingBooking] = useState(null);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [paymentType, setPaymentType] = useState("wallet");
+  const [showContractSigning, setShowContractSigning] = useState(false);
+  const [serviceContract, setServiceContract] = useState(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -75,6 +78,23 @@ export default function BookingModal({ service, onClose }) {
     },
     enabled: !!service?.created_by,
     staleTime: 5 * 60 * 1000
+  });
+
+  // Fetch service contract if available
+  const { data: contract } = useQuery({
+    queryKey: ['service-contract', service?.id],
+    queryFn: async () => {
+      if (!service?.id || !service?.created_by) return null;
+      const contracts = await base44.entities.ServiceContract.filter({
+        provider_email: service.created_by,
+        is_active: true
+      });
+      return contracts.find(c => 
+        !c.applies_to_services?.length || 
+        c.applies_to_services?.includes(service.id)
+      ) || null;
+    },
+    enabled: !!service?.id && !!service?.created_by
   });
 
   // Fetch existing bookings for selected date
@@ -198,6 +218,13 @@ export default function BookingModal({ service, onClose }) {
   });
 
   const handleSubmit = async () => {
+    // Check if contract signing is required
+    if (contract && !serviceContract) {
+      setServiceContract(contract);
+      setShowContractSigning(true);
+      return;
+    }
+
     if (joinWaitingList) {
       // Handle waiting list
       try {
@@ -267,6 +294,32 @@ export default function BookingModal({ service, onClose }) {
     });
     
     setShowPayment(true);
+  };
+
+  const handleContractSign = async (signatureData) => {
+    // Create service agreement record
+    await base44.entities.ServiceAgreement.create({
+      contract_id: serviceContract.id,
+      service_id: service.id,
+      provider_email: service.created_by,
+      customer_email: currentUser.email,
+      customer_name: currentUser.full_name,
+      agreement_text: JSON.stringify(serviceContract),
+      customer_signature: signatureData.signature,
+      customer_ip_address: 'web',
+      signed_at: new Date().toISOString(),
+      status: 'signed',
+      acceptance_method: signatureData.acceptance_method
+    });
+
+    setShowContractSigning(false);
+    // Continue with booking
+    handleSubmit();
+  };
+
+  const handleContractDecline = () => {
+    setShowContractSigning(false);
+    setServiceContract(null);
   };
 
   const handlePaymentSuccess = async () => {
@@ -437,6 +490,15 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
 
   return (
     <>
+      {showContractSigning && serviceContract && (
+        <ContractSigningModal
+          contract={serviceContract}
+          onSign={handleContractSign}
+          onDecline={handleContractDecline}
+          customerName={currentUser?.full_name || currentUser?.email}
+        />
+      )}
+
       {showPaymentConfirmation && (
         <PaymentConfirmation
           amount={pendingBooking?.amount_paid}
