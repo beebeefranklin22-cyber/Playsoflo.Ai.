@@ -35,6 +35,8 @@ import RentalNotifications from "../components/provider/RentalNotifications";
 import StripeExpressDashboard from "../components/provider/StripeExpressDashboard";
 import ActiveRentalsManager from "../components/provider/ActiveRentalsManager";
 import ContractTemplateManager from "../components/provider/ContractTemplateManager";
+import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
+import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -684,6 +686,8 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             <DashboardMetrics currentUser={currentUser} />
             <RentalNotifications currentUser={currentUser} />
             <StripeExpressDashboard currentUser={currentUser} />
+            <AdvancedAnalytics currentUser={currentUser} />
+            <BusinessReportGenerator currentUser={currentUser} />
             <PerformanceDashboard currentUser={currentUser} />
           </TabsContent>
 
