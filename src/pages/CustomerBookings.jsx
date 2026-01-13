@@ -316,7 +316,11 @@ export default function CustomerBookings() {
                 <div className="flex gap-3">
                   {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
                     <Button
-                      onClick={() => cancelBookingMutation.mutate(selectedBooking.id)}
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to cancel this booking?\n\nService: ${selectedBooking.service_title}\nDate: ${new Date(selectedBooking.booking_date).toLocaleDateString()}\nTime: ${selectedBooking.booking_time}\n\nThis action cannot be undone.`)) {
+                          cancelBookingMutation.mutate(selectedBooking.id);
+                        }
+                      }}
                       disabled={cancelBookingMutation.isPending}
                       variant="outline"
                       className="flex-1 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"

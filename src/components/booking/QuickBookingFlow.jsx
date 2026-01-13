@@ -101,6 +101,16 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
 
   const createBookingMutation = useMutation({
     mutationFn: async (paymentIntentId) => {
+      // Validate payment intent exists
+      if (!paymentIntentId) {
+        throw new Error('Payment verification failed');
+      }
+      
+      // Validate all required data
+      if (!currentUser?.email || !bookingData.date || !bookingData.time) {
+        throw new Error('Missing required booking information');
+      }
+      
       return await base44.entities.ServiceBooking.create({
         customer_email: currentUser.email,
         customer_name: currentUser.full_name,
@@ -122,6 +132,10 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
       setCurrentStep(4);
       toast.success('Booking confirmed!');
       if (onSuccess) onSuccess();
+    },
+    onError: (error) => {
+      toast.error('Booking failed: ' + error.message);
+      setCurrentStep(3);
     }
   });
 
@@ -304,9 +318,33 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
                 />
 
                 <div className="border-t border-white/10 pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-gray-400">Total</span>
-                    <span className="text-white font-bold text-2xl">${service.price}</span>
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                    <p className="text-yellow-300 text-sm font-medium">
+                      ⚠️ You are about to make a payment. Please review your booking details carefully before proceeding.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Service</span>
+                      <span className="text-white font-medium">{service.title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Provider</span>
+                      <span className="text-white font-medium">{provider.full_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Date</span>
+                      <span className="text-white font-medium">{new Date(bookingData.date).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Time</span>
+                      <span className="text-white font-medium">{bookingData.time}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-white/10">
+                      <span className="text-gray-400 font-bold">Total</span>
+                      <span className="text-white font-bold text-xl">${service.price}</span>
+                    </div>
                   </div>
                   
                   <StripePaymentForm
