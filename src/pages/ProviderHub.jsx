@@ -37,6 +37,7 @@ import ActiveRentalsManager from "../components/provider/ActiveRentalsManager";
 import ContractTemplateManager from "../components/provider/ContractTemplateManager";
 import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
 import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
+import FinancialDataExport from "../components/provider/FinancialDataExport";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -683,12 +684,13 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
-            <DashboardMetrics currentUser={currentUser} />
-            <RentalNotifications currentUser={currentUser} />
-            <StripeExpressDashboard currentUser={currentUser} />
-            <AdvancedAnalytics currentUser={currentUser} />
-            <BusinessReportGenerator currentUser={currentUser} />
-            <PerformanceDashboard currentUser={currentUser} />
+          <DashboardMetrics currentUser={currentUser} />
+          <RentalNotifications currentUser={currentUser} />
+          <StripeExpressDashboard currentUser={currentUser} />
+          <AdvancedAnalytics currentUser={currentUser} />
+          <BusinessReportGenerator currentUser={currentUser} />
+          <FinancialDataExport currentUser={currentUser} />
+          <PerformanceDashboard currentUser={currentUser} />
           </TabsContent>
 
           {/* Video Editor Tab */}

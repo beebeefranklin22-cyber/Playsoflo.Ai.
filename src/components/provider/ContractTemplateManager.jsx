@@ -273,10 +273,10 @@ export default function ContractTemplateManager({ currentUser }) {
             ) : (
               <>
                 <div className="flex items-start justify-between mb-3">
-                  <div>
+                  <div className="flex-1">
                     <h4 className="text-white font-semibold">{contract.template_name}</h4>
                     <p className="text-gray-400 text-sm mt-1">
-                      {contract.terms_and_conditions.substring(0, 100)}...
+                      {contract.terms_and_conditions?.substring(0, 100)}...
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

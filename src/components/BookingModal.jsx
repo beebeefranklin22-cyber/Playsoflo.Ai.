@@ -44,7 +44,7 @@ export default function BookingModal({ service, onClose }) {
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [paymentType, setPaymentType] = useState("wallet");
   const [showContractSigning, setShowContractSigning] = useState(false);
-  const [serviceContract, setServiceContract] = useState(null);
+  const [serviceContract, setServiceContract] = useState(undefined);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -219,8 +219,8 @@ export default function BookingModal({ service, onClose }) {
   });
 
   const handleSubmit = async () => {
-    // Check if contract signing is required and not yet signed
-    if (contract && !serviceContract) {
+    // Check if contract signing is required
+    if (contract && serviceContract !== null) {
       setServiceContract(contract);
       setShowContractSigning(true);
       return;
@@ -286,7 +286,7 @@ export default function BookingModal({ service, onClose }) {
         customer_email: currentUser.email,
         customer_name: currentUser.full_name,
         agreement_text: JSON.stringify(serviceContract),
-        customer_signature: signatureData.signature,
+        customer_signature: signatureData.signature || '',
         customer_ip_address: 'web',
         signed_at: new Date().toISOString(),
         status: 'signed',
@@ -297,8 +297,10 @@ export default function BookingModal({ service, onClose }) {
       toast.success('Service agreement signed successfully');
       
       // Now proceed with the actual booking submission
+      await new Promise(resolve => setTimeout(resolve, 500));
       proceedWithBooking();
     } catch (error) {
+      console.error('Contract signing error:', error);
       toast.error('Failed to sign agreement: ' + error.message);
     }
   };

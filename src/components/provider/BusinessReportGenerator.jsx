@@ -46,13 +46,19 @@ export default function BusinessReportGenerator({ currentUser }) {
     setGenerating(true);
     try {
       // Filter data based on selected period
-      const startDate = reportPeriod === "month"
-        ? new Date(selectedYear, selectedMonth, 1)
-        : new Date(selectedYear, 0, 1);
+      let startDate, endDate;
       
-      const endDate = reportPeriod === "month"
-        ? new Date(selectedYear, selectedMonth + 1, 0)
-        : new Date(selectedYear, 11, 31);
+      if (reportPeriod === "month") {
+        startDate = new Date(selectedYear, selectedMonth, 1);
+        endDate = new Date(selectedYear, selectedMonth + 1, 0);
+      } else if (reportPeriod === "quarter") {
+        const quarter = Math.floor(selectedMonth / 3);
+        startDate = new Date(selectedYear, quarter * 3, 1);
+        endDate = new Date(selectedYear, (quarter + 1) * 3, 0);
+      } else {
+        startDate = new Date(selectedYear, 0, 1);
+        endDate = new Date(selectedYear, 11, 31);
+      }
 
       const periodBookings = allBookings.filter(b => {
         const bookingDate = new Date(b.booking_date || b.start_date || b.created_date);
