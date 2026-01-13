@@ -133,6 +133,8 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [showQuickBooking, setShowQuickBooking] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -767,7 +769,8 @@ export default function Marketplace() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedService(item);
-                                setShowBookingModal(true);
+                                setSelectedProvider({ email: item.created_by, full_name: item.provider_name });
+                                setShowQuickBooking(true);
                               }}
                             >
                               Book Now
