@@ -111,7 +111,7 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
         throw new Error('Missing required booking information');
       }
       
-      return await base44.entities.ServiceBooking.create({
+      const booking = await base44.entities.ServiceBooking.create({
         customer_email: currentUser.email,
         customer_name: currentUser.full_name,
         provider_email: provider.email || provider.created_by,
@@ -127,6 +127,55 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
         status: 'confirmed',
         payment_intent_id: paymentIntentId
       });
+
+      // Send notifications
+      try {
+        // Notify customer
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: currentUser.email,
+          type: 'booking_confirmed',
+          bookingId: booking.id,
+          bookingTitle: service.title,
+          bookingDate: bookingData.date,
+          bookingTime: bookingData.time,
+          providerName: provider.provider_business_name || provider.full_name,
+          totalPrice: service.price
+        });
+
+        // Notify provider
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: provider.email || provider.created_by,
+          type: 'new_booking',
+          bookingId: booking.id,
+          bookingTitle: service.title,
+          bookingDate: bookingData.date,
+          bookingTime: bookingData.time,
+          customerName: currentUser.full_name,
+          totalPrice: service.price
+        });
+
+        // Payment notifications
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: currentUser.email,
+          type: 'payment_completed',
+          bookingId: booking.id,
+          bookingTitle: service.title,
+          totalPrice: service.price
+        });
+
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: provider.email || provider.created_by,
+          type: 'payment_received',
+          bookingId: booking.id,
+          bookingTitle: service.title,
+          customerName: currentUser.full_name,
+          totalPrice: service.price
+        });
+      } catch (notifError) {
+        console.error('Failed to send notifications:', notifError);
+      }
+
+      return booking;
     },
     onSuccess: () => {
       setCurrentStep(4);
