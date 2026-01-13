@@ -34,6 +34,7 @@ import DashboardMetrics from "../components/provider/DashboardMetrics";
 import RentalNotifications from "../components/provider/RentalNotifications";
 import StripeExpressDashboard from "../components/provider/StripeExpressDashboard";
 import ActiveRentalsManager from "../components/provider/ActiveRentalsManager";
+import ContractTemplateManager from "../components/provider/ContractTemplateManager";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
@@ -673,6 +674,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               <TabsTrigger value="services" className="whitespace-nowrap px-4">Services</TabsTrigger>
               <TabsTrigger value="availability" className="whitespace-nowrap px-4">Availability</TabsTrigger>
               <TabsTrigger value="verification" className="whitespace-nowrap px-4">Verification</TabsTrigger>
+              <TabsTrigger value="contracts" className="whitespace-nowrap px-4">Contracts</TabsTrigger>
               <TabsTrigger value="profile" className="whitespace-nowrap px-4">Profile</TabsTrigger>
             </TabsList>
           </div>
@@ -1736,6 +1738,11 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 })
               )}
             </div>
+          </TabsContent>
+
+          {/* Contracts Tab */}
+          <TabsContent value="contracts" className="space-y-6">
+            <ContractTemplateManager currentUser={currentUser} />
           </TabsContent>
 
           {/* Profile Tab */}
