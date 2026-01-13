@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Copy, X, Play, Pause, Lock, Globe } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Users, Copy, X, Play, Pause, Lock, Globe, Send, MessageCircle, List, Plus, Trash2, SkipForward } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -14,6 +15,10 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
   const [partyName, setPartyName] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState(10);
+  const [activeTab, setActiveTab] = useState("chat");
+  const [chatMessage, setChatMessage] = useState("");
+  const [showPlaylistBuilder, setShowPlaylistBuilder] = useState(false);
+  const chatEndRef = useRef(null);
 
   const { data: watchParties = [] } = useQuery({
     queryKey: ['watch-parties', content?.id],
@@ -23,6 +28,32 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
     }),
     enabled: !!content,
     refetchInterval: 2000
+  });
+
+  const { data: chatMessages = [] } = useQuery({
+    queryKey: ['watch-party-messages', activeParty?.id],
+    queryFn: () => base44.entities.WatchPartyMessage.filter({
+      party_id: activeParty.id
+    }),
+    enabled: !!activeParty,
+    refetchInterval: 1000
+  });
+
+  const { data: playlist } = useQuery({
+    queryKey: ['watch-party-playlist', activeParty?.id],
+    queryFn: async () => {
+      const playlists = await base44.entities.WatchPartyPlaylist.filter({
+        party_id: activeParty.id
+      });
+      return playlists[0] || null;
+    },
+    enabled: !!activeParty
+  });
+
+  const { data: allContent = [] } = useQuery({
+    queryKey: ['streaming-content-all'],
+    queryFn: () => base44.entities.StreamingContent.list(),
+    enabled: showPlaylistBuilder
   });
 
   const createPartyMutation = useMutation({
@@ -91,19 +122,105 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
     }
   });
 
+  const sendMessageMutation = useMutation({
+    mutationFn: async (message) => {
+      return await base44.entities.WatchPartyMessage.create({
+        party_id: activeParty.id,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name || currentUser.email,
+        message
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['watch-party-messages']);
+      setChatMessage("");
+    }
+  });
+
+  const createPlaylistMutation = useMutation({
+    mutationFn: async (items) => {
+      const existing = await base44.entities.WatchPartyPlaylist.filter({
+        party_id: activeParty.id
+      });
+      
+      if (existing.length > 0) {
+        return await base44.entities.WatchPartyPlaylist.update(existing[0].id, {
+          content_items: items
+        });
+      }
+      
+      return await base44.entities.WatchPartyPlaylist.create({
+        party_id: activeParty.id,
+        content_items: items,
+        current_index: 0
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['watch-party-playlist']);
+      toast.success("Playlist updated!");
+    }
+  });
+
+  const skipToNextMutation = useMutation({
+    mutationFn: async () => {
+      const newIndex = (playlist.current_index + 1) % playlist.content_items.length;
+      return await base44.entities.WatchPartyPlaylist.update(playlist.id, {
+        current_index: newIndex
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['watch-party-playlist']);
+      toast.success("Skipped to next item");
+    }
+  });
+
   // Real-time sync
   useEffect(() => {
     if (!activeParty) return;
 
-    const unsubscribe = base44.entities.WatchParty.subscribe((event) => {
+    const unsubscribeParty = base44.entities.WatchParty.subscribe((event) => {
       if (event.data.id === activeParty.id) {
         queryClient.invalidateQueries(['watch-parties']);
         setActiveParty(event.data);
       }
     });
 
-    return unsubscribe;
+    const unsubscribeMessages = base44.entities.WatchPartyMessage.subscribe((event) => {
+      if (event.data.party_id === activeParty.id) {
+        queryClient.invalidateQueries(['watch-party-messages']);
+      }
+    });
+
+    return () => {
+      unsubscribeParty();
+      unsubscribeMessages();
+    };
   }, [activeParty]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!chatMessage.trim()) return;
+    sendMessageMutation.mutate(chatMessage);
+  };
+
+  const handleAddToPlaylist = (item) => {
+    const newItems = [...(playlist?.content_items || []), {
+      content_id: item.id,
+      title: item.title,
+      thumbnail_url: item.thumbnail_url,
+      duration: item.duration
+    }];
+    createPlaylistMutation.mutate(newItems);
+  };
+
+  const handleRemoveFromPlaylist = (index) => {
+    const newItems = playlist.content_items.filter((_, i) => i !== index);
+    createPlaylistMutation.mutate(newItems);
+  };
 
   const handleCreateParty = (e) => {
     e.preventDefault();
@@ -278,6 +395,148 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
                 </div>
               </div>
             </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                onClick={() => setActiveTab("chat")}
+                variant={activeTab === "chat" ? "default" : "outline"}
+                className={activeTab === "chat" ? "bg-purple-600" : "bg-white/5"}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Chat
+              </Button>
+              <Button
+                onClick={() => setActiveTab("playlist")}
+                variant={activeTab === "playlist" ? "default" : "outline"}
+                className={activeTab === "playlist" ? "bg-purple-600" : "bg-white/5"}
+              >
+                <List className="w-4 h-4 mr-2" />
+                Playlist
+              </Button>
+            </div>
+
+            {/* Chat Section */}
+            {activeTab === "chat" && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
+                <div className="h-64 overflow-y-auto mb-4 space-y-2">
+                  {chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-2 rounded-lg ${
+                        msg.sender_email === currentUser.email
+                          ? "bg-purple-600/30 ml-8"
+                          : "bg-white/5 mr-8"
+                      }`}
+                    >
+                      <p className="text-purple-300 text-xs font-semibold mb-1">
+                        {msg.sender_name}
+                      </p>
+                      <p className="text-white text-sm">{msg.message}</p>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={handleSendMessage} className="flex gap-2">
+                  <Input
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                  <Button type="submit" className="bg-purple-600">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+              </div>
+            )}
+
+            {/* Playlist Section */}
+            {activeTab === "playlist" && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-semibold">Watch Queue</h3>
+                  {activeParty.host_email === currentUser.email && (
+                    <Button
+                      onClick={() => setShowPlaylistBuilder(!showPlaylistBuilder)}
+                      size="sm"
+                      className="bg-purple-600"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  )}
+                </div>
+
+                {showPlaylistBuilder && activeParty.host_email === currentUser.email && (
+                  <div className="bg-black/30 rounded-lg p-3 mb-4 max-h-48 overflow-y-auto">
+                    <p className="text-gray-400 text-xs mb-2">Select content to add:</p>
+                    {allContent.slice(0, 10).map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleAddToPlaylist(item)}
+                        className="w-full flex items-center gap-2 p-2 hover:bg-white/5 rounded text-left"
+                      >
+                        <img src={item.thumbnail_url} className="w-12 h-16 object-cover rounded" />
+                        <span className="text-white text-sm">{item.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {playlist?.content_items?.length > 0 ? (
+                    playlist.content_items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                          idx === playlist.current_index
+                            ? "bg-purple-600/30 border border-purple-500"
+                            : "bg-white/5"
+                        }`}
+                      >
+                        <img
+                          src={item.thumbnail_url}
+                          className="w-12 h-16 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                          <p className="text-white text-sm font-semibold">{item.title}</p>
+                          {item.duration && (
+                            <p className="text-gray-400 text-xs">{item.duration}</p>
+                          )}
+                        </div>
+                        {activeParty.host_email === currentUser.email && (
+                          <Button
+                            onClick={() => handleRemoveFromPlaylist(idx)}
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm text-center py-8">
+                      No items in playlist yet
+                    </p>
+                  )}
+                </div>
+
+                {playlist?.content_items?.length > 0 &&
+                  activeParty.host_email === currentUser.email && (
+                    <Button
+                      onClick={() => skipToNextMutation.mutate()}
+                      className="w-full mt-4 bg-purple-600"
+                      disabled={playlist.content_items.length <= 1}
+                    >
+                      <SkipForward className="w-4 h-4 mr-2" />
+                      Skip to Next
+                    </Button>
+                  )}
+              </div>
+            )}
 
             {/* Playback Controls */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4">
