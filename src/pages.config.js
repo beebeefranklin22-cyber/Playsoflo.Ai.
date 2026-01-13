@@ -59,6 +59,7 @@ import PropertyHostProfile from './pages/PropertyHostProfile';
 import PropertyProviderHub from './pages/PropertyProviderHub';
 import ProviderHub from './pages/ProviderHub';
 import ProviderListings from './pages/ProviderListings';
+import ProviderOnboarding from './pages/ProviderOnboarding';
 import ProviderProfile from './pages/ProviderProfile';
 import RealEstate from './pages/RealEstate';
 import RestaurantMenu from './pages/RestaurantMenu';
@@ -91,7 +92,7 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import ProviderOnboarding from './pages/ProviderOnboarding';
+import CustomerBookings from './pages/CustomerBookings';
 import __Layout from './Layout.jsx';
 
 
@@ -157,6 +158,7 @@ export const PAGES = {
     "PropertyProviderHub": PropertyProviderHub,
     "ProviderHub": ProviderHub,
     "ProviderListings": ProviderListings,
+    "ProviderOnboarding": ProviderOnboarding,
     "ProviderProfile": ProviderProfile,
     "RealEstate": RealEstate,
     "RestaurantMenu": RestaurantMenu,
@@ -189,7 +191,7 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "ProviderOnboarding": ProviderOnboarding,
+    "CustomerBookings": CustomerBookings,
 }
 
 export const pagesConfig = {

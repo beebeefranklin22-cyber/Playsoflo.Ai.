@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import BookingModal from "../components/BookingModal";
+import QuickBookingFlow from "../components/booking/QuickBookingFlow";
 import ShopifyCheckoutModal from "../components/marketplace/ShopifyCheckoutModal";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
@@ -824,15 +825,30 @@ export default function Marketplace() {
         )}
       </div>
 
-      {/* Booking Modal */}
-      {showBookingModal && selectedService && (
-        <BookingModal
-          service={selectedService}
-          onClose={() => {
-            setShowBookingModal(false);
-            setSelectedService(null);
-          }}
-        />
+      {/* Quick Booking Modal */}
+      {showQuickBooking && selectedService && selectedProvider && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setShowQuickBooking(false)}
+        >
+          <div
+            className="w-full max-w-2xl bg-gray-900 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <QuickBookingFlow
+              service={selectedService}
+              provider={selectedProvider}
+              onClose={() => {
+                setShowQuickBooking(false);
+                setSelectedService(null);
+                setSelectedProvider(null);
+              }}
+              onSuccess={() => {
+                queryClient.invalidateQueries(['marketplace-items']);
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Shopify Checkout Modal */}
