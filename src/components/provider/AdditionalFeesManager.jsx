@@ -18,7 +18,7 @@ export default function AdditionalFeesManager({ rental, rentalType, onClose }) {
     evidence_urls: []
   });
 
-  const chargeFee Mutation = useMutation({
+  const chargeFeeMutation = useMutation({
     mutationFn: async (feeData) => {
       // Create a payment record for the additional fee
       const payment = await base44.entities.Payment.create({
@@ -171,11 +171,11 @@ export default function AdditionalFeesManager({ rental, rentalType, onClose }) {
 
         <div className="flex gap-2">
           <Button
-            onClick={() => chargeFee Mutation.mutate(feeForm)}
-            disabled={chargeFee Mutation.isLoading || !feeForm.amount || !feeForm.description}
+            onClick={() => chargeFeeMutation.mutate(feeForm)}
+            disabled={chargeFeeMutation.isLoading || !feeForm.amount || !feeForm.description}
             className="flex-1 bg-red-600 hover:bg-red-700"
           >
-            {chargeFee Mutation.isLoading ? (
+            {chargeFeeMutation.isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Processing...
