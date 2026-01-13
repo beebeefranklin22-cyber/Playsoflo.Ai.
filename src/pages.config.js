@@ -16,6 +16,7 @@ import CreatorDiscovery from './pages/CreatorDiscovery';
 import CreatorHub from './pages/CreatorHub';
 import CreatorOnboarding from './pages/CreatorOnboarding';
 import CreatorStorefront from './pages/CreatorStorefront';
+import CustomerBookings from './pages/CustomerBookings';
 import DeliveryDriverHub from './pages/DeliveryDriverHub';
 import Discover from './pages/Discover';
 import Disputes from './pages/Disputes';
@@ -92,7 +93,8 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import CustomerBookings from './pages/CustomerBookings';
+import MyTickets from './pages/MyTickets';
+import EntertainmentProviderHub from './pages/EntertainmentProviderHub';
 import __Layout from './Layout.jsx';
 
 
@@ -115,6 +117,7 @@ export const PAGES = {
     "CreatorHub": CreatorHub,
     "CreatorOnboarding": CreatorOnboarding,
     "CreatorStorefront": CreatorStorefront,
+    "CustomerBookings": CustomerBookings,
     "DeliveryDriverHub": DeliveryDriverHub,
     "Discover": Discover,
     "Disputes": Disputes,
@@ -191,7 +194,8 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "CustomerBookings": CustomerBookings,
+    "MyTickets": MyTickets,
+    "EntertainmentProviderHub": EntertainmentProviderHub,
 }
 
 export const pagesConfig = {

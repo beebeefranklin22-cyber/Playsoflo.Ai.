@@ -20,6 +20,7 @@ import MessageProviderButton from "../components/provider/MessageProviderButton"
 import ListExperienceModal from "../components/entertainment/ListExperienceModal";
 import TicketAffiliateStats from "../components/affiliate/TicketAffiliateStats";
 import AffiliatePayoutManager from "../components/affiliate/AffiliatePayoutManager";
+import TicketPurchaseModal from "../components/entertainment/TicketPurchaseModal";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
@@ -87,6 +88,8 @@ export default function EntertainmentExperiences() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showListExperience, setShowListExperience] = useState(false);
   const [eventsSearch, setEventsSearch] = useState({ keyword: "", city: "Miami" });
+  const [selectedExperience, setSelectedExperience] = useState(null);
+  const [showTicketModal, setShowTicketModal] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -524,10 +527,40 @@ Return as JSON array with this structure:
                             </Badge>
                           </div>
                           <p className="text-gray-400 text-sm mb-4 line-clamp-2">{exp.description}</p>
+                          
+                          {exp.venue_name && (
+                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                              <Calendar className="w-4 h-4" />
+                              <span>{exp.venue_name}</span>
+                            </div>
+                          )}
+                          
+                          {exp.requires_tickets && exp.ticket_types?.length > 0 && (
+                            <div className="flex items-center gap-2 mb-3">
+                              <Ticket className="w-4 h-4 text-purple-400" />
+                              <span className="text-purple-300 text-xs">E-Tickets Available</span>
+                            </div>
+                          )}
+                          
                           <div className="flex items-center justify-between mb-3">
-                            <div className="text-green-400 font-bold text-xl">${exp.price}</div>
-                            <Button className="bg-purple-600 hover:bg-purple-700">
-                              Book Now
+                            <div className="text-green-400 font-bold text-xl">
+                              {exp.requires_tickets && exp.ticket_types?.length > 0 
+                                ? `From $${Math.min(...exp.ticket_types.map(t => t.price))}`
+                                : `$${exp.price}`
+                              }
+                            </div>
+                            <Button 
+                              onClick={() => {
+                                if (exp.requires_tickets) {
+                                  setSelectedExperience(exp);
+                                  setShowTicketModal(true);
+                                } else {
+                                  toast.info('Direct booking coming soon!');
+                                }
+                              }}
+                              className="bg-purple-600 hover:bg-purple-700"
+                            >
+                              {exp.requires_tickets ? 'Buy Tickets' : 'Book Now'}
                             </Button>
                           </div>
                           {currentUser && exp.provider_email && (
@@ -585,6 +618,18 @@ Return as JSON array with this structure:
           onClose={() => setShowListExperience(false)}
           currentUser={currentUser}
         />
+
+        {selectedExperience && (
+          <TicketPurchaseModal
+            isOpen={showTicketModal}
+            onClose={() => {
+              setShowTicketModal(false);
+              setSelectedExperience(null);
+            }}
+            experience={selectedExperience}
+            currentUser={currentUser}
+          />
+        )}
       </div>
     </div>
   );
