@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import VideoCallModal from "../components/VideoCallModal";
 import MessageReactions from "../components/chat/MessageReactions";
 import { MessageEncryption } from "../components/chat/MessageEncryption";
+import AutoConversationCreator from "../components/chat/AutoConversationCreator";
 import { toast } from "sonner";
 
 export default function Messages() {
@@ -37,6 +38,9 @@ export default function Messages() {
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [recordingVoice, setRecordingVoice] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [previewMedia, setPreviewMedia] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -72,9 +76,21 @@ export default function Messages() {
       return allConvs.filter(conv => conv.participants.includes(currentUser.email));
     },
     enabled: !!currentUser,
-    initialData: [],
-    refetchInterval: 2000
+    initialData: []
   });
+
+  // Real-time conversation updates
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const unsubscribe = base44.entities.ChatConversation.subscribe((event) => {
+      if (event.data.participants?.includes(currentUser.email)) {
+        queryClient.invalidateQueries(['conversations']);
+      }
+    });
+    
+    return unsubscribe;
+  }, [currentUser]);
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', selectedConversation?.id],
@@ -86,9 +102,26 @@ export default function Messages() {
       return msgs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
     },
     enabled: !!selectedConversation,
-    initialData: [],
-    refetchInterval: 1000 // Real-time updates - poll every second
+    initialData: []
   });
+
+  // Real-time message updates
+  useEffect(() => {
+    if (!selectedConversation) return;
+    
+    const unsubscribe = base44.entities.ChatMessage.subscribe((event) => {
+      if (event.data.conversation_id === selectedConversation.id) {
+        queryClient.invalidateQueries(['messages', selectedConversation.id]);
+        
+        // Auto-scroll on new message
+        if (event.type === 'create') {
+          setTimeout(scrollToBottom, 100);
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [selectedConversation]);
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ['all-users'],
@@ -354,15 +387,30 @@ export default function Messages() {
       return;
     }
 
-    toast.info('Uploading file...');
-    
+    const messageType = file.type.startsWith('image/') ? 'image' : 
+                       file.type.startsWith('video/') ? 'video' :
+                       file.type.startsWith('audio/') ? 'audio' : 'file';
+
+    // Show preview for images/videos
+    if (messageType === 'image' || messageType === 'video') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewMedia({
+          type: messageType,
+          url: e.target.result,
+          file,
+          name: file.name
+        });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Upload directly for other files
+    toast.info('Uploading...');
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
-      const messageType = file.type.startsWith('image/') ? 'image' : 
-                         file.type.startsWith('video/') ? 'video' :
-                         file.type.startsWith('audio/') ? 'audio' : 'file';
-
       sendMessageMutation.mutate({
         conversation_id: selectedConversation.id,
         sender_email: currentUser.email,
@@ -374,9 +422,83 @@ export default function Messages() {
         file_mime_type: file.type
       });
       
-      toast.success('File uploaded!');
+      toast.success('Sent!');
     } catch (error) {
       toast.error('Upload failed');
+    }
+  };
+
+  const handleSendMedia = async () => {
+    if (!previewMedia) return;
+    
+    toast.info('Sending...');
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: previewMedia.file });
+      
+      sendMessageMutation.mutate({
+        conversation_id: selectedConversation.id,
+        sender_email: currentUser.email,
+        content: previewMedia.name,
+        message_type: previewMedia.type,
+        file_url,
+        file_name: previewMedia.name,
+        file_size: previewMedia.file.size,
+        file_mime_type: previewMedia.file.type
+      });
+      
+      setPreviewMedia(null);
+      toast.success('Sent!');
+    } catch (error) {
+      toast.error('Failed to send');
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: 'audio/webm' });
+        
+        toast.info('Sending voice message...');
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          
+          sendMessageMutation.mutate({
+            conversation_id: selectedConversation.id,
+            sender_email: currentUser.email,
+            content: "Voice message",
+            message_type: "voice_note",
+            file_url,
+            file_name: file.name,
+            file_size: file.size
+          });
+          
+          toast.success('Voice message sent!');
+        } catch (error) {
+          toast.error('Failed to send voice message');
+        }
+        
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecordingVoice(true);
+    } catch (error) {
+      toast.error('Microphone access denied');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setRecordingVoice(false);
+      setMediaRecorder(null);
     }
   };
 
@@ -519,6 +641,9 @@ export default function Messages() {
   );
 
   return (
+    <>
+      <AutoConversationCreator currentUser={currentUser} />
+      
     <div className="h-screen flex pb-20">
       {/* Conversations List */}
       <div className={`${selectedConversation ? 'hidden md:block' : 'block'} w-full md:w-80 border-r border-white/10 flex flex-col bg-gray-900/50`}>
@@ -827,8 +952,10 @@ export default function Messages() {
                           />
                         )}
 
-                        {message.message_type === 'audio' && !message.is_deleted && (
-                          <audio src={message.file_url} controls className="mb-1" />
+                        {(message.message_type === 'audio' || message.message_type === 'voice_note') && !message.is_deleted && (
+                          <div className="mb-1">
+                            <audio src={message.file_url} controls className="max-w-full" />
+                          </div>
                         )}
 
                         {message.message_type === 'file' && !message.is_deleted && (
@@ -1040,12 +1167,13 @@ export default function Messages() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    fileInputRef.current.accept = 'audio/*';
-                    fileInputRef.current?.click();
-                  }}
-                  className="text-purple-400 hover:bg-purple-500/20"
-                  title="Send audio"
+                  onMouseDown={startVoiceRecording}
+                  onMouseUp={stopVoiceRecording}
+                  onMouseLeave={() => recordingVoice && stopVoiceRecording()}
+                  onTouchStart={startVoiceRecording}
+                  onTouchEnd={stopVoiceRecording}
+                  className={`${recordingVoice ? 'bg-red-600 animate-pulse' : 'text-purple-400 hover:bg-purple-500/20'}`}
+                  title="Hold to record voice message"
                 >
                   <Mic className="w-5 h-5" />
                 </Button>
@@ -1251,6 +1379,52 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
+      {/* Media Preview Modal */}
+      <AnimatePresence>
+        {previewMedia && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+            onClick={() => setPreviewMedia(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6"
+            >
+              <h3 className="text-xl font-bold text-white mb-4">Send {previewMedia.type}?</h3>
+              
+              {previewMedia.type === 'image' ? (
+                <img src={previewMedia.url} className="w-full rounded-xl mb-4" />
+              ) : (
+                <video src={previewMedia.url} controls className="w-full rounded-xl mb-4" />
+              )}
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setPreviewMedia(null)}
+                  variant="outline"
+                  className="flex-1 bg-white/5"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSendMedia}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Send
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Video Call Modal */}
       {showVideoCall && selectedConversation && (
         <VideoCallModal
@@ -1259,5 +1433,6 @@ export default function Messages() {
         />
       )}
     </div>
+    </>
   );
 }
