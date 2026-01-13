@@ -18,6 +18,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import SystemHealthMonitor from "./components/SystemHealthMonitor";
 import ProactiveMonitor from "./components/ProactiveMonitor";
 import SmartTooltip from "./components/onboarding/SmartTooltip";
+import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -422,6 +423,9 @@ export default function Layout({ children, currentPageName }) {
       {currentUser && currentUser.onboarding_completed && !isFullScreen && (
         <SmartTooltip currentUser={currentUser} currentPage={currentPageName} />
       )}
+
+      {/* Real-time Notification Manager */}
+      <RealtimeNotificationManager currentUser={currentUser} />
       </div>
       </PostHogProvider>
       </ErrorBoundary>

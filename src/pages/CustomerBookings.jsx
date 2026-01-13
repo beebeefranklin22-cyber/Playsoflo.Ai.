@@ -43,9 +43,36 @@ export default function CustomerBookings() {
 
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId) => {
-      return await base44.entities.ServiceBooking.update(bookingId, {
+      const booking = await base44.entities.ServiceBooking.update(bookingId, {
         status: 'cancelled'
       });
+      
+      // Send cancellation notifications
+      try {
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: booking.customer_email,
+          type: 'booking_cancelled',
+          bookingId: booking.id,
+          bookingTitle: booking.service_title,
+          bookingDate: booking.booking_date,
+          bookingTime: booking.booking_time,
+          providerName: booking.provider_name
+        });
+
+        await base44.functions.invoke('sendBookingNotification', {
+          recipientEmail: booking.provider_email,
+          type: 'booking_cancelled',
+          bookingId: booking.id,
+          bookingTitle: booking.service_title,
+          bookingDate: booking.booking_date,
+          bookingTime: booking.booking_time,
+          customerName: booking.customer_name
+        });
+      } catch (notifError) {
+        console.error('Failed to send cancellation notifications:', notifError);
+      }
+
+      return booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['customer-bookings']);
