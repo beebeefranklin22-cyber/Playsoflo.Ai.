@@ -13,6 +13,7 @@ import ListExperienceModal from "../components/entertainment/ListExperienceModal
 import TicketRedemptionScanner from "../components/entertainment/TicketRedemptionScanner";
 import VoidPassModal from "../components/entertainment/VoidPassModal";
 import CalendarSyncManager from "../components/entertainment/CalendarSyncManager";
+import { Repeat, Grid3x3 } from "lucide-react";
 
 export default function EntertainmentProviderHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -137,54 +138,87 @@ export default function EntertainmentProviderHub() {
                 const expRevenue = expTickets.reduce((sum, t) => sum + t.price_paid, 0);
                 
                 return (
-                  <Card key={exp.id} className="bg-white/5 border-white/10">
-                    <CardContent className="p-6">
-                      <div className="flex gap-6">
-                        {exp.image_url && (
-                          <img src={exp.image_url} className="w-48 h-32 object-cover rounded-lg flex-shrink-0" />
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h3 className="text-white font-bold text-xl mb-2">{exp.title}</h3>
-                              <Badge className="bg-purple-500/20 text-purple-300 mb-2">
-                                {exp.category.replace(/_/g, ' ')}
-                              </Badge>
-                            </div>
-                            <Button size="sm" variant="outline">
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </Button>
-                          </div>
-
-                          <div className="grid md:grid-cols-3 gap-4 mb-4">
-                            <div className="bg-white/5 rounded-lg p-3">
-                              <p className="text-gray-400 text-xs">Tickets Sold</p>
-                              <p className="text-white font-bold text-lg">{expTickets.length}</p>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-3">
-                              <p className="text-gray-400 text-xs">Revenue</p>
-                              <p className="text-green-400 font-bold text-lg">${expRevenue.toFixed(0)}</p>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-3">
-                              <p className="text-gray-400 text-xs">Upcoming Events</p>
-                              <p className="text-white font-bold text-lg">{exp.event_dates?.length || 0}</p>
-                            </div>
-                          </div>
-
-                          {exp.requires_tickets && exp.ticket_types?.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {exp.ticket_types.map((ticket, idx) => (
-                                <div key={idx} className="px-3 py-1 bg-white/10 rounded-full">
-                                  <span className="text-white text-xs">{ticket.type}: ${ticket.price}</span>
-                                </div>
-                              ))}
-                            </div>
+                  <div key={exp.id} className="space-y-3">
+                    <Card className="bg-white/5 border-white/10">
+                      <CardContent className="p-6">
+                        <div className="flex gap-6">
+                          {exp.image_url && (
+                            <img src={exp.image_url} className="w-48 h-32 object-cover rounded-lg flex-shrink-0" />
                           )}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h3 className="text-white font-bold text-xl mb-2">{exp.title}</h3>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge className="bg-purple-500/20 text-purple-300">
+                                    {exp.category.replace(/_/g, ' ')}
+                                  </Badge>
+                                  {exp.recurring_schedule?.days_of_week && (
+                                    <Badge className="bg-blue-500/20 text-blue-300 flex items-center gap-1">
+                                      <Repeat className="w-3 h-3" />
+                                      Recurring
+                                    </Badge>
+                                  )}
+                                  {exp.seating_enabled && (
+                                    <Badge className="bg-green-500/20 text-green-300 flex items-center gap-1">
+                                      <Grid3x3 className="w-3 h-3" />
+                                      Seating
+                                    </Badge>
+                                  )}
+                                  {exp.calendar_sync_enabled && (
+                                    <Badge className="bg-yellow-500/20 text-yellow-300 flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      Synced
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Button size="sm" variant="outline">
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </Button>
+                            </div>
+
+                            <div className="grid md:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-white/5 rounded-lg p-3">
+                                <p className="text-gray-400 text-xs">Tickets Sold</p>
+                                <p className="text-white font-bold text-lg">{expTickets.length}</p>
+                              </div>
+                              <div className="bg-white/5 rounded-lg p-3">
+                                <p className="text-gray-400 text-xs">Revenue</p>
+                                <p className="text-green-400 font-bold text-lg">${expRevenue.toFixed(0)}</p>
+                              </div>
+                              <div className="bg-white/5 rounded-lg p-3">
+                                <p className="text-gray-400 text-xs">
+                                  {exp.seating_enabled ? 'Zones' : 'Upcoming Events'}
+                                </p>
+                                <p className="text-white font-bold text-lg">
+                                  {exp.seating_enabled ? exp.seating_zones?.length || 0 : exp.event_dates?.length || 0}
+                                </p>
+                              </div>
+                            </div>
+
+                            {exp.requires_tickets && exp.ticket_types?.length > 0 && (
+                              <div className="flex flex-wrap gap-2">
+                                {exp.ticket_types.map((ticket, idx) => (
+                                  <div key={idx} className="px-3 py-1 bg-white/10 rounded-full">
+                                    <span className="text-white text-xs">{ticket.type}: ${ticket.price}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+
+                    <CalendarSyncManager 
+                      experience={exp}
+                      onUpdate={() => {
+                        // Refresh experiences
+                      }}
+                    />
+                  </div>
                 );
               })
             )}
