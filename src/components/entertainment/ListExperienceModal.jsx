@@ -3,30 +3,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Upload, Loader2, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { X, Upload, Loader2, Sparkles, Plus, Calendar as CalendarIcon, Ticket, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 
 export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
+  const [step, setStep] = useState(1);
   const [experience, setExperience] = useState({
     title: "",
     description: "",
     category: "yacht_charter",
     price: 0,
-    duration: "",
-    location: "",
-    capacity: 1,
+    provider_email: currentUser?.email || "",
+    provider_name: currentUser?.full_name || "",
+    provider_phone: "",
     image_url: "",
-    images: [],
-    included_items: [],
-    provider_email: currentUser?.email || ""
+    gallery_images: [],
+    venue_name: "",
+    venue_address: "",
+    venue_city: "",
+    venue_state: "",
+    venue_zipcode: "",
+    requires_tickets: false,
+    ticket_types: [],
+    total_capacity: 0,
+    availability_type: "single_event",
+    event_dates: [],
+    duration_minutes: 60,
+    cancellation_policy: "Full refund up to 24 hours before event",
+    refund_policy: "100% refund within 24 hours",
+    age_restriction: "All ages welcome",
+    dress_code: "Casual",
+    included_amenities: [],
+    special_requirements: "",
+    pricing_tiers: []
   });
 
-  const [newItem, setNewItem] = useState("");
+  const [newAmenity, setNewAmenity] = useState("");
+  const [newTicketType, setNewTicketType] = useState({ type: "", price: 0, available: 0, description: "" });
+  const [newPricingTier, setNewPricingTier] = useState({ name: "", price: 0, description: "", capacity: 0 });
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [eventTime, setEventTime] = useState({ start_time: "", end_time: "", capacity: 0 });
 
   const createExperienceMutation = useMutation({
     mutationFn: (data) => base44.entities.Experience.create(data),
@@ -34,21 +58,55 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
       queryClient.invalidateQueries(['entertainment-experiences']);
       toast.success('Experience listed successfully!');
       onClose();
+      resetForm();
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to list experience');
     }
   });
 
-  const handleImageUpload = async (file) => {
+  const resetForm = () => {
+    setStep(1);
+    setExperience({
+      title: "",
+      description: "",
+      category: "yacht_charter",
+      price: 0,
+      provider_email: currentUser?.email || "",
+      provider_name: currentUser?.full_name || "",
+      provider_phone: "",
+      image_url: "",
+      gallery_images: [],
+      venue_name: "",
+      venue_address: "",
+      venue_city: "",
+      venue_state: "",
+      venue_zipcode: "",
+      requires_tickets: false,
+      ticket_types: [],
+      total_capacity: 0,
+      availability_type: "single_event",
+      event_dates: [],
+      duration_minutes: 60,
+      cancellation_policy: "Full refund up to 24 hours before event",
+      refund_policy: "100% refund within 24 hours",
+      age_restriction: "All ages welcome",
+      dress_code: "Casual",
+      included_amenities: [],
+      special_requirements: "",
+      pricing_tiers: []
+    });
+  };
+
+  const handleImageUpload = async (file, isGallery = false) => {
     if (!file) return;
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      if (!experience.image_url) {
-        setExperience(prev => ({ ...prev, image_url: file_url }));
+      if (isGallery) {
+        setExperience(prev => ({ ...prev, gallery_images: [...prev.gallery_images, file_url] }));
       } else {
-        setExperience(prev => ({ ...prev, images: [...prev.images, file_url] }));
+        setExperience(prev => ({ ...prev, image_url: file_url }));
       }
       toast.success('Image uploaded!');
     } catch (error) {
@@ -59,15 +117,52 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
   };
 
   const handleSubmit = () => {
-    if (!experience.title || !experience.price || !experience.image_url || !experience.location) {
-      toast.error('Please fill in all required fields and upload at least one image');
+    if (!experience.title || !experience.price || !experience.image_url) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (experience.requires_tickets && experience.ticket_types.length === 0) {
+      toast.error('Please add at least one ticket type');
       return;
     }
 
     createExperienceMutation.mutate({
       ...experience,
-      provider_email: currentUser.email
+      provider_email: currentUser.email,
+      provider_name: currentUser.full_name
     });
+  };
+
+  const addTicketType = () => {
+    if (!newTicketType.type || newTicketType.price <= 0) {
+      toast.error('Please fill in ticket type details');
+      return;
+    }
+    setExperience(prev => ({
+      ...prev,
+      ticket_types: [...prev.ticket_types, newTicketType],
+      total_capacity: prev.total_capacity + newTicketType.available
+    }));
+    setNewTicketType({ type: "", price: 0, available: 0, description: "" });
+  };
+
+  const addEventDate = () => {
+    if (!selectedDate || !eventTime.start_time) {
+      toast.error('Please select date and time');
+      return;
+    }
+    setExperience(prev => ({
+      ...prev,
+      event_dates: [...prev.event_dates, {
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        start_time: eventTime.start_time,
+        end_time: eventTime.end_time,
+        capacity: eventTime.capacity || prev.total_capacity
+      }]
+    }));
+    setSelectedDate(null);
+    setEventTime({ start_time: "", end_time: "", capacity: 0 });
   };
 
   if (!isOpen) return null;
@@ -86,7 +181,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8 my-8"
+          className="w-full max-w-4xl bg-gray-900 rounded-3xl p-8 my-8"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold text-white flex items-center gap-3">
@@ -98,198 +193,527 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             </button>
           </div>
 
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
-            <div>
-              <label className="text-white font-semibold mb-2 block">Experience Title *</label>
-              <Input
-                value={experience.title}
-                onChange={(e) => setExperience({ ...experience, title: e.target.value })}
-                placeholder="Sunset Yacht Charter Experience"
-                className="bg-white/10 border-white/20 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-white font-semibold mb-2 block">Category</label>
-              <Select value={experience.category} onValueChange={(v) => setExperience({ ...experience, category: v })}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
-                  <SelectItem value="exotic_car">Exotic Car Experience</SelectItem>
-                  <SelectItem value="wine_tasting">Wine Tasting</SelectItem>
-                  <SelectItem value="photography">Photography Session</SelectItem>
-                  <SelectItem value="event_planning">Event Planning</SelectItem>
-                  <SelectItem value="nightlife">Nightlife Experience</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-white font-semibold mb-2 block">Description</label>
-              <Textarea
-                value={experience.description}
-                onChange={(e) => setExperience({ ...experience, description: e.target.value })}
-                placeholder="Describe your experience in detail..."
-                rows={4}
-                className="bg-white/10 border-white/20 text-white"
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-white font-semibold mb-2 block">Location *</label>
-                <Input
-                  value={experience.location}
-                  onChange={(e) => setExperience({ ...experience, location: e.target.value })}
-                  placeholder="Miami Beach, FL"
-                  className="bg-white/10 border-white/20 text-white"
-                />
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition ${
+                  s === step ? 'bg-purple-600 text-white' : s < step ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-400'
+                }`}
+              >
+                {s}
               </div>
-              <div>
-                <label className="text-white font-semibold mb-2 block">Duration</label>
-                <Input
-                  value={experience.duration}
-                  onChange={(e) => setExperience({ ...experience, duration: e.target.value })}
-                  placeholder="4 hours"
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-            </div>
+            ))}
+          </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-white font-semibold mb-2 block">Price *</label>
-                <Input
-                  type="number"
-                  value={experience.price}
-                  onChange={(e) => setExperience({ ...experience, price: Number(e.target.value) })}
-                  placeholder="0"
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-              <div>
-                <label className="text-white font-semibold mb-2 block">Max Capacity</label>
-                <Input
-                  type="number"
-                  value={experience.capacity}
-                  onChange={(e) => setExperience({ ...experience, capacity: Number(e.target.value) })}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-            </div>
+          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+            {step === 1 && (
+              <>
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Experience Title *</label>
+                  <Input
+                    value={experience.title}
+                    onChange={(e) => setExperience({ ...experience, title: e.target.value })}
+                    placeholder="Sunset Yacht Charter Experience"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
 
-            {/* Images */}
-            <div>
-              <label className="text-white font-semibold mb-2 block">Photos *</label>
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                {experience.image_url && (
-                  <div className="relative">
-                    <img src={experience.image_url} className="w-full h-24 object-cover rounded-lg border-2 border-purple-500" />
-                    <div className="absolute top-1 left-1 px-2 py-0.5 bg-purple-500 rounded text-xs text-white">Main</div>
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Category *</label>
+                  <Select value={experience.category} onValueChange={(v) => setExperience({ ...experience, category: v })}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-96 overflow-y-auto">
+                      <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
+                      <SelectItem value="exotic_car">Exotic Car</SelectItem>
+                      <SelectItem value="wine_tasting">Wine Tasting</SelectItem>
+                      <SelectItem value="photography">Photography</SelectItem>
+                      <SelectItem value="event_planning">Event Planning</SelectItem>
+                      <SelectItem value="nightlife">Nightlife</SelectItem>
+                      <SelectItem value="comedy_clubs">Comedy Clubs</SelectItem>
+                      <SelectItem value="concerts">Concerts</SelectItem>
+                      <SelectItem value="theatre">Theatre</SelectItem>
+                      <SelectItem value="festivals">Festivals</SelectItem>
+                      <SelectItem value="karaoke">Karaoke</SelectItem>
+                      <SelectItem value="escape_rooms">Escape Rooms</SelectItem>
+                      <SelectItem value="arcade">Arcade</SelectItem>
+                      <SelectItem value="bowling">Bowling</SelectItem>
+                      <SelectItem value="cinema">Cinema</SelectItem>
+                      <SelectItem value="theme_parks">Theme Parks</SelectItem>
+                      <SelectItem value="water_parks">Water Parks</SelectItem>
+                      <SelectItem value="casinos">Casinos</SelectItem>
+                      <SelectItem value="paint_sip">Paint & Sip</SelectItem>
+                      <SelectItem value="axe_throwing">Axe Throwing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Description *</label>
+                  <Textarea
+                    value={experience.description}
+                    onChange={(e) => setExperience({ ...experience, description: e.target.value })}
+                    placeholder="Describe your experience in detail..."
+                    rows={4}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">Base Price (USD) *</label>
+                    <Input
+                      type="number"
+                      value={experience.price}
+                      onChange={(e) => setExperience({ ...experience, price: Number(e.target.value) })}
+                      placeholder="0"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">Duration (minutes)</label>
+                    <Input
+                      type="number"
+                      value={experience.duration_minutes}
+                      onChange={(e) => setExperience({ ...experience, duration_minutes: Number(e.target.value) })}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Contact Phone</label>
+                  <Input
+                    value={experience.provider_phone}
+                    onChange={(e) => setExperience({ ...experience, provider_phone: e.target.value })}
+                    placeholder="+1 (555) 123-4567"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Main Cover Photo *</label>
+                  {experience.image_url && (
+                    <img src={experience.image_url} className="w-full h-48 object-cover rounded-lg mb-3 border-2 border-purple-500" />
+                  )}
+                  <input
+                    id="cover-photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleImageUpload(e.target.files?.[0], false)}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('cover-photo').click()}
+                    disabled={uploading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload Cover Photo
+                  </Button>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Gallery Photos</label>
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    {experience.gallery_images.map((img, idx) => (
+                      <div key={idx} className="relative">
+                        <img src={img} className="w-full h-24 object-cover rounded-lg" />
+                        <button
+                          onClick={() => setExperience(prev => ({
+                            ...prev,
+                            gallery_images: prev.gallery_images.filter((_, i) => i !== idx)
+                          }))}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
+                        >
+                          <X className="w-4 h-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    id="gallery-photos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      files.forEach(file => handleImageUpload(file, true));
+                    }}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => document.getElementById('gallery-photos').click()}
+                    disabled={uploading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Add Gallery Photos
+                  </Button>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Venue Name</label>
+                  <Input
+                    value={experience.venue_name}
+                    onChange={(e) => setExperience({ ...experience, venue_name: e.target.value })}
+                    placeholder="Miami Beach Marina"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Venue Address</label>
+                  <Input
+                    value={experience.venue_address}
+                    onChange={(e) => setExperience({ ...experience, venue_address: e.target.value })}
+                    placeholder="123 Ocean Drive"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">City</label>
+                    <Input
+                      value={experience.venue_city}
+                      onChange={(e) => setExperience({ ...experience, venue_city: e.target.value })}
+                      placeholder="Miami"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">State</label>
+                    <Input
+                      value={experience.venue_state}
+                      onChange={(e) => setExperience({ ...experience, venue_state: e.target.value })}
+                      placeholder="FL"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">Zipcode</label>
+                    <Input
+                      value={experience.venue_zipcode}
+                      onChange={(e) => setExperience({ ...experience, venue_zipcode: e.target.value })}
+                      placeholder="33139"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Included Amenities</label>
+                  <div className="flex gap-2 mb-3">
+                    <Input
+                      value={newAmenity}
+                      onChange={(e) => setNewAmenity(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && newAmenity.trim()) {
+                          e.preventDefault();
+                          setExperience(prev => ({ ...prev, included_amenities: [...prev.included_amenities, newAmenity.trim()] }));
+                          setNewAmenity("");
+                        }
+                      }}
+                      placeholder="Champagne, Catering, etc."
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (newAmenity.trim()) {
+                          setExperience(prev => ({ ...prev, included_amenities: [...prev.included_amenities, newAmenity.trim()] }));
+                          setNewAmenity("");
+                        }
+                      }}
+                      className="bg-purple-600"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {experience.included_amenities.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
+                        <span className="text-white text-sm">{item}</span>
+                        <button
+                          onClick={() => setExperience(prev => ({
+                            ...prev,
+                            included_amenities: prev.included_amenities.filter((_, i) => i !== idx)
+                          }))}
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                <div className="flex items-center gap-3 p-4 bg-purple-500/20 rounded-xl">
+                  <Switch
+                    checked={experience.requires_tickets}
+                    onCheckedChange={(checked) => setExperience({ ...experience, requires_tickets: checked })}
+                  />
+                  <div>
+                    <p className="text-white font-semibold">Requires E-Tickets</p>
+                    <p className="text-gray-400 text-sm">Enable ticketing system for this experience</p>
+                  </div>
+                </div>
+
+                {experience.requires_tickets && (
+                  <>
+                    <div className="bg-white/5 rounded-xl p-4 space-y-4">
+                      <h3 className="text-white font-bold flex items-center gap-2">
+                        <Ticket className="w-5 h-5" />
+                        Add Ticket Types
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <Input
+                          value={newTicketType.type}
+                          onChange={(e) => setNewTicketType({ ...newTicketType, type: e.target.value })}
+                          placeholder="e.g., General Admission, VIP"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Input
+                          type="number"
+                          value={newTicketType.price}
+                          onChange={(e) => setNewTicketType({ ...newTicketType, price: Number(e.target.value) })}
+                          placeholder="Price"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Input
+                          type="number"
+                          value={newTicketType.available}
+                          onChange={(e) => setNewTicketType({ ...newTicketType, available: Number(e.target.value) })}
+                          placeholder="Available Quantity"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Input
+                          value={newTicketType.description}
+                          onChange={(e) => setNewTicketType({ ...newTicketType, description: e.target.value })}
+                          placeholder="Description"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <Button onClick={addTicketType} className="w-full bg-purple-600">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Ticket Type
+                      </Button>
+
+                      {experience.ticket_types.length > 0 && (
+                        <div className="space-y-2">
+                          {experience.ticket_types.map((ticket, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
+                              <div>
+                                <p className="text-white font-semibold">{ticket.type}</p>
+                                <p className="text-gray-400 text-sm">${ticket.price} • {ticket.available} available</p>
+                              </div>
+                              <button
+                                onClick={() => setExperience(prev => ({
+                                  ...prev,
+                                  ticket_types: prev.ticket_types.filter((_, i) => i !== idx),
+                                  total_capacity: prev.total_capacity - ticket.available
+                                }))}
+                                className="text-red-400 hover:text-red-300"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Availability Type</label>
+                  <Select value={experience.availability_type} onValueChange={(v) => setExperience({ ...experience, availability_type: v })}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="single_event">Single Event</SelectItem>
+                      <SelectItem value="recurring">Recurring Schedule</SelectItem>
+                      <SelectItem value="open_availability">Open Availability</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {experience.availability_type === 'single_event' && (
+                  <div className="bg-white/5 rounded-xl p-4 space-y-4">
+                    <h3 className="text-white font-bold flex items-center gap-2">
+                      <CalendarIcon className="w-5 h-5" />
+                      Event Dates & Times
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        className="rounded-md border border-white/20 bg-white/5 text-white"
+                      />
+                      <div className="space-y-3">
+                        <Input
+                          type="time"
+                          value={eventTime.start_time}
+                          onChange={(e) => setEventTime({ ...eventTime, start_time: e.target.value })}
+                          placeholder="Start Time"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Input
+                          type="time"
+                          value={eventTime.end_time}
+                          onChange={(e) => setEventTime({ ...eventTime, end_time: e.target.value })}
+                          placeholder="End Time"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Input
+                          type="number"
+                          value={eventTime.capacity}
+                          onChange={(e) => setEventTime({ ...eventTime, capacity: Number(e.target.value) })}
+                          placeholder="Capacity (optional)"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Button onClick={addEventDate} className="w-full bg-purple-600">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Date
+                        </Button>
+                      </div>
+                    </div>
+
+                    {experience.event_dates.length > 0 && (
+                      <div className="space-y-2">
+                        {experience.event_dates.map((ed, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
+                            <div>
+                              <p className="text-white font-semibold">{ed.date}</p>
+                              <p className="text-gray-400 text-sm">{ed.start_time} - {ed.end_time}</p>
+                            </div>
+                            <button
+                              onClick={() => setExperience(prev => ({
+                                ...prev,
+                                event_dates: prev.event_dates.filter((_, i) => i !== idx)
+                              }))}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
-                {experience.images.map((img, idx) => (
-                  <div key={idx} className="relative">
-                    <img src={img} className="w-full h-24 object-cover rounded-lg" />
-                    <button
-                      onClick={() => setExperience(prev => ({
-                        ...prev,
-                        images: prev.images.filter((_, i) => i !== idx)
-                      }))}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center"
-                    >
-                      <X className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <input
-                id="exp-images"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e.target.files?.[0])}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                onClick={() => document.getElementById('exp-images').click()}
-                disabled={uploading}
-                variant="outline"
-                className="w-full"
-              >
-                {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                Upload Photos
-              </Button>
-            </div>
+              </>
+            )}
 
-            {/* What's Included */}
-            <div>
-              <label className="text-white font-semibold mb-2 block">What's Included</label>
-              <div className="flex gap-2 mb-3">
-                <Input
-                  value={newItem}
-                  onChange={(e) => setNewItem(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && newItem.trim()) {
-                      e.preventDefault();
-                      setExperience(prev => ({ ...prev, included_items: [...prev.included_items, newItem.trim()] }));
-                      setNewItem("");
-                    }
-                  }}
-                  placeholder="Champagne, Catering, etc."
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <Button
-                  type="button"
-                  onClick={() => {
-                    if (newItem.trim()) {
-                      setExperience(prev => ({ ...prev, included_items: [...prev.included_items, newItem.trim()] }));
-                      setNewItem("");
-                    }
-                  }}
-                  className="bg-purple-600"
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {experience.included_items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
-                    <span className="text-white text-sm">{item}</span>
-                    <button
-                      onClick={() => setExperience(prev => ({
-                        ...prev,
-                        included_items: prev.included_items.filter((_, i) => i !== idx)
-                      }))}
-                    >
-                      <X className="w-3 h-3 text-white" />
-                    </button>
+            {step === 4 && (
+              <>
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Cancellation Policy</label>
+                  <Textarea
+                    value={experience.cancellation_policy}
+                    onChange={(e) => setExperience({ ...experience, cancellation_policy: e.target.value })}
+                    rows={3}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Refund Policy</label>
+                  <Textarea
+                    value={experience.refund_policy}
+                    onChange={(e) => setExperience({ ...experience, refund_policy: e.target.value })}
+                    rows={3}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">Age Restriction</label>
+                    <Input
+                      value={experience.age_restriction}
+                      onChange={(e) => setExperience({ ...experience, age_restriction: e.target.value })}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <label className="text-white font-semibold mb-2 block">Dress Code</label>
+                    <Input
+                      value={experience.dress_code}
+                      onChange={(e) => setExperience({ ...experience, dress_code: e.target.value })}
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-white font-semibold mb-2 block">Special Requirements</label>
+                  <Textarea
+                    value={experience.special_requirements}
+                    onChange={(e) => setExperience({ ...experience, special_requirements: e.target.value })}
+                    placeholder="Any special requirements or notes..."
+                    rows={3}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+
+                <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4">
+                  <h3 className="text-white font-bold flex items-center gap-2 mb-2">
+                    <CreditCard className="w-5 h-5" />
+                    Payment Integration
+                  </h3>
+                  <p className="text-gray-300 text-sm mb-3">Connect your Stripe account to receive payments directly</p>
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    Connect Stripe Account
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex gap-3 mt-6">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={createExperienceMutation.isPending || uploading}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
-            >
-              {createExperienceMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Listing...
-                </>
-              ) : (
-                'List Experience'
-              )}
-            </Button>
+            {step > 1 && (
+              <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+                Back
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button onClick={() => setStep(step + 1)} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                Next Step
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={createExperienceMutation.isPending || uploading}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
+                {createExperienceMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  'Publish Experience'
+                )}
+              </Button>
+            )}
           </div>
         </motion.div>
       </motion.div>
