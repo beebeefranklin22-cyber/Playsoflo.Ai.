@@ -310,9 +310,7 @@ export default function ProviderOnboarding() {
             <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  {steps[currentStep - 1].icon && (
-                    <steps[currentStep - 1].icon className="w-6 h-6" />
-                  )}
+                  {React.createElement(steps[currentStep - 1].icon, { className: "w-6 h-6" })}
                   Step {currentStep}: {steps[currentStep - 1].title}
                 </CardTitle>
               </CardHeader>
