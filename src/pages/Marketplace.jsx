@@ -889,8 +889,12 @@ export default function Marketplace() {
                 referenceType="order"
                 referenceId={pendingOrder.item_id}
                 description={`Food order: ${pendingOrder.title}`}
-                onSuccess={async () => {
+                onSuccess={async (paymentIntentId) => {
                   try {
+                    if (!paymentIntentId) {
+                      throw new Error('Payment verification failed');
+                    }
+                    
                     const order = await base44.entities.Order.create({
                       order_type: pendingOrder.category,
                       item_id: pendingOrder.item_id,
@@ -899,7 +903,8 @@ export default function Marketplace() {
                       total_usd: pendingOrder.price,
                       pickup: false,
                       status: "confirmed",
-                      provider_email: pendingOrder.provider_email
+                      provider_email: pendingOrder.provider_email,
+                      payment_intent_id: paymentIntentId
                     });
                     
                     setShowPayment(false);

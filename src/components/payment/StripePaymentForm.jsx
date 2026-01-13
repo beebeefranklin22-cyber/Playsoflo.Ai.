@@ -69,6 +69,12 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
       return;
     }
 
+    // Confirmation dialog before processing payment
+    const confirmMessage = `Confirm Payment\n\nAmount: $${amount?.toFixed(2) || '0.00'}\n\nThis charge will be processed immediately. Continue?`;
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
     setIsProcessing(true);
     setErrorMessage(null);
 
@@ -100,10 +106,10 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         if (onError) onError(errorDetails.message);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         console.log('✅ Payment succeeded');
-        if (onSuccess) onSuccess(paymentIntent);
+        if (onSuccess) onSuccess(paymentIntent.id);
       } else if (paymentIntent && paymentIntent.status === 'processing') {
         console.log('⏳ Payment processing');
-        if (onSuccess) onSuccess(paymentIntent);
+        if (onSuccess) onSuccess(paymentIntent.id);
       } else {
         const msg = 'Payment was not completed. Please try again.';
         setErrorMessage(msg);
