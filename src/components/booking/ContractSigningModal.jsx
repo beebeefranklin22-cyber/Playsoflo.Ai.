@@ -13,13 +13,22 @@ export default function ContractSigningModal({ contract, onSign, onDecline, cust
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
 
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX !== undefined ? e.clientX - rect.left : e.touches[0].clientX - rect.left;
+    const y = e.clientY !== undefined ? e.clientY - rect.top : e.touches[0].clientY - rect.top;
+    return { x, y };
+  };
+
   const startDrawing = (e) => {
+    e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
-    
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
@@ -27,22 +36,22 @@ export default function ContractSigningModal({ contract, onSign, onDecline, cust
     setIsDrawing(true);
     ctx.beginPath();
     
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    ctx.moveTo(x, y);
+    const coords = getCoordinates(e);
+    if (coords) ctx.moveTo(coords.x, coords.y);
   };
 
   const draw = (e) => {
+    e.preventDefault();
     if (!isDrawing) return;
     
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
     const ctx = canvas.getContext('2d');
     
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    ctx.lineTo(x, y);
-    ctx.stroke();
+    const coords = getCoordinates(e);
+    if (coords) {
+      ctx.lineTo(coords.x, coords.y);
+      ctx.stroke();
+    }
   };
 
   const stopDrawing = () => {
@@ -170,6 +179,9 @@ export default function ContractSigningModal({ contract, onSign, onDecline, cust
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
                     onMouseLeave={stopDrawing}
+                    onTouchStart={startDrawing}
+                    onTouchMove={draw}
+                    onTouchEnd={stopDrawing}
                     className="w-full cursor-crosshair"
                     style={{ touchAction: 'none' }}
                   />

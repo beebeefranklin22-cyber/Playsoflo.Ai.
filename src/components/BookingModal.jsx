@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -218,7 +219,7 @@ export default function BookingModal({ service, onClose }) {
   });
 
   const handleSubmit = async () => {
-    // Check if contract signing is required
+    // Check if contract signing is required and not yet signed
     if (contract && !serviceContract) {
       setServiceContract(contract);
       setShowContractSigning(true);
@@ -271,11 +272,52 @@ export default function BookingModal({ service, onClose }) {
       return;
     }
 
+    // Use the extracted booking logic
+    proceedWithBooking();
+  };
+
+  const handleContractSign = async (signatureData) => {
+    try {
+      // Create service agreement record
+      await base44.entities.ServiceAgreement.create({
+        contract_id: serviceContract.id,
+        service_id: service.id,
+        provider_email: service.created_by,
+        customer_email: currentUser.email,
+        customer_name: currentUser.full_name,
+        agreement_text: JSON.stringify(serviceContract),
+        customer_signature: signatureData.signature,
+        customer_ip_address: 'web',
+        signed_at: new Date().toISOString(),
+        status: 'signed',
+        acceptance_method: signatureData.acceptance_method
+      });
+
+      setShowContractSigning(false);
+      toast.success('Service agreement signed successfully');
+      
+      // Now proceed with the actual booking submission
+      proceedWithBooking();
+    } catch (error) {
+      toast.error('Failed to sign agreement: ' + error.message);
+    }
+  };
+
+  const proceedWithBooking = () => {
+    if (!selectedDate || !selectedTime) {
+      alert('Please select date and time');
+      return;
+    }
+
+    if (!contactInfo.name || !contactInfo.phone) {
+      alert('Please enter your contact information');
+      return;
+    }
+
     const totalPrice = service.price * duration;
     const location = locationType === 'customer_location' ? customerAddress : service.location || "Provider's location";
     const amountToPay = paymentOption === 'layaway' ? totalPrice * 0.25 : totalPrice;
 
-    // Store booking data and show payment
     setPendingBooking({
       service_id: service.id,
       service_title: service.title,
@@ -294,27 +336,6 @@ export default function BookingModal({ service, onClose }) {
     });
     
     setShowPayment(true);
-  };
-
-  const handleContractSign = async (signatureData) => {
-    // Create service agreement record
-    await base44.entities.ServiceAgreement.create({
-      contract_id: serviceContract.id,
-      service_id: service.id,
-      provider_email: service.created_by,
-      customer_email: currentUser.email,
-      customer_name: currentUser.full_name,
-      agreement_text: JSON.stringify(serviceContract),
-      customer_signature: signatureData.signature,
-      customer_ip_address: 'web',
-      signed_at: new Date().toISOString(),
-      status: 'signed',
-      acceptance_method: signatureData.acceptance_method
-    });
-
-    setShowContractSigning(false);
-    // Continue with booking
-    handleSubmit();
   };
 
   const handleContractDecline = () => {

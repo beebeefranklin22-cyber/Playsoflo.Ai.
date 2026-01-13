@@ -40,7 +40,8 @@ export default function ContractTemplateManager({ currentUser }) {
 
   const { data: myServices = [] } = useQuery({
     queryKey: ['my-services-contracts'],
-    queryFn: () => base44.entities.MarketplaceItem.list()
+    queryFn: () => base44.entities.MarketplaceItem.list(),
+    initialData: []
   });
 
   const createMutation = useMutation({
