@@ -43,7 +43,10 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
     dress_code: "Casual",
     included_amenities: [],
     special_requirements: "",
-    pricing_tiers: []
+    pricing_tiers: [],
+    pass_types: [],
+    batch_prefix: `${Date.now().toString(36).toUpperCase().slice(-6)}`,
+    current_batch_number: 0
   });
 
   const [newAmenity, setNewAmenity] = useState("");
@@ -51,6 +54,17 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
   const [newPricingTier, setNewPricingTier] = useState({ name: "", price: 0, description: "", capacity: 0 });
   const [selectedDate, setSelectedDate] = useState(null);
   const [eventTime, setEventTime] = useState({ start_time: "", end_time: "", capacity: 0 });
+  const [newPass, setNewPass] = useState({ 
+    pass_name: "", 
+    pass_type: "day_pass", 
+    price: 0, 
+    validity_days: 1, 
+    visit_limit: 999, 
+    perks: [], 
+    available_quantity: 100,
+    description: "" 
+  });
+  const [newPerk, setNewPerk] = useState("");
 
   const createExperienceMutation = useMutation({
     mutationFn: (data) => base44.entities.Experience.create(data),
@@ -195,10 +209,10 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
           {/* Step Indicator */}
           <div className="flex items-center justify-center gap-3 mb-8">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div
                 key={s}
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition ${
                   s === step ? 'bg-purple-600 text-white' : s < step ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-400'
                 }`}
               >
@@ -624,6 +638,211 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
             {step === 4 && (
               <>
+                <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4 mb-6">
+                  <h3 className="text-white font-bold flex items-center gap-2 mb-3">
+                    <Ticket className="w-5 h-5" />
+                    Passes & Memberships
+                  </h3>
+                  <p className="text-purple-300 text-sm mb-4">Create day passes, week passes, VIP passes, or custom passes</p>
+
+                  <div className="bg-white/5 rounded-xl p-4 space-y-4 mb-4">
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Pass Name</label>
+                        <Input
+                          value={newPass.pass_name}
+                          onChange={(e) => setNewPass({ ...newPass, pass_name: e.target.value })}
+                          placeholder="Weekend VIP Pass"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Pass Type</label>
+                        <Select value={newPass.pass_type} onValueChange={(v) => {
+                          const defaults = {
+                            day_pass: { validity_days: 1, visit_limit: 999 },
+                            week_pass: { validity_days: 7, visit_limit: 999 },
+                            month_pass: { validity_days: 30, visit_limit: 999 },
+                            vip_pass: { validity_days: 365, visit_limit: 999 },
+                            custom_pass: { validity_days: 1, visit_limit: 1 }
+                          };
+                          setNewPass({ ...newPass, pass_type: v, ...defaults[v] });
+                        }}>
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day_pass">Day Pass</SelectItem>
+                            <SelectItem value="week_pass">Week Pass</SelectItem>
+                            <SelectItem value="month_pass">Month Pass</SelectItem>
+                            <SelectItem value="vip_pass">VIP Pass</SelectItem>
+                            <SelectItem value="custom_pass">Custom Pass</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Price (USD)</label>
+                        <Input
+                          type="number"
+                          value={newPass.price}
+                          onChange={(e) => setNewPass({ ...newPass, price: Number(e.target.value) })}
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Valid For (Days)</label>
+                        <Input
+                          type="number"
+                          value={newPass.validity_days}
+                          onChange={(e) => setNewPass({ ...newPass, validity_days: Number(e.target.value) })}
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Visit Limit</label>
+                        <Input
+                          type="number"
+                          value={newPass.visit_limit}
+                          onChange={(e) => setNewPass({ ...newPass, visit_limit: Number(e.target.value) })}
+                          placeholder="999 for unlimited"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-white text-sm mb-1 block">Available Quantity</label>
+                        <Input
+                          type="number"
+                          value={newPass.available_quantity}
+                          onChange={(e) => setNewPass({ ...newPass, available_quantity: Number(e.target.value) })}
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-white text-sm mb-1 block">Description</label>
+                      <Input
+                        value={newPass.description}
+                        onChange={(e) => setNewPass({ ...newPass, description: e.target.value })}
+                        placeholder="Access to all attractions, skip lines..."
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-white text-sm mb-2 block">VIP Perks</label>
+                      <div className="flex gap-2 mb-3">
+                        <Input
+                          value={newPerk}
+                          onChange={(e) => setNewPerk(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newPerk.trim()) {
+                              e.preventDefault();
+                              setNewPass(prev => ({ ...prev, perks: [...(prev.perks || []), newPerk.trim()] }));
+                              setNewPerk("");
+                            }
+                          }}
+                          placeholder="Skip lines, Free drinks, etc."
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (newPerk.trim()) {
+                              setNewPass(prev => ({ ...prev, perks: [...(prev.perks || []), newPerk.trim()] }));
+                              setNewPerk("");
+                            }
+                          }}
+                          size="sm"
+                          className="bg-purple-600"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {newPass.perks?.map((perk, idx) => (
+                          <div key={idx} className="flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
+                            <span className="text-white text-xs">{perk}</span>
+                            <button
+                              onClick={() => setNewPass(prev => ({
+                                ...prev,
+                                perks: prev.perks.filter((_, i) => i !== idx)
+                              }))}
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={() => {
+                        if (!newPass.pass_name || newPass.price <= 0) {
+                          toast.error('Please fill in pass name and price');
+                          return;
+                        }
+                        setExperience(prev => ({
+                          ...prev,
+                          pass_types: [...(prev.pass_types || []), newPass]
+                        }));
+                        setNewPass({ 
+                          pass_name: "", 
+                          pass_type: "day_pass", 
+                          price: 0, 
+                          validity_days: 1, 
+                          visit_limit: 999, 
+                          perks: [], 
+                          available_quantity: 100,
+                          description: "" 
+                        });
+                        toast.success('Pass added!');
+                      }}
+                      className="w-full bg-purple-600"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Pass Type
+                    </Button>
+                  </div>
+
+                  {experience.pass_types.length > 0 && (
+                    <div className="space-y-2">
+                      {experience.pass_types.map((pass, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-white/10 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-white font-bold">{pass.pass_name}</p>
+                            <p className="text-gray-400 text-sm">
+                              {pass.pass_type.replace(/_/g, ' ')} • Valid {pass.validity_days} days • {pass.visit_limit} visits
+                            </p>
+                            <p className="text-purple-300 text-xs mt-1">{pass.description}</p>
+                            {pass.perks?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {pass.perks.map((perk, i) => (
+                                  <span key={i} className="px-2 py-0.5 bg-purple-500/20 rounded text-xs text-purple-300">
+                                    {perk}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-green-400 font-bold text-lg">${pass.price}</p>
+                            <button
+                              onClick={() => setExperience(prev => ({
+                                ...prev,
+                                pass_types: prev.pass_types.filter((_, i) => i !== idx)
+                              }))}
+                              className="text-red-400 hover:text-red-300 text-sm mt-2"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-white font-semibold mb-2 block">Cancellation Policy</label>
                   <Textarea
@@ -694,7 +913,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 Back
               </Button>
             )}
-            {step < 4 ? (
+            {step < 5 ? (
               <Button onClick={() => setStep(step + 1)} className="flex-1 bg-purple-600 hover:bg-purple-700">
                 Next Step
               </Button>

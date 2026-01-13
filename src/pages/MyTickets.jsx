@@ -88,6 +88,7 @@ export default function MyTickets() {
 
   const statusConfig = {
     active: { color: 'bg-green-500/20 text-green-300 border-green-500/30', icon: CheckCircle },
+    partially_used: { color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30', icon: CheckCircle },
     redeemed: { color: 'bg-blue-500/20 text-blue-300 border-blue-500/30', icon: CheckCircle },
     cancelled: { color: 'bg-red-500/20 text-red-300 border-red-500/30', icon: XCircle },
     expired: { color: 'bg-gray-500/20 text-gray-300 border-gray-500/30', icon: XCircle }
@@ -160,7 +161,7 @@ export default function MyTickets() {
                               </Badge>
                             </div>
 
-                            {ticket.status === 'active' && (
+                            {(ticket.status === 'active' || ticket.status === 'partially_used') && (
                               <div className="bg-white/10 rounded-xl p-4 mb-4">
                                 <div className="flex items-center justify-center mb-3">
                                   {ticket.qr_code && (
@@ -168,7 +169,30 @@ export default function MyTickets() {
                                   )}
                                 </div>
                                 <p className="text-center text-purple-400 font-mono font-bold mb-1">{ticket.ticket_number}</p>
+                                <p className="text-center text-gray-400 text-sm">Batch: {ticket.batch_id}</p>
                                 <p className="text-center text-gray-400 text-sm">Access Code: {ticket.access_code}</p>
+                                {ticket.is_pass && (
+                                  <div className="mt-3 pt-3 border-t border-white/20 text-center">
+                                    <p className="text-green-300 text-sm font-semibold mb-1">
+                                      Pass Valid Until: {new Date(ticket.pass_valid_until).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-blue-300 text-xs">
+                                      Visits: {ticket.pass_visits_used || 0} / {ticket.pass_visits_allowed}
+                                    </p>
+                                    {ticket.pass_perks?.length > 0 && (
+                                      <div className="mt-2">
+                                        <p className="text-gray-400 text-xs mb-1">VIP Perks:</p>
+                                        <div className="flex flex-wrap gap-1 justify-center">
+                                          {ticket.pass_perks.map((perk, i) => (
+                                            <span key={i} className="px-2 py-0.5 bg-green-500/20 rounded text-green-300 text-xs">
+                                              ✓ {perk}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
 

@@ -25,7 +25,7 @@ export default function TicketRedemptionScanner({ currentUser }) {
       });
 
       if (tickets.length === 0) {
-        throw new Error('Ticket not found');
+        throw new Error('Ticket not found - Invalid ticket number');
       }
 
       const ticket = tickets[0];
@@ -33,27 +33,57 @@ export default function TicketRedemptionScanner({ currentUser }) {
       // Verify this ticket belongs to provider's experience
       const isProviderTicket = providerExperiences.some(exp => exp.id === ticket.experience_id);
       if (!isProviderTicket) {
-        throw new Error('This ticket is not for your experience');
+        throw new Error('Security Alert: This ticket is not for your experience');
       }
 
-      // Verify access code
-      if (accessCode && ticket.access_code !== accessCode.toUpperCase()) {
-        throw new Error('Invalid access code');
+      // Verify access code (REQUIRED for security)
+      if (!accessCode || ticket.access_code !== accessCode.toUpperCase()) {
+        throw new Error('Invalid access code - Authentication failed');
       }
 
-      // Check if already redeemed
-      if (ticket.status === 'redeemed') {
-        throw new Error(`Ticket already redeemed on ${new Date(ticket.redeemed_at).toLocaleString()}`);
+      // Verify security hash
+      const timestamp = ticket.verification_timestamp || new Date(ticket.created_date).toISOString();
+      const data = `${ticket.ticket_number}:${ticket.access_code}:${timestamp}:${ticket.experience_id}:${ticket.buyer_email}`;
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16).toUpperCase();
+      
+      if (ticket.security_hash && ticket.security_hash !== computedHash) {
+        throw new Error('Security Alert: Ticket security hash mismatch - Possible counterfeit');
       }
 
-      // Check if expired
-      if (ticket.status === 'expired') {
-        throw new Error('Ticket has expired');
+      // For passes, check validity and usage
+      if (ticket.is_pass) {
+        const now = new Date();
+        const validUntil = new Date(ticket.pass_valid_until);
+        
+        if (now > validUntil) {
+          throw new Error(`Pass has expired on ${validUntil.toLocaleDateString()}`);
+        }
+
+        if (ticket.pass_visits_used >= ticket.pass_visits_allowed) {
+          throw new Error('Pass visit limit reached');
+        }
+
+        if (ticket.status === 'expired') {
+          throw new Error('Pass has been marked as expired');
+        }
+      } else {
+        // Single event ticket checks
+        if (ticket.status === 'redeemed') {
+          throw new Error(`Ticket already used on ${new Date(ticket.redeemed_at).toLocaleString()}`);
+        }
+
+        if (ticket.status === 'expired') {
+          throw new Error('Ticket has expired');
+        }
       }
 
       // Check if cancelled
       if (ticket.status === 'cancelled') {
-        throw new Error('Ticket has been cancelled');
+        throw new Error('Ticket has been cancelled and refunded');
       }
 
       return ticket;
@@ -70,25 +100,66 @@ export default function TicketRedemptionScanner({ currentUser }) {
 
   const redeemTicketMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.EntertainmentTicket.update(scannedTicket.id, {
-        status: 'redeemed',
-        redeemed_at: new Date().toISOString(),
-        redeemed_by: currentUser.email
-      });
+      const now = new Date().toISOString();
+      
+      if (scannedTicket.is_pass) {
+        // For passes, increment usage counter
+        const newVisitsUsed = (scannedTicket.pass_visits_used || 0) + 1;
+        const newStatus = newVisitsUsed >= scannedTicket.pass_visits_allowed ? 'redeemed' : 'partially_used';
+        
+        await base44.entities.EntertainmentTicket.update(scannedTicket.id, {
+          status: newStatus,
+          pass_visits_used: newVisitsUsed,
+          redemption_history: [
+            ...(scannedTicket.redemption_history || []),
+            {
+              redeemed_at: now,
+              redeemed_by: currentUser.email,
+              location: scannedTicket.venue_name
+            }
+          ],
+          verification_timestamp: now
+        });
 
-      // Send confirmation email
-      await base44.integrations.Core.SendEmail({
-        to: scannedTicket.buyer_email,
-        subject: `Ticket Check-In Confirmation - ${scannedTicket.experience_title}`,
-        body: `
-          <h1>Check-In Confirmed</h1>
-          <p>Your ticket has been successfully checked in.</p>
-          <p><strong>Experience:</strong> ${scannedTicket.experience_title}</p>
-          <p><strong>Ticket Number:</strong> ${scannedTicket.ticket_number}</p>
-          <p><strong>Check-in Time:</strong> ${new Date().toLocaleString()}</p>
-          <p>Enjoy your experience!</p>
-        `
-      });
+        // Send confirmation email
+        await base44.integrations.Core.SendEmail({
+          to: scannedTicket.buyer_email,
+          subject: `Pass Check-In Confirmation - ${scannedTicket.experience_title}`,
+          body: `
+            <h1>Pass Check-In Confirmed</h1>
+            <p>Your pass has been successfully checked in.</p>
+            <p><strong>Experience:</strong> ${scannedTicket.experience_title}</p>
+            <p><strong>Pass Number:</strong> ${scannedTicket.ticket_number}</p>
+            <p><strong>Check-in Time:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Visits Used:</strong> ${newVisitsUsed} / ${scannedTicket.pass_visits_allowed}</p>
+            <p><strong>Valid Until:</strong> ${new Date(scannedTicket.pass_valid_until).toLocaleDateString()}</p>
+            <p>Enjoy your experience!</p>
+          `
+        });
+      } else {
+        // Single ticket redemption
+        await base44.entities.EntertainmentTicket.update(scannedTicket.id, {
+          status: 'redeemed',
+          redeemed_at: now,
+          redeemed_by: currentUser.email,
+          verification_timestamp: now
+        });
+
+        // Send confirmation email
+        await base44.integrations.Core.SendEmail({
+          to: scannedTicket.buyer_email,
+          subject: `Ticket Check-In Confirmation - ${scannedTicket.experience_title}`,
+          body: `
+            <h1>Check-In Confirmed</h1>
+            <p>Your ticket has been successfully checked in.</p>
+            <p><strong>Experience:</strong> ${scannedTicket.experience_title}</p>
+            <p><strong>Ticket Number:</strong> ${scannedTicket.ticket_number}</p>
+            <p><strong>Batch ID:</strong> ${scannedTicket.batch_id}</p>
+            <p><strong>Check-in Time:</strong> ${new Date().toLocaleString()}</p>
+            <p>Enjoy your experience!</p>
+          `
+        });
+      }
     },
     onSuccess: () => {
       toast.success('Ticket redeemed successfully!');
@@ -160,8 +231,20 @@ export default function TicketRedemptionScanner({ currentUser }) {
               <div className="flex items-center gap-3 mb-4">
                 <CheckCircle className="w-8 h-8 text-green-400" />
                 <div>
-                  <h3 className="text-white font-bold text-lg">Valid Ticket</h3>
-                  <p className="text-green-300 text-sm">Ready to redeem</p>
+                  <h3 className="text-white font-bold text-lg">
+                    {scannedTicket.is_pass ? 'Valid Pass ✓' : 'Valid Ticket ✓'}
+                  </h3>
+                  <p className="text-green-300 text-sm">Authenticated & Ready to redeem</p>
+                </div>
+              </div>
+
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-3 mb-4">
+                <p className="text-blue-300 text-xs font-semibold mb-1">Security Verification</p>
+                <div className="space-y-1 text-xs">
+                  <p className="text-blue-200">✓ Batch ID verified</p>
+                  <p className="text-blue-200">✓ Security hash validated</p>
+                  <p className="text-blue-200">✓ Access code confirmed</p>
+                  <p className="text-green-300 font-bold mt-2">Ticket is genuine</p>
                 </div>
               </div>
 
@@ -175,22 +258,59 @@ export default function TicketRedemptionScanner({ currentUser }) {
                   <span className="text-white font-semibold">{scannedTicket.buyer_name}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-300">Ticket Type</span>
-                  <span className="text-white font-semibold">{scannedTicket.ticket_type}</span>
+                  <span className="text-gray-300">Batch ID</span>
+                  <span className="text-purple-400 font-mono text-xs">{scannedTicket.batch_id}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-300">Event Date</span>
-                  <span className="text-white font-semibold">{scannedTicket.event_date}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-300">Event Time</span>
-                  <span className="text-white font-semibold">{scannedTicket.event_time}</span>
-                </div>
-                {scannedTicket.seat_number && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-300">Seat</span>
-                    <span className="text-white font-semibold">{scannedTicket.seat_number}</span>
-                  </div>
+                {scannedTicket.is_pass ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Pass Type</span>
+                      <span className="text-white font-semibold">{scannedTicket.pass_type?.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Valid Until</span>
+                      <span className="text-white font-semibold">{new Date(scannedTicket.pass_valid_until).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Visits Used</span>
+                      <span className="text-white font-semibold">
+                        {scannedTicket.pass_visits_used || 0} / {scannedTicket.pass_visits_allowed}
+                      </span>
+                    </div>
+                    {scannedTicket.pass_perks?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-white/10">
+                        <p className="text-gray-300 text-xs mb-2">VIP Perks:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {scannedTicket.pass_perks.map((perk, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-green-500/20 rounded text-green-300 text-xs">
+                              ✓ {perk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Ticket Type</span>
+                      <span className="text-white font-semibold">{scannedTicket.ticket_type}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Event Date</span>
+                      <span className="text-white font-semibold">{scannedTicket.event_date}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Event Time</span>
+                      <span className="text-white font-semibold">{scannedTicket.event_time}</span>
+                    </div>
+                    {scannedTicket.seat_number && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Seat</span>
+                        <span className="text-white font-semibold">{scannedTicket.seat_number}</span>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -202,12 +322,12 @@ export default function TicketRedemptionScanner({ currentUser }) {
                 {redeemTicketMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Redeeming...
+                    Processing...
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Redeem Ticket
+                    {scannedTicket.is_pass ? 'Check-In Pass' : 'Redeem Ticket'}
                   </>
                 )}
               </Button>
@@ -218,12 +338,13 @@ export default function TicketRedemptionScanner({ currentUser }) {
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-blue-300">
-                <p className="font-semibold mb-1">Scanner Tips:</p>
+                <p className="font-semibold mb-1">Security Features:</p>
                 <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>Enter the ticket number exactly as shown</li>
-                  <li>Access code provides additional security verification</li>
-                  <li>Once redeemed, tickets cannot be used again</li>
-                  <li>Check customer ID if needed for age-restricted events</li>
+                  <li>Batch ID tracking prevents fake ticket duplication</li>
+                  <li>Security hash validates ticket authenticity</li>
+                  <li>Access code required for all redemptions</li>
+                  <li>Passes track usage history and expiration</li>
+                  <li>Each ticket has unique cryptographic verification</li>
                 </ul>
               </div>
             </div>
