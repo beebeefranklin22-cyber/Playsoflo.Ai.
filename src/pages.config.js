@@ -69,6 +69,7 @@ import ServiceProviders from './pages/ServiceProviders';
 import SmartOnboarding from './pages/SmartOnboarding';
 import SoFloVault from './pages/SoFloVault';
 import Social from './pages/Social';
+import StoreManager from './pages/StoreManager';
 import Streaming from './pages/Streaming';
 import StripeConnectOnboarding from './pages/StripeConnectOnboarding';
 import StripeConnectProducts from './pages/StripeConnectProducts';
@@ -90,7 +91,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import StoreManager from './pages/StoreManager';
 import __Layout from './Layout.jsx';
 
 
@@ -166,6 +166,7 @@ export const PAGES = {
     "SmartOnboarding": SmartOnboarding,
     "SoFloVault": SoFloVault,
     "Social": Social,
+    "StoreManager": StoreManager,
     "Streaming": Streaming,
     "StripeConnectOnboarding": StripeConnectOnboarding,
     "StripeConnectProducts": StripeConnectProducts,
@@ -187,7 +188,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "StoreManager": StoreManager,
 }
 
 export const pagesConfig = {

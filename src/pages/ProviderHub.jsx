@@ -28,6 +28,8 @@ import RentalAssetManager from "../components/provider/RentalAssetManager";
 import RentalCalendar from "../components/provider/RentalCalendar";
 import ServicePackageManager from "../components/provider/ServicePackageManager";
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
+import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
+import VideoEditorPro from "../components/creator/VideoEditorPro";
 
 const categories = [
   "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
