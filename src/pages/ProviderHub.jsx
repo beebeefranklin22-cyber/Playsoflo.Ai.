@@ -245,20 +245,21 @@ export default function ProviderHub() {
 
   const createStripeAccountMutation = useMutation({
     mutationFn: async () => {
-      const { accountId } = await base44.functions.invoke('createConnectedAccount', {
+      const response = await base44.functions.invoke('createConnectedAccount', {
         email: currentUser.email,
+        businessName: currentUser.provider_business_name || currentUser.full_name,
         country: 'US'
       });
-      await base44.auth.updateMe({ stripe_account_id: accountId });
-      return accountId;
+      await base44.auth.updateMe({ stripe_account_id: response.data.accountId });
+      return response.data.accountId;
     },
     onSuccess: async (accountId) => {
-      const { url } = await base44.functions.invoke('createAccountLink', {
+      const linkResponse = await base44.functions.invoke('createAccountLink', {
         accountId,
         returnUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=success`,
         refreshUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=refresh`
       });
-      window.location.href = url;
+      window.location.href = linkResponse.data.url;
     },
     onError: (error) => {
       toast.error('Failed to create Stripe account: ' + error.message);
@@ -269,10 +270,10 @@ export default function ProviderHub() {
   const checkStripeStatusMutation = useMutation({
     mutationFn: async () => {
       if (!currentUser?.stripe_account_id) return null;
-      const data = await base44.functions.invoke('getAccountStatus', {
-        accountId: currentUser.stripe_account_id
+      const response = await base44.functions.invoke('getAccountStatus', {
+        account_id: currentUser.stripe_account_id
       });
-      return data;
+      return response.data;
     },
     onSuccess: (data) => {
       if (data?.charges_enabled) {

@@ -28,27 +28,23 @@ Deno.serve(async (req) => {
     });
 
     // ============================================
-    // STEP 3: Get Account ID
+    // STEP 3: Parse Request Body
     // ============================================
-    // The account ID should be stored in the user record
-    const accountId = user.stripe_connect_account_id;
+    const body = await req.json();
+    const { accountId, returnUrl, refreshUrl } = body;
     
     if (!accountId) {
       return Response.json({ 
-        error: 'No connected account found for this user',
-        hint: 'Create a connected account first'
+        error: 'accountId is required',
+        hint: 'Provide the Stripe account ID'
       }, { status: 400 });
     }
 
-    // ============================================
-    // STEP 4: Get Current App URL for Redirects
-    // ============================================
-    // IMPORTANT: Replace this with your actual app URL
-    const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'http://localhost:3000';
-    
-    // These URLs determine where users go after onboarding
-    const returnUrl = `${appBaseUrl}/StripeConnectOnboarding?success=true`;
-    const refreshUrl = `${appBaseUrl}/StripeConnectOnboarding`;
+    if (!returnUrl || !refreshUrl) {
+      return Response.json({ 
+        error: 'returnUrl and refreshUrl are required'
+      }, { status: 400 });
+    }
 
     // ============================================
     // STEP 5: Create Account Link
