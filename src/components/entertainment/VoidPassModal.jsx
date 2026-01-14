@@ -49,8 +49,27 @@ export default function VoidPassModal({ isOpen, onClose, ticket, voidPolicies, c
           await base44.asServiceRole.entities.User.update(customerUser[0].id, {
             soflo_balance: currentBalance + refundAmount
           });
+
+          // Create payment/refund record for transaction history
+          await base44.entities.Payment.create({
+            sender_email: ticket.provider_email,
+            recipient_email: ticket.buyer_email,
+            amount: refundAmount,
+            currency: 'USD',
+            payment_method: 'wallet_refund',
+            status: 'completed',
+            transaction_type: 'refund',
+            reference_type: 'entertainment_ticket',
+            reference_id: ticket.id,
+            description: `Refund for voided pass: ${ticket.experience_title} - ${selectedPolicy.reason}`
+          });
         }
       }
+
+      // Update ticket with refund info
+      await base44.entities.EntertainmentTicket.update(ticket.id, {
+        refund_amount: refundAmount
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['sold-tickets']);

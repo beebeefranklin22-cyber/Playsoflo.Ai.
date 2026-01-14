@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Ticket, Loader2, CreditCard, CheckCircle } from "lucide-react";
+import { X, Ticket, Loader2, CreditCard, CheckCircle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useMutation } from "@tanstack/react-query";
 import StripePaymentForm from "../payment/StripePaymentForm";
+import TicketPurchaseWalletIntegration from "./TicketPurchaseWalletIntegration";
 
 export default function TicketPurchaseModal({ isOpen, onClose, experience, currentUser }) {
   const [step, setStep] = useState(1);
@@ -18,6 +19,7 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
   const [selectedDate, setSelectedDate] = useState(null);
   const [purchaseComplete, setPurchaseComplete] = useState(false);
   const [generatedTickets, setGeneratedTickets] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState(null);
 
   const totalPrice = isPurchasingPass 
     ? (selectedPass ? selectedPass.price * quantity : 0)
@@ -56,7 +58,45 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
   };
 
   const createTicketsMutation = useMutation({
-    mutationFn: async ({ paymentIntentId }) => {
+    mutationFn: async ({ paymentIntentId, useWallet = false }) => {
+      // Process wallet payment if applicable
+      if (useWallet) {
+        const buyers = await base44.entities.User.filter({ email: currentUser.email });
+        if (buyers.length === 0) throw new Error('User not found');
+        
+        const currentBalance = buyers[0].soflo_balance || 0;
+        if (currentBalance < totalPrice) {
+          throw new Error('Insufficient wallet balance');
+        }
+
+        // Deduct from buyer's wallet
+        await base44.entities.User.update(buyers[0].id, {
+          soflo_balance: currentBalance - totalPrice
+        });
+
+        // Add to provider's wallet
+        const providers = await base44.entities.User.filter({ email: experience.provider_email });
+        if (providers.length > 0) {
+          const providerBalance = providers[0].soflo_balance || 0;
+          await base44.entities.User.update(providers[0].id, {
+            soflo_balance: providerBalance + totalPrice
+          });
+        }
+
+        // Create payment record
+        await base44.entities.Payment.create({
+          sender_email: currentUser.email,
+          recipient_email: experience.provider_email,
+          amount: totalPrice,
+          currency: 'USD',
+          payment_method: 'wallet',
+          status: 'completed',
+          transaction_type: 'purchase',
+          reference_type: 'entertainment_ticket',
+          reference_id: experience.id,
+          description: `${isPurchasingPass ? 'Pass' : 'Ticket'} purchase: ${experience.title}`
+        });
+      }
       const tickets = [];
       const batchId = generateBatchId();
       const timestamp = new Date().toISOString();
@@ -193,7 +233,11 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
   });
 
   const handlePaymentSuccess = async (paymentIntentId) => {
-    await createTicketsMutation.mutateAsync({ paymentIntentId });
+    await createTicketsMutation.mutateAsync({ paymentIntentId, useWallet: false });
+  };
+
+  const handleWalletPayment = async () => {
+    await createTicketsMutation.mutateAsync({ paymentIntentId: null, useWallet: true });
   };
 
   if (!isOpen) return null;
@@ -414,7 +458,17 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                   </>
                 )}
 
-                {step === 2 && (
+                {step === 2 && !paymentMethod && (
+                  <TicketPurchaseWalletIntegration
+                    totalPrice={totalPrice}
+                    currentUser={currentUser}
+                    onWalletPayment={handleWalletPayment}
+                    onCardPayment={() => setPaymentMethod('card')}
+                    isProcessing={createTicketsMutation.isPending}
+                  />
+                )}
+
+                {step === 2 && paymentMethod === 'card' && (
                   <>
                     <div className="bg-white/5 rounded-xl p-4 mb-6">
                       <h3 className="text-white font-bold mb-3">Order Summary</h3>
