@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import RealtimeFeedManager from '../components/feed/RealtimeFeedManager';
+import AIPersonalizationEngine from '../components/feed/AIPersonalizationEngine';
+import UniversalFeedFilter from '../components/feed/UniversalFeedFilter';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +35,12 @@ export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const [aiPreferences, setAiPreferences] = useState(null);
+  const [feedFilters, setFeedFilters] = useState({
+    category: 'all',
+    sortBy: 'recent',
+    aiPersonalized: true
+  });
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCreateStory, setShowCreateStory] = useState(false);

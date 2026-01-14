@@ -18,6 +18,12 @@ export default function PersonalizedFeed() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const [aiPreferences, setAiPreferences] = useState(null);
+  const [feedFilters, setFeedFilters] = useState({
+    category: 'all',
+    sortBy: 'recent',
+    aiPersonalized: true
+  });
   const [feedbackContent, setFeedbackContent] = useState(null);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
