@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart, Users, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin } from "lucide-react";
+import { Grid, Video, Bookmark, UserPlus, UserCheck, MessageCircle, MoreHorizontal, ChevronLeft, Play, Heart, Users, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { createPageUrl } from "@/utils";
@@ -170,8 +170,12 @@ export default function UserProfile() {
           
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white mb-1">{profileUser.full_name}</h2>
-            {profileUser.username && (
-              <p className="text-gray-400 mb-2">@{profileUser.username}</p>
+            <p className="text-purple-400 flex items-center gap-1 mb-1">
+              <AtSign className="w-4 h-4" />
+              {profileUser.username || profileUser.email?.split('@')[0]}
+            </p>
+            {profileUser.privacy_settings?.show_email !== false && (
+              <p className="text-gray-500 text-sm mb-2">{profileUser.email}</p>
             )}
             {profileUser.bio && (
               <p className="text-gray-300 text-sm mb-3">{profileUser.bio}</p>

@@ -280,8 +280,12 @@ export default function Profile() {
             <h1 className="text-3xl font-bold text-white mb-2">
               {currentUser?.full_name || "User"}
             </h1>
+            <p className="text-purple-400 flex items-center gap-1 mb-1">
+              <AtSign className="w-4 h-4" />
+              {currentUser?.username || currentUser?.email?.split('@')[0]}
+            </p>
             {currentUser?.privacy_settings?.show_email !== false && (
-              <p className="text-gray-400 mb-2">{currentUser?.email}</p>
+              <p className="text-gray-500 text-sm mb-2">{currentUser?.email}</p>
             )}
             {currentUser?.bio && (
               <p className="text-gray-300">{currentUser.bio}</p>
@@ -344,6 +348,19 @@ export default function Profile() {
                 {interest}
               </Badge>
             ))}
+          </div>
+        )}
+
+        {/* Username Setup */}
+        {!currentUser?.username && (
+          <div className="mb-6">
+            <UsernameSetup 
+              currentUser={currentUser}
+              onComplete={async () => {
+                const user = await base44.auth.me();
+                setCurrentUser(user);
+              }}
+            />
           </div>
         )}
 

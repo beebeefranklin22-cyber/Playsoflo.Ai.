@@ -23,6 +23,7 @@ import Disputes from './pages/Disputes';
 import DriverHub from './pages/DriverHub';
 import EarningsDashboard from './pages/EarningsDashboard';
 import EntertainmentExperiences from './pages/EntertainmentExperiences';
+import EntertainmentProviderHub from './pages/EntertainmentProviderHub';
 import Events from './pages/Events';
 import FleetManager from './pages/FleetManager';
 import FoodCart from './pages/FoodCart';
@@ -45,6 +46,7 @@ import MyBookings from './pages/MyBookings';
 import MyP2POrders from './pages/MyP2POrders';
 import MyPropertyBookings from './pages/MyPropertyBookings';
 import MyRides from './pages/MyRides';
+import MyTickets from './pages/MyTickets';
 import NotificationPreferences from './pages/NotificationPreferences';
 import Notifications from './pages/Notifications';
 import OnboardingFlow from './pages/OnboardingFlow';
@@ -93,8 +95,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import MyTickets from './pages/MyTickets';
-import EntertainmentProviderHub from './pages/EntertainmentProviderHub';
 import __Layout from './Layout.jsx';
 
 
@@ -124,6 +124,7 @@ export const PAGES = {
     "DriverHub": DriverHub,
     "EarningsDashboard": EarningsDashboard,
     "EntertainmentExperiences": EntertainmentExperiences,
+    "EntertainmentProviderHub": EntertainmentProviderHub,
     "Events": Events,
     "FleetManager": FleetManager,
     "FoodCart": FoodCart,
@@ -146,6 +147,7 @@ export const PAGES = {
     "MyP2POrders": MyP2POrders,
     "MyPropertyBookings": MyPropertyBookings,
     "MyRides": MyRides,
+    "MyTickets": MyTickets,
     "NotificationPreferences": NotificationPreferences,
     "Notifications": Notifications,
     "OnboardingFlow": OnboardingFlow,
@@ -194,8 +196,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "MyTickets": MyTickets,
-    "EntertainmentProviderHub": EntertainmentProviderHub,
 }
 
 export const pagesConfig = {

@@ -4,9 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Upload, Loader2, MapPin, Music, Sparkles } from "lucide-react";
+import { X, Upload, Loader2, MapPin, Music, Sparkles, AtSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import MediaUploader from "./MediaUploader";
 
 export default function CreatePostModal({ isOpen, onClose, currentUser }) {
   const queryClient = useQueryClient();
@@ -105,6 +106,20 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
             >
               <X className="w-6 h-6 text-gray-400" />
             </button>
+          </div>
+
+          {/* User Info */}
+          <div className="flex items-center gap-3 mb-4 p-3 bg-white/5 rounded-xl">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+              {currentUser?.full_name?.[0]}
+            </div>
+            <div>
+              <p className="text-white font-semibold">{currentUser?.full_name}</p>
+              <p className="text-gray-400 text-xs flex items-center gap-1">
+                <AtSign className="w-3 h-3" />
+                {currentUser?.username || currentUser?.email?.split('@')[0]}
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
