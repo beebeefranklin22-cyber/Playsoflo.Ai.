@@ -51,7 +51,10 @@ export default function MusicDiscover() {
   let filteredTracks = allTracks.filter(track => {
     const matchesSearch = !searchQuery || 
       track.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.artist?.toLowerCase().includes(searchQuery.toLowerCase());
+      track.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.artist_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.album?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.description?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesGenre = selectedGenre === "all" || track.genre === selectedGenre;
     

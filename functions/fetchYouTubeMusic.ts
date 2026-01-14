@@ -18,8 +18,8 @@ Deno.serve(async (req) => {
     const query = payload.query || 'music';
     const maxResults = payload.maxResults || 50;
     
-    // YouTube Data API v3 - Search for music videos, sorted by date (most recent first)
-    const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' music')}&type=video&videoCategoryId=10&maxResults=${maxResults}&order=date&key=${apiKey}`;
+    // YouTube Data API v3 - Search for music videos, sorted by relevance for better results
+    const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' music')}&type=video&videoCategoryId=10&maxResults=${maxResults}&order=relevance&key=${apiKey}`;
     
     const response = await fetch(youtubeUrl);
     

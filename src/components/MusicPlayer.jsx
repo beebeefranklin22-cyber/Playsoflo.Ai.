@@ -300,18 +300,26 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
           className="fixed inset-0 z-50 bg-black/95 overflow-y-auto"
         >
           <div className="min-h-screen p-4 pb-24">
-            <Button
-              onClick={() => setShowVideo(false)}
-              className="fixed top-4 right-4 z-50 bg-white/20 hover:bg-white/30 backdrop-blur-xl"
-            >
-              Minimize ↓
-            </Button>
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                onClick={onClose}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-xl"
+              >
+                ← Back
+              </Button>
+              <Button
+                onClick={() => setShowVideo(false)}
+                className="bg-white/20 hover:bg-white/30 backdrop-blur-xl"
+              >
+                Minimize ↓
+              </Button>
+            </div>
 
             {/* Video Player */}
             <div className="max-w-4xl mx-auto mb-6">
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
                 <iframe
-                  src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1`}
+                  src={`https://www.youtube.com/embed/${track.video_id}?autoplay=1&rel=0`}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

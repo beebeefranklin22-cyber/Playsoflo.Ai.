@@ -107,15 +107,32 @@ export default function Vibe() {
 
       // For search, fetch from YouTube (faster debounced search)
       if (searchQuery?.trim() && searchQuery.length >= 2) {
-        const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
-          query: searchQuery,
-          maxResults: 15
-        });
-        const youtubeTracks = youtubeResponse?.data?.tracks || [];
-        return { 
-          tracks: [...userTracks, ...youtubeTracks], 
-          source: 'mixed' 
-        };
+        try {
+          const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
+            query: searchQuery,
+            maxResults: 20
+          });
+          const youtubeTracks = youtubeResponse?.tracks || [];
+          
+          // Merge and prioritize user tracks first
+          return { 
+            tracks: [...userTracks.filter(t => 
+              t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              t.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
+            ), ...youtubeTracks], 
+            source: 'mixed' 
+          };
+        } catch (err) {
+          console.error('YouTube fetch error:', err);
+          // Fallback to user tracks only
+          return {
+            tracks: userTracks.filter(t => 
+              t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              t.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
+            ),
+            source: 'app'
+          };
+        }
       }
       
       // Apply genre filter
@@ -129,9 +146,9 @@ export default function Vibe() {
       };
     },
     initialData: { tracks: sampleTracks, source: 'demo' },
-    staleTime: 2 * 60 * 1000, // 2 minutes for faster refresh
+    staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    enabled: !searchQuery || searchQuery.length >= 2 // Only search with 2+ chars
+    enabled: true
   });
 
   const allTracks = musicData?.tracks || [];
@@ -277,7 +294,9 @@ export default function Vibe() {
     const matchesSearch = !searchQuery || 
       track.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       track.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.artist_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      track.artist_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      track.description?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
 
@@ -378,14 +397,8 @@ export default function Vibe() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
               value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                // Auto-trigger search after typing stops (faster UX)
-                if (e.target.value.length >= 2) {
-                  setTimeout(() => refetch(), 500);
-                }
-              }}
-              placeholder="Search songs, artists, albums... (min 2 chars)"
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search songs, artists, music videos..."
               className="pl-12 pr-4 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
             />
             {isLoading && (
@@ -394,17 +407,35 @@ export default function Vibe() {
               </div>
             )}
           </div>
+          <p className="text-gray-400 text-xs mt-2">
+            {searchQuery.length >= 2 ? `Searching across ${allTracks.length} tracks...` : 'Type at least 2 characters to search'}
+          </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20 mb-6">
-            <TabsTrigger value="discover">Discover</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="fan-pools">Fan Pools</TabsTrigger>
-            <TabsTrigger value="charts">Charts</TabsTrigger>
-            <TabsTrigger value="my-music">My Music</TabsTrigger>
+            <TabsTrigger value="discover">
+              <Music className="w-4 h-4 mr-1" />
+              Discover
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <Clock className="w-4 h-4 mr-1" />
+              History
+            </TabsTrigger>
+            <TabsTrigger value="fan-pools">
+              <Users className="w-4 h-4 mr-1" />
+              Fan Pools
+            </TabsTrigger>
+            <TabsTrigger value="charts">
+              <TrendingUp className="w-4 h-4 mr-1" />
+              Charts
+            </TabsTrigger>
+            <TabsTrigger value="my-music">
+              <Mic2 className="w-4 h-4 mr-1" />
+              My Music
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="discover">
@@ -439,11 +470,25 @@ export default function Vibe() {
               </Card>
             )}
 
+            {/* Results Summary */}
+            {searchQuery && (
+              <div className="mb-4 px-2">
+                <p className="text-gray-400 text-sm">
+                  Found <span className="text-white font-bold">{filteredTracks.length}</span> results
+                  {filteredTracks.some(t => t.source === 'youtube') && (
+                    <span className="ml-2 text-purple-400">
+                      • Includes {filteredTracks.filter(t => t.source === 'youtube').length} music videos from YouTube
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
             {/* Music Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filteredTracks.map((track, idx) => (
                 <motion.div
-                  key={track.id || idx}
+                  key={track.id || track.video_id || idx}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: Math.min(idx * 0.02, 1) }}
@@ -463,13 +508,18 @@ export default function Vibe() {
                           onClick={() => handleTrackClick(track)}
                           className="w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-700 transition hover:scale-110"
                         >
-                          {playingTrack?.id === track.id ? (
+                          {playingTrack?.id === track.id || playingTrack?.video_id === track.video_id ? (
                             <Pause className="w-6 h-6 text-white" />
                           ) : (
                             <Play className="w-6 h-6 text-white ml-1" />
                           )}
                         </button>
                       </div>
+                      {track.source === 'youtube' && (
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-red-600/80 backdrop-blur-sm rounded-full">
+                          <span className="text-white text-xs font-bold">🎬 VIDEO</span>
+                        </div>
+                      )}
                       {track.popularity > 0 && (
                         <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full">
                           <div className="flex items-center gap-1">
@@ -486,13 +536,23 @@ export default function Vibe() {
                       <p className="text-gray-400 text-xs truncate">
                         {track.artist_name || track.artist || track.artists?.[0]?.name || "Unknown Artist"}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <button className="p-1 hover:bg-white/10 rounded transition">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="p-1 hover:bg-white/10 rounded transition"
+                        >
                           <Heart className="w-4 h-4 text-gray-400 hover:text-red-400" />
                         </button>
                         {track.source === 'youtube' && (
-                          <Badge className="bg-red-500/20 text-red-400 text-xs">
-                            YouTube
+                          <Badge className="bg-red-500/20 text-red-400 text-xs flex items-center gap-1">
+                            🎬 Video
+                          </Badge>
+                        )}
+                        {track.genre && (
+                          <Badge className="bg-blue-500/20 text-blue-400 text-xs capitalize">
+                            {track.genre.replace('_', ' ')}
                           </Badge>
                         )}
                         {track.pricing_model && track.pricing_model !== 'free' && (
@@ -511,7 +571,16 @@ export default function Vibe() {
               <div className="text-center py-20">
                 <Music className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">No music found</h3>
-                <p className="text-gray-400">Try a different genre or search term</p>
+                <p className="text-gray-400 mb-2">Try a different genre or search term</p>
+                {searchQuery && (
+                  <Button
+                    onClick={() => setSearchQuery('')}
+                    variant="outline"
+                    className="bg-white/10 border-white/20 mt-4"
+                  >
+                    Clear Search
+                  </Button>
+                )}
               </div>
             )}
 
