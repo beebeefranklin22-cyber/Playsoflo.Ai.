@@ -45,12 +45,11 @@ export default function SafeErrorHandler() {
       }, 60000);
     }
 
-    // Global error handler
+    // Global error handler - silent logging only
     const handleError = (event) => {
       try {
         const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
         if (loopActive) {
-          console.error('Error occurred but refresh loop prevention is active:', event.error);
           event.preventDefault();
           return;
         }
@@ -61,27 +60,31 @@ export default function SafeErrorHandler() {
       // Properly format error message
       const errorMessage = event.error?.message || 
                           event.error?.toString() || 
-                          JSON.stringify(event.error) || 
                           'Unknown error';
       
-      console.error('Global error:', errorMessage);
+      // Silent logging only - no user notifications
+      console.error('Global error (silent):', errorMessage);
       
-      // Ignore SecurityError and NetworkError
-      if (errorMessage.includes('SecurityError') || 
-          errorMessage.includes('NetworkError') ||
-          errorMessage.includes('insecure')) {
-        event.preventDefault();
-        return;
-      }
+      // Send to backend for analysis
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: errorMessage,
+          stack: event.error?.stack,
+          timestamp: new Date().toISOString(),
+          type: 'global_error'
+        })
+      }).catch(() => {});
       
-      toast.error('An error occurred. Please try again.');
+      // Prevent default error display
+      event.preventDefault();
     };
 
     const handleUnhandledRejection = (event) => {
       try {
         const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
         if (loopActive) {
-          console.error('Promise rejection but refresh loop prevention is active:', event.reason);
           event.preventDefault();
           return;
         }
@@ -94,12 +97,22 @@ export default function SafeErrorHandler() {
         ? JSON.stringify(event.reason) 
         : String(event.reason);
       
-      console.error('Unhandled rejection:', reason);
+      // Silent logging only
+      console.error('Unhandled rejection (silent):', reason);
       
-      // Ignore SecurityError
-      if (reason.includes('SecurityError') || reason.includes('insecure')) {
-        event.preventDefault();
-      }
+      // Send to backend
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: reason,
+          timestamp: new Date().toISOString(),
+          type: 'promise_rejection'
+        })
+      }).catch(() => {});
+      
+      // Prevent default
+      event.preventDefault();
     };
 
     window.addEventListener('error', handleError);

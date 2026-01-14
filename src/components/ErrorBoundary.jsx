@@ -16,30 +16,42 @@ export default class ErrorBoundary extends React.Component {
     const errorMsg = error?.message || error?.toString() || 'Unknown error';
     console.error('ErrorBoundary caught:', errorMsg, errorInfo);
     
-    // Prevent infinite refresh loops
-    try {
-      const refreshCount = sessionStorage.getItem('error_refresh_count') || 0;
-      if (parseInt(refreshCount) > 2) {
-        console.error('Too many refreshes - stopping auto-refresh to prevent loop');
-        sessionStorage.removeItem('error_refresh_count');
-        return;
-      }
-    } catch (e) {
-      // Storage access denied - continue without loop detection
-      console.warn('Storage access denied in error boundary');
-    }
+    // Send to backend for analysis (silent)
+    this.reportErrorToBackend(error, errorInfo);
     
-    // Report to diagnostics system (non-blocking)
-    if (typeof window !== 'undefined' && window.reportError) {
-      try {
-        window.reportError({
-          error: errorMsg,
+    // Try to recover automatically for non-critical errors
+    const isCritical = errorMsg.includes('ChunkLoadError') || 
+                       errorMsg.includes('Failed to fetch') ||
+                       errorMsg.includes('Network');
+    
+    if (!isCritical) {
+      // Auto-recover after 1 second
+      setTimeout(() => {
+        this.setState({ hasError: false, error: null });
+      }, 1000);
+    }
+  }
+
+  reportErrorToBackend = async (error, errorInfo) => {
+    try {
+      // Silent background error reporting
+      await fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          error: error?.message || error?.toString(),
           stack: error.stack,
-          componentStack: errorInfo.componentStack
-        });
-      } catch (e) {
-        console.error('Error reporting failed:', e);
-      }
+          componentStack: errorInfo.componentStack,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          url: window.location.href
+        })
+      }).catch(() => {
+        // Fail silently
+        console.log('Background error logging skipped');
+      });
+    } catch (e) {
+      // Silent fail
     }
   }
 
@@ -53,46 +65,12 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      // Show minimal loading instead of error
       return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-red-950 to-gray-950 flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-gray-900 rounded-2xl p-8 border border-red-500/30">
-            <div className="flex items-center justify-center w-16 h-16 bg-red-500/20 rounded-full mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-red-400" />
-            </div>
-            
-            <h2 className="text-2xl font-bold text-white text-center mb-2">
-              Something went wrong
-            </h2>
-            
-            <p className="text-gray-400 text-center mb-6">
-              Don't worry, our AI is analyzing this issue. Try refreshing the page.
-            </p>
-
-            <div className="space-y-3">
-              <Button 
-                onClick={this.handleReset}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Try Again
-              </Button>
-              
-              <Button 
-                onClick={() => {
-                  try {
-                    sessionStorage.clear();
-                    localStorage.clear();
-                  } catch (e) {
-                    console.warn('Could not clear storage:', e);
-                  }
-                  window.location.href = '/';
-                }}
-                variant="outline"
-                className="w-full border-white/20 text-white hover:bg-white/10"
-              >
-                Clear Cache & Go Home
-              </Button>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto" />
+            <p className="text-gray-400 text-sm">Loading...</p>
           </div>
         </div>
       );
