@@ -7,27 +7,39 @@ export default function RealtimeFeedManager({ entities = [], queryKeys = [] }) {
   const [updates, setUpdates] = useState([]);
 
   useEffect(() => {
+    if (!entities || entities.length === 0) return;
+    
     const unsubscribers = [];
 
-    // Subscribe to all entity types for real-time updates
+    // Subscribe with debouncing
     entities.forEach(entityName => {
-      const unsubscribe = base44.entities[entityName].subscribe((event) => {
-        // Invalidate relevant queries
-        queryKeys.forEach(key => {
-          queryClient.invalidateQueries({ queryKey: key });
+      let debounceTimer;
+      
+      try {
+        const unsubscribe = base44.entities[entityName].subscribe((event) => {
+          // Debounce updates to prevent excessive re-renders
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            queryKeys.forEach(key => {
+              queryClient.invalidateQueries({ queryKey: key });
+            });
+          }, 1000);
         });
 
-        // Track updates for UI feedback
-        setUpdates(prev => [...prev, { entityName, event, timestamp: Date.now() }].slice(-10));
-      });
-
-      unsubscribers.push(unsubscribe);
+        unsubscribers.push(unsubscribe);
+      } catch (error) {
+        console.warn(`Failed to subscribe to ${entityName}:`, error);
+      }
     });
 
     return () => {
-      unsubscribers.forEach(unsub => unsub());
+      unsubscribers.forEach(unsub => {
+        try {
+          unsub();
+        } catch (e) {}
+      });
     };
-  }, [entities.join(',')]);
+  }, []);
 
-  return null; // Invisible component
+  return null;
 }

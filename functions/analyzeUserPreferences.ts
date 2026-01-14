@@ -9,25 +9,21 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const {
-      savedExperiences,
-      likedPosts,
-      watchHistory,
-      bookings,
-      follows,
-      userInterests
-    } = await req.json();
+    const { userEmail, userInterests } = await req.json();
+
+    // Get lightweight interaction counts only
+    const [savedCount, likesCount, watchCount] = await Promise.all([
+      base44.asServiceRole.entities.Experience.filter({ saved_by: userEmail }).then(r => r.length).catch(() => 0),
+      base44.asServiceRole.entities.VideoLike.filter({ user_email: userEmail }).then(r => r.length).catch(() => 0),
+      base44.asServiceRole.entities.ContentPurchase.filter({ buyer_email: userEmail }).then(r => r.length).catch(() => 0)
+    ]);
 
     // Use AI to analyze user behavior patterns
     const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `Analyze user behavior and create personalized recommendations:
+      prompt: `Create personalized recommendations for user:
 
-Saved Experiences: ${JSON.stringify(savedExperiences.slice(0, 10))}
-Liked Posts: ${JSON.stringify(likedPosts.slice(0, 10))}
-Watch History: ${JSON.stringify(watchHistory.slice(0, 10))}
-Bookings: ${JSON.stringify(bookings.slice(0, 10))}
-Follows: ${JSON.stringify(follows.slice(0, 10))}
 User Interests: ${JSON.stringify(userInterests)}
+Engagement Level: ${savedCount + likesCount + watchCount > 10 ? 'High' : 'Medium'}
 
 Provide JSON with:
 - preferredCategories: array of category preferences

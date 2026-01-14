@@ -7,48 +7,36 @@ export default function AIPersonalizationEngine({ currentUser, onPreferencesUpda
   useEffect(() => {
     if (!currentUser) return;
 
-    // Load user preferences and interaction history
-    const analyzePreferences = async () => {
-      try {
-        // Get user's interaction history
-        const [
-          savedExperiences,
-          likedPosts,
-          watchHistory,
-          bookings,
-          follows
-        ] = await Promise.all([
-          base44.entities.Experience.filter({ saved_by: currentUser.email }).catch(() => []),
-          base44.entities.VideoLike.filter({ user_email: currentUser.email }).catch(() => []),
-          base44.entities.ContentPurchase.filter({ buyer_email: currentUser.email }).catch(() => []),
-          base44.entities.Booking.filter({ user_email: currentUser.email }).catch(() => []),
-          base44.entities.Follow.filter({ follower_email: currentUser.email }).catch(() => [])
-        ]);
-
-        // Use AI to analyze patterns
-        const analysis = await base44.functions.invoke('analyzeUserPreferences', {
-          savedExperiences,
-          likedPosts,
-          watchHistory,
-          bookings,
-          follows,
-          userInterests: currentUser.interests || []
-        }).catch(() => null);
-
-        if (analysis) {
-          setPreferences(analysis);
-          onPreferencesUpdate?.(analysis);
+    // Use cached preferences from user record
+    if (currentUser.ai_preferences) {
+      setPreferences(currentUser.ai_preferences);
+      onPreferencesUpdate?.(currentUser.ai_preferences);
+      
+      // Check if preferences are old (more than 1 day)
+      const lastUpdate = currentUser.preferences_updated_at;
+      if (lastUpdate) {
+        const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+        if (new Date(lastUpdate).getTime() > dayAgo) {
+          return; // Use cached, don't reanalyze
         }
-      } catch (error) {
-        console.error('Personalization engine error:', error);
       }
-    };
+    }
 
-    analyzePreferences();
+    // Analyze in background (non-blocking)
+    setTimeout(() => {
+      base44.functions.invoke('analyzeUserPreferences', {
+        userEmail: currentUser.email,
+        userInterests: currentUser.interests || []
+      }).then(result => {
+        if (result?.preferences) {
+          setPreferences(result.preferences);
+          onPreferencesUpdate?.(result.preferences);
+        }
+      }).catch(() => {
+        // Silent fail - use cached or default
+      });
+    }, 2000);
 
-    // Re-analyze every 5 minutes
-    const interval = setInterval(analyzePreferences, 5 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [currentUser?.email]);
 
   return null;
