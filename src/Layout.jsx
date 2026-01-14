@@ -24,6 +24,7 @@ import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
 import SecurityValidator from "./components/security/SecurityValidator";
 import SafeErrorHandler from "./components/SafeErrorHandler";
+import TermsGuard from "./components/TermsGuard";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -146,6 +147,7 @@ export default function Layout({ children, currentPageName }) {
   return (
     <ErrorBoundary>
     <SecurityValidator>
+    <TermsGuard>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
       <CrossPlatformOptimizer />
@@ -439,6 +441,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
+      </TermsGuard>
       </SecurityValidator>
       </ErrorBoundary>
       );
