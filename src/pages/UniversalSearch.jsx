@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import {
   Search, User, Briefcase, Music, Tv, ShoppingBag,
   Star, MapPin, DollarSign, ChevronRight, Sparkles,
-  Filter, X, TrendingUp
+  Filter, X, TrendingUp, AtSign
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,10 +37,12 @@ export default function UniversalSearch() {
     queryFn: async () => {
       if (!debouncedQuery) return [];
       const allUsers = await base44.entities.User.list();
+      const searchTerm = debouncedQuery.toLowerCase().replace('@', '');
       return allUsers.filter(user => 
-        user.full_name?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        user.email?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        user.bio?.toLowerCase().includes(debouncedQuery.toLowerCase())
+        user.username?.toLowerCase().includes(searchTerm) ||
+        user.full_name?.toLowerCase().includes(searchTerm) ||
+        user.email?.toLowerCase().includes(searchTerm) ||
+        user.bio?.toLowerCase().includes(searchTerm)
       );
     },
     enabled: debouncedQuery.length > 0
@@ -138,6 +140,13 @@ export default function UniversalSearch() {
               {item.description && (
                 <p className="text-gray-400 text-sm line-clamp-2 mb-2">
                   {item.description}
+                </p>
+              )}
+
+              {item.username && (
+                <p className="text-purple-400 text-sm flex items-center gap-1 mb-1">
+                  <AtSign className="w-3 h-3" />
+                  {item.username}
                 </p>
               )}
 
@@ -312,7 +321,7 @@ export default function UniversalSearch() {
                     Users ({users.length})
                   </h3>
                   {users.slice(0, 3).map(user => (
-                    <div key={user.id} onClick={() => navigate(createPageUrl("UserProfile") + `?email=${user.email}`)}>
+                    <div key={user.id} onClick={() => navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`)}>
                       <ResultCard item={user} type="User" icon={User} />
                     </div>
                   ))}
@@ -423,7 +432,7 @@ export default function UniversalSearch() {
 
             <TabsContent value="users" className="space-y-3">
               {users.map(user => (
-                <div key={user.id} onClick={() => navigate(createPageUrl("UserProfile") + `?email=${user.email}`)}>
+                <div key={user.id} onClick={() => navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`)}>
                   <ResultCard item={user} type="User" icon={User} />
                 </div>
               ))}
