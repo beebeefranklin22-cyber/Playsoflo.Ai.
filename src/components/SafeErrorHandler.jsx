@@ -5,9 +5,10 @@ export default function SafeErrorHandler() {
   useEffect(() => {
     // Prevent infinite refresh loops
     const checkRefreshLoop = () => {
-      const lastRefresh = sessionStorage.getItem('last_refresh_time');
-      const refreshCount = parseInt(sessionStorage.getItem('refresh_count') || '0');
-      const now = Date.now();
+      try {
+        const lastRefresh = sessionStorage.getItem('last_refresh_time');
+        const refreshCount = parseInt(sessionStorage.getItem('refresh_count') || '0');
+        const now = Date.now();
 
       if (lastRefresh && now - parseInt(lastRefresh) < 5000) {
         // Multiple refreshes within 5 seconds
@@ -25,8 +26,13 @@ export default function SafeErrorHandler() {
         sessionStorage.setItem('refresh_count', '0');
       }
 
-      sessionStorage.setItem('last_refresh_time', now.toString());
-      return false;
+        sessionStorage.setItem('last_refresh_time', now.toString());
+        return false;
+      } catch (e) {
+        // Storage access denied - just continue without loop detection
+        console.warn('Storage access denied:', e);
+        return false;
+      }
     };
 
     const loopDetected = checkRefreshLoop();
@@ -41,30 +47,59 @@ export default function SafeErrorHandler() {
 
     // Global error handler
     const handleError = (event) => {
-      const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
-      if (loopActive) {
-        console.error('Error occurred but refresh loop prevention is active:', event.error);
+      try {
+        const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
+        if (loopActive) {
+          console.error('Error occurred but refresh loop prevention is active:', event.error);
+          event.preventDefault();
+          return;
+        }
+      } catch (e) {
+        // Storage access denied - continue
+      }
+
+      // Properly format error message
+      const errorMessage = event.error?.message || 
+                          event.error?.toString() || 
+                          JSON.stringify(event.error) || 
+                          'Unknown error';
+      
+      console.error('Global error:', errorMessage);
+      
+      // Ignore SecurityError and NetworkError
+      if (errorMessage.includes('SecurityError') || 
+          errorMessage.includes('NetworkError') ||
+          errorMessage.includes('insecure')) {
         event.preventDefault();
         return;
       }
-
-      console.error('Global error:', event.error);
       
-      // Only show toast for non-network errors
-      if (!event.error?.message?.includes('NetworkError')) {
-        toast.error('An error occurred. Please try again.');
-      }
+      toast.error('An error occurred. Please try again.');
     };
 
     const handleUnhandledRejection = (event) => {
-      const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
-      if (loopActive) {
-        console.error('Promise rejection but refresh loop prevention is active:', event.reason);
-        event.preventDefault();
-        return;
+      try {
+        const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
+        if (loopActive) {
+          console.error('Promise rejection but refresh loop prevention is active:', event.reason);
+          event.preventDefault();
+          return;
+        }
+      } catch (e) {
+        // Storage access denied - continue
       }
 
-      console.error('Unhandled rejection:', event.reason);
+      // Properly format rejection reason
+      const reason = typeof event.reason === 'object' 
+        ? JSON.stringify(event.reason) 
+        : String(event.reason);
+      
+      console.error('Unhandled rejection:', reason);
+      
+      // Ignore SecurityError
+      if (reason.includes('SecurityError') || reason.includes('insecure')) {
+        event.preventDefault();
+      }
     };
 
     window.addEventListener('error', handleError);

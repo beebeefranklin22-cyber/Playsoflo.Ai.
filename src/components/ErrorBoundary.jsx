@@ -13,21 +13,27 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught:', error, errorInfo);
+    const errorMsg = error?.message || error?.toString() || 'Unknown error';
+    console.error('ErrorBoundary caught:', errorMsg, errorInfo);
     
     // Prevent infinite refresh loops
-    const refreshCount = sessionStorage.getItem('error_refresh_count') || 0;
-    if (parseInt(refreshCount) > 2) {
-      console.error('Too many refreshes - stopping auto-refresh to prevent loop');
-      sessionStorage.removeItem('error_refresh_count');
-      return;
+    try {
+      const refreshCount = sessionStorage.getItem('error_refresh_count') || 0;
+      if (parseInt(refreshCount) > 2) {
+        console.error('Too many refreshes - stopping auto-refresh to prevent loop');
+        sessionStorage.removeItem('error_refresh_count');
+        return;
+      }
+    } catch (e) {
+      // Storage access denied - continue without loop detection
+      console.warn('Storage access denied in error boundary');
     }
     
     // Report to diagnostics system (non-blocking)
     if (typeof window !== 'undefined' && window.reportError) {
       try {
         window.reportError({
-          error: error.toString(),
+          error: errorMsg,
           stack: error.stack,
           componentStack: errorInfo.componentStack
         });
@@ -73,8 +79,12 @@ export default class ErrorBoundary extends React.Component {
               
               <Button 
                 onClick={() => {
-                  sessionStorage.clear();
-                  localStorage.clear();
+                  try {
+                    sessionStorage.clear();
+                    localStorage.clear();
+                  } catch (e) {
+                    console.warn('Could not clear storage:', e);
+                  }
                   window.location.href = '/';
                 }}
                 variant="outline"
