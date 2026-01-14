@@ -19,6 +19,10 @@ import SystemHealthMonitor from "./components/SystemHealthMonitor";
 import ProactiveMonitor from "./components/ProactiveMonitor";
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
+import CrossPlatformOptimizer from "./components/CrossPlatformOptimizer";
+import TVNavigationHandler from "./components/platform/TVNavigationHandler";
+import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
+import SecurityValidator from "./components/security/SecurityValidator";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -140,7 +144,11 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <ErrorBoundary>
+    <SecurityValidator>
+    <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
+      <CrossPlatformOptimizer />
+      <ResponsiveOptimizer />
       <ServiceWorkerManager />
       <OfflineManager />
       <OfflineDataCache />
@@ -428,6 +436,8 @@ export default function Layout({ children, currentPageName }) {
       <RealtimeNotificationManager currentUser={currentUser} />
       </div>
       </PostHogProvider>
+      </TVNavigationHandler>
+      </SecurityValidator>
       </ErrorBoundary>
       );
       }
