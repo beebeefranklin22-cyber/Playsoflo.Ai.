@@ -15,19 +15,34 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
     
-    // Report to diagnostics system
+    // Prevent infinite refresh loops
+    const refreshCount = sessionStorage.getItem('error_refresh_count') || 0;
+    if (parseInt(refreshCount) > 2) {
+      console.error('Too many refreshes - stopping auto-refresh to prevent loop');
+      sessionStorage.removeItem('error_refresh_count');
+      return;
+    }
+    
+    // Report to diagnostics system (non-blocking)
     if (typeof window !== 'undefined' && window.reportError) {
-      window.reportError({
-        error: error.toString(),
-        stack: error.stack,
-        componentStack: errorInfo.componentStack
-      });
+      try {
+        window.reportError({
+          error: error.toString(),
+          stack: error.stack,
+          componentStack: errorInfo.componentStack
+        });
+      } catch (e) {
+        console.error('Error reporting failed:', e);
+      }
     }
   }
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.reload();
+    // Don't reload immediately - give state a chance to reset
+    setTimeout(() => {
+      window.location.href = window.location.pathname;
+    }, 100);
   };
 
   render() {
@@ -47,13 +62,27 @@ export default class ErrorBoundary extends React.Component {
               Don't worry, our AI is analyzing this issue. Try refreshing the page.
             </p>
 
-            <Button 
-              onClick={this.handleReset}
-              className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
-            >
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Refresh Page
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={this.handleReset}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Try Again
+              </Button>
+              
+              <Button 
+                onClick={() => {
+                  sessionStorage.clear();
+                  localStorage.clear();
+                  window.location.href = '/';
+                }}
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10"
+              >
+                Clear Cache & Go Home
+              </Button>
+            </div>
           </div>
         </div>
       );

@@ -23,6 +23,7 @@ import CrossPlatformOptimizer from "./components/CrossPlatformOptimizer";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
 import SecurityValidator from "./components/security/SecurityValidator";
+import SafeErrorHandler from "./components/SafeErrorHandler";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -149,6 +150,7 @@ export default function Layout({ children, currentPageName }) {
     <PostHogProvider user={currentUser}>
       <CrossPlatformOptimizer />
       <ResponsiveOptimizer />
+      <SafeErrorHandler />
       <ServiceWorkerManager />
       <OfflineManager />
       <OfflineDataCache />
