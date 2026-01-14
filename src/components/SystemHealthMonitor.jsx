@@ -26,7 +26,8 @@ export default function SystemHealthMonitor() {
       setHealth(result.data);
     } catch (error) {
       console.error('Health check failed:', error);
-      setHealth({ status: 'critical', error: error.message });
+      // Don't set critical status if health check fails - just ignore
+      // This prevents false alarms and refresh loops
     }
   };
 

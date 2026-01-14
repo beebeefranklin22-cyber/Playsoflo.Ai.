@@ -37,14 +37,15 @@ export default function ProactiveMonitor() {
 
       } catch (error) {
         console.error('Background monitoring error:', error);
+        // Don't show errors to users - silent fail to prevent UI disruption
       }
     };
 
-    // Run initial scan after 10 seconds
-    const initialTimeout = setTimeout(runBackgroundScan, 10000);
+    // Run initial scan after 30 seconds (reduced frequency)
+    const initialTimeout = setTimeout(runBackgroundScan, 30000);
     
-    // Then run every 5 minutes
-    intervalId = setInterval(runBackgroundScan, 5 * 60 * 1000);
+    // Then run every 10 minutes (reduced from 5)
+    intervalId = setInterval(runBackgroundScan, 10 * 60 * 1000);
 
     return () => {
       clearTimeout(initialTimeout);
