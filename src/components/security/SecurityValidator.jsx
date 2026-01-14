@@ -4,16 +4,41 @@ import { toast } from 'sonner';
 
 export default function SecurityValidator({ children }) {
   useEffect(() => {
-    // Content Security Policy
-    const csp = {
-      'default-src': ["'self'"],
-      'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://www.youtube.com', 'https://js.stripe.com'],
-      'style-src': ["'self'", "'unsafe-inline'"],
-      'img-src': ["'self'", 'data:', 'https:', 'blob:'],
-      'font-src': ["'self'", 'data:'],
-      'connect-src': ["'self'", 'https:', 'wss:'],
-      'media-src': ["'self'", 'https:', 'blob:'],
-      'frame-src': ["'self'", 'https://www.youtube.com', 'https://js.stripe.com']
+    // Enforce HTTPS
+    if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+      window.location.href = window.location.href.replace('http:', 'https:');
+      return;
+    }
+
+    // Enhanced Content Security Policy with upgrade-insecure-requests
+    const meta = document.createElement('meta');
+    meta.httpEquiv = 'Content-Security-Policy';
+    meta.content = "upgrade-insecure-requests; block-all-mixed-content;";
+    document.head.appendChild(meta);
+
+    // Referrer Policy
+    const referrer = document.createElement('meta');
+    referrer.name = 'referrer';
+    referrer.content = 'strict-origin-when-cross-origin';
+    document.head.appendChild(referrer);
+
+    // Secure all fetch/XHR requests
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      let url = args[0];
+      if (typeof url === 'string' && url.startsWith('http://') && !url.includes('localhost')) {
+        url = url.replace('http://', 'https://');
+        args[0] = url;
+      }
+      return originalFetch.apply(this, args);
+    };
+
+    const originalXHROpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+      if (typeof url === 'string' && url.startsWith('http://') && !url.includes('localhost')) {
+        url = url.replace('http://', 'https://');
+      }
+      return originalXHROpen.call(this, method, url, ...rest);
     };
 
     // Session validation every 5 minutes
@@ -21,7 +46,6 @@ export default function SecurityValidator({ children }) {
       try {
         const isAuth = await base44.auth.isAuthenticated();
         if (!isAuth && window.location.pathname !== '/') {
-          // Session expired
           toast.error('Session expired. Please log in again.');
           setTimeout(() => base44.auth.redirectToLogin(), 2000);
         }
@@ -64,6 +88,8 @@ export default function SecurityValidator({ children }) {
 
     return () => {
       clearInterval(sessionInterval);
+      meta.remove();
+      referrer.remove();
     };
   }, []);
 
