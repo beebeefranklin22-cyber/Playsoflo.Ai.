@@ -56,6 +56,7 @@ import PassengerProfile from './pages/PassengerProfile';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PayoutDashboard from './pages/PayoutDashboard';
 import Payouts from './pages/Payouts';
+import PermissionsSettings from './pages/PermissionsSettings';
 import PersonalizedFeed from './pages/PersonalizedFeed';
 import Profile from './pages/Profile';
 import PropertyHostProfile from './pages/PropertyHostProfile';
@@ -85,6 +86,7 @@ import StripeStorefront from './pages/StripeStorefront';
 import SupportDashboard from './pages/SupportDashboard';
 import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
 import SystemDiagnostics from './pages/SystemDiagnostics';
+import TermsOfService from './pages/TermsOfService';
 import TestPayment from './pages/TestPayment';
 import Travel from './pages/Travel';
 import UniversalSearch from './pages/UniversalSearch';
@@ -95,8 +97,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import TermsOfService from './pages/TermsOfService';
-import PermissionsSettings from './pages/PermissionsSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -159,6 +159,7 @@ export const PAGES = {
     "PaymentSuccess": PaymentSuccess,
     "PayoutDashboard": PayoutDashboard,
     "Payouts": Payouts,
+    "PermissionsSettings": PermissionsSettings,
     "PersonalizedFeed": PersonalizedFeed,
     "Profile": Profile,
     "PropertyHostProfile": PropertyHostProfile,
@@ -188,6 +189,7 @@ export const PAGES = {
     "SupportDashboard": SupportDashboard,
     "SyncLicensingAdmin": SyncLicensingAdmin,
     "SystemDiagnostics": SystemDiagnostics,
+    "TermsOfService": TermsOfService,
     "TestPayment": TestPayment,
     "Travel": Travel,
     "UniversalSearch": UniversalSearch,
@@ -198,8 +200,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "TermsOfService": TermsOfService,
-    "PermissionsSettings": PermissionsSettings,
 }
 
 export const pagesConfig = {

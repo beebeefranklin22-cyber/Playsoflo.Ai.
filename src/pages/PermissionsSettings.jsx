@@ -81,14 +81,19 @@ export default function PermissionsSettings() {
         navigator.geolocation.getCurrentPosition(
           () => {
             toast.success("Location permission granted");
+            togglePermission(type);
             checkSystemPermissions();
           },
-          () => toast.error("Location permission denied")
+          (error) => {
+            console.error("Location error:", error);
+            toast.error("Location permission denied");
+          }
         );
       } else if (type === 'notifications' && 'Notification' in window) {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           toast.success("Notification permission granted");
+          togglePermission(type);
           checkSystemPermissions();
         } else {
           toast.error("Notification permission denied");
@@ -101,11 +106,12 @@ export default function PermissionsSettings() {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         stream.getTracks().forEach(track => track.stop());
         toast.success(`${type === 'camera' ? 'Camera' : 'Microphone'} permission granted`);
+        togglePermission(type);
         checkSystemPermissions();
       }
     } catch (error) {
       console.error(`Error requesting ${type} permission:`, error);
-      toast.error(`Failed to request ${type} permission`);
+      toast.error(`Please enable ${type} in your browser settings`);
     }
   };
 

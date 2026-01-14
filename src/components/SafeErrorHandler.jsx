@@ -65,16 +65,16 @@ export default function SafeErrorHandler() {
       // Silent logging only - no user notifications
       console.error('Global error (silent):', errorMessage);
       
-      // Send to backend for analysis
-      fetch('/api/log-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Send to backend for analysis (using Base44 function)
+      import('@/api/base44Client').then(({ base44 }) => {
+        base44.functions.invoke('logError', {
           error: errorMessage,
           stack: event.error?.stack,
           timestamp: new Date().toISOString(),
-          type: 'global_error'
-        })
+          type: 'global_error',
+          url: window.location.href,
+          userAgent: navigator.userAgent
+        }).catch(() => {});
       }).catch(() => {});
       
       // Prevent default error display
@@ -101,14 +101,14 @@ export default function SafeErrorHandler() {
       console.error('Unhandled rejection (silent):', reason);
       
       // Send to backend
-      fetch('/api/log-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      import('@/api/base44Client').then(({ base44 }) => {
+        base44.functions.invoke('logError', {
           error: reason,
           timestamp: new Date().toISOString(),
-          type: 'promise_rejection'
-        })
+          type: 'promise_rejection',
+          url: window.location.href,
+          userAgent: navigator.userAgent
+        }).catch(() => {});
       }).catch(() => {});
       
       // Prevent default

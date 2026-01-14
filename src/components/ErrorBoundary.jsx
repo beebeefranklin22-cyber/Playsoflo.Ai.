@@ -34,24 +34,23 @@ export default class ErrorBoundary extends React.Component {
 
   reportErrorToBackend = async (error, errorInfo) => {
     try {
-      // Silent background error reporting
-      await fetch('/api/log-error', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: error?.message || error?.toString(),
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          url: window.location.href
-        })
+      // Dynamic import to avoid circular dependencies
+      const { base44 } = await import('@/api/base44Client');
+      
+      await base44.functions.invoke('logError', {
+        error: error?.message || error?.toString(),
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+        timestamp: new Date().toISOString(),
+        type: 'component_error',
+        url: window.location.href,
+        userAgent: navigator.userAgent
       }).catch(() => {
-        // Fail silently
         console.log('Background error logging skipped');
       });
     } catch (e) {
       // Silent fail
+      console.log('Error reporting failed silently');
     }
   }
 

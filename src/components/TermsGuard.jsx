@@ -17,15 +17,28 @@ export default function TermsGuard({ children }) {
     try {
       const user = await base44.auth.me();
       
-      // If terms not accepted and not on terms page, redirect
-      if (!user.terms_accepted && location.pathname !== createPageUrl("TermsOfService")) {
-        navigate(createPageUrl("TermsOfService"));
+      // Skip terms check for TermsOfService and PermissionsSettings pages
+      const currentPath = location.pathname;
+      const termsPath = createPageUrl("TermsOfService");
+      const permissionsPath = createPageUrl("PermissionsSettings");
+      
+      if (currentPath === termsPath || currentPath === permissionsPath) {
+        setTermsAccepted(true);
+        setChecking(false);
+        return;
+      }
+      
+      // If terms not accepted, redirect to terms page
+      if (!user.terms_accepted) {
+        navigate(termsPath);
         return;
       }
       
       setTermsAccepted(true);
     } catch (error) {
       console.error("Error checking terms:", error);
+      // On error, allow access to avoid blocking users
+      setTermsAccepted(true);
     } finally {
       setChecking(false);
     }
