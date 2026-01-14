@@ -22,6 +22,8 @@ import CrossPlatformOptimizer from "./components/CrossPlatformOptimizer";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
 import SecurityValidator from "./components/security/SecurityValidator";
+import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
+import AutoHealingSystem from "./components/diagnostics/AutoHealingSystem";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import TermsGuard from "./components/TermsGuard";
 
@@ -146,9 +148,11 @@ export default function Layout({ children, currentPageName }) {
   return (
     <ErrorBoundary>
     <SecurityValidator>
+    <SecureOperationWrapper>
     <TermsGuard>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
+      <AutoHealingSystem />
       <CrossPlatformOptimizer />
       <ResponsiveOptimizer />
       <SafeErrorHandler />
@@ -439,6 +443,7 @@ export default function Layout({ children, currentPageName }) {
       </PostHogProvider>
       </TVNavigationHandler>
       </TermsGuard>
+      </SecureOperationWrapper>
       </SecurityValidator>
       </ErrorBoundary>
       );
