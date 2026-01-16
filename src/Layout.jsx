@@ -26,6 +26,10 @@ import SecureOperationWrapper from "./components/security/SecureOperationWrapper
 import AutoHealingSystem from "./components/diagnostics/AutoHealingSystem";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import TermsGuard from "./components/TermsGuard";
+import InfrastructureMonitor from "./components/infrastructure/InfrastructureMonitor";
+import StreamingHealthCheck from "./components/infrastructure/StreamingHealthCheck";
+import MultiDeviceValidator from "./components/infrastructure/MultiDeviceValidator";
+import ConnectionFailsafe from "./components/infrastructure/ConnectionFailsafe";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -152,6 +156,10 @@ export default function Layout({ children, currentPageName }) {
     <TermsGuard>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
+      <InfrastructureMonitor />
+      <StreamingHealthCheck />
+      <MultiDeviceValidator />
+      <ConnectionFailsafe />
       <AutoHealingSystem />
       <CrossPlatformOptimizer />
       <ResponsiveOptimizer />
