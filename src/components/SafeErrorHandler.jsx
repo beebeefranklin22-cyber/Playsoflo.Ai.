@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { safeSessionStorage } from './utils/SafeStorage';
 
 export default function SafeErrorHandler() {
   useEffect(() => {
