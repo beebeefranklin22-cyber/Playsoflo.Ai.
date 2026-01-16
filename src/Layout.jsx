@@ -23,6 +23,7 @@ import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
 import SecurityValidator from "./components/security/SecurityValidator";
 import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
+import GlobalSecurityHandler from "./components/security/GlobalSecurityHandler";
 import AutoHealingSystem from "./components/diagnostics/AutoHealingSystem";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import TermsGuard from "./components/TermsGuard";
@@ -151,6 +152,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <ErrorBoundary>
+    <GlobalSecurityHandler />
     <SecurityValidator>
     <SecureOperationWrapper>
     <TermsGuard>
