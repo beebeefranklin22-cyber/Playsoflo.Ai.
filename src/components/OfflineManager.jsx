@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { WifiOff, Wifi } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { safeLocalStorage } from './utils/SafeStorage';
 
 export default function OfflineManager() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -40,7 +41,7 @@ export default function OfflineManager() {
 
   const syncOfflineQueue = async () => {
     try {
-      const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+      const queue = JSON.parse(safeLocalStorage.getItem('offline_queue') || '[]');
       
       if (queue.length > 0) {
         console.log(`Syncing ${queue.length} queued actions...`);
@@ -55,7 +56,7 @@ export default function OfflineManager() {
           }
         }
         
-        localStorage.removeItem('offline_queue');
+        safeLocalStorage.removeItem('offline_queue');
       }
     } catch (err) {
       console.error('Sync error:', err);
@@ -106,7 +107,7 @@ export default function OfflineManager() {
 // Utility functions for offline support
 export const cacheData = (key, data) => {
   try {
-    localStorage.setItem(`cache_${key}`, JSON.stringify({
+    safeLocalStorage.setItem(`cache_${key}`, JSON.stringify({
       data,
       timestamp: Date.now()
     }));
@@ -117,13 +118,13 @@ export const cacheData = (key, data) => {
 
 export const getCachedData = (key, maxAge = 5 * 60 * 1000) => {
   try {
-    const cached = localStorage.getItem(`cache_${key}`);
+    const cached = safeLocalStorage.getItem(`cache_${key}`);
     if (!cached) return null;
     
     const { data, timestamp } = JSON.parse(cached);
     
     if (Date.now() - timestamp > maxAge) {
-      localStorage.removeItem(`cache_${key}`);
+      safeLocalStorage.removeItem(`cache_${key}`);
       return null;
     }
     
@@ -136,12 +137,12 @@ export const getCachedData = (key, maxAge = 5 * 60 * 1000) => {
 
 export const queueOfflineAction = (action) => {
   try {
-    const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+    const queue = JSON.parse(safeLocalStorage.getItem('offline_queue') || '[]');
     queue.push({
       ...action,
       timestamp: Date.now()
     });
-    localStorage.setItem('offline_queue', JSON.stringify(queue));
+    safeLocalStorage.setItem('offline_queue', JSON.stringify(queue));
   } catch (err) {
     console.error('Queue error:', err);
   }

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { safeLocalStorage } from './utils/SafeStorage';
 
 // Enhanced offline data caching with IndexedDB fallback
 export default function OfflineDataCache() {
@@ -16,7 +17,7 @@ export default function OfflineDataCache() {
             state: query.state
           }));
           
-          localStorage.setItem('react-query-cache', JSON.stringify(state));
+          safeLocalStorage.setItem('react-query-cache', JSON.stringify(state));
           
           // Also cache in IndexedDB if available
           if ('indexedDB' in window) {
@@ -42,7 +43,7 @@ export default function OfflineDataCache() {
       restoreClient: async () => {
         try {
           // Try localStorage first
-          const cached = localStorage.getItem('react-query-cache');
+          const cached = safeLocalStorage.getItem('react-query-cache');
           if (cached) {
             const state = JSON.parse(cached);
             state.forEach(query => {
@@ -121,7 +122,7 @@ export async function offlineFetch(url, options = {}) {
   // If offline, return cached data
   if (!navigator.onLine) {
     try {
-      const cached = localStorage.getItem(cacheKey);
+      const cached = safeLocalStorage.getItem(cacheKey);
       if (cached) {
         const { data, timestamp } = JSON.parse(cached);
         // Return data up to 1 hour old when offline
@@ -140,7 +141,7 @@ export async function offlineFetch(url, options = {}) {
     const data = await response.json();
     
     // Cache successful responses
-    localStorage.setItem(cacheKey, JSON.stringify({
+    safeLocalStorage.setItem(cacheKey, JSON.stringify({
       data,
       timestamp: Date.now()
     }));
@@ -148,7 +149,7 @@ export async function offlineFetch(url, options = {}) {
     return data;
   } catch (err) {
     // If fetch fails, try to return stale cache
-    const cached = localStorage.getItem(cacheKey);
+    const cached = safeLocalStorage.getItem(cacheKey);
     if (cached) {
       const { data } = JSON.parse(cached);
       console.warn('Using stale cache due to fetch error');
