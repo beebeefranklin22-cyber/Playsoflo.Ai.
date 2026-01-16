@@ -19,35 +19,34 @@ export default function InfrastructureMonitor() {
         const result = await base44.functions.invoke('infrastructureHealthCheck', {
           checkAll: true,
           autoRepair: true
-        });
+        }).catch(() => ({ status: null }));
 
-        if (result.status) {
-          setStatus(result.status);
+        if (result?.data?.status) {
+          setStatus(result.data.status);
           
           // Auto-repair any failing services
-          if (result.failedServices?.length > 0) {
-            console.warn('🔧 Auto-repairing services:', result.failedServices);
-            await repairServices(result.failedServices);
+          if (result.data.failedServices?.length > 0) {
+            console.warn('🔧 Auto-repairing services:', result.data.failedServices);
+            await repairServices(result.data.failedServices);
           }
         }
       } catch (error) {
         console.error('Infrastructure health check failed:', error);
-        // Trigger emergency recovery
-        await triggerEmergencyRecovery();
       }
     };
 
-    // Initial check
-    runHealthCheck();
+    // Delay initial check to avoid blocking startup
+    const initialTimer = setTimeout(runHealthCheck, 5000);
 
     // Periodic monitoring
-    monitorIntervalRef.current = setInterval(runHealthCheck, 60000);
+    monitorIntervalRef.current = setInterval(runHealthCheck, 120000);
 
     // Monitor network changes
     window.addEventListener('online', handleNetworkChange);
     window.addEventListener('offline', handleNetworkChange);
 
     return () => {
+      clearTimeout(initialTimer);
       if (monitorIntervalRef.current) {
         clearInterval(monitorIntervalRef.current);
       }

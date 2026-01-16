@@ -6,27 +6,30 @@ export default function RealtimeDataManager() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const updateInterval = setInterval(async () => {
-      if (navigator.onLine) {
-        // Update crypto prices
-        queryClient.invalidateQueries(['crypto-prices']);
-        queryClient.invalidateQueries(['exchange-rates']);
-        
-        // Cache latest prices to IndexedDB
-        const prices = queryClient.getQueryData(['crypto-prices']);
-        if (prices) {
-          await cachePrices(prices);
+    // Delay start to avoid blocking initial render
+    const startTimer = setTimeout(() => {
+      const updateInterval = setInterval(async () => {
+        if (navigator.onLine) {
+          try {
+            // Update crypto prices
+            queryClient.invalidateQueries(['crypto-prices']);
+            queryClient.invalidateQueries(['exchange-rates']);
+            
+            // Cache latest prices to IndexedDB
+            const prices = queryClient.getQueryData(['crypto-prices']);
+            if (prices) {
+              await cachePrices(prices);
+            }
+          } catch (error) {
+            console.warn('Realtime update failed:', error);
+          }
         }
-      } else {
-        // Use cached prices when offline
-        const cachedPrices = await getCachedPrices();
-        if (cachedPrices) {
-          queryClient.setQueryData(['crypto-prices'], cachedPrices);
-        }
-      }
-    }, 30000); // Every 30 seconds
+      }, 60000); // Every 60 seconds
 
-    return () => clearInterval(updateInterval);
+      return () => clearInterval(updateInterval);
+    }, 10000);
+
+    return () => clearTimeout(startTimer);
   }, [queryClient]);
 
   return null;
@@ -34,67 +37,82 @@ export default function RealtimeDataManager() {
 
 async function cachePrices(prices) {
   try {
-    const db = await openPriceDB();
-    if (!db.objectStoreNames.contains('cached_crypto_prices')) {
-      console.warn('cached_crypto_prices store not available');
+    const db = await openPriceDB().catch(() => null);
+    if (!db || !db.objectStoreNames.contains('cached_crypto_prices')) {
       return;
     }
     return new Promise((resolve) => {
-      const tx = db.transaction('cached_crypto_prices', 'readwrite');
-      const store = tx.objectStore('cached_crypto_prices');
-      
-      for (const [currency, data] of Object.entries(prices)) {
-        store.put({
-          currency,
-          data,
-          cachedAt: Date.now()
-        });
+      try {
+        const tx = db.transaction('cached_crypto_prices', 'readwrite');
+        const store = tx.objectStore('cached_crypto_prices');
+        
+        for (const [currency, data] of Object.entries(prices || {})) {
+          store.put({
+            currency,
+            data,
+            cachedAt: Date.now()
+          });
+        }
+        
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      } catch (e) {
+        resolve();
       }
-      
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
     });
   } catch (err) {
-    console.error('Price cache error:', err);
+    // Silent fail
   }
 }
 
 async function getCachedPrices() {
   try {
-    const db = await openPriceDB();
-    if (!db.objectStoreNames.contains('cached_crypto_prices')) {
+    const db = await openPriceDB().catch(() => null);
+    if (!db || !db.objectStoreNames.contains('cached_crypto_prices')) {
       return null;
     }
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('cached_crypto_prices', 'readonly');
-      const request = tx.objectStore('cached_crypto_prices').getAll();
-      
-      request.onsuccess = () => {
-        const items = request.result || [];
-        const prices = {};
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction('cached_crypto_prices', 'readonly');
+        const request = tx.objectStore('cached_crypto_prices').getAll();
         
-        items.forEach(item => {
-          // Only use prices less than 5 minutes old
-          if (Date.now() - item.cachedAt < 5 * 60 * 1000) {
-            prices[item.currency] = item.data;
-          }
-        });
+        request.onsuccess = () => {
+          const items = request.result || [];
+          const prices = {};
+          
+          items.forEach(item => {
+            if (item && Date.now() - item.cachedAt < 5 * 60 * 1000) {
+              prices[item.currency] = item.data;
+            }
+          });
+          
+          resolve(Object.keys(prices).length > 0 ? prices : null);
+        };
         
-        resolve(Object.keys(prices).length > 0 ? prices : null);
-      };
-      
-      request.onerror = () => resolve(null);
+        request.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
     });
   } catch (err) {
-    console.error('Price retrieval error:', err);
     return null;
   }
 }
 
 function openPriceDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('PlaysoFloOffline', 2);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    try {
+      const request = indexedDB.open('PlaysoFloOffline', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('cached_crypto_prices')) {
+          db.createObjectStore('cached_crypto_prices', { keyPath: 'currency' });
+        }
+      };
+    } catch (e) {
+      reject(e);
+    }
   });
 }
