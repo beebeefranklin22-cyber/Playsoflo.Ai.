@@ -76,24 +76,41 @@ export default function NotificationPreferences() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [preferences, setPreferences] = useState({});
+  const [hasChanges, setHasChanges] = useState(false);
+  const [savedPreferences, setSavedPreferences] = useState({});
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        setPreferences(user.notification_preferences || {});
+        const prefs = user.notification_preferences || {};
+        setPreferences(prefs);
+        setSavedPreferences(prefs);
       } catch (error) {
         console.log("Error fetching user:", error);
+        toast.error('Failed to load preferences');
       }
     };
     fetchUser();
   }, []);
 
   const updatePreferencesMutation = useMutation({
-    mutationFn: (newPrefs) => base44.auth.updateMe({ notification_preferences: newPrefs }),
-    onSuccess: () => {
-      toast.success('Notification preferences updated!');
+    mutationFn: async (newPrefs) => {
+      try {
+        await base44.auth.updateMe({ notification_preferences: newPrefs });
+        return newPrefs;
+      } catch (error) {
+        throw new Error('Failed to save preferences');
+      }
+    },
+    onSuccess: (newPrefs) => {
+      setSavedPreferences(newPrefs);
+      setHasChanges(false);
+      toast.success('Preferences saved successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to save preferences');
     }
   });
 
@@ -103,7 +120,17 @@ export default function NotificationPreferences() {
       [key]: !preferences[key]
     };
     setPreferences(newPrefs);
-    updatePreferencesMutation.mutate(newPrefs);
+    setHasChanges(true);
+  };
+
+  const savePreferences = () => {
+    updatePreferencesMutation.mutate(preferences);
+  };
+
+  const cancelChanges = () => {
+    setPreferences(savedPreferences);
+    setHasChanges(false);
+    toast.info('Changes cancelled');
   };
 
   const enableAll = () => {
@@ -114,8 +141,7 @@ export default function NotificationPreferences() {
       });
     });
     setPreferences(allEnabled);
-    updatePreferencesMutation.mutate(allEnabled);
-    toast.success('All notifications enabled');
+    setHasChanges(true);
   };
 
   const disableAll = () => {
@@ -126,8 +152,7 @@ export default function NotificationPreferences() {
       });
     });
     setPreferences(allDisabled);
-    updatePreferencesMutation.mutate(allDisabled);
-    toast.success('All notifications disabled');
+    setHasChanges(true);
   };
 
   return (
@@ -166,6 +191,35 @@ export default function NotificationPreferences() {
             </div>
           </div>
         </div>
+
+        {/* Save Bar */}
+        {hasChanges && (
+          <div className="fixed bottom-20 left-0 right-0 z-40 p-4">
+            <div className="max-w-4xl mx-auto glass-effect border border-purple-500/50 rounded-2xl p-4 flex items-center justify-between shadow-2xl">
+              <div>
+                <p className="text-white font-semibold">You have unsaved changes</p>
+                <p className="text-gray-400 text-sm">Save to apply your notification preferences</p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={cancelChanges}
+                  variant="outline"
+                  className="bg-white/5 border-white/20"
+                  disabled={updatePreferencesMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={savePreferences}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  disabled={updatePreferencesMutation.isPending}
+                >
+                  {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-6">
           {notificationCategories.map((category) => {
