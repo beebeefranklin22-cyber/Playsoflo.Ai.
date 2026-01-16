@@ -71,6 +71,7 @@ import RestaurantOwnerHub from './pages/RestaurantOwnerHub';
 import Rewards from './pages/Rewards';
 import RonronAI from './pages/RonronAI';
 import ServiceProviders from './pages/ServiceProviders';
+import SharedDocument from './pages/SharedDocument';
 import SmartOnboarding from './pages/SmartOnboarding';
 import SoFloVault from './pages/SoFloVault';
 import Social from './pages/Social';
@@ -97,7 +98,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import SharedDocument from './pages/SharedDocument';
 import __Layout from './Layout.jsx';
 
 
@@ -175,6 +175,7 @@ export const PAGES = {
     "Rewards": Rewards,
     "RonronAI": RonronAI,
     "ServiceProviders": ServiceProviders,
+    "SharedDocument": SharedDocument,
     "SmartOnboarding": SmartOnboarding,
     "SoFloVault": SoFloVault,
     "Social": Social,
@@ -201,7 +202,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "SharedDocument": SharedDocument,
 }
 
 export const pagesConfig = {

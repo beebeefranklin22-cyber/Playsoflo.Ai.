@@ -22,6 +22,7 @@ import ViewerRecommendations from "../components/discovery/ViewerRecommendations
 import EditPostModal from "../components/social/EditPostModal";
 import AdDisplay from "../components/ads/AdDisplay";
 import DiscoverySection from "../components/discovery/DiscoverySection";
+import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 
 // Simple Badge component for styling, as it's used in the recommendations section
@@ -384,6 +385,11 @@ export default function Home() {
 
       {/* Discovery Section - Trending & Popular */}
       <DiscoverySection currentUser={currentUser} />
+
+      {/* People Suggestions */}
+      <div className="px-4 py-4">
+        <PeopleSuggestions currentUser={currentUser} />
+      </div>
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
