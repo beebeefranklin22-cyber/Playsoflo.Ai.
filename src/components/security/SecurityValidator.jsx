@@ -10,36 +10,7 @@ export default function SecurityValidator({ children }) {
       return;
     }
 
-    // Enhanced Content Security Policy with upgrade-insecure-requests
-    const meta = document.createElement('meta');
-    meta.httpEquiv = 'Content-Security-Policy';
-    meta.content = "upgrade-insecure-requests; block-all-mixed-content;";
-    document.head.appendChild(meta);
 
-    // Referrer Policy
-    const referrer = document.createElement('meta');
-    referrer.name = 'referrer';
-    referrer.content = 'strict-origin-when-cross-origin';
-    document.head.appendChild(referrer);
-
-    // Secure all fetch/XHR requests
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-      let url = args[0];
-      if (typeof url === 'string' && url.startsWith('http://') && !url.includes('localhost')) {
-        url = url.replace('http://', 'https://');
-        args[0] = url;
-      }
-      return originalFetch.apply(this, args);
-    };
-
-    const originalXHROpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-      if (typeof url === 'string' && url.startsWith('http://') && !url.includes('localhost')) {
-        url = url.replace('http://', 'https://');
-      }
-      return originalXHROpen.call(this, method, url, ...rest);
-    };
 
     // Session validation every 5 minutes
     const validateSession = async () => {
@@ -88,8 +59,6 @@ export default function SecurityValidator({ children }) {
 
     return () => {
       clearInterval(sessionInterval);
-      meta.remove();
-      referrer.remove();
     };
   }, []);
 
