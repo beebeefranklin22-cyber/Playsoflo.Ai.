@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function InfrastructureMonitor() {
   const [status, setStatus] = useState({
@@ -83,7 +84,7 @@ export default function InfrastructureMonitor() {
 
   const repairStreaming = async () => {
     console.log('🎥 Repairing streaming infrastructure');
-    sessionStorage.removeItem('agora_failed');
+    safeSessionStorage.removeItem('agora_failed');
     window.dispatchEvent(new CustomEvent('restart-streaming'));
   };
 
@@ -102,7 +103,7 @@ export default function InfrastructureMonitor() {
   };
 
   const enableOfflineMode = () => {
-    sessionStorage.setItem('offline_mode', 'true');
+    safeSessionStorage.setItem('offline_mode', 'true');
     window.dispatchEvent(new CustomEvent('enable-offline-mode'));
   };
 
@@ -110,7 +111,7 @@ export default function InfrastructureMonitor() {
     console.log('🚨 Emergency recovery initiated');
     
     // Clear all service states
-    sessionStorage.removeItem('service_status');
+    safeSessionStorage.removeItem('service_status');
     
     // Reload critical services
     window.dispatchEvent(new CustomEvent('emergency-recovery'));

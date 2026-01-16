@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function StreamingHealthCheck() {
   const healthCheckRef = useRef(null);
@@ -31,7 +32,7 @@ export default function StreamingHealthCheck() {
         // Validate WebRTC support
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           console.warn('⚠️ WebRTC not supported - fallback mode enabled');
-          sessionStorage.setItem('webrtc_fallback', 'true');
+          safeSessionStorage.setItem('webrtc_fallback', 'true');
         }
 
       } catch (error) {
@@ -63,8 +64,8 @@ export default function StreamingHealthCheck() {
 
   const repairAgoraConfig = async () => {
     console.log('🔧 Repairing Agora configuration');
-    sessionStorage.removeItem('agora_client');
-    sessionStorage.removeItem('agora_token');
+    safeSessionStorage.removeItem('agora_client');
+    safeSessionStorage.removeItem('agora_token');
   };
 
   return null;

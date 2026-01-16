@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function ConnectionFailsafe() {
   const reconnectAttempts = useRef(0);
@@ -68,8 +69,8 @@ export default function ConnectionFailsafe() {
     reconnectAttempts.current = 0;
     
     // Clear all connection states
-    sessionStorage.removeItem('ws_failed');
-    sessionStorage.removeItem('offline_mode');
+    safeSessionStorage.removeItem('ws_failed');
+    safeSessionStorage.removeItem('offline_mode');
     
     // Trigger reconnection
     await attemptReconnection();
@@ -77,7 +78,7 @@ export default function ConnectionFailsafe() {
 
   const checkWebSocketHealth = async () => {
     // Check if real-time subscriptions are working
-    const wsFailed = sessionStorage.getItem('ws_failed');
+    const wsFailed = safeSessionStorage.getItem('ws_failed');
     if (wsFailed) {
       console.warn('⚠️ WebSocket health check failed');
       window.dispatchEvent(new CustomEvent('restart-connections'));
@@ -86,16 +87,24 @@ export default function ConnectionFailsafe() {
 
   const enableFullOfflineMode = () => {
     console.log('📴 Enabling full offline mode');
-    sessionStorage.setItem('offline_mode', 'full');
-    document.body.classList.add('offline-mode');
+    safeSessionStorage.setItem('offline_mode', 'full');
+    try {
+      document.body.classList.add('offline-mode');
+    } catch (e) {
+      console.warn('Could not add offline class');
+    }
     
     // Show user notification
     window.dispatchEvent(new CustomEvent('show-offline-notification'));
   };
 
   const disableOfflineMode = () => {
-    sessionStorage.removeItem('offline_mode');
-    document.body.classList.remove('offline-mode');
+    safeSessionStorage.removeItem('offline_mode');
+    try {
+      document.body.classList.remove('offline-mode');
+    } catch (e) {
+      console.warn('Could not remove offline class');
+    }
     window.dispatchEvent(new CustomEvent('hide-offline-notification'));
   };
 

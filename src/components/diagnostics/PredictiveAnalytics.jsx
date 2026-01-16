@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function PredictiveAnalytics() {
   const metricsHistoryRef = useRef([]);
@@ -126,8 +127,12 @@ export default function PredictiveAnalytics() {
   };
 
   const getRecentErrorRate = () => {
-    const recentErrors = sessionStorage.getItem('recent_errors');
-    return recentErrors ? JSON.parse(recentErrors).length : 0;
+    try {
+      const recentErrors = safeSessionStorage.getItem('recent_errors');
+      return recentErrors ? JSON.parse(recentErrors).length : 0;
+    } catch {
+      return 0;
+    }
   };
 
   const getActiveConnections = () => {
@@ -143,7 +148,7 @@ export default function PredictiveAnalytics() {
 
   const clearMemoryCaches = () => {
     console.log('🧹 Clearing memory caches...');
-    sessionStorage.clear();
+    safeSessionStorage.clear();
     
     // Clear React Query cache if available
     window.dispatchEvent(new CustomEvent('clear-caches'));
@@ -153,7 +158,7 @@ export default function PredictiveAnalytics() {
     console.log('⚡ Optimizing performance...');
     
     // Reduce quality temporarily
-    sessionStorage.setItem('performance_mode', 'optimized');
+    safeSessionStorage.setItem('performance_mode', 'optimized');
     
     // Trigger optimization event
     window.dispatchEvent(new CustomEvent('optimize-performance'));
@@ -161,7 +166,7 @@ export default function PredictiveAnalytics() {
 
   const enableOfflineMode = () => {
     console.log('📴 Enabling offline resilience...');
-    sessionStorage.setItem('offline_mode', 'true');
+    safeSessionStorage.setItem('offline_mode', 'true');
   };
 
   const runEmergencyDiagnostics = async () => {
@@ -182,7 +187,7 @@ export default function PredictiveAnalytics() {
     
     switch (measure) {
       case 'reduce_polling':
-        sessionStorage.setItem('reduce_polling', 'true');
+        safeSessionStorage.setItem('reduce_polling', 'true');
         break;
       case 'clear_old_data':
         clearMemoryCaches();

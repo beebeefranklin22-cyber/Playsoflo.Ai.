@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import PredictiveAnalytics from './PredictiveAnalytics';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function AutoHealingSystem() {
   const [healthStatus, setHealthStatus] = useState('healthy');
@@ -180,7 +181,7 @@ export default function AutoHealingSystem() {
     console.log('⚡ Auto-optimizing performance');
     
     // Enable performance mode
-    sessionStorage.setItem('performance_mode', 'high');
+    safeSessionStorage.setItem('performance_mode', 'high');
     
     // Reduce unnecessary updates
     window.dispatchEvent(new CustomEvent('optimize-performance'));
@@ -191,7 +192,7 @@ export default function AutoHealingSystem() {
     
     // Clear problematic state
     try {
-      sessionStorage.setItem('auto_recovery_triggered', Date.now().toString());
+      safeSessionStorage.setItem('auto_recovery_triggered', Date.now().toString());
       
       // Reload critical data
       window.dispatchEvent(new CustomEvent('system-recovery'));
@@ -203,13 +204,13 @@ export default function AutoHealingSystem() {
 
   const clearAppCaches = () => {
     try {
-      // Clear old cache entries
-      const cacheKeys = Object.keys(sessionStorage);
-      cacheKeys.forEach(key => {
-        if (key.startsWith('cache_') || key.startsWith('temp_')) {
-          sessionStorage.removeItem(key);
+      // Clear old cache entries safely
+      for (let i = 0; i < safeSessionStorage.length; i++) {
+        const key = safeSessionStorage.key(i);
+        if (key && (key.startsWith('cache_') || key.startsWith('temp_'))) {
+          safeSessionStorage.removeItem(key);
         }
-      });
+      }
       console.log('Caches cleared');
     } catch (error) {
       console.error('Cache clear failed:', error);

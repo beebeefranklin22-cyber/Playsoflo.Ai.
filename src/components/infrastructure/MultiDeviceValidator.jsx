@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function MultiDeviceValidator() {
   useEffect(() => {
@@ -52,27 +53,31 @@ export default function MultiDeviceValidator() {
   };
 
   const applyPlatformOptimizations = (device) => {
-    document.body.classList.add(`platform-${device.platform}`);
-    
-    if (device.touchSupport) {
-      document.body.classList.add('touch-device');
-    }
+    try {
+      document.body.classList.add(`platform-${device.platform}`);
+      
+      if (device.touchSupport) {
+        document.body.classList.add('touch-device');
+      }
 
-    // iOS-specific fixes
-    if (device.platform === 'ios') {
-      document.body.style.webkitTouchCallout = 'none';
-      document.body.style.webkitUserSelect = 'none';
-    }
+      // iOS-specific fixes
+      if (device.platform === 'ios') {
+        document.body.style.webkitTouchCallout = 'none';
+        document.body.style.webkitUserSelect = 'none';
+      }
 
-    // TV optimizations
-    if (device.platform === 'tv') {
-      document.body.classList.add('platform-tvos');
-      document.body.style.cursor = 'pointer';
-    }
+      // TV optimizations
+      if (device.platform === 'tv') {
+        document.body.classList.add('platform-tvos');
+        document.body.style.cursor = 'pointer';
+      }
 
-    // Set CSS custom properties
-    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
-    document.documentElement.style.setProperty('--touch-target', device.touchSupport ? '44px' : '32px');
+      // Set CSS custom properties
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+      document.documentElement.style.setProperty('--touch-target', device.touchSupport ? '44px' : '32px');
+    } catch (e) {
+      console.warn('Platform optimization failed:', e);
+    }
   };
 
   const validateViewport = (device) => {
@@ -103,13 +108,21 @@ export default function MultiDeviceValidator() {
 
     if (lowPower) {
       console.log('🔋 Low-power mode detected - applying optimizations');
-      document.body.classList.add('low-power-mode');
-      sessionStorage.setItem('performance_mode', 'low');
+      try {
+        document.body.classList.add('low-power-mode');
+      } catch (e) {
+        console.warn('Could not add low-power class');
+      }
+      safeSessionStorage.setItem('performance_mode', 'low');
     }
 
     // High DPI optimization
     if (device.pixelRatio > 2) {
-      document.body.classList.add('high-dpi');
+      try {
+        document.body.classList.add('high-dpi');
+      } catch (e) {
+        console.warn('Could not add high-dpi class');
+      }
     }
   };
 
