@@ -217,9 +217,17 @@ export default function Layout({ children, currentPageName }) {
               onClick={() => navigate(createPageUrl("Profile"))}
               className="flex-shrink-0"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                {currentUser?.full_name?.[0] || "U"}
-              </div>
+              {currentUser?.profile_picture ? (
+                <img 
+                  src={currentUser.profile_picture} 
+                  alt={currentUser.full_name}
+                  className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                  {currentUser?.full_name?.[0] || "U"}
+                </div>
+              )}
             </button>
 
             <form onSubmit={handleSearch} className="flex-1">
@@ -301,17 +309,14 @@ export default function Layout({ children, currentPageName }) {
 
           {/* Sidebar */}
           <aside
-            className={`fixed top-16 left-0 bottom-20 lg:bottom-0 w-64 z-40 glass-effect border-r border-white/10 transition-transform duration-300 ${
+            className={`fixed top-16 left-0 bottom-20 lg:bottom-0 w-20 z-40 glass-effect border-r border-white/10 transition-transform duration-300 ${
               sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
-            <div className="p-4 h-full overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">Menu</h2>
-                <button onClick={() => setSidebarOpen(false)}>
-                  <X className="w-6 h-6 text-gray-400 hover:text-white transition" />
-                </button>
-              </div>
+            <div className="p-2 h-full overflow-y-auto flex flex-col items-center">
+              <button onClick={() => setSidebarOpen(false)} className="mb-6 p-2">
+                <X className="w-5 h-5 text-gray-400 hover:text-white transition" />
+              </button>
 
               <nav className="space-y-2">
                 {sidebarSections.map((item) => {
@@ -324,14 +329,13 @@ export default function Layout({ children, currentPageName }) {
                         setSidebarOpen(false);
                       }}
                       disabled={isNavigating}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      className={`w-full flex items-center justify-center p-3 rounded-xl transition-all ${
                         isActive
                           ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                           : 'text-gray-400 hover:text-white hover:bg-white/5'
                       } ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
                     >
-                      <item.icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
+                      <item.icon className="w-6 h-6" />
                     </button>
                   );
                 })}
