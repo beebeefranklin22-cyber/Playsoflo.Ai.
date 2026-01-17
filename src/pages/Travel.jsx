@@ -31,7 +31,7 @@ const defaultTravelOptions = [
     bgColor: "bg-green-500/20",
     iconColor: "text-green-400",
     image: "https://images.unsplash.com/photo-1502877338535-766e1111603d?w=800",
-    action: (navigate) => navigate(createPageUrl("explore"))
+    action: (navigate) => navigate(createPageUrl("CarRentals"))
   },
   {
     id: "flights",
@@ -51,7 +51,7 @@ const defaultTravelOptions = [
     bgColor: "bg-indigo-500/20",
     iconColor: "text-indigo-400",
     image: "https://images.unsplash.com/photo-1596541624443-41584c312781?w=800",
-    action: (navigate) => navigate(createPageUrl("explore"))
+    action: (navigate) => navigate(createPageUrl("CarRentals"))
   },
   {
     id: "yachts",
@@ -61,7 +61,7 @@ const defaultTravelOptions = [
     bgColor: "bg-cyan-500/20",
     iconColor: "text-cyan-400",
     image: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800",
-    action: (navigate) => navigate(createPageUrl("explore"))
+    action: (navigate) => navigate(createPageUrl("CarRentals"))
   },
   {
     id: "helicopter_rides",
@@ -71,7 +71,7 @@ const defaultTravelOptions = [
     bgColor: "bg-pink-500/20",
     iconColor: "text-pink-400",
     image: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800",
-    action: (navigate) => navigate(createPageUrl("explore"))
+    action: (navigate) => navigate(createPageUrl("CarRentals"))
   },
   {
     id: "motorcycle_rides",
@@ -81,7 +81,7 @@ const defaultTravelOptions = [
     bgColor: "bg-orange-500/20",
     iconColor: "text-orange-400",
     image: "https://images.unsplash.com/photo-1558981403-c5f9899a1118?w=800",
-    action: (navigate) => navigate(createPageUrl("explore"))
+    action: (navigate) => navigate(createPageUrl("CarRentals"))
   },
   {
     id: "chauffeur_services",
