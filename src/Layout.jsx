@@ -147,13 +147,6 @@ export default function Layout({ children, currentPageName }) {
     <SecureOperationWrapper>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
-      <InfrastructureMonitor />
-      <StreamingHealthCheck />
-      <MultiDeviceValidator />
-      <ConnectionFailsafe />
-      <AutoHealingSystem />
-      <CrossPlatformOptimizer />
-      <ResponsiveOptimizer />
       <SafeErrorHandler />
       <ServiceWorkerManager />
       <OfflineManager />
