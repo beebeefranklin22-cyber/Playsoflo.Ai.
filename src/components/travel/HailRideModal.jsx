@@ -9,6 +9,7 @@ import { Car, Bike, Rocket, Users, Share2, Clock, Crown, Calendar, CheckCircle, 
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import RideTrackingModal from "./RideTrackingModal";
 
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
@@ -21,37 +22,17 @@ export default function HailRideModal({ open, onClose }) {
   const [isGroupBooking, setIsGroupBooking] = useState(false);
   const [vehiclesNeeded, setVehiclesNeeded] = useState(2);
   const [groupBookingType, setGroupBookingType] = useState("event_pickup");
-  const [assignedDriver, setAssignedDriver] = useState(null);
-  const [requestSubmitted, setRequestSubmitted] = useState(false);
-
-  // Poll for assigned driver after ride request
-  const { data: activeRide } = useQuery({
-    queryKey: ['active-ride-lookup'],
-    queryFn: async () => {
-      const rides = await base44.entities.RideRequest.filter({ status: 'requested' }, '-created_date', 1);
-      return rides[0] || null;
-    },
-    enabled: requestSubmitted && !assignedDriver,
-    refetchInterval: 3000
-  });
-
-  // Fetch driver info when assigned
-  const { data: driverInfo } = useQuery({
-    queryKey: ['driver-info', activeRide?.driver_email],
-    queryFn: async () => {
-      if (!activeRide?.driver_email) return null;
-      const users = await base44.entities.User.list();
-      return users.find(u => u.email === activeRide.driver_email);
-    },
-    enabled: !!activeRide?.driver_email && !assignedDriver
-  });
+  const [currentRide, setCurrentRide] = useState(null);
+  const [showTracking, setShowTracking] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    if (activeRide?.driver_status === 'accepted' && driverInfo) {
-      setAssignedDriver(driverInfo);
-      toast.success('Driver found!');
+    if (open) {
+      base44.auth.me().then(setCurrentUser).catch(() => {});
     }
-  }, [activeRide, driverInfo]);
+  }, [open]);
+
+
 
   const RideBtn = ({ type, Icon, label }) => (
     <button
@@ -82,6 +63,9 @@ export default function HailRideModal({ open, onClose }) {
         is_group_booking: isGroupBooking,
         vehicles_needed: isGroupBooking ? vehiclesNeeded : 1,
         group_booking_type: isGroupBooking ? groupBookingType : null,
+        pickup_coords: [25.7617, -80.1918], // Default Miami coords
+        dropoff_coords: [25.7743, -80.1937],
+        wait_time_seconds: 0,
         fare_breakdown: {
           total_fare: baseFare,
           shared_discount: isShared && !isGroupBooking ? estimatedFare * 0.3 : 0,
@@ -89,7 +73,8 @@ export default function HailRideModal({ open, onClose }) {
         }
       });
       
-      setRequestSubmitted(true);
+      setCurrentRide(ride);
+      setShowTracking(true);
       toast.success('Ride requested! Finding a driver...');
       
       if (isShared && !isGroupBooking && ride.shareable_link) {
@@ -102,12 +87,24 @@ export default function HailRideModal({ open, onClose }) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border border-white/10 text-white">
-        <DialogHeader>
-          <DialogTitle>Hail a Ride</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+    <>
+      {showTracking && currentRide ? (
+        <RideTrackingModal
+          rideRequest={currentRide}
+          onClose={() => {
+            setShowTracking(false);
+            setCurrentRide(null);
+            onClose();
+          }}
+          currentUser={currentUser}
+        />
+      ) : (
+        <Dialog open={open} onOpenChange={onClose}>
+          <DialogContent className="bg-gray-900 border border-white/10 text-white">
+            <DialogHeader>
+              <DialogTitle>Hail a Ride</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
           <div className="flex gap-2">
             <RideBtn type="car" Icon={Car} label="Car" />
             <RideBtn type="motorcycle" Icon={Bike} label="Motorcycle" />
@@ -270,56 +267,6 @@ export default function HailRideModal({ open, onClose }) {
           
           {/* Driver Info */}
           {assignedDriver && assignedDriver.driver_vehicle_info && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="text-green-300 font-semibold">Driver Assigned!</span>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold overflow-hidden">
-                  {assignedDriver.profile_photo ? (
-                    <img src={assignedDriver.profile_photo} className="w-full h-full object-cover" />
-                  ) : (
-                    assignedDriver.full_name?.[0] || "D"
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-medium">{assignedDriver.full_name}</p>
-                  <div className="flex gap-2 mt-1">
-                    <Badge className="bg-blue-500/20 text-blue-300 text-xs">
-                      {assignedDriver.driver_vehicle_info.color} {assignedDriver.driver_vehicle_info.make} {assignedDriver.driver_vehicle_info.model}
-                    </Badge>
-                  </div>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {assignedDriver.driver_vehicle_info.license_plate}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {requestSubmitted && !assignedDriver ? (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-center">
-              <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-2" />
-              <p className="text-blue-300 font-medium">Finding your driver...</p>
-              <p className="text-blue-200 text-sm mt-1">This usually takes 30-60 seconds</p>
-            </div>
-          ) : (
-            <Button 
-              className="w-full bg-purple-600 hover:bg-purple-700" 
-              onClick={requestRide} 
-              disabled={!pickup || !dropoff}
-            >
-              {isGroupBooking 
-                ? `Book ${vehiclesNeeded} Vehicles` 
-                : isShared 
-                ? 'Create Shared Ride' 
-                : 'Request Ride'} {!isGroupBooking && '(First Ride Free)'}
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
