@@ -36,6 +36,7 @@ import Gaming from './pages/Gaming';
 import GiveBack from './pages/GiveBack';
 import Home from './pages/Home';
 import LandlordDashboard from './pages/LandlordDashboard';
+import LandlordTenantPortal from './pages/LandlordTenantPortal';
 import LeaseDetails from './pages/LeaseDetails';
 import LivestreamViewer from './pages/LivestreamViewer';
 import Marketplace from './pages/Marketplace';
@@ -99,7 +100,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import LandlordTenantPortal from './pages/LandlordTenantPortal';
 import __Layout from './Layout.jsx';
 
 
@@ -142,6 +142,7 @@ export const PAGES = {
     "GiveBack": GiveBack,
     "Home": Home,
     "LandlordDashboard": LandlordDashboard,
+    "LandlordTenantPortal": LandlordTenantPortal,
     "LeaseDetails": LeaseDetails,
     "LivestreamViewer": LivestreamViewer,
     "Marketplace": Marketplace,
@@ -205,7 +206,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "LandlordTenantPortal": LandlordTenantPortal,
 }
 
 export const pagesConfig = {

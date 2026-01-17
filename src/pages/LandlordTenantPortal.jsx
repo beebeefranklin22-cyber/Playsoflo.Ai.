@@ -7,7 +7,7 @@ import {
   ChevronLeft, Home, DollarSign, FileText, MessageCircle,
   Calendar, Check, X, AlertCircle, Clock, Bell, Download,
   Upload, Users, Settings, TrendingUp, Mail, Wrench, Image, 
-  Pen, FolderOpen, CheckCircle, BarChart3, Activity, Edit
+  Pen, FolderOpen, CheckCircle, BarChart3, Activity, Edit, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -388,7 +388,7 @@ export default function LandlordTenantPortal() {
                           size="sm"
                           className="border-red-500 text-red-400 hover:bg-red-500/10"
                         >
-                          <AlertCircle className="w-4 h-4 mr-2" />
+                          <AlertTriangle className="w-4 h-4 mr-2" />
                           Escalate Issue
                         </Button>
                       )}
