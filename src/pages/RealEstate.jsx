@@ -71,6 +71,7 @@ export default function RealEstate() {
   const [viewMode, setViewMode] = useState("grid");
   const [mapCenter, setMapCenter] = useState(null);
   const [mapZoom, setMapZoom] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -132,6 +133,15 @@ export default function RealEstate() {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
     const listingMatch = selectedListingType === "all" || prop.listing_type === selectedListingType;
     
+    // Map bounds filter (only when in map view and bounds are set)
+    let boundsMatch = true;
+    if (viewMode === "map" && mapBounds && prop.latitude && prop.longitude) {
+      boundsMatch = prop.latitude >= mapBounds.south && 
+                    prop.latitude <= mapBounds.north &&
+                    prop.longitude >= mapBounds.west && 
+                    prop.longitude <= mapBounds.east;
+    }
+    
     // Price filter
     const price = prop.listing_type === "short_term" ? prop.price_per_night :
                   prop.listing_type === "for_rent" ? prop.price_per_month :
@@ -162,7 +172,7 @@ export default function RealEstate() {
       );
     
     return categoryMatch && listingMatch && priceMatch && bedroomsMatch && 
-           bathroomsMatch && sqftMatch && amenitiesMatch;
+           bathroomsMatch && sqftMatch && amenitiesMatch && boundsMatch;
   });
 
   // Sort properties
@@ -311,7 +321,10 @@ export default function RealEstate() {
             {/* View Toggle */}
             <div className="flex bg-white/10 rounded-xl p-1 border border-white/20">
               <button
-                onClick={() => setViewMode("grid")}
+                onClick={() => {
+                  setViewMode("grid");
+                  setMapBounds(null);
+                }}
                 className={`px-3 py-2 rounded-lg transition ${
                   viewMode === "grid" ? "bg-emerald-500 text-white" : "text-gray-400 hover:text-white"
                 }`}
@@ -360,6 +373,7 @@ export default function RealEstate() {
             onPropertyClick={setSelectedProperty}
             searchCenter={mapCenter}
             searchZoom={mapZoom}
+            onSearchThisArea={(bounds) => setMapBounds(bounds)}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

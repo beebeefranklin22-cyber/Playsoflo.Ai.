@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import { DollarSign, Bed, Bath, MapPin } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from "react-leaflet";
+import { DollarSign, Bed, Bath, MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import "leaflet/dist/leaflet.css";
 
@@ -48,7 +48,7 @@ const createCustomIcon = (property) => {
   });
 };
 
-function MapController({ center, zoom }) {
+function MapController({ center, zoom, onBoundsChange }) {
   const map = useMap();
   
   useEffect(() => {
@@ -56,18 +56,35 @@ function MapController({ center, zoom }) {
       map.setView(center, zoom);
     }
   }, [center, zoom, map]);
+
+  useMapEvents({
+    moveend: () => {
+      const bounds = map.getBounds();
+      onBoundsChange?.({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+        center: map.getCenter(),
+        zoom: map.getZoom()
+      });
+    }
+  });
   
   return null;
 }
 
-export default function PropertyMapView({ properties, onPropertyClick, searchCenter, searchZoom }) {
+export default function PropertyMapView({ properties, onPropertyClick, searchCenter, searchZoom, onSearchThisArea }) {
   const [mapCenter, setMapCenter] = useState([25.7617, -80.1918]); // Miami default
   const [mapZoom, setMapZoom] = useState(11);
+  const [showSearchButton, setShowSearchButton] = useState(false);
+  const [currentBounds, setCurrentBounds] = useState(null);
 
   useEffect(() => {
     if (searchCenter && searchZoom) {
       setMapCenter(searchCenter);
       setMapZoom(searchZoom);
+      setShowSearchButton(false);
     } else if (properties.length > 0) {
       // Center on properties
       const validProperties = properties.filter(p => p.latitude && p.longitude);
@@ -78,6 +95,18 @@ export default function PropertyMapView({ properties, onPropertyClick, searchCen
       }
     }
   }, [properties, searchCenter, searchZoom]);
+
+  const handleBoundsChange = (bounds) => {
+    setCurrentBounds(bounds);
+    setShowSearchButton(true);
+  };
+
+  const handleSearchThisArea = () => {
+    if (currentBounds && onSearchThisArea) {
+      onSearchThisArea(currentBounds);
+      setShowSearchButton(false);
+    }
+  };
 
   const getPrice = (property) => {
     if (property.listing_type === "short_term" && property.price_per_night) {
@@ -94,13 +123,25 @@ export default function PropertyMapView({ properties, onPropertyClick, searchCen
 
   return (
     <div className="relative w-full h-[600px] rounded-2xl overflow-hidden">
+      {showSearchButton && onSearchThisArea && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
+          <Button
+            onClick={handleSearchThisArea}
+            className="bg-emerald-600 hover:bg-emerald-700 shadow-lg"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            Search This Area
+          </Button>
+        </div>
+      )}
+
       <MapContainer
         center={mapCenter}
         zoom={mapZoom}
         style={{ height: "100%", width: "100%" }}
         className="z-0"
       >
-        <MapController center={mapCenter} zoom={mapZoom} />
+        <MapController center={mapCenter} zoom={mapZoom} onBoundsChange={handleBoundsChange} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
