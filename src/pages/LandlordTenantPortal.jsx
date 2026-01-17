@@ -21,6 +21,7 @@ import PropertyAnalytics from "../components/realestate/PropertyAnalytics";
 import LeaseCreationModal from "../components/realestate/LeaseCreationModal";
 import DigitalSignatureModal from "../components/realestate/DigitalSignatureModal";
 import DocumentStorage from "../components/realestate/DocumentStorage";
+import LeaseEscalationModal from "../components/realestate/LeaseEscalationModal";
 
 export default function LandlordTenantPortal() {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ export default function LandlordTenantPortal() {
   const [editingRequest, setEditingRequest] = useState(null);
   const [landlordNotes, setLandlordNotes] = useState("");
   const [estimatedCost, setEstimatedCost] = useState("");
+  const [escalatingLease, setEscalatingLease] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {
@@ -377,6 +379,19 @@ export default function LandlordTenantPortal() {
                            lease.tenant_email === currentUser.email && !lease.tenant_signed ? 'Sign Lease' : 'View Signatures'}
                         </Button>
                       ) : null}
+                      
+                      {/* Escalation button for landlords */}
+                      {lease.landlord_email === currentUser.email && lease.status === 'active' && (
+                        <Button
+                          onClick={() => setEscalatingLease(lease)}
+                          variant="outline"
+                          size="sm"
+                          className="border-red-500 text-red-400 hover:bg-red-500/10"
+                        >
+                          <AlertCircle className="w-4 h-4 mr-2" />
+                          Escalate Issue
+                        </Button>
+                      )}
                       
                       <Button
                         onClick={() => setViewingDocuments(lease)}
@@ -963,6 +978,20 @@ export default function LandlordTenantPortal() {
             }}
             onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['leases'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Lease Escalation Modal */}
+      <AnimatePresence>
+        {escalatingLease && (
+          <LeaseEscalationModal
+            lease={escalatingLease}
+            onClose={() => setEscalatingLease(null)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['leases'] });
+              setEscalatingLease(null);
             }}
           />
         )}
