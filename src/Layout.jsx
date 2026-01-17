@@ -47,11 +47,6 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        
-        // Redirect to onboarding if not completed
-        if (user && !user.onboarding_completed && location.pathname !== createPageUrl("SmartOnboarding")) {
-          navigate(createPageUrl("SmartOnboarding"));
-        }
       } catch (error) {
         console.log("User not authenticated or error fetching user:", error);
       }
