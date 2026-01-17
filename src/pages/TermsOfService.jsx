@@ -10,107 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function TermsOfService() {
-  const [user, setUser] = useState(null);
-  const [agreed, setAgreed] = useState(false);
-  const [signature, setSignature] = useState("");
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const canvasRef = useRef(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
-    try {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      setUser({ email: 'guest@user.com' });
-    }
-  };
-
-  const startDrawing = (e) => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    setIsDrawing(true);
-    
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = "#8B5CF6";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-    const canvas = canvasRef.current;
-    setSignature(canvas.toDataURL());
-  };
-
-  const clearSignature = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setSignature("");
-  };
-
-  const handleAccept = async () => {
-    if (!agreed) {
-      toast.error("Please read and agree to the terms");
-      return;
-    }
-
-    if (!signature) {
-      toast.error("Please provide your signature");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await base44.auth.updateMe({
-        terms_accepted: true,
-        terms_accepted_date: new Date().toISOString(),
-        terms_signature: signature,
-        terms_ip_address: "recorded"
-      });
-
-      toast.success("Terms accepted successfully!");
-      navigate(createPageUrl("Profile"));
-    } catch (error) {
-      console.error("Error accepting terms:", error);
-      toast.error("Failed to accept terms. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 p-6">
@@ -126,7 +26,7 @@ export default function TermsOfService() {
               PlaysoFlo Terms of Service
             </CardTitle>
             <p className="text-gray-400 mt-2">
-              Please read and agree to continue using our platform
+              By using PlaysoFlo, you automatically agree to these terms
             </p>
           </CardHeader>
 
@@ -243,68 +143,27 @@ export default function TermsOfService() {
               </div>
             </ScrollArea>
 
-            {/* Agreement Checkbox */}
-            <div className="flex items-start gap-3 p-4 bg-purple-600/10 border border-purple-500/30 rounded-lg">
-              <Checkbox
-                id="agree"
-                checked={agreed}
-                onCheckedChange={setAgreed}
-                className="mt-1"
-              />
-              <label htmlFor="agree" className="text-sm text-gray-300 cursor-pointer">
-                I have read and understood the Terms of Service. I agree to be bound by these terms and acknowledge that I am a real human being using this platform at my own risk. I understand that violations will result in severe penalties including fines, liens, and legal action.
-              </label>
+            {/* Automatic Agreement Notice */}
+            <div className="p-4 bg-green-600/10 border border-green-500/30 rounded-lg">
+              <div className="flex items-center gap-2 text-green-400 mb-2">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-semibold">Automatically Agreed</span>
+              </div>
+              <p className="text-sm text-gray-300">
+                By using PlaysoFlo and any of its services, you automatically agree to these Terms of Service. Your continued use of the platform constitutes acceptance of these terms.
+              </p>
             </div>
 
-            {/* Signature Canvas */}
-            <div className="space-y-3">
-              <label className="text-white font-semibold flex items-center gap-2">
-                <FileSignature className="w-5 h-5 text-purple-400" />
-                Electronic Signature
-              </label>
-              <div className="border-2 border-purple-500/50 rounded-lg overflow-hidden bg-white">
-                <canvas
-                  ref={canvasRef}
-                  width={600}
-                  height={150}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  className="w-full cursor-crosshair"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">Sign above with your mouse or touch</p>
-                <Button
-                  onClick={clearSignature}
-                  variant="outline"
-                  size="sm"
-                  className="border-purple-500/30 text-white hover:bg-purple-500/20"
-                >
-                  Clear
-                </Button>
-              </div>
-            </div>
-
-            {/* Accept Button */}
+            {/* Back Button */}
             <Button
-              onClick={handleAccept}
-              disabled={!agreed || !signature || loading}
+              onClick={() => navigate(createPageUrl("Profile"))}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-lg py-6"
             >
-              {loading ? (
-                <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  Accept Terms & Continue
-                </>
-              )}
+              Back to Settings
             </Button>
 
             <p className="text-xs text-center text-gray-500">
-              Date: {new Date().toLocaleDateString()} • IP Address: Recorded • Signature: Securely Stored
+              Last Updated: {new Date().toLocaleDateString()}
             </p>
           </CardContent>
         </Card>
