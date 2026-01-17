@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import {
   ChevronLeft, Home, DollarSign, FileText, MessageCircle,
   Calendar, Check, X, AlertCircle, Clock, Bell, Download,
-  Upload, Users, Settings, TrendingUp, Mail
+  Upload, Users, Settings, TrendingUp, Mail, Wrench, Image
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MaintenanceRequestModal from "../components/realestate/MaintenanceRequestModal";
+import PropertyAnalytics from "../components/realestate/PropertyAnalytics";
 
 export default function LandlordTenantPortal() {
   const navigate = useNavigate();
@@ -23,6 +25,8 @@ export default function LandlordTenantPortal() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+  const [maintenanceLeaseId, setMaintenanceLeaseId] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {
@@ -48,6 +52,18 @@ export default function LandlordTenantPortal() {
     queryFn: async () => {
       if (!currentUser) return [];
       return await base44.entities.RentPayment.list();
+    },
+    enabled: !!currentUser
+  });
+
+  // Fetch maintenance requests
+  const { data: maintenanceRequests = [] } = useQuery({
+    queryKey: ['maintenance-requests', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const asLandlord = await base44.entities.MaintenanceRequest.filter({ landlord_email: currentUser.email });
+      const asTenant = await base44.entities.MaintenanceRequest.filter({ tenant_email: currentUser.email });
+      return [...asLandlord, ...asTenant];
     },
     enabled: !!currentUser
   });
@@ -153,12 +169,24 @@ export default function LandlordTenantPortal() {
           </div>
         </div>
 
+        {/* Analytics */}
+        {activeLeasesAsLandlord.length > 0 && (
+          <div className="mb-8">
+            <PropertyAnalytics 
+              leases={leases}
+              payments={payments}
+              maintenanceRequests={maintenanceRequests.filter(r => r.landlord_email === currentUser?.email)}
+            />
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white/10 mb-6">
+          <TabsList className="grid w-full grid-cols-5 bg-white/10 mb-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="leases">Leases</TabsTrigger>
             <TabsTrigger value="payments">Payments</TabsTrigger>
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
             <TabsTrigger value="properties">Properties</TabsTrigger>
           </TabsList>
 
@@ -202,21 +230,34 @@ export default function LandlordTenantPortal() {
                       <div key={lease.id} className="p-4 bg-white/5 rounded-xl">
                         <p className="text-white font-semibold mb-1">{lease.property_address}</p>
                         <p className="text-gray-400 text-sm">Landlord: {lease.landlord_name}</p>
-                        <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center justify-between mt-2 gap-2">
                           <p className="text-white font-bold">
                             ${lease.monthly_rent?.toLocaleString()}/mo
                           </p>
-                          <Button
-                            onClick={() => {
-                              setSelectedLease(lease);
-                              setPaymentAmount(lease.monthly_rent?.toString() || "");
-                              setShowPaymentModal(true);
-                            }}
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            Pay Rent
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => {
+                                setMaintenanceLeaseId(lease.id);
+                                setShowMaintenanceModal(true);
+                              }}
+                              size="sm"
+                              variant="outline"
+                              className="border-yellow-500 text-yellow-400"
+                            >
+                              <Wrench className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setSelectedLease(lease);
+                                setPaymentAmount(lease.monthly_rent?.toString() || "");
+                                setShowPaymentModal(true);
+                              }}
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              Pay Rent
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))
@@ -319,6 +360,114 @@ export default function LandlordTenantPortal() {
                   }`}>
                     {payment.status}
                   </span>
+                </div>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Maintenance Tab */}
+          <TabsContent value="maintenance" className="space-y-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white">Maintenance Requests</h3>
+              {activeLeasesAsTenant.length > 0 && (
+                <Button
+                  onClick={() => {
+                    if (activeLeasesAsTenant.length === 1) {
+                      setMaintenanceLeaseId(activeLeasesAsTenant[0].id);
+                      setShowMaintenanceModal(true);
+                    }
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700"
+                >
+                  <Wrench className="w-4 h-4 mr-2" />
+                  New Request
+                </Button>
+              )}
+            </div>
+
+            {maintenanceRequests.length === 0 ? (
+              <div className="text-center py-20">
+                <Wrench className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No maintenance requests</p>
+              </div>
+            ) : (
+              maintenanceRequests.map(request => (
+                <div key={request.id} className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-bold text-white mb-1">{request.issue_title}</h4>
+                      <p className="text-gray-400 text-sm mb-2">{request.property_address}</p>
+                      <p className="text-gray-300 text-sm">{request.issue_description}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        request.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                        request.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                        request.status === 'acknowledged' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {request.status.replace('_', ' ')}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        request.priority === 'emergency' ? 'bg-red-500/20 text-red-400' :
+                        request.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {request.priority}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                      <p className="text-gray-400 text-xs">Category</p>
+                      <p className="text-white font-semibold text-sm capitalize">
+                        {request.category.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-400 text-xs">Submitted</p>
+                      <p className="text-white font-semibold text-sm">
+                        {new Date(request.created_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {request.scheduled_date && (
+                      <div>
+                        <p className="text-gray-400 text-xs">Scheduled</p>
+                        <p className="text-white font-semibold text-sm">
+                          {new Date(request.scheduled_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                    {request.estimated_cost && (
+                      <div>
+                        <p className="text-gray-400 text-xs">Est. Cost</p>
+                        <p className="text-white font-semibold text-sm">
+                          ${request.estimated_cost.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {request.photos?.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-gray-400 text-xs mb-2">Photos</p>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {request.photos.map((photo, idx) => (
+                          <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden">
+                            <img src={photo} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {request.landlord_notes && (
+                    <div className="p-3 bg-white/5 rounded-xl">
+                      <p className="text-gray-400 text-xs mb-1">Landlord Notes</p>
+                      <p className="text-white text-sm">{request.landlord_notes}</p>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -445,6 +594,22 @@ export default function LandlordTenantPortal() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Maintenance Request Modal */}
+      <AnimatePresence>
+        {showMaintenanceModal && maintenanceLeaseId && (
+          <MaintenanceRequestModal
+            lease={leases.find(l => l.id === maintenanceLeaseId)}
+            onClose={() => {
+              setShowMaintenanceModal(false);
+              setMaintenanceLeaseId(null);
+            }}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+            }}
+          />
         )}
       </AnimatePresence>
     </div>
