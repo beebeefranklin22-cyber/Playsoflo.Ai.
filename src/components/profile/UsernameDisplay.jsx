@@ -1,5 +1,5 @@
 import React from "react";
-import { AtSign } from "lucide-react";
+import { User } from "lucide-react";
 
 export default function UsernameDisplay({ user, showAtSign = true, className = "" }) {
   if (!user) return null;
@@ -8,7 +8,7 @@ export default function UsernameDisplay({ user, showAtSign = true, className = "
   
   return (
     <span className={`inline-flex items-center gap-1 ${className}`}>
-      {showAtSign && <AtSign className="w-3 h-3 opacity-70" />}
+      {showAtSign && <User className="w-3 h-3 opacity-70" />}
       {displayName}
     </span>
   );
