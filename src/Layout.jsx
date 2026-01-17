@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -250,6 +250,14 @@ export default function Layout({ children, currentPageName }) {
                 />
               </div>
             </form>
+
+            {/* Cart Button */}
+            <button
+              onClick={() => navigate(createPageUrl("Cart"))}
+              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition"
+            >
+              <ShoppingCart className="w-6 h-6 text-white" />
+            </button>
 
             {/* Notifications Bell */}
             <button
