@@ -4,7 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { 
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
-  Search, Loader2, Clock, Play, Calculator, FileText
+  Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
+  TrendingUp, TrendingDown, CalendarClock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ import ContactSellerModal from "../components/property/ContactSellerModal";
 import PropertyReviewsList from "../components/property/PropertyReviewsList";
 import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
 import MortgageCalculator from "../components/realestate/MortgageCalculator";
+import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFilters";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -52,6 +54,19 @@ export default function RealEstate() {
   const [tourProperty, setTourProperty] = useState(null);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorProperty, setCalculatorProperty] = useState(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [sortBy, setSortBy] = useState("newest");
+  const [advancedFilters, setAdvancedFilters] = useState({
+    priceMin: "",
+    priceMax: "",
+    bedroomsMin: "",
+    bedroomsMax: "",
+    bathroomsMin: "",
+    bathroomsMax: "",
+    sqftMin: "",
+    sqftMax: "",
+    amenities: []
+  });
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -98,7 +113,61 @@ export default function RealEstate() {
   const filteredProperties = properties.filter(prop => {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
     const listingMatch = selectedListingType === "all" || prop.listing_type === selectedListingType;
-    return categoryMatch && listingMatch;
+    
+    // Price filter
+    const price = prop.listing_type === "short_term" ? prop.price_per_night :
+                  prop.listing_type === "for_rent" ? prop.price_per_month :
+                  prop.sale_price;
+    const priceMin = advancedFilters.priceMin ? parseFloat(advancedFilters.priceMin) : 0;
+    const priceMax = advancedFilters.priceMax ? parseFloat(advancedFilters.priceMax) : Infinity;
+    const priceMatch = price >= priceMin && price <= priceMax;
+    
+    // Bedrooms filter
+    const bedroomsMin = advancedFilters.bedroomsMin ? parseFloat(advancedFilters.bedroomsMin) : 0;
+    const bedroomsMax = advancedFilters.bedroomsMax ? parseFloat(advancedFilters.bedroomsMax) : Infinity;
+    const bedroomsMatch = !prop.bedrooms || (prop.bedrooms >= bedroomsMin && prop.bedrooms <= bedroomsMax);
+    
+    // Bathrooms filter
+    const bathroomsMin = advancedFilters.bathroomsMin ? parseFloat(advancedFilters.bathroomsMin) : 0;
+    const bathroomsMax = advancedFilters.bathroomsMax ? parseFloat(advancedFilters.bathroomsMax) : Infinity;
+    const bathroomsMatch = !prop.bathrooms || (prop.bathrooms >= bathroomsMin && prop.bathrooms <= bathroomsMax);
+    
+    // Square footage filter
+    const sqftMin = advancedFilters.sqftMin ? parseFloat(advancedFilters.sqftMin) : 0;
+    const sqftMax = advancedFilters.sqftMax ? parseFloat(advancedFilters.sqftMax) : Infinity;
+    const sqftMatch = !prop.square_feet || (prop.square_feet >= sqftMin && prop.square_feet <= sqftMax);
+    
+    // Amenities filter
+    const amenitiesMatch = advancedFilters.amenities.length === 0 || 
+      advancedFilters.amenities.every(amenity => 
+        prop.amenities?.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+      );
+    
+    return categoryMatch && listingMatch && priceMatch && bedroomsMatch && 
+           bathroomsMatch && sqftMatch && amenitiesMatch;
+  });
+
+  // Sort properties
+  const sortedProperties = [...filteredProperties].sort((a, b) => {
+    if (sortBy === "price_low") {
+      const priceA = a.listing_type === "short_term" ? a.price_per_night :
+                     a.listing_type === "for_rent" ? a.price_per_month : a.sale_price;
+      const priceB = b.listing_type === "short_term" ? b.price_per_night :
+                     b.listing_type === "for_rent" ? b.price_per_month : b.sale_price;
+      return priceA - priceB;
+    }
+    if (sortBy === "price_high") {
+      const priceA = a.listing_type === "short_term" ? a.price_per_night :
+                     a.listing_type === "for_rent" ? a.price_per_month : a.sale_price;
+      const priceB = b.listing_type === "short_term" ? b.price_per_night :
+                     b.listing_type === "for_rent" ? b.price_per_month : b.sale_price;
+      return priceB - priceA;
+    }
+    if (sortBy === "rating") {
+      return (b.rating || 0) - (a.rating || 0);
+    }
+    // Default: newest
+    return new Date(b.created_date) - new Date(a.created_date);
   });
 
   const getPrice = (property) => {
@@ -212,18 +281,44 @@ export default function RealEstate() {
       </div>
 
       <div className="px-4 sm:px-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <p className="text-gray-300 text-sm sm:text-base">
-            {filteredProperties.length} propert{filteredProperties.length !== 1 ? 'ies' : 'y'} available
+            {sortedProperties.length} propert{sortedProperties.length !== 1 ? 'ies' : 'y'} available
             {properties.length > 0 && properties[0]?.data_source && (
               <span className="ml-2 text-emerald-400">• Powered by {properties[0].data_source}</span>
             )}
           </p>
+          
+          <div className="flex items-center gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-sm cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+              <option value="rating">Highest Rated</option>
+            </select>
+            
+            <Button
+              onClick={() => setShowAdvancedFilters(true)}
+              variant="outline"
+              className="border-emerald-500 text-emerald-400 relative"
+            >
+              <SlidersHorizontal className="w-4 h-4 mr-2" />
+              Filters
+              {(advancedFilters.amenities?.length > 0 || advancedFilters.priceMin || 
+                advancedFilters.bedroomsMin || advancedFilters.sqftMin) && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full" />
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence>
-            {filteredProperties.map((property, index) => (
+            {sortedProperties.map((property, index) => (
               <motion.div
                 key={property.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -358,13 +453,26 @@ export default function RealEstate() {
           </AnimatePresence>
         </div>
 
-        {filteredProperties.length === 0 && !isLoading && (
+        {sortedProperties.length === 0 && !isLoading && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Building className="w-10 h-10 text-emerald-400" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">No properties found</h3>
-            <p className="text-gray-400">Try adjusting your filters</p>
+            <p className="text-gray-400 mb-4">Try adjusting your filters</p>
+            {(advancedFilters.amenities?.length > 0 || advancedFilters.priceMin || 
+              advancedFilters.bedroomsMin || advancedFilters.sqftMin) && (
+              <Button
+                onClick={() => setAdvancedFilters({
+                  priceMin: "", priceMax: "", bedroomsMin: "", bedroomsMax: "",
+                  bathroomsMin: "", bathroomsMax: "", sqftMin: "", sqftMax: "", amenities: []
+                })}
+                variant="outline"
+                className="border-emerald-500 text-emerald-400"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -642,6 +750,16 @@ export default function RealEstate() {
               setShowCalculator(false);
               setCalculatorProperty(null);
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAdvancedFilters && (
+          <AdvancedPropertyFilters
+            filters={advancedFilters}
+            onFiltersChange={setAdvancedFilters}
+            onClose={() => setShowAdvancedFilters(false)}
           />
         )}
       </AnimatePresence>
