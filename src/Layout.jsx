@@ -7,30 +7,17 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
-import OfflineManager from "./components/OfflineManager";
-import OfflineDataCache from "./components/OfflineDataCache";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
-import AdvancedOfflineSync from "./components/AdvancedOfflineSync";
-import OfflineMediaPlayer from "./components/OfflineMediaPlayer";
-import RealtimeDataManager from "./components/RealtimeDataManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
-import CrossPlatformOptimizer from "./components/CrossPlatformOptimizer";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
-import ResponsiveOptimizer from "./components/platform/ResponsiveOptimizer";
 import SecurityValidator from "./components/security/SecurityValidator";
 import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
 import GlobalSecurityHandler from "./components/security/GlobalSecurityHandler";
-import AutoHealingSystem from "./components/diagnostics/AutoHealingSystem";
 import SafeErrorHandler from "./components/SafeErrorHandler";
-
-import InfrastructureMonitor from "./components/infrastructure/InfrastructureMonitor";
-import StreamingHealthCheck from "./components/infrastructure/StreamingHealthCheck";
-import MultiDeviceValidator from "./components/infrastructure/MultiDeviceValidator";
-import ConnectionFailsafe from "./components/infrastructure/ConnectionFailsafe";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -149,11 +136,6 @@ export default function Layout({ children, currentPageName }) {
     <PostHogProvider user={currentUser}>
       <SafeErrorHandler />
       <ServiceWorkerManager />
-      <OfflineManager />
-      <OfflineDataCache />
-      <AdvancedOfflineSync />
-      <OfflineMediaPlayer />
-      <RealtimeDataManager />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
