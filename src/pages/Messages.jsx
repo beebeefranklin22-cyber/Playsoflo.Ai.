@@ -46,6 +46,15 @@ export default function Messages() {
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          toast.success('Push notifications enabled for messages');
+        }
+      });
+    }
   }, []);
 
   // Handle URL params for direct conversation
@@ -177,16 +186,17 @@ export default function Messages() {
         p => p !== currentUser.email
       );
       
-      const notificationPromises = otherParticipants.map(recipient => 
-        base44.entities.Notification.create({
+      const notificationPromises = otherParticipants.map(async (recipient) => {
+        // Create notification
+        await base44.entities.Notification.create({
           recipient_email: recipient,
           type: "new_message",
           title: `${currentUser.full_name || currentUser.email}`,
           message: encryptionEnabled ? "🔒 Encrypted message" : 
-                   (data.message_type === 'image' ? "Sent a photo" :
-                    data.message_type === 'video' ? "Sent a video" :
-                    data.message_type === 'audio' ? "Sent an audio" :
-                    data.message_type === 'file' ? "Sent a file" :
+                   (data.message_type === 'image' ? "📷 Sent a photo" :
+                    data.message_type === 'video' ? "🎥 Sent a video" :
+                    data.message_type === 'audio' ? "🎵 Sent an audio" :
+                    data.message_type === 'file' ? `📎 Sent ${data.file_name || 'a file'}` :
                     data.content),
           reference_type: "direct_message",
           reference_id: selectedConversation.id,
@@ -195,8 +205,35 @@ export default function Messages() {
           sender_photo: currentUser.profile_photo,
           action_url: `/messages?conv=${selectedConversation.id}`,
           read: false
-        })
-      );
+        });
+
+        // Try to send push notification if available
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            const title = selectedConversation.is_group 
+              ? `${currentUser.full_name || currentUser.email} in ${selectedConversation.name}`
+              : currentUser.full_name || currentUser.email;
+            
+            const body = encryptionEnabled ? "🔒 Encrypted message" :
+                        (data.message_type === 'image' ? "📷 Photo" :
+                         data.message_type === 'video' ? "🎥 Video" :
+                         data.message_type === 'audio' ? "🎵 Audio" :
+                         data.message_type === 'file' ? `📎 ${data.file_name}` :
+                         data.content.substring(0, 100));
+
+            new Notification(title, {
+              body,
+              icon: currentUser.profile_photo || '/icon.png',
+              badge: '/badge.png',
+              tag: selectedConversation.id,
+              requireInteraction: false,
+              vibrate: [200, 100, 200]
+            });
+          } catch (error) {
+            console.error('Push notification error:', error);
+          }
+        }
+      });
       
       await Promise.all(notificationPromises);
 
@@ -520,8 +557,11 @@ export default function Messages() {
     if (!presence || !presence.typing_to) return false;
     
     const typingTo = presence.typing_to;
-    const shouldShowTyping = selectedConversation?.participants.includes(email) && 
-                            typingTo === currentUser?.email;
+    
+    // For group chats, check if typing to conversation ID; for 1:1, check if typing to current user
+    const shouldShowTyping = selectedConversation?.is_group
+      ? typingTo === selectedConversation.id
+      : selectedConversation?.participants.includes(email) && typingTo === currentUser?.email;
     
     if (!shouldShowTyping) return false;
     
@@ -537,15 +577,17 @@ export default function Messages() {
     if (!currentUser || !selectedConversation) return;
     
     const updateTypingStatus = async () => {
-      const otherParticipant = selectedConversation.participants.find(p => p !== currentUser.email);
-      if (!otherParticipant) return;
-
       const presence = presenceData.find(p => p.user_email === currentUser.email);
       
       if (messageInput.trim()) {
+        // For group chats, broadcast typing to conversation; for 1:1, to the other participant
+        const typingTo = selectedConversation.is_group 
+          ? selectedConversation.id 
+          : selectedConversation.participants.find(p => p !== currentUser.email);
+        
         if (presence) {
           await base44.entities.UserPresence.update(presence.id, {
-            typing_to: otherParticipant,
+            typing_to: typingTo,
             typing_started: new Date().toISOString(),
             status: 'online',
             last_seen: new Date().toISOString()
@@ -555,7 +597,7 @@ export default function Messages() {
             user_email: currentUser.email,
             user_name: currentUser.full_name,
             user_photo: currentUser.profile_photo,
-            typing_to: otherParticipant,
+            typing_to: typingTo,
             typing_started: new Date().toISOString(),
             status: 'online',
             last_seen: new Date().toISOString()
@@ -837,7 +879,18 @@ export default function Messages() {
                         const status = getUserPresence(otherUser);
                         const typing = isUserTyping(otherUser);
                         
-                        if (typing) return "typing...";
+                        if (typing) {
+                          return (
+                            <span className="flex items-center gap-1 text-green-400">
+                              typing
+                              <span className="flex gap-0.5">
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                              </span>
+                            </span>
+                          );
+                        }
                         
                         return (
                           <>
@@ -850,7 +903,27 @@ export default function Messages() {
                           </>
                         );
                       })()}
-                      {selectedConversation.is_group && 'Group chat'}
+                      {selectedConversation.is_group && (() => {
+                        const typingUsers = selectedConversation.participants
+                          .filter(p => p !== currentUser?.email && isUserTyping(p))
+                          .map(email => email.split('@')[0]);
+                        
+                        if (typingUsers.length > 0) {
+                          return (
+                            <span className="flex items-center gap-1 text-green-400">
+                              {typingUsers.length === 1 ? `${typingUsers[0]} is typing` : 
+                               typingUsers.length === 2 ? `${typingUsers[0]} and ${typingUsers[1]} are typing` :
+                               `${typingUsers.length} people are typing`}
+                              <span className="flex gap-0.5">
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                                <span className="w-1 h-1 bg-green-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                              </span>
+                            </span>
+                          );
+                        }
+                        return 'Group chat';
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -895,6 +968,28 @@ export default function Messages() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {/* Typing indicator at the bottom of messages */}
+              {(() => {
+                const typingUsers = selectedConversation?.participants
+                  .filter(p => p !== currentUser?.email && isUserTyping(p));
+                
+                if (typingUsers && typingUsers.length > 0) {
+                  return (
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {typingUsers[0][0].toUpperCase()}
+                      </div>
+                      <div className="bg-white/10 rounded-2xl px-4 py-3 flex items-center gap-2">
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              
               <AnimatePresence>
                 {messages.map((message, idx) => {
                   const isOwn = message.sender_email === currentUser?.email;
@@ -1131,9 +1226,12 @@ export default function Messages() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    fileInputRef.current.accept = 'image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.ppt,.pptx,.xls,.xlsx';
+                    fileInputRef.current?.click();
+                  }}
                   className="text-purple-400 hover:bg-purple-500/20"
-                  title="Attach file (up to 50MB)"
+                  title="Attach file (images, videos, documents up to 50MB)"
                 >
                   <Paperclip className="w-5 h-5" />
                 </Button>
