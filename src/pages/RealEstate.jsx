@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { 
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
-  Search, Loader2, Clock
+  Search, Loader2, Clock, Play, Calculator, FileText
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,8 @@ import PropertyBookingModal from "../components/property/PropertyBookingModal";
 import ListPropertyModal from "../components/provider/ListPropertyModal";
 import ContactSellerModal from "../components/property/ContactSellerModal";
 import PropertyReviewsList from "../components/property/PropertyReviewsList";
+import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
+import MortgageCalculator from "../components/realestate/MortgageCalculator";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -46,6 +48,10 @@ export default function RealEstate() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showListProperty, setShowListProperty] = useState(false);
   const [contactProperty, setContactProperty] = useState(null);
+  const [showVirtualTour, setShowVirtualTour] = useState(false);
+  const [tourProperty, setTourProperty] = useState(null);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorProperty, setCalculatorProperty] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -307,9 +313,24 @@ export default function RealEstate() {
                       )}
                     </div>
 
-                    <button 
-                      className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition"
-                      onClick={(e) => {
+                    <div className="flex gap-2">
+                      {property.listing_type === "for_sale" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCalculatorProperty(property);
+                            setShowCalculator(true);
+                          }}
+                          className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
+                          title="Mortgage Calculator"
+                        >
+                          <Calculator className="w-5 h-5 text-emerald-400" />
+                        </button>
+                      )}
+                      
+                      <button 
+                        className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition"
+                        onClick={(e) => {
                         e.stopPropagation();
                         if (!currentUser) {
                           toast.error('Please log in to continue');
@@ -326,9 +347,10 @@ export default function RealEstate() {
                         }
                       }}
                     >
-                      {property.listing_type === "short_term" ? "Book" : 
-                       property.listing_type === "for_rent" ? "Apply" : "Contact"}
-                    </button>
+                        {property.listing_type === "short_term" ? "Book" : 
+                         property.listing_type === "for_rent" ? "Apply" : "Contact"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -503,6 +525,36 @@ export default function RealEstate() {
                   />
                 </div>
 
+                <div className="flex gap-3 mb-6 flex-wrap">
+                  {(selectedProperty.images?.length > 1 || selectedProperty.virtual_tour_url) && (
+                    <Button
+                      onClick={() => {
+                        setTourProperty(selectedProperty);
+                        setShowVirtualTour(true);
+                        setSelectedProperty(null);
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      {selectedProperty.virtual_tour_url ? 'Virtual Tour' : 'View Gallery'}
+                    </Button>
+                  )}
+                  {selectedProperty.listing_type === "for_sale" && (
+                    <Button
+                      onClick={() => {
+                        setCalculatorProperty(selectedProperty);
+                        setShowCalculator(true);
+                        setSelectedProperty(null);
+                      }}
+                      variant="outline"
+                      className="border-emerald-500 text-emerald-400"
+                    >
+                      <Calculator className="w-4 h-4 mr-2" />
+                      Mortgage Calculator
+                    </Button>
+                  )}
+                </div>
+
                 <div className="flex items-center justify-between p-6 glass-effect rounded-2xl">
                   <div>
                     <p className="text-gray-400 text-sm mb-1">Price</p>
@@ -569,6 +621,30 @@ export default function RealEstate() {
           onClose={() => setContactProperty(null)}
         />
       )}
+
+      <AnimatePresence>
+        {showVirtualTour && tourProperty && (
+          <VirtualTourViewer
+            property={tourProperty}
+            onClose={() => {
+              setShowVirtualTour(false);
+              setTourProperty(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showCalculator && calculatorProperty && (
+          <MortgageCalculator
+            property={calculatorProperty}
+            onClose={() => {
+              setShowCalculator(false);
+              setCalculatorProperty(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
