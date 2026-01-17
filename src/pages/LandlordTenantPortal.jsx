@@ -6,7 +6,8 @@ import { createPageUrl } from "@/utils";
 import {
   ChevronLeft, Home, DollarSign, FileText, MessageCircle,
   Calendar, Check, X, AlertCircle, Clock, Bell, Download,
-  Upload, Users, Settings, TrendingUp, Mail, Wrench, Image
+  Upload, Users, Settings, TrendingUp, Mail, Wrench, Image, 
+  Pen, FolderOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,9 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaintenanceRequestModal from "../components/realestate/MaintenanceRequestModal";
 import PropertyAnalytics from "../components/realestate/PropertyAnalytics";
+import LeaseCreationModal from "../components/realestate/LeaseCreationModal";
+import DigitalSignatureModal from "../components/realestate/DigitalSignatureModal";
+import DocumentStorage from "../components/realestate/DocumentStorage";
 
 export default function LandlordTenantPortal() {
   const navigate = useNavigate();
@@ -27,6 +31,11 @@ export default function LandlordTenantPortal() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
   const [maintenanceLeaseId, setMaintenanceLeaseId] = useState(null);
+  const [showLeaseCreation, setShowLeaseCreation] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [selectedLeaseForSigning, setSelectedLeaseForSigning] = useState(null);
+  const [viewingDocuments, setViewingDocuments] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {
@@ -272,22 +281,47 @@ export default function LandlordTenantPortal() {
             {leases.length === 0 ? (
               <div className="text-center py-20">
                 <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">No leases found</p>
+                <p className="text-gray-400 mb-4">No leases found</p>
+                {properties.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      setSelectedProperty(properties[0]);
+                      setShowLeaseCreation(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Create Lease Agreement
+                  </Button>
+                )}
               </div>
             ) : (
               leases.map(lease => (
                 <div key={lease.id} className="p-6 bg-white/5 rounded-2xl border border-white/10">
                   <div className="flex items-start justify-between mb-4">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-xl font-bold text-white mb-1">{lease.property_address}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-gray-400 flex-wrap">
                         <span>Start: {new Date(lease.lease_start_date).toLocaleDateString()}</span>
                         <span>End: {new Date(lease.lease_end_date).toLocaleDateString()}</span>
                       </div>
+                      
+                      {/* Signature Status */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className={`flex items-center gap-1 text-xs ${lease.landlord_signed ? 'text-green-400' : 'text-gray-400'}`}>
+                          {lease.landlord_signed ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                          <span>Landlord {lease.landlord_signed ? 'Signed' : 'Pending'}</span>
+                        </div>
+                        <div className={`flex items-center gap-1 text-xs ${lease.tenant_signed ? 'text-green-400' : 'text-gray-400'}`}>
+                          {lease.tenant_signed ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                          <span>Tenant {lease.tenant_signed ? 'Signed' : 'Pending'}</span>
+                        </div>
+                      </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
                       lease.status === 'active' ? 'bg-green-500/20 text-green-400' :
                       lease.status === 'expiring_soon' ? 'bg-yellow-500/20 text-yellow-400' :
+                      lease.status === 'pending_signatures' ? 'bg-blue-500/20 text-blue-400' :
                       'bg-gray-500/20 text-gray-400'
                     }`}>
                       {lease.status.replace('_', ' ')}
@@ -311,7 +345,32 @@ export default function LandlordTenantPortal() {
                         {lease.tenant_email === currentUser.email ? lease.landlord_name : lease.tenant_name}
                       </p>
                     </div>
-                    <div className="flex items-end">
+                    <div className="flex items-end gap-2 flex-wrap">
+                      {!lease.landlord_signed || !lease.tenant_signed ? (
+                        <Button
+                          onClick={() => {
+                            setSelectedLeaseForSigning(lease);
+                            setShowSignatureModal(true);
+                          }}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Pen className="w-4 h-4 mr-2" />
+                          {lease.landlord_email === currentUser.email && !lease.landlord_signed ? 'Sign Lease' :
+                           lease.tenant_email === currentUser.email && !lease.tenant_signed ? 'Sign Lease' : 'View Signatures'}
+                        </Button>
+                      ) : null}
+                      
+                      <Button
+                        onClick={() => setViewingDocuments(lease)}
+                        variant="outline"
+                        size="sm"
+                        className="border-purple-500 text-purple-400"
+                      >
+                        <FolderOpen className="w-4 h-4 mr-2" />
+                        Documents
+                      </Button>
+                      
                       <Button
                         onClick={() => navigate(createPageUrl("Messages") + `?contact=${
                           lease.tenant_email === currentUser.email ? lease.landlord_email : lease.tenant_email
@@ -475,15 +534,30 @@ export default function LandlordTenantPortal() {
 
           {/* Properties Tab */}
           <TabsContent value="properties" className="space-y-4">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
               <h3 className="text-xl font-bold text-white">My Properties</h3>
-              <Button
-                onClick={() => navigate(createPageUrl("RealEstate"))}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                List New Property
-              </Button>
+              <div className="flex gap-2">
+                {properties.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      setSelectedProperty(properties[0]);
+                      setShowLeaseCreation(true);
+                    }}
+                    variant="outline"
+                    className="border-blue-500 text-blue-400"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    Create Lease
+                  </Button>
+                )}
+                <Button
+                  onClick={() => navigate(createPageUrl("RealEstate"))}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  List New Property
+                </Button>
+              </div>
             </div>
 
             {properties.length === 0 ? (
@@ -610,6 +684,76 @@ export default function LandlordTenantPortal() {
               queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Lease Creation Modal */}
+      <AnimatePresence>
+        {showLeaseCreation && selectedProperty && (
+          <LeaseCreationModal
+            property={selectedProperty}
+            onClose={() => {
+              setShowLeaseCreation(false);
+              setSelectedProperty(null);
+            }}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['leases'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Digital Signature Modal */}
+      <AnimatePresence>
+        {showSignatureModal && selectedLeaseForSigning && (
+          <DigitalSignatureModal
+            lease={selectedLeaseForSigning}
+            currentUser={currentUser}
+            onClose={() => {
+              setShowSignatureModal(false);
+              setSelectedLeaseForSigning(null);
+            }}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['leases'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Document Storage Modal */}
+      <AnimatePresence>
+        {viewingDocuments && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto"
+            onClick={() => setViewingDocuments(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-4xl bg-gray-900 rounded-3xl my-8"
+            >
+              <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Property Documents</h2>
+                  <p className="text-gray-400 text-sm">{viewingDocuments.property_address}</p>
+                </div>
+                <button onClick={() => setViewingDocuments(null)} className="p-2 hover:bg-white/10 rounded-full">
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <DocumentStorage 
+                  propertyId={viewingDocuments.property_id} 
+                  leaseId={viewingDocuments.id}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
