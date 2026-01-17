@@ -104,6 +104,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Store, label: "Marketplace", path: "Marketplace" },
     { icon: Truck, label: "Package Delivery", path: "PackageDelivery" },
     { icon: Home, label: "Real Estate", path: "RealEstate" },
+    { icon: Navigation, label: "Rides", path: "Travel" },
     { icon: TrendingUp, label: "Ads Manager", path: "AdsManager" },
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
     { icon: Package, label: "Orders", path: "FoodOrderTracking" },
