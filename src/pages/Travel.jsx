@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   ChevronLeft, Car, Plane, Anchor, Rocket, Bike,
-  Briefcase, Search, Globe, Key, Edit3, Upload, Check
+  Briefcase, Search, Globe, Key
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ const defaultTravelOptions = [
     icon: Car,
     bgColor: "bg-blue-500/20",
     iconColor: "text-blue-400",
-    image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800",
     action: () => {} // Action will be handled by setHailOpen for this specific ID
   },
   {
@@ -108,9 +108,6 @@ const defaultTravelOptions = [
 export default function Travel() {
   const navigate = useNavigate();
   const [hailOpen, setHailOpen] = React.useState(false);
-  const [editMode, setEditMode] = React.useState(false);
-  const [uploadingId, setUploadingId] = React.useState(null);
-  const [travelOptions, setTravelOptions] = React.useState(defaultTravelOptions);
   const [currentUser, setCurrentUser] = React.useState(null);
 
   React.useEffect(() => {
@@ -125,23 +122,7 @@ export default function Travel() {
     fetchUser();
   }, []);
 
-  const handleImageUpload = async (file, optionId) => {
-    try {
-      setUploadingId(optionId);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      
-      setTravelOptions(prev => prev.map(option => 
-        option.id === optionId ? { ...option, image: file_url } : option
-      ));
-      
-      toast.success('✅ Image updated successfully!');
-    } catch (error) {
-      console.error('Image upload error:', error);
-      toast.error('❌ Failed to upload image');
-    } finally {
-      setUploadingId(null);
-    }
-  };
+
 
   return (
     <>
@@ -165,32 +146,19 @@ export default function Travel() {
                 Your journey, reimagined. Explore the world effortlessly.
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              {currentUser && <BecomeDriverButton currentUser={currentUser} />}
-              <button
-                onClick={() => setEditMode(!editMode)}
-                className={`px-4 py-2 rounded-xl flex items-center gap-2 transition ${
-                  editMode ? 'bg-green-600 hover:bg-green-700' : 'bg-white/10 hover:bg-white/20'
-                } text-white backdrop-blur-xl border border-white/20`}
-              >
-                {editMode ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                {editMode ? 'Done' : 'Edit Cards'}
-              </button>
-            </div>
+            {currentUser && <BecomeDriverButton currentUser={currentUser} />}
           </div>
         </div>
 
         <div className="px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {travelOptions.map((option, index) => (
+          {defaultTravelOptions.map((option, index) => (
             <motion.div
               key={option.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              onClick={() => editMode ? null : (option.id === "hail_ride" ? setHailOpen(true) : option.action(navigate))}
-              className={`relative h-64 rounded-3xl overflow-hidden group ${
-                editMode ? 'cursor-default' : 'cursor-pointer'
-              }`}
+              onClick={() => option.id === "hail_ride" ? setHailOpen(true) : option.action(navigate)}
+              className="relative h-64 rounded-3xl overflow-hidden group cursor-pointer"
             >
               <img 
                 src={option.image} 
@@ -198,30 +166,6 @@ export default function Travel() {
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              
-              {/* Upload Overlay (Edit Mode) */}
-              {editMode && (
-                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-10">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file, option.id);
-                      }}
-                      disabled={uploadingId === option.id}
-                    />
-                    <div className="px-6 py-3 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center gap-3 hover:bg-white/30 transition border border-white/30">
-                      <Upload className="w-5 h-5 text-white" />
-                      <span className="text-white font-semibold">
-                        {uploadingId === option.id ? 'Uploading...' : 'Upload Image'}
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              )}
               
               <div className="absolute inset-0 p-6 flex flex-col justify-between">
                 <div className="flex items-center gap-3">
