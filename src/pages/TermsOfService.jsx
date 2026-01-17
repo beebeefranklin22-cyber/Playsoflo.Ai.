@@ -28,11 +28,13 @@ export default function TermsOfService() {
       setUser(currentUser);
       
       // If already accepted, redirect to home
-      if (currentUser.terms_accepted) {
+      if (currentUser?.terms_accepted) {
         navigate(createPageUrl("Home"));
       }
     } catch (error) {
       console.error("Error fetching user:", error);
+      // Set a dummy user to allow page to render
+      setUser({ email: 'loading@user.com' });
     }
   };
 

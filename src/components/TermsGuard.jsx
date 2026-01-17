@@ -14,18 +14,8 @@ export default function TermsGuard({ children }) {
   }, []);
 
   const checkTermsAcceptance = async () => {
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.warn("Terms check timeout - allowing access");
-      setTermsAccepted(true);
-      setChecking(false);
-    }, 3000);
-
     try {
-      const user = await base44.auth.me();
-      clearTimeout(timeoutId);
-      
-      // Skip terms check for TermsOfService and PermissionsSettings pages
+      // Skip check entirely on TermsOfService page
       const currentPath = location.pathname;
       const termsPath = createPageUrl("TermsOfService");
       const permissionsPath = createPageUrl("PermissionsSettings");
@@ -35,21 +25,21 @@ export default function TermsGuard({ children }) {
         setChecking(false);
         return;
       }
+
+      const user = await base44.auth.me();
       
       // If terms not accepted, redirect to terms page
       if (!user.terms_accepted) {
         navigate(termsPath);
-        setChecking(false);
         return;
       }
       
       setTermsAccepted(true);
-      setChecking(false);
     } catch (error) {
-      clearTimeout(timeoutId);
       console.error("Error checking terms:", error);
       // On error, allow access to avoid blocking users
       setTermsAccepted(true);
+    } finally {
       setChecking(false);
     }
   };
