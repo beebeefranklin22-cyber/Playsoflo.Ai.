@@ -7,7 +7,7 @@ import {
   ChevronLeft, Home, DollarSign, FileText, MessageCircle,
   Calendar, Check, X, AlertCircle, Clock, Bell, Download,
   Upload, Users, Settings, TrendingUp, Mail, Wrench, Image, 
-  Pen, FolderOpen
+  Pen, FolderOpen, CheckCircle, BarChart3, Activity, Edit
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MaintenanceRequestModal from "../components/realestate/MaintenanceRequestModal";
 import PropertyAnalytics from "../components/realestate/PropertyAnalytics";
 import LeaseCreationModal from "../components/realestate/LeaseCreationModal";
@@ -36,6 +37,9 @@ export default function LandlordTenantPortal() {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [selectedLeaseForSigning, setSelectedLeaseForSigning] = useState(null);
   const [viewingDocuments, setViewingDocuments] = useState(null);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [landlordNotes, setLandlordNotes] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState("");
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {
@@ -106,6 +110,19 @@ export default function LandlordTenantPortal() {
       toast.success('Rent payment submitted successfully');
       setShowPaymentModal(false);
       setPaymentAmount("");
+    }
+  });
+
+  const updateRequestMutation = useMutation({
+    mutationFn: async ({ id, data }) => {
+      return await base44.entities.MaintenanceRequest.update(id, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-requests'] });
+      toast.success('Request updated successfully');
+      setEditingRequest(null);
+      setLandlordNotes("");
+      setEstimatedCost("");
     }
   });
 
@@ -477,6 +494,45 @@ export default function LandlordTenantPortal() {
                     </div>
                   </div>
 
+                  {/* Progress Tracker for Tenants */}
+                  {request.tenant_email === currentUser?.email && (
+                    <div className="mb-4 p-4 bg-white/5 rounded-xl">
+                      <p className="text-gray-400 text-xs mb-3">Request Progress</p>
+                      <div className="flex items-center justify-between relative">
+                        <div className="absolute top-4 left-0 right-0 h-0.5 bg-white/10" />
+                        <div 
+                          className="absolute top-4 left-0 h-0.5 bg-emerald-500 transition-all duration-500"
+                          style={{
+                            width: request.status === 'submitted' ? '0%' :
+                                   request.status === 'acknowledged' ? '33%' :
+                                   request.status === 'in_progress' ? '66%' :
+                                   request.status === 'completed' ? '100%' : '0%'
+                          }}
+                        />
+                        {['submitted', 'acknowledged', 'in_progress', 'completed'].map((step, idx) => (
+                          <div key={step} className="flex flex-col items-center relative z-10">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                              request.status === step || 
+                              (step === 'acknowledged' && ['in_progress', 'completed'].includes(request.status)) ||
+                              (step === 'in_progress' && request.status === 'completed')
+                                ? 'bg-emerald-500 border-emerald-500' 
+                                : 'bg-gray-800 border-white/20'
+                            }`}>
+                              {(request.status === step || 
+                                (step === 'acknowledged' && ['in_progress', 'completed'].includes(request.status)) ||
+                                (step === 'in_progress' && request.status === 'completed')) && (
+                                <CheckCircle className="w-5 h-5 text-white" />
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-400 mt-1 text-center max-w-[60px]">
+                              {step.replace('_', ' ')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
                       <p className="text-gray-400 text-xs">Category</p>
@@ -510,7 +566,7 @@ export default function LandlordTenantPortal() {
 
                   {request.photos?.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-gray-400 text-xs mb-2">Photos</p>
+                      <p className="text-gray-400 text-xs mb-2">Photos ({request.photos.length})</p>
                       <div className="flex gap-2 overflow-x-auto pb-2">
                         {request.photos.map((photo, idx) => (
                           <div key={idx} className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden">
@@ -522,9 +578,109 @@ export default function LandlordTenantPortal() {
                   )}
 
                   {request.landlord_notes && (
-                    <div className="p-3 bg-white/5 rounded-xl">
+                    <div className="p-3 bg-white/5 rounded-xl mb-3">
                       <p className="text-gray-400 text-xs mb-1">Landlord Notes</p>
                       <p className="text-white text-sm">{request.landlord_notes}</p>
+                    </div>
+                  )}
+
+                  {/* Landlord Actions */}
+                  {request.landlord_email === currentUser?.email && editingRequest?.id !== request.id && (
+                    <Button
+                      onClick={() => {
+                        setEditingRequest(request);
+                        setLandlordNotes(request.landlord_notes || "");
+                        setEstimatedCost(request.estimated_cost?.toString() || "");
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="border-blue-500 text-blue-400"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      {request.landlord_notes ? 'Edit Notes & Cost' : 'Add Notes & Cost'}
+                    </Button>
+                  )}
+
+                  {/* Edit Form for Landlords */}
+                  {request.landlord_email === currentUser?.email && editingRequest?.id === request.id && (
+                    <div className="mt-4 p-4 bg-white/5 rounded-xl space-y-3">
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1 block">Landlord Notes</label>
+                        <Textarea
+                          value={landlordNotes}
+                          onChange={(e) => setLandlordNotes(e.target.value)}
+                          placeholder="Add notes about the repair, contractor details, etc."
+                          className="bg-white/10 border-white/20 text-white"
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1 block">Estimated Cost ($)</label>
+                        <Input
+                          type="number"
+                          value={estimatedCost}
+                          onChange={(e) => setEstimatedCost(e.target.value)}
+                          placeholder="Enter estimated repair cost"
+                          className="bg-white/10 border-white/20 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1 block">Status</label>
+                        <Select
+                          value={request.status}
+                          onValueChange={(value) => {
+                            updateRequestMutation.mutate({
+                              id: request.id,
+                              data: {
+                                status: value,
+                                landlord_notes: landlordNotes,
+                                estimated_cost: estimatedCost ? Number(estimatedCost) : null
+                              }
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="submitted">Submitted</SelectItem>
+                            <SelectItem value="acknowledged">Acknowledged</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            setEditingRequest(null);
+                            setLandlordNotes("");
+                            setEstimatedCost("");
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            updateRequestMutation.mutate({
+                              id: request.id,
+                              data: {
+                                landlord_notes: landlordNotes,
+                                estimated_cost: estimatedCost ? Number(estimatedCost) : null
+                              }
+                            });
+                          }}
+                          disabled={updateRequestMutation.isPending}
+                          size="sm"
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          {updateRequestMutation.isPending ? 'Saving...' : 'Save'}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -572,41 +728,133 @@ export default function LandlordTenantPortal() {
                 </Button>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-6">
-                {properties.map(property => (
-                  <div key={property.id} className="p-6 bg-white/5 rounded-2xl border border-white/10">
-                    <div className="relative h-48 rounded-xl overflow-hidden mb-4">
-                      <img 
-                        src={property.main_image} 
-                        alt={property.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <h4 className="text-lg font-bold text-white mb-2">{property.title}</h4>
-                    <p className="text-gray-400 text-sm mb-3">{property.location}</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        {property.listing_type === 'for_rent' && (
-                          <p className="text-emerald-400 font-bold">
-                            ${property.price_per_month?.toLocaleString()}/mo
-                          </p>
-                        )}
-                        {property.listing_type === 'for_sale' && (
-                          <p className="text-emerald-400 font-bold">
-                            ${property.sale_price?.toLocaleString()}
-                          </p>
-                        )}
+              <div className="space-y-6">
+                {properties.map(property => {
+                  const propertyLeases = leases.filter(l => l.property_id === property.id);
+                  const activeLeases = propertyLeases.filter(l => l.status === 'active');
+                  const occupancyRate = property.listing_type === 'for_rent' && activeLeases.length > 0 ? 100 : 0;
+                  
+                  const propertyPayments = payments.filter(p => p.property_id === property.id);
+                  const last6Months = Array.from({length: 6}, (_, i) => {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - i);
+                    return date;
+                  }).reverse();
+                  
+                  const monthlyData = last6Months.map(month => {
+                    const monthPayments = propertyPayments.filter(p => {
+                      const paymentDate = new Date(p.payment_date);
+                      return paymentDate.getMonth() === month.getMonth() && 
+                             paymentDate.getFullYear() === month.getFullYear();
+                    });
+                    return {
+                      month: month.toLocaleDateString('en-US', { month: 'short' }),
+                      amount: monthPayments.reduce((sum, p) => sum + (p.amount || 0), 0)
+                    };
+                  });
+                  
+                  const avgMonthlyRent = propertyPayments.length > 0 
+                    ? propertyPayments.reduce((sum, p) => sum + (p.amount || 0), 0) / Math.max(propertyPayments.length, 1)
+                    : property.price_per_month || 0;
+                  
+                  const propertyMaintenance = maintenanceRequests.filter(r => r.property_id === property.id && r.status !== 'completed');
+                  
+                  return (
+                    <div key={property.id} className="p-6 bg-white/5 rounded-2xl border border-white/10">
+                      <div className="grid md:grid-cols-3 gap-6 mb-6">
+                        <div className="relative h-48 rounded-xl overflow-hidden">
+                          <img 
+                            src={property.main_image} 
+                            alt={property.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="md:col-span-2">
+                          <h4 className="text-xl font-bold text-white mb-2">{property.title}</h4>
+                          <p className="text-gray-400 text-sm mb-4">{property.location}</p>
+                          
+                          {/* Analytics Cards */}
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="p-4 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 rounded-xl border border-emerald-500/30">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Activity className="w-4 h-4 text-emerald-400" />
+                                <p className="text-gray-400 text-xs">Occupancy</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{occupancyRate}%</p>
+                            </div>
+                            
+                            <div className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-xl border border-blue-500/30">
+                              <div className="flex items-center gap-2 mb-1">
+                                <DollarSign className="w-4 h-4 text-blue-400" />
+                                <p className="text-gray-400 text-xs">Avg Rent</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">${Math.round(avgMonthlyRent).toLocaleString()}</p>
+                            </div>
+                            
+                            <div className="p-4 bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-xl border border-orange-500/30">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Wrench className="w-4 h-4 text-orange-400" />
+                                <p className="text-gray-400 text-xs">Active Issues</p>
+                              </div>
+                              <p className="text-2xl font-bold text-white">{propertyMaintenance.length}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <Button
-                        onClick={() => navigate(createPageUrl("RealEstate"))}
-                        variant="outline"
-                        size="sm"
-                      >
-                        View
-                      </Button>
+                      
+                      {/* Rent Collection Trend Chart */}
+                      <div className="p-4 bg-white/5 rounded-xl">
+                        <div className="flex items-center gap-2 mb-4">
+                          <BarChart3 className="w-5 h-5 text-emerald-400" />
+                          <h5 className="text-white font-semibold">6-Month Rent Collection</h5>
+                        </div>
+                        <div className="flex items-end justify-between gap-2 h-32">
+                          {monthlyData.map((data, idx) => {
+                            const maxAmount = Math.max(...monthlyData.map(d => d.amount), 1);
+                            const heightPercent = (data.amount / maxAmount) * 100;
+                            return (
+                              <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                                <div className="w-full flex items-end justify-center" style={{ height: '100px' }}>
+                                  <div 
+                                    className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg relative group cursor-pointer"
+                                    style={{ height: `${heightPercent}%`, minHeight: data.amount > 0 ? '4px' : '0' }}
+                                  >
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 px-2 py-1 rounded text-xs text-white opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                                      ${data.amount.toLocaleString()}
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-gray-400 text-[10px]">{data.month}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-4">
+                        <div>
+                          {property.listing_type === 'for_rent' && (
+                            <p className="text-emerald-400 font-bold">
+                              ${property.price_per_month?.toLocaleString()}/mo
+                            </p>
+                          )}
+                          {property.listing_type === 'for_sale' && (
+                            <p className="text-emerald-400 font-bold">
+                              ${property.sale_price?.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          onClick={() => navigate(createPageUrl("RealEstate"))}
+                          variant="outline"
+                          size="sm"
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>
