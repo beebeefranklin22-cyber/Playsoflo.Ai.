@@ -34,7 +34,7 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
       return rides[0];
     },
     enabled: !!rideRequest,
-    refetchInterval: 3000
+    refetchInterval: 2000 // Poll every 2 seconds for real-time tracking
   });
 
   const ride = updatedRide || rideRequest;
@@ -86,9 +86,24 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
   const StatusIcon = currentStatus.icon;
 
   // Calculate wait time
-  const waitTimeMinutes = ride?.wait_time_seconds 
-    ? Math.floor(ride.wait_time_seconds / 60) 
-    : Math.floor((new Date() - new Date(ride?.created_date || new Date())) / 60000);
+  const [liveWaitTime, setLiveWaitTime] = useState(0);
+  
+  useEffect(() => {
+    if (ride?.status === 'requested' && ride?.created_date) {
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((new Date() - new Date(ride.created_date)) / 1000);
+        setLiveWaitTime(elapsed);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else if (ride?.wait_time_seconds) {
+      setLiveWaitTime(ride.wait_time_seconds);
+    }
+  }, [ride?.status, ride?.created_date, ride?.wait_time_seconds]);
+
+  const waitTimeDisplay = {
+    seconds: liveWaitTime % 60,
+    minutes: Math.floor(liveWaitTime / 60)
+  };
 
   return (
     <motion.div
@@ -118,41 +133,72 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
 
         {showRating ? (
           <div className="p-8 text-center">
-            <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-4" />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", duration: 0.5 }}
+            >
+              <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-4" />
+            </motion.div>
             <h3 className="text-3xl font-bold text-white mb-2">Ride Completed!</h3>
-            <p className="text-gray-400 mb-6">How was your experience?</p>
+            <p className="text-gray-400 mb-6">Rate your experience with {driver?.full_name || 'your driver'}</p>
 
             <div className="flex gap-2 justify-center mb-6">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button
+                <motion.button
                   key={star}
                   onClick={() => setRating(star)}
-                  className="transform transition-transform hover:scale-110"
+                  className="transform transition-transform hover:scale-110 focus:outline-none"
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
                 >
                   <Star
-                    className={`w-12 h-12 ${
-                      star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-600'
+                    className={`w-12 h-12 transition-all ${
+                      star <= rating ? 'fill-yellow-400 text-yellow-400 drop-shadow-lg' : 'text-gray-600'
                     }`}
                   />
-                </button>
+                </motion.button>
               ))}
             </div>
+
+            {rating > 0 && (
+              <motion.p
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-yellow-400 font-semibold mb-4"
+              >
+                {rating === 5 && '⭐ Outstanding!'}
+                {rating === 4 && '😊 Great!'}
+                {rating === 3 && '👍 Good'}
+                {rating === 2 && '😐 Could be better'}
+                {rating === 1 && '😞 Not satisfied'}
+              </motion.p>
+            )}
 
             <textarea
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Share your experience (optional)"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 mb-6"
+              placeholder="Tell us about your ride (optional)"
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 mb-6 focus:outline-none focus:border-purple-500 transition"
               rows={3}
             />
 
-            <Button
-              onClick={handleRating}
-              disabled={!rating}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-6 text-lg"
-            >
-              Submit Rating
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={handleRating}
+                disabled={!rating}
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {rating ? 'Submit Rating ⭐' : 'Select a rating first'}
+              </Button>
+              <Button
+                onClick={onClose}
+                variant="ghost"
+                className="w-full text-gray-400"
+              >
+                Skip for now
+              </Button>
+            </div>
           </div>
         ) : (
           <>
@@ -167,13 +213,18 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                     <p className="text-white font-bold text-xl">{currentStatus.label}</p>
                     {ride?.status === 'requested' && (
                       <p className="text-gray-400 text-sm">
-                        Searching for nearby drivers... ({waitTimeMinutes}s)
+                        Searching for nearby drivers... ({waitTimeDisplay.minutes}:{String(waitTimeDisplay.seconds).padStart(2, '0')})
                       </p>
                     )}
-                    {ride?.estimated_arrival_time && ride.status !== 'completed' && (
-                      <p className="text-blue-400 text-sm font-semibold">
-                        Arrives in {ride.estimated_arrival_time} min
-                      </p>
+                    {ride?.estimated_arrival_time && ride.status !== 'completed' && ride.status !== 'requested' && (
+                      <motion.p
+                        className="text-blue-400 text-sm font-semibold flex items-center gap-1"
+                        animate={{ opacity: [1, 0.6, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Clock className="w-4 h-4" />
+                        ETA: {ride.estimated_arrival_time} min
+                      </motion.p>
                     )}
                   </div>
                 </div>
@@ -188,14 +239,18 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
               </div>
             </div>
 
-            {/* Map View */}
-            {ride?.driver_location && ride.pickup_coords && (
+            {/* Map View - Always show for active rides */}
+            {ride?.pickup_coords && (ride?.status !== 'requested' || ride?.driver_location) && (
               <div className="h-96 relative">
                 <MapContainer
-                  center={[ride.pickup_coords[0], ride.pickup_coords[1]]}
-                  zoom={13}
+                  key={`${ride.driver_location?.latitude}-${ride.driver_location?.longitude}`}
+                  center={ride.driver_location ? 
+                    [ride.driver_location.latitude, ride.driver_location.longitude] : 
+                    [ride.pickup_coords[0], ride.pickup_coords[1]]
+                  }
+                  zoom={14}
                   className="h-full w-full"
-                  zoomControl={false}
+                  zoomControl={true}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -206,7 +261,7 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                   <Marker position={[ride.pickup_coords[0], ride.pickup_coords[1]]}>
                     <Popup>
                       <div className="text-center">
-                        <p className="font-bold">Pickup Location</p>
+                        <p className="font-bold text-green-600">📍 Pickup</p>
                         <p className="text-xs">{ride.pickup_address}</p>
                       </div>
                     </Popup>
@@ -217,25 +272,32 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                     <Marker position={[ride.dropoff_coords[0], ride.dropoff_coords[1]]}>
                       <Popup>
                         <div className="text-center">
-                          <p className="font-bold">Destination</p>
+                          <p className="font-bold text-red-600">🎯 Destination</p>
                           <p className="text-xs">{ride.dropoff_address}</p>
                         </div>
                       </Popup>
                     </Marker>
                   )}
 
-                  {/* Driver Location */}
-                  <Marker position={[ride.driver_location.latitude, ride.driver_location.longitude]}>
-                    <Popup>
-                      <div className="text-center">
-                        <p className="font-bold">Your Driver</p>
-                        <p className="text-xs">{driver?.full_name}</p>
-                      </div>
-                    </Popup>
-                  </Marker>
+                  {/* Driver Location - Real-time tracking */}
+                  {ride.driver_location && (
+                    <Marker position={[ride.driver_location.latitude, ride.driver_location.longitude]}>
+                      <Popup>
+                        <div className="text-center">
+                          <p className="font-bold text-blue-600">🚗 Your Driver</p>
+                          <p className="text-xs">{driver?.full_name || 'Driver'}</p>
+                          {ride.driver_location.last_updated && (
+                            <p className="text-[10px] text-gray-500 mt-1">
+                              Updated: {new Date(ride.driver_location.last_updated).toLocaleTimeString()}
+                            </p>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
                   {/* Route Line */}
-                  {ride.dropoff_coords && (
+                  {ride.driver_location && ride.dropoff_coords && (
                     <Polyline
                       positions={[
                         [ride.driver_location.latitude, ride.driver_location.longitude],
@@ -245,9 +307,20 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                       color="#8B5CF6"
                       weight={4}
                       opacity={0.7}
+                      dashArray="10, 10"
                     />
                   )}
                 </MapContainer>
+                
+                {/* Real-time tracking indicator */}
+                <div className="absolute top-4 right-4 bg-green-500 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg z-[1000]">
+                  <motion.div
+                    className="w-2 h-2 bg-white rounded-full"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-white text-xs font-bold">LIVE</span>
+                </div>
               </div>
             )}
 
@@ -340,8 +413,16 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                     <p className="text-blue-300 font-semibold">Matching you with a driver...</p>
                   </div>
                   <p className="text-blue-200 text-sm">
-                    Average wait time: 30-90 seconds • Current wait: {waitTimeMinutes}s
+                    Average wait time: 30-90 seconds • Current wait: {waitTimeDisplay.minutes}:{String(waitTimeDisplay.seconds).padStart(2, '0')}
                   </p>
+                  <div className="mt-3 w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-blue-400 to-cyan-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min((liveWaitTime / 90) * 100, 100)}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
                 </div>
               )}
 
