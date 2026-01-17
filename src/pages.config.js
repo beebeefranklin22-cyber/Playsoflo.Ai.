@@ -6,6 +6,7 @@ import AffiliateHub from './pages/AffiliateHub';
 import AffiliateProgram from './pages/AffiliateProgram';
 import ArtistProfile from './pages/ArtistProfile';
 import CarRentals from './pages/CarRentals';
+import Cart from './pages/Cart';
 import Challenges from './pages/Challenges';
 import CollaborationHub from './pages/CollaborationHub';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
@@ -98,7 +99,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import Cart from './pages/Cart';
 import __Layout from './Layout.jsx';
 
 
@@ -111,6 +111,7 @@ export const PAGES = {
     "AffiliateProgram": AffiliateProgram,
     "ArtistProfile": ArtistProfile,
     "CarRentals": CarRentals,
+    "Cart": Cart,
     "Challenges": Challenges,
     "CollaborationHub": CollaborationHub,
     "CollaboratorDashboard": CollaboratorDashboard,
@@ -203,7 +204,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "Cart": Cart,
 }
 
 export const pagesConfig = {

@@ -205,23 +205,6 @@ export default function Layout({ children, currentPageName }) {
               )}
             </button>
 
-            <button
-              onClick={() => navigate(createPageUrl("Profile"))}
-              className="flex-shrink-0"
-            >
-              {currentUser?.profile_picture ? (
-                <img 
-                  src={currentUser.profile_picture} 
-                  alt={currentUser.full_name}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-white/20"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                  {currentUser?.full_name?.[0] || "U"}
-                </div>
-              )}
-            </button>
-
             <form onSubmit={handleSearch} className="flex-1">
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
