@@ -60,22 +60,21 @@ export default function Home() {
         // Award welcome bonus if not claimed - wrapped in try/catch
         if (user && !user.welcome_bonus_claimed) {
           try {
-            const bonusAmount = 5; // Changed from 10/5 to flat 5 for all users
+            const bonusAmount = 5;
             await base44.auth.updateMe({
               soflo_coins: (user.soflo_coins || 0) + bonusAmount,
               welcome_bonus_claimed: true
             });
             const updatedUser = await base44.auth.me();
             setCurrentUser(updatedUser);
-            alert(`Welcome! You've received ${bonusAmount} SoFloCoin as a welcome bonus!`);
+            toast.success(`Welcome! You've received ${bonusAmount} SoFloCoin as a welcome bonus!`);
           } catch (bonusError) {
             console.log("Could not award welcome bonus:", bonusError);
-            // Continue anyway - don't block the app
           }
         }
       } catch (error) {
-        console.log("User not authenticated or error fetching user:", error);
-        // Continue anyway - the app should work for guests
+        console.log("User not authenticated:", error);
+        setCurrentUser(null);
       }
     };
     fetchUser();
@@ -148,8 +147,8 @@ export default function Home() {
                                 currentUser?.following?.includes(post.created_by);
           const hasValidImage = post.image_url && 
                                post.image_url !== 'text-story' && 
-                               !post.image_url.includes('example-'); // Exclude story placeholders
-          const isNotStory = !post.is_story && post.caption; // Real posts have captions
+                               !post.image_url.includes('example-');
+          const isNotStory = !post.is_story && post.caption;
           
           return isFromNetwork && hasValidImage && isNotStory;
         });
@@ -168,11 +167,10 @@ export default function Home() {
       }
     },
     initialData: [],
-    retry: 1,
-    retryDelay: 1000,
+    retry: false,
     enabled: !!currentUser,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true
+    refetchInterval: false,
+    refetchOnWindowFocus: false
   });
 
   const toggleLike = (postId) => {

@@ -49,10 +49,11 @@ export default function Layout({ children, currentPageName }) {
         setCurrentUser(user);
       } catch (error) {
         console.log("User not authenticated or error fetching user:", error);
+        setCurrentUser(null);
       }
     };
     fetchUser();
-  }, []);
+  }, [location.pathname]);
 
   // Track user presence for online status
   usePresence(currentUser);
