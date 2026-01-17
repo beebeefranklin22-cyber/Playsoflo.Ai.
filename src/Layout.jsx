@@ -139,14 +139,6 @@ export default function Layout({ children, currentPageName }) {
   const isFullScreen = location.pathname === createPageUrl("Universe") || 
                          location.pathname === createPageUrl("explore");
 
-  const showSidebar = !isFullScreen && (
-    currentPageName === "RestaurantOwnerHub" ||
-    currentPageName === "FoodOrderTracking" ||
-    currentPageName === "FoodDelivery" ||
-    currentPageName === "RestaurantMenu" ||
-    currentPageName === "FoodCart"
-  );
-
   return (
     <ErrorBoundary>
     <GlobalSecurityHandler />
@@ -220,14 +212,12 @@ export default function Layout({ children, currentPageName }) {
       {!isFullScreen && (
         <div className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-            {showSidebar && (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="flex-shrink-0 lg:hidden p-2 hover:bg-white/10 rounded-lg transition"
-              >
-                <Menu className="w-6 h-6 text-white" />
-              </button>
-            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex-shrink-0 p-2 hover:bg-white/10 rounded-lg transition"
+            >
+              <Menu className="w-6 h-6 text-white" />
+            </button>
 
             <button
               onClick={() => navigate(createPageUrl("Profile"))}
@@ -304,13 +294,13 @@ export default function Layout({ children, currentPageName }) {
         </motion.div>
       )}
 
-      {/* Sidebar for Desktop */}
-      {showSidebar && (
+      {/* Sidebar - Always Available */}
+      {!isFullScreen && (
         <>
           {/* Mobile Overlay */}
           {sidebarOpen && (
             <div
-              className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+              className="fixed inset-0 z-40 bg-black/60"
               onClick={() => setSidebarOpen(false)}
             />
           )}
@@ -318,14 +308,14 @@ export default function Layout({ children, currentPageName }) {
           {/* Sidebar */}
           <aside
             className={`fixed top-16 left-0 bottom-20 lg:bottom-0 w-64 z-40 glass-effect border-r border-white/10 transition-transform duration-300 ${
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
             <div className="p-4 h-full overflow-y-auto">
-              <div className="flex items-center justify-between mb-6 lg:hidden">
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-white">Menu</h2>
                 <button onClick={() => setSidebarOpen(false)}>
-                  <X className="w-6 h-6 text-gray-400" />
+                  <X className="w-6 h-6 text-gray-400 hover:text-white transition" />
                 </button>
               </div>
 
@@ -353,27 +343,29 @@ export default function Layout({ children, currentPageName }) {
                 })}
               </nav>
 
-              <div className="mt-8 pt-6 border-t border-white/10">
-                <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4">
-                  <h3 className="text-white font-semibold mb-2">Quick Stats</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-300">
-                      <span>Today's Orders</span>
-                      <span className="font-bold text-white">12</span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span>Revenue</span>
-                      <span className="font-bold text-green-400">$456</span>
+              {currentUser && (currentUser.is_restaurant_owner || currentUser.is_driver || currentUser.is_provider) && (
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4">
+                    <h3 className="text-white font-semibold mb-2">Quick Stats</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between text-gray-300">
+                        <span>Today's Orders</span>
+                        <span className="font-bold text-white">0</span>
+                      </div>
+                      <div className="flex justify-between text-gray-300">
+                        <span>Revenue</span>
+                        <span className="font-bold text-green-400">$0</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </aside>
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"} ${showSidebar ? 'lg:pl-64' : ''}`}>
+      <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"}`}>
         {/* Breadcrumbs */}
         {!isFullScreen && breadcrumbs.length > 1 && (
           <div className="glass-effect border-b border-white/10 px-4 py-3">
