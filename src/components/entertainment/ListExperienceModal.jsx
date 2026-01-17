@@ -246,7 +246,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="max-h-96 overflow-y-auto">
+                    <SelectContent className="max-h-96 overflow-y-auto bg-gray-800 border-white/20 z-[200]">
                       <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
                       <SelectItem value="exotic_car">Exotic Car</SelectItem>
                       <SelectItem value="wine_tasting">Wine Tasting</SelectItem>
