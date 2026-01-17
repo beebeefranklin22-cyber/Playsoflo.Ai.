@@ -5,7 +5,7 @@ import {
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
   Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
-  TrendingUp, TrendingDown, CalendarClock
+  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ import PropertyReviewsList from "../components/property/PropertyReviewsList";
 import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
 import MortgageCalculator from "../components/realestate/MortgageCalculator";
 import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFilters";
+import PropertyMapView from "../components/realestate/PropertyMapView";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -67,6 +68,9 @@ export default function RealEstate() {
     sqftMax: "",
     amenities: []
   });
+  const [viewMode, setViewMode] = useState("grid");
+  const [mapCenter, setMapCenter] = useState(null);
+  const [mapZoom, setMapZoom] = useState(null);
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -103,9 +107,23 @@ export default function RealEstate() {
     }
   });
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (searchLocation.trim()) {
+      // Geocode the location
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchLocation)}`
+        );
+        const data = await response.json();
+        if (data.length > 0) {
+          setMapCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+          setMapZoom(12);
+          setViewMode("map");
+        }
+      } catch (error) {
+        console.error("Geocoding error:", error);
+      }
       fetchPropertiesMutation.mutate(searchLocation);
     }
   };
@@ -290,6 +308,26 @@ export default function RealEstate() {
           </p>
           
           <div className="flex items-center gap-2">
+            {/* View Toggle */}
+            <div className="flex bg-white/10 rounded-xl p-1 border border-white/20">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-3 py-2 rounded-lg transition ${
+                  viewMode === "grid" ? "bg-emerald-500 text-white" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("map")}
+                className={`px-3 py-2 rounded-lg transition ${
+                  viewMode === "map" ? "bg-emerald-500 text-white" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Map className="w-4 h-4" />
+              </button>
+            </div>
+            
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -316,9 +354,17 @@ export default function RealEstate() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence>
-            {sortedProperties.map((property, index) => (
+        {viewMode === "map" ? (
+          <PropertyMapView
+            properties={sortedProperties}
+            onPropertyClick={setSelectedProperty}
+            searchCenter={mapCenter}
+            searchZoom={mapZoom}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {sortedProperties.map((property, index) => (
               <motion.div
                 key={property.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -449,9 +495,10 @@ export default function RealEstate() {
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {sortedProperties.length === 0 && !isLoading && (
           <div className="text-center py-20">
