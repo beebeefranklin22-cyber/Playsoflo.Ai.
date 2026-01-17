@@ -264,9 +264,22 @@ export default function HailRideModal({ open, onClose }) {
             )}
           </div>
           )}
-          
-          {/* Driver Info */}
-          {assignedDriver && assignedDriver.driver_vehicle_info && (
 
+          <Button 
+            className="w-full bg-purple-600 hover:bg-purple-700" 
+            onClick={requestRide} 
+            disabled={!pickup || !dropoff}
+          >
+            {isGroupBooking 
+              ? `Book ${vehiclesNeeded} Vehicles` 
+              : isShared 
+              ? 'Create Shared Ride' 
+              : 'Request Ride'} {!isGroupBooking && '(First Ride Free)'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+      )}
+    </>
   );
 }
