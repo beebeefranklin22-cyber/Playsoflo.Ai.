@@ -53,7 +53,7 @@ export default function Layout({ children, currentPageName }) {
       }
     };
     fetchUser();
-  }, [location.pathname]);
+  }, []);
 
   // Track user presence for online status
   usePresence(currentUser);
@@ -74,7 +74,8 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !!currentUser,
-    refetchInterval: 30000
+    refetchInterval: false,
+    refetchOnWindowFocus: false
   });
 
   const handleSearch = (e) => {
