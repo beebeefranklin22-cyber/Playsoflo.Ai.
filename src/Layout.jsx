@@ -26,7 +26,7 @@ import SecureOperationWrapper from "./components/security/SecureOperationWrapper
 import GlobalSecurityHandler from "./components/security/GlobalSecurityHandler";
 import AutoHealingSystem from "./components/diagnostics/AutoHealingSystem";
 import SafeErrorHandler from "./components/SafeErrorHandler";
-import TermsGuard from "./components/TermsGuard";
+
 import InfrastructureMonitor from "./components/infrastructure/InfrastructureMonitor";
 import StreamingHealthCheck from "./components/infrastructure/StreamingHealthCheck";
 import MultiDeviceValidator from "./components/infrastructure/MultiDeviceValidator";
@@ -155,7 +155,6 @@ export default function Layout({ children, currentPageName }) {
     <GlobalSecurityHandler />
     <SecurityValidator>
     <SecureOperationWrapper>
-    <TermsGuard>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
       <InfrastructureMonitor />
@@ -452,7 +451,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
-      </TermsGuard>
       </SecureOperationWrapper>
       </SecurityValidator>
       </ErrorBoundary>

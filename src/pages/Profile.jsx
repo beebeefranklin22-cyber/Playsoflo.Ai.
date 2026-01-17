@@ -999,6 +999,14 @@ export default function Profile() {
                   Notification Center
                 </Button>
                 <Button
+                  onClick={() => navigate(createPageUrl("TermsOfService"))}
+                  variant="outline"
+                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  <Shield className="w-4 h-4 mr-2" />
+                  Terms of Service
+                </Button>
+                <Button
                   variant="outline"
                   className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
                 >

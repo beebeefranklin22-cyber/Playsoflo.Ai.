@@ -26,15 +26,9 @@ export default function TermsOfService() {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
-      
-      // If already accepted, redirect to home
-      if (currentUser?.terms_accepted) {
-        navigate(createPageUrl("Home"));
-      }
     } catch (error) {
       console.error("Error fetching user:", error);
-      // Set a dummy user to allow page to render
-      setUser({ email: 'loading@user.com' });
+      setUser({ email: 'guest@user.com' });
     }
   };
 
@@ -101,7 +95,7 @@ export default function TermsOfService() {
       });
 
       toast.success("Terms accepted successfully!");
-      navigate(createPageUrl("Home"));
+      navigate(createPageUrl("Profile"));
     } catch (error) {
       console.error("Error accepting terms:", error);
       toast.error("Failed to accept terms. Please try again.");
