@@ -13,6 +13,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
+import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SecurityValidator from "./components/security/SecurityValidator";
 import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
@@ -422,6 +423,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Real-time Notification Manager */}
       <RealtimeNotificationManager currentUser={currentUser} />
+
+      {/* Ride Status Notification Handler */}
+      <RideNotificationHandler currentUser={currentUser} />
       </div>
       </PostHogProvider>
       </TVNavigationHandler>

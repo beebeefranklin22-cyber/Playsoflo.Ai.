@@ -35,26 +35,34 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
     setLoading(true);
     try {
       const currentUser = await base44.auth.me();
+      const driverName = currentUser.full_name || "Your driver";
+      const vehicleInfo = currentUser.driver_vehicle_info 
+        ? `${currentUser.driver_vehicle_info.color} ${currentUser.driver_vehicle_info.make} ${currentUser.driver_vehicle_info.model}`
+        : "your vehicle";
+      
       await base44.entities.RideRequest.update(ride.id, {
         driver_status: "accepted",
         status: "en_route",
-        driver_email: currentUser.email
+        driver_email: currentUser.email,
+        matched_at: new Date().toISOString()
       });
       
-      // Notify customer
+      // Notify customer - Driver Assigned
       await base44.entities.Notification.create({
         recipient_email: ride.created_by,
         type: "ride_update",
-        title: "Driver En Route",
-        message: `Your driver is on the way to pick you up!`,
+        title: "🚗 Driver Assigned!",
+        message: `${driverName} is your driver! Look for ${vehicleInfo}. They're on their way to ${ride.pickup_address}. ETA: ${ride.estimated_duration_minutes || 5} min.`,
         reference_type: "ride",
-        reference_id: ride.id
+        reference_id: ride.id,
+        read: false
       });
       
+      toast.success('Ride accepted! Passenger notified');
       onAccept?.();
     } catch (err) {
       console.error("Accept failed:", err);
-      alert("Failed to accept ride");
+      toast.error("Failed to accept ride");
     } finally {
       setLoading(false);
     }
@@ -318,44 +326,60 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "🚗 Driver En Route",
-                      message: `Your driver is on the way to ${ride.pickup_address}. Est. arrival: ${ride.estimated_duration_minutes || 5} min. ${ride.ride_type} ride.`,
+                      title: "🚗 Driver Arriving Soon",
+                      message: `Your driver is 2-3 minutes away from ${ride.pickup_address}. Please get ready! Look for ${customerData?.driver_vehicle_info?.color || 'your'} ${ride.ride_type}.`,
                       reference_type: "ride",
-                      reference_id: ride.id
+                      reference_id: ride.id,
+                      read: false
                     });
-                    toast.success('Passenger notified: En route');
+                    toast.success('Passenger notified: Arriving soon');
                   }}
                   variant="outline"
                   size="sm"
                   className="bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
                 >
-                  🚗 En Route
+                  🚗 Arriving Soon
                 </Button>
                 <Button
                   onClick={async () => {
+                    await base44.entities.RideRequest.update(ride.id, { status: 'arrived' });
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "📍 Driver Arrived at Pickup",
-                      message: `Your driver has arrived at ${ride.pickup_address}. Please come out to your ${ride.ride_type}. Look for vehicle matching the app description.`,
+                      title: "📍 Driver at Pickup Location",
+                      message: `Your driver has arrived at ${ride.pickup_address}. Please come out now. Contact driver if you need help finding them.`,
                       reference_type: "ride",
-                      reference_id: ride.id
+                      reference_id: ride.id,
+                      read: false
                     });
-                    toast.success('Passenger notified: Arrived');
+                    toast.success('Passenger notified: Arrived at pickup');
                   }}
                   variant="outline"
                   size="sm"
                   className="bg-green-500/10 border-green-500/30 text-green-300"
                 >
-                  📍 Arrived
+                  📍 At Pickup
                 </Button>
               </div>
               <Button
-                onClick={() => setShowVerification(true)}
+                onClick={async () => {
+                  await base44.entities.RideRequest.update(ride.id, { status: 'arrived' });
+                  await base44.entities.Notification.create({
+                    recipient_email: ride.created_by,
+                    type: "ride_update",
+                    title: "📍 Driver Has Arrived!",
+                    message: `Your driver is waiting for you at ${ride.pickup_address}. Please come out to your vehicle. Look for ${customerData?.driver_vehicle_info?.color || 'the'} ${customerData?.driver_vehicle_info?.make || 'vehicle'}.`,
+                    reference_type: "ride",
+                    reference_id: ride.id,
+                    read: false
+                  });
+                  toast.success('Passenger notified: You have arrived');
+                  setShowVerification(true);
+                }}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Verify Passenger & Start
+                I've Arrived - Verify Passenger
               </Button>
             </div>
           ) : ride.status === 'accepted' ? (
@@ -391,26 +415,54 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                     await base44.entities.Notification.create({
                       recipient_email: ride.created_by,
                       type: "ride_update",
-                      title: "⏱️ Slight Traffic Delay",
-                      message: `Your driver is experiencing traffic on the route to ${ride.dropoff_address}. Expected delay: 3-5 minutes. Thank you for your patience!`,
+                      title: "⏱️ Ride Delayed - Traffic",
+                      message: `Your driver is experiencing heavy traffic. Your ride will be delayed by approximately 5-7 minutes. Current location updated on map. Thank you for your patience!`,
                       reference_type: "ride",
-                      reference_id: ride.id
+                      reference_id: ride.id,
+                      read: false
                     });
-                    toast.success('Passenger notified: Delay');
+                    toast.success('Passenger notified: Traffic delay');
                   }}
                   variant="outline"
                   size="sm"
                   className="bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
                 >
-                  ⏱️ Delay
+                  ⏱️ Traffic Delay
                 </Button>
               </div>
               <Button
-                onClick={() => handleStatusUpdate('completed', 'Ride Completed', 'Your ride has been completed. Rate your experience!')}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const completedTime = new Date().toISOString();
+                    await base44.entities.RideRequest.update(ride.id, {
+                      status: 'completed',
+                      end_time: completedTime
+                    });
+                    
+                    // Notify customer - Ride Completed
+                    await base44.entities.Notification.create({
+                      recipient_email: ride.created_by,
+                      type: "ride_update",
+                      title: "✅ Ride Completed!",
+                      message: `You've arrived at ${ride.dropoff_address}. Total fare: $${ride.fare_breakdown?.total_fare?.toFixed(2) || '0.00'}. How was your ride? Please rate your driver!`,
+                      reference_type: "ride",
+                      reference_id: ride.id,
+                      read: false
+                    });
+                    
+                    toast.success('Ride completed! Passenger notified');
+                    onAccept?.();
+                  } catch (err) {
+                    toast.error('Failed to complete ride');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
                 disabled={loading}
                 className="w-full bg-purple-600 hover:bg-purple-700"
               >
-                {loading ? "Updating..." : "Complete Ride"}
+                {loading ? "Completing..." : "Complete Ride"}
               </Button>
               <Button
                 onClick={() => setShowCancelModal(true)}
