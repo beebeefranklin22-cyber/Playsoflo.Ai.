@@ -283,23 +283,24 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           </div>
 
           {ride.status === 'requested' ? (
-            <div className="flex gap-3">
+            <div className="space-y-2">
+              <Button
+                onClick={handleAccept}
+                disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 text-lg py-6 font-bold"
+              >
+                <CheckCircle className="w-5 h-5 mr-2" />
+                {loading ? "Accepting..." : "Accept Ride"}
+              </Button>
               <Button
                 onClick={handleDecline}
                 disabled={loading}
                 variant="outline"
-                className="flex-1 bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20"
+                size="sm"
+                className="w-full bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/20"
               >
                 <X className="w-4 h-4 mr-2" />
                 Decline
-              </Button>
-              <Button
-                onClick={handleAccept}
-                disabled={loading}
-                className="flex-1 bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                {loading ? "Accepting..." : "Accept Ride"}
               </Button>
             </div>
           ) : ride.status === 'en_route' ? (

@@ -24,6 +24,7 @@ import AIRouteOptimizer from "../components/driver/AIRouteOptimizer";
 import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
 import DisputeResolutionModal from "../components/driver/DisputeResolutionModal";
 import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
+import DriverStatsOverview from "../components/driver/DriverStatsOverview";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -130,37 +131,33 @@ export default function DriverHub() {
           driver_status: "pending"
         });
 
-        // Use AI matching if location available
+        // Calculate distance for each request if driver location available
         if (driverLocation && requests.length > 0) {
-          try {
-            const { data } = await base44.functions.invoke('suggestOptimalRides', {
-              driver_location: driverLocation,
-              available_rides: requests.map(r => ({
-                ...r,
-                pickup_coords: r.pickup_coords || [25.7617, -80.1918],
-                dropoff_coords: r.dropoff_coords || [25.7617, -80.1918]
-              })),
-              current_time: new Date().getHours(),
-              driver_stats: todayStats
-            });
-
-            if (data.recommended_rides) {
-              const recommendedIds = data.recommended_rides.map(r => r.id);
-              const enriched = requests.map(ride => {
-                const rec = data.recommended_rides.find(r => r.id === ride.id);
-                return { ...ride, ai_recommendation: rec?.ai_recommendation };
-              });
-              return enriched.sort((a, b) => {
-                const idxA = recommendedIds.indexOf(a.id);
-                const idxB = recommendedIds.indexOf(b.id);
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-              });
+          const enrichedRequests = requests.map(ride => {
+            if (ride.pickup_coords && Array.isArray(ride.pickup_coords)) {
+              const R = 3959; // Earth's radius in miles
+              const lat1 = driverLocation[0] * Math.PI / 180;
+              const lat2 = ride.pickup_coords[0] * Math.PI / 180;
+              const dLat = (ride.pickup_coords[0] - driverLocation[0]) * Math.PI / 180;
+              const dLon = (ride.pickup_coords[1] - driverLocation[1]) * Math.PI / 180;
+              
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                       Math.cos(lat1) * Math.cos(lat2) *
+                       Math.sin(dLon/2) * Math.sin(dLon/2);
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              const distance = R * c;
+              
+              return { ...ride, distance_to_pickup: distance };
             }
-          } catch (aiError) {
-            console.log('AI matching skipped:', aiError);
-          }
+            return ride;
+          });
+
+          // Sort by distance (closest first)
+          return enrichedRequests.sort((a, b) => {
+            if (!a.distance_to_pickup) return 1;
+            if (!b.distance_to_pickup) return -1;
+            return a.distance_to_pickup - b.distance_to_pickup;
+          });
         }
         
         return requests;
@@ -170,8 +167,8 @@ export default function DriverHub() {
       }
     },
     enabled: isOnline,
-    refetchInterval: isOnline ? 8000 : false,
-    staleTime: 3000,
+    refetchInterval: isOnline ? 5000 : false, // Faster refresh - every 5 seconds
+    staleTime: 2000,
     initialData: []
   });
 
@@ -182,7 +179,7 @@ export default function DriverHub() {
       try {
         return await base44.entities.RideRequest.filter({
           driver_email: currentUser.email,
-          status: { $in: ["en_route", "accepted"] }
+          status: { $in: ["en_route", "accepted", "in_progress"] }
         });
       } catch (err) {
         console.error("Error fetching active rides:", err);
@@ -190,8 +187,8 @@ export default function DriverHub() {
       }
     },
     enabled: !!currentUser,
-    refetchInterval: 8000,
-    staleTime: 3000,
+    refetchInterval: 3000, // Very frequent updates for active rides
+    staleTime: 1000,
     initialData: []
   });
 
@@ -331,6 +328,13 @@ export default function DriverHub() {
           </div>
         </motion.div>
 
+        {/* Quick Stats Overview */}
+        <DriverStatsOverview 
+          stats={todayStats} 
+          rating={averageRating}
+          isOnline={isOnline}
+        />
+
         {/* Active Rides - High Priority */}
         {activeRides.length > 0 && (
           <div className="mb-6">
@@ -395,25 +399,65 @@ export default function DriverHub() {
             <AnimatePresence>
               <div className="space-y-4">
                 {pendingRequests.map(request => (
-                  <div key={request.id} className="space-y-3">
-                    <AIPassengerMatcher 
-                      ride={request} 
-                      driverStats={todayStats}
-                    />
+                  <motion.div 
+                    key={request.id} 
+                    className="space-y-3"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                  >
+                    {request.distance_to_pickup && (
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-blue-300 text-sm font-medium">
+                            📍 {request.distance_to_pickup.toFixed(1)} miles away
+                          </span>
+                          <span className="text-blue-200 text-xs">
+                            ~{Math.ceil(request.distance_to_pickup * 2)} min drive
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <RideRequestCard
                       ride={request}
                       onAccept={() => {
                         queryClient.invalidateQueries(['pending-ride-requests']);
                         queryClient.invalidateQueries(['driver-active-rides']);
+                        toast.success('Ride accepted! Navigate to pickup location');
                       }}
-                      onDecline={() => queryClient.invalidateQueries(['pending-ride-requests'])}
+                      onDecline={() => {
+                        queryClient.invalidateQueries(['pending-ride-requests']);
+                        toast.info('Ride declined');
+                      }}
                       onNavigate={setNavRide}
                     />
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </AnimatePresence>
           </div>
+        )}
+
+        {/* No Requests Available */}
+        {isOnline && pendingRequests.length === 0 && activeRides.length === 0 && (
+          <Card className="bg-white/5 border-white/10 mb-6">
+            <CardContent className="p-8 text-center">
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Activity className="w-16 h-16 text-green-400 mx-auto mb-4" />
+              </motion.div>
+              <h3 className="text-xl font-bold text-white mb-2">You're Online!</h3>
+              <p className="text-gray-400 mb-4">
+                Waiting for ride requests in your area...
+              </p>
+              <div className="flex items-center justify-center gap-2 text-green-400 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span>Active and ready to receive requests</span>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Earnings Card */}
