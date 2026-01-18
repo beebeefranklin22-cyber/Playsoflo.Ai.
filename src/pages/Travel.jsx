@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   ChevronLeft, Car, Plane, Anchor, Rocket, Bike,
-  Briefcase, Search, Globe, Key
+  Briefcase, Search, Globe, Key, Clock
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -138,7 +138,7 @@ export default function Travel() {
             </button>
           </div>
           <div className="relative z-10 w-full px-6 pb-8 flex items-end justify-between">
-            <div>
+            <div className="flex-1">
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
                 SoFlo Travel
               </h1>
@@ -146,7 +146,16 @@ export default function Travel() {
                 Your journey, reimagined. Explore the world effortlessly.
               </p>
             </div>
-            {currentUser && <BecomeDriverButton currentUser={currentUser} />}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(createPageUrl("RideHistory"))}
+                className="px-4 py-2 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20 text-white font-medium flex items-center gap-2"
+              >
+                <Clock className="w-5 h-5" />
+                <span className="hidden sm:inline">My Rides</span>
+              </button>
+              {currentUser && <BecomeDriverButton currentUser={currentUser} />}
+            </div>
           </div>
         </div>
 
