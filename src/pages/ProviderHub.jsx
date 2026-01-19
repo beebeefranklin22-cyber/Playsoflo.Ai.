@@ -101,7 +101,9 @@ export default function ProviderHub() {
       });
     },
     enabled: !!currentUser,
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
     initialData: []
   });
 
@@ -116,7 +118,9 @@ export default function ProviderHub() {
       return messages.length;
     },
     enabled: !!currentUser,
-    refetchInterval: 5000 // Check every 5 seconds
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000
   });
 
   // Count unread booking requests
@@ -131,7 +135,9 @@ export default function ProviderHub() {
       return notifications.length;
     },
     enabled: !!currentUser,
-    refetchInterval: 5000
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000
   });
 
   const { data: availability = [] } = useQuery({

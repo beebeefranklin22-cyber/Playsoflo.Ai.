@@ -132,7 +132,9 @@ export default function Home() {
       return requests.length;
     },
     enabled: !!currentUser,
-    refetchInterval: 10000
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000
   });
 
   const { data: posts = [], isLoading, error } = useQuery({
@@ -246,8 +248,9 @@ export default function Home() {
       });
     },
     enabled: !!currentUser,
-    refetchInterval: 10000,
-    refetchOnWindowFocus: true
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 120000
   });
 
   return (
