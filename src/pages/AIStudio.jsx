@@ -197,7 +197,10 @@ export default function AIStudio() {
   const { data: tools = [] } = useQuery({
     queryKey: ['ai-tools'],
     queryFn: () => base44.entities.AITool.list(),
-    initialData: []
+    initialData: [],
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 300000
   });
 
   const handleToolDemo = async (tool) => {

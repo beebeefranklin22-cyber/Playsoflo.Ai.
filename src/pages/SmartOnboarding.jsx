@@ -37,39 +37,19 @@ export default function SmartOnboarding() {
           return;
         }
 
-        // Get AI personalization
-        const aiResponse = await base44.integrations.Core.InvokeLLM({
-          prompt: `Analyze this new user profile and create a personalized onboarding path:
+        // Simplified onboarding without AI calls
+        const defaultPersonalization = {
+          welcome_message: 'Your all-in-one lifestyle super-app is ready to explore!',
+          featured_tools: ['Music & Entertainment', 'Marketplace', 'Wallet', 'Social Feed', 'Real Estate', 'AI Studio'],
+          suggested_actions: ['Explore the marketplace', 'Set up your wallet', 'Connect with friends', 'Try AI tools'],
+          recommended_hubs: ['creator', 'provider'],
+          suggested_interests: ['Music & Entertainment', 'Food & Dining', 'Technology']
+        };
 
-User: ${user.full_name}
-Email: ${user.email}
-Location: ${user.address || 'Not set'}
-Role: ${user.role}
-
-Based on typical user patterns, recommend:
-1. Which features to highlight first (3-5 features)
-2. Personalized welcome message
-3. Suggested first actions they should take
-4. Which hubs they're most likely to use (driver, creator, provider, etc.)
-5. Recommended interests based on their profile
-
-Be specific and actionable. Format as JSON.`,
-          response_json_schema: {
-            type: "object",
-            properties: {
-              welcome_message: { type: "string" },
-              featured_tools: { type: "array", items: { type: "string" } },
-              suggested_actions: { type: "array", items: { type: "string" } },
-              recommended_hubs: { type: "array", items: { type: "string" } },
-              suggested_interests: { type: "array", items: { type: "string" } }
-            }
-          }
-        });
-
-        setAiPersonalization(aiResponse);
+        setAiPersonalization(defaultPersonalization);
         setUserPreferences(prev => ({
           ...prev,
-          interests: aiResponse.suggested_interests || []
+          interests: defaultPersonalization.suggested_interests || []
         }));
         setLoading(false);
       } catch (error) {

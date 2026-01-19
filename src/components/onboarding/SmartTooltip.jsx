@@ -8,41 +8,8 @@ export default function SmartTooltip({ currentUser, currentPage }) {
   const [dismissed, setDismissed] = useState(new Set());
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    const getPageTooltip = async () => {
-      // Don't show if user has seen it
-      const tooltipKey = `${currentPage}_tooltip`;
-      const userDismissed = currentUser.dismissed_tooltips || [];
-      if (userDismissed.includes(tooltipKey) || dismissed.has(tooltipKey)) {
-        return;
-      }
-
-      // Get AI-generated contextual tip
-      try {
-        const aiTip = await base44.integrations.Core.InvokeLLM({
-          prompt: `User ${currentUser.full_name} is on the ${currentPage} page.
-User interests: ${currentUser.interests?.join(', ') || 'Not set'}
-User's primary use: ${currentUser.primary_use || 'General'}
-
-Give ONE specific, actionable tip for what they should try on this page.
-Make it personalized, exciting, and under 100 characters.
-Format: Just the tip text, no quotes or formatting.`,
-          add_context_from_internet: false
-        });
-
-        setTooltip({
-          key: tooltipKey,
-          message: aiTip
-        });
-      } catch (error) {
-        console.error('Tooltip generation error:', error);
-      }
-    };
-
-    // Show tooltip after 2 seconds
-    const timeout = setTimeout(getPageTooltip, 2000);
-    return () => clearTimeout(timeout);
+    // Temporarily disabled to improve performance
+    return;
   }, [currentPage, currentUser]);
 
   const handleDismiss = async () => {
