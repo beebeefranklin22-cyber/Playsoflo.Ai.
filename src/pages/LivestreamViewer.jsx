@@ -183,113 +183,128 @@ export default function LivestreamViewer() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Video Player */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/10">
-              {stream.is_live && stream.agora_channel_name ? (
-                <>
-                  <AgoraVideoPlayer 
-                    channelName={stream.agora_channel_name}
-                    role={isBroadcaster ? "host" : "audience"}
-                    onViewerJoin={() => {
-                      // Track viewer analytics
-                    }}
-                  />
-                  <ReactionEffects streamId={streamId} />
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-                  <div className="text-center">
-                    <Video className="w-16 h-16 text-white/40 mx-auto mb-4" />
-                    <p className="text-white text-lg font-semibold">Stream Ended</p>
-                    <p className="text-gray-400 text-sm">This livestream is no longer active</p>
+        {/* Video Player with Overlay */}
+        <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 max-w-full">
+          {stream.is_live && stream.agora_channel_name ? (
+            <>
+              <AgoraVideoPlayer 
+                channelName={stream.agora_channel_name}
+                role={isBroadcaster ? "host" : "audience"}
+                onViewerJoin={() => {
+                  // Track viewer analytics
+                }}
+              />
+              <ReactionEffects streamId={streamId} />
+
+              {/* Live Overlay - Chat/Polls/Q&A */}
+              <div className="absolute inset-0 pointer-events-none">
+                {/* Top Right - Viewer Stats */}
+                <div className="absolute top-4 right-4 pointer-events-auto">
+                  <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-white text-sm font-semibold">LIVE</span>
+                    <span className="text-gray-300 text-sm">•</span>
+                    <Users className="w-4 h-4 text-gray-300" />
+                    <span className="text-white text-sm font-semibold">{viewerCount.toLocaleString()}</span>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Reactions */}
-            <LivestreamReactions streamId={streamId} currentUser={currentUser} />
-
-            {/* Co-Host Manager */}
-            <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
-
-            {/* Stream Info */}
-            <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-              <h2 className="text-white font-bold text-lg mb-2">{stream.title}</h2>
-              {stream.description && (
-                <p className="text-gray-300 text-sm">{stream.description}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Interactive Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-black/40 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/10 h-[600px] flex flex-col">
-              {/* Tabs */}
-              <div className="flex border-b border-white/10">
-                <button
-                  onClick={() => setActiveTab('chat')}
-                  className={`flex-1 py-3 text-sm font-medium transition ${
-                    activeTab === 'chat' 
-                      ? 'bg-purple-500/20 text-purple-300 border-b-2 border-purple-500' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Chat
-                </button>
-                <button
-                  onClick={() => setActiveTab('polls')}
-                  className={`flex-1 py-3 text-sm font-medium transition ${
-                    activeTab === 'polls' 
-                      ? 'bg-blue-500/20 text-blue-300 border-b-2 border-blue-500' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Polls
-                </button>
-                <button
-                  onClick={() => setActiveTab('qa')}
-                  className={`flex-1 py-3 text-sm font-medium transition ${
-                    activeTab === 'qa' 
-                      ? 'bg-green-500/20 text-green-300 border-b-2 border-green-500' 
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Q&A
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-hidden">
-                {activeTab === 'chat' && (
-                  <LivestreamChat 
-                    streamId={streamId} 
-                    isCreator={isStreamCreator}
-                    currentUser={currentUser}
-                  />
-                )}
-                {activeTab === 'polls' && (
-                  <div className="h-full overflow-y-auto p-4">
-                    <LivestreamPolls
-                      streamId={streamId}
-                      isCreator={isStreamCreator}
-                      currentUser={currentUser}
-                    />
+                {/* Bottom - Interactive Tabs */}
+                <div className="absolute bottom-0 left-0 right-0 pointer-events-auto">
+                  {/* Tab Switcher */}
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <button
+                      onClick={() => setActiveTab('chat')}
+                      className={`px-4 py-2 rounded-full text-xs font-semibold transition backdrop-blur-md border ${
+                        activeTab === 'chat' 
+                          ? 'bg-purple-500/80 text-white border-purple-400' 
+                          : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/60'
+                      }`}
+                    >
+                      Chat
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('polls')}
+                      className={`px-4 py-2 rounded-full text-xs font-semibold transition backdrop-blur-md border ${
+                        activeTab === 'polls' 
+                          ? 'bg-blue-500/80 text-white border-blue-400' 
+                          : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/60'
+                      }`}
+                    >
+                      Polls
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('qa')}
+                      className={`px-4 py-2 rounded-full text-xs font-semibold transition backdrop-blur-md border ${
+                        activeTab === 'qa' 
+                          ? 'bg-green-500/80 text-white border-green-400' 
+                          : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/60'
+                      }`}
+                    >
+                      Q&A
+                    </button>
                   </div>
-                )}
-                {activeTab === 'qa' && (
-                  <div className="h-full overflow-y-auto p-4">
-                    <LivestreamQA
-                      streamId={streamId}
-                      isCreator={isStreamCreator}
-                      currentUser={currentUser}
-                    />
-                  </div>
-                )}
+
+                  {/* Chat Overlay */}
+                  {activeTab === 'chat' && (
+                    <div className="bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-sm pb-4 px-4 max-h-[300px] overflow-hidden">
+                      <LivestreamChat 
+                        streamId={streamId} 
+                        isCreator={isStreamCreator}
+                        currentUser={currentUser}
+                        isOverlay={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Polls Overlay */}
+                  {activeTab === 'polls' && (
+                    <div className="bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-sm pb-4 px-4 max-h-[300px] overflow-y-auto">
+                      <LivestreamPolls
+                        streamId={streamId}
+                        isCreator={isStreamCreator}
+                        currentUser={currentUser}
+                        isOverlay={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Q&A Overlay */}
+                  {activeTab === 'qa' && (
+                    <div className="bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-sm pb-4 px-4 max-h-[300px] overflow-y-auto">
+                      <LivestreamQA
+                        streamId={streamId}
+                        isCreator={isStreamCreator}
+                        currentUser={currentUser}
+                        isOverlay={true}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+              <div className="text-center">
+                <Video className="w-16 h-16 text-white/40 mx-auto mb-4" />
+                <p className="text-white text-lg font-semibold">Stream Ended</p>
+                <p className="text-gray-400 text-sm">This livestream is no longer active</p>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Bottom Section - Reactions & Co-Host */}
+        <div className="mt-6 space-y-4">
+          <LivestreamReactions streamId={streamId} currentUser={currentUser} />
+          <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
+          
+          {/* Stream Info */}
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
+            <h2 className="text-white font-bold text-lg mb-2">{stream.title}</h2>
+            {stream.description && (
+              <p className="text-gray-300 text-sm">{stream.description}</p>
+            )}
           </div>
         </div>
       </div>
