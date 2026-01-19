@@ -77,12 +77,12 @@ const pillars = [
   },
   {
     id: "streaming",
-    title: "Streaming",
+    title: "Streaming & Movies",
     subtitle: "Watch & Play",
     icon: Tv,
     gradient: "from-red-600 via-pink-600 to-red-600",
-    image: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=1200",
-    features: ["Live Sports", "Gaming", "Shows & Movies", "Betting"],
+    image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200",
+    features: ["Movies & Shows", "Live Sports", "Gaming Streams", "Live Events"],
     action: "Streaming"
   },
   {

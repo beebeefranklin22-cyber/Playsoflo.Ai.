@@ -163,7 +163,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-900 border-white/20 text-white">
                     <SelectItem value="apartment">Apartment</SelectItem>
                     <SelectItem value="house">House</SelectItem>
                     <SelectItem value="villa">Villa</SelectItem>
@@ -179,7 +179,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-900 border-white/20 text-white">
                     <SelectItem value="short_term">Short-Term Rental</SelectItem>
                     <SelectItem value="for_rent">For Rent (Long-Term)</SelectItem>
                     <SelectItem value="for_sale">For Sale</SelectItem>
