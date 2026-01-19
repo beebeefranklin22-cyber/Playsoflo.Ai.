@@ -62,8 +62,9 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !!currentUser,
-    refetchInterval: false,
-    refetchOnWindowFocus: false
+    refetchInterval: 60000, // Only every 60 seconds
+    refetchOnWindowFocus: false,
+    staleTime: 30000
   });
 
   const handleSearch = (e) => {
