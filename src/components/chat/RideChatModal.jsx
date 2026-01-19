@@ -17,11 +17,18 @@ export default function RideChatModal({ open, onClose, ride }) {
   const queryClient = useQueryClient();
 
   // Message templates
-  const templates = [
-    { id: 1, text: "I'm arriving soon", icon: Clock },
-    { id: 2, text: "I'm at the pickup location", icon: MapPin },
-    { id: 3, text: "Lost item - please check vehicle", icon: AlertCircle },
-    { id: 4, text: "Running 5 minutes late", icon: Clock },
+  const isDriver = currentUser?.email === ride?.driver_email;
+  
+  const templates = isDriver ? [
+    { id: 1, text: "I'm here at pickup", icon: MapPin },
+    { id: 2, text: "Arriving in 2 minutes", icon: Clock },
+    { id: 3, text: "Running 5 minutes late", icon: Clock },
+    { id: 4, text: "Please come to the vehicle", icon: AlertCircle },
+  ] : [
+    { id: 1, text: "I'm ready at pickup", icon: MapPin },
+    { id: 2, text: "Need 2 more minutes", icon: Clock },
+    { id: 3, text: "Can't find you", icon: AlertCircle },
+    { id: 4, text: "Thank you for the ride!", icon: MessageCircle },
   ];
 
   useEffect(() => {
@@ -56,7 +63,7 @@ export default function RideChatModal({ open, onClose, ride }) {
     enabled: !!ride && !!currentUser
   });
 
-  // Fetch messages with real-time updates
+  // Fetch messages with real-time subscriptions
   const { data: messages = [] } = useQuery({
     queryKey: ['chat-messages', conversation?.id],
     queryFn: async () => {
@@ -80,8 +87,28 @@ export default function RideChatModal({ open, onClose, ride }) {
       return msgs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
     },
     enabled: !!conversation && !!currentUser,
-    refetchInterval: 2000 // Poll every 2 seconds for real-time feel
+    refetchOnWindowFocus: false
   });
+
+  // Real-time subscription for new messages
+  useEffect(() => {
+    if (!conversation?.id) return;
+
+    const unsubscribe = base44.entities.ChatMessage.subscribe((event) => {
+      if (event.data?.conversation_id === conversation.id) {
+        queryClient.invalidateQueries({ queryKey: ['chat-messages', conversation.id] });
+        
+        // Play notification sound for incoming messages
+        if (event.type === 'create' && event.data.sender_email !== currentUser?.email) {
+          const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZRQ0PVqzn7bViFQU+m9vzy3suBS182u/bk0QKEVux6OyiUhELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBELTKXh8bllHAU2jdXy03YqBShy0fDajzsIGWW57OihUBEL');
+          audio.volume = 0.3;
+          audio.play().catch(() => {});
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [conversation?.id, currentUser?.email, queryClient]);
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -176,11 +203,19 @@ export default function RideChatModal({ open, onClose, ride }) {
             <div>
               <DialogTitle className="text-xl flex items-center gap-2">
                 <MessageCircle className="w-6 h-6 text-blue-400" />
-                Chat with {otherParticipantEmail?.split('@')[0]}
+                {currentUser?.email === ride.driver_email ? 'Chat with Passenger' : 'Chat with Driver'}
               </DialogTitle>
               <p className="text-gray-400 text-sm mt-1">
-                Ride: {ride.pickup_address?.substring(0, 30)}...
+                {ride.pickup_address?.substring(0, 40)}
               </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  Real-time chat
+                </span>
+                <span className="text-xs text-gray-500">•</span>
+                <span className="text-xs text-gray-500">Messages saved per ride</span>
+              </div>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
               <X className="w-5 h-5" />
@@ -200,21 +235,26 @@ export default function RideChatModal({ open, onClose, ride }) {
                 className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
               >
                 <div className={`max-w-[70%] ${isMe ? 'bg-blue-600' : 'bg-white/10'} rounded-2xl px-4 py-2`}>
-                  {msg.attachment_url && (
-                    <img 
-                      src={msg.attachment_url} 
-                      alt="Attachment" 
-                      className="rounded-lg mb-2 max-w-full h-auto cursor-pointer hover:opacity-90 transition"
-                      onClick={() => window.open(msg.attachment_url, '_blank')}
-                    />
-                  )}
-                  <p className="text-white text-sm">{msg.content?.replace('📷 ', '')}</p>
-                  <p className="text-xs text-white/60 mt-1">
-                    {new Date(msg.created_date).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </p>
+                 {msg.attachment_url && (
+                   <img 
+                     src={msg.attachment_url} 
+                     alt="Attachment" 
+                     className="rounded-lg mb-2 max-w-full h-auto cursor-pointer hover:opacity-90 transition"
+                     onClick={() => window.open(msg.attachment_url, '_blank')}
+                   />
+                 )}
+                 <p className="text-white text-sm whitespace-pre-wrap break-words">{msg.content?.replace('📷 ', '')}</p>
+                 <div className="flex items-center gap-2 mt-1">
+                   <p className="text-xs text-white/60">
+                     {new Date(msg.created_date).toLocaleTimeString([], { 
+                       hour: '2-digit', 
+                       minute: '2-digit' 
+                     })}
+                   </p>
+                   {isMe && msg.read_by?.length > 0 && (
+                     <span className="text-xs text-white/60">✓✓</span>
+                   )}
+                 </div>
                 </div>
               </motion.div>
             );
