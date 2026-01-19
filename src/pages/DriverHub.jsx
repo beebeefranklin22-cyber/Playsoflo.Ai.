@@ -86,7 +86,8 @@ export default function DriverHub() {
       };
     },
     enabled: !!currentUser,
-    refetchInterval: 30000 // Update every 30 seconds
+    refetchInterval: 30000, // Update every 30 seconds
+    refetchOnWindowFocus: false
   });
 
   const { data: weeklyStats } = useQuery({
@@ -166,9 +167,10 @@ export default function DriverHub() {
         return [];
       }
     },
-    enabled: isOnline,
-    refetchInterval: isOnline ? 5000 : false, // Faster refresh - every 5 seconds
-    staleTime: 2000,
+    enabled: isOnline && !!currentUser,
+    refetchInterval: isOnline ? 10000 : false, // Every 10 seconds when online
+    staleTime: 5000,
+    refetchOnWindowFocus: false,
     initialData: []
   });
 
@@ -187,8 +189,9 @@ export default function DriverHub() {
       }
     },
     enabled: !!currentUser,
-    refetchInterval: 3000, // Very frequent updates for active rides
-    staleTime: 1000,
+    refetchInterval: 8000, // Every 8 seconds
+    staleTime: 5000,
+    refetchOnWindowFocus: false,
     initialData: []
   });
 

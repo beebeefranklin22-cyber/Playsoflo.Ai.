@@ -11,8 +11,11 @@ export default function RideNotificationHandler({ currentUser }) {
     if (!currentUser?.email) return;
 
     const unsubscribe = base44.entities.RideRequest.subscribe((event) => {
-      // Only handle updates for rides where user is the passenger
-      if (event.data?.created_by === currentUser.email) {
+      // Only handle updates for rides where user is the passenger or driver
+      const isPassenger = event.data?.created_by === currentUser.email;
+      const isDriver = event.data?.driver_email === currentUser.email;
+      
+      if (isPassenger) {
         const ride = event.data;
         
         // Show toast for important status changes
@@ -63,10 +66,12 @@ export default function RideNotificationHandler({ currentUser }) {
           }
         }
         
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries(['ride-tracking', ride.id]);
-        queryClient.invalidateQueries(['driver-active-rides']);
-        queryClient.invalidateQueries(['pending-ride-requests']);
+        // Invalidate only specific queries, not all
+        queryClient.invalidateQueries({ queryKey: ['ride-tracking', ride.id] });
+      } else if (isDriver) {
+        // Only refresh driver queries if this is a driver
+        queryClient.invalidateQueries({ queryKey: ['driver-active-rides'] });
+        queryClient.invalidateQueries({ queryKey: ['pending-ride-requests'] });
       }
     });
 
