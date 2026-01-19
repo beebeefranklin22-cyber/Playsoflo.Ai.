@@ -68,18 +68,27 @@ export default function NavigationModal({ open, onClose, ride }) {
   const rerouteThreshold = 100; // meters off route before re-routing
 
   useEffect(() => {
-    if (ride?.pickup_coords && open) {
+    if (!open) return;
+    
+    if (navigationPhase === 'pickup' && ride?.pickup_coords) {
       fetchDirections();
       checkGeofence();
-      startLocationTracking();
-      startTrafficMonitoring();
+    } else if (navigationPhase === 'dropoff' && ride?.dropoff_coords) {
+      fetchDirections();
     }
+    
+    startLocationTracking();
+    const interval = startTrafficMonitoring();
+    
     return () => {
       if (window.navigationWatcher) {
         navigator.geolocation.clearWatch(window.navigationWatcher);
       }
-      if (trafficCheckInterval) {
-        clearInterval(trafficCheckInterval);
+      if (interval) {
+        clearInterval(interval);
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
       }
     };
   }, [ride, open, navigationPhase]);
@@ -167,8 +176,30 @@ export default function NavigationModal({ open, onClose, ride }) {
   const fetchDirections = async (fromLocation = null) => {
     setLoading(true);
     try {
-      const origin = fromLocation || currentLocation || 'current location';
+      // Get current location first
+      let origin = fromLocation;
+      if (!origin) {
+        if (currentLocation) {
+          origin = currentLocation;
+        } else {
+          // Get current position
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000
+            });
+          });
+          origin = [position.coords.latitude, position.coords.longitude];
+          setCurrentLocation(origin);
+        }
+      }
+      
       const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      
+      if (!destination) {
+        toast.error('Destination coordinates not available');
+        return;
+      }
       
       const response = await base44.functions.invoke('getDirections', {
         origin,
@@ -183,12 +214,14 @@ export default function NavigationModal({ open, onClose, ride }) {
         
         if (voiceEnabled) {
           const phase = navigationPhase === 'pickup' ? 'pickup location' : 'drop-off location';
-          speak(`Navigation started to ${phase}. Distance: ${response.data.distance.text}. Time: ${response.data.duration.text}`);
+          speak(`Navigation started to ${phase}. Distance: ${response.data.distance.text}. Estimated time: ${response.data.duration.text}`);
         }
+        
+        toast.success('Route loaded successfully');
       }
     } catch (err) {
       console.error('Failed to get directions:', err);
-      toast.error('Failed to load directions');
+      toast.error('Failed to load directions. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -211,12 +244,31 @@ export default function NavigationModal({ open, onClose, ride }) {
 
   // Voice Navigation
   const speak = (text) => {
-    if ('speechSynthesis' in window && voiceEnabled) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
+    if (!('speechSynthesis' in window)) {
+      console.log('Speech synthesis not supported');
+      return;
+    }
+    
+    if (!voiceEnabled) return;
+    
+    try {
       window.speechSynthesis.cancel(); // Cancel any ongoing speech
-      window.speechSynthesis.speak(utterance);
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.lang = 'en-US';
+      
+      utterance.onerror = (e) => {
+        console.log('Speech error:', e);
+      };
+      
+      // Small delay to ensure cancel completes
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 100);
+    } catch (err) {
+      console.log('Speech failed:', err);
     }
   };
 
@@ -267,6 +319,8 @@ export default function NavigationModal({ open, onClose, ride }) {
       
       // Re-fetch route to check for traffic updates
       const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      if (!destination) return;
+      
       try {
         const response = await base44.functions.invoke('getDirections', {
           origin: currentLocation,
@@ -295,7 +349,7 @@ export default function NavigationModal({ open, onClose, ride }) {
       }
     }, 120000); // Check every 2 minutes
     
-    setTrafficCheckInterval(interval);
+    return interval;
   };
 
   // Handle reaching pickup location
@@ -335,16 +389,36 @@ export default function NavigationModal({ open, onClose, ride }) {
   };
 
   // Switch to dropoff navigation
-  const switchToDropoff = () => {
-    setNavigationPhase('dropoff');
-    setCurrentStepIndex(0);
-    setDirections(null);
-    toast.info('Navigating to drop-off location');
-    
-    // Update ride status to in_progress
-    base44.entities.RideRequest.update(ride.id, {
-      status: 'in_progress'
-    });
+  const switchToDropoff = async () => {
+    try {
+      // Update ride status to in_progress
+      await base44.entities.RideRequest.update(ride.id, {
+        status: 'in_progress',
+        start_time: new Date().toISOString()
+      });
+      
+      // Notify passenger
+      await base44.entities.Notification.create({
+        recipient_email: ride.created_by,
+        type: "ride_update",
+        title: "🚗 Ride Started!",
+        message: `You're now on your way to ${ride.dropoff_address}`,
+        reference_type: "ride",
+        reference_id: ride.id,
+        read: false
+      });
+      
+      setNavigationPhase('dropoff');
+      setCurrentStepIndex(0);
+      setDirections(null);
+      toast.success('Starting ride to drop-off');
+      
+      if (voiceEnabled) {
+        speak('Ride started. Navigating to drop-off location.');
+      }
+    } catch (err) {
+      toast.error('Failed to update ride status');
+    }
   };
 
   const openInGoogleMaps = () => {
@@ -374,17 +448,30 @@ export default function NavigationModal({ open, onClose, ride }) {
               {navigationPhase === 'pickup' ? 'Navigate to Pickup' : 'Navigate to Drop-off'}
             </DialogTitle>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full">
-                <Volume2 className={`w-4 h-4 ${voiceEnabled ? 'text-green-400' : 'text-gray-400'}`} />
-                <Switch
-                  checked={voiceEnabled}
-                  onCheckedChange={(checked) => {
-                    setVoiceEnabled(checked);
-                    speak(checked ? 'Voice navigation enabled' : 'Voice navigation disabled');
-                  }}
-                  className="data-[state=checked]:bg-green-500"
-                />
-              </div>
+              <button
+                onClick={() => {
+                  const newState = !voiceEnabled;
+                  setVoiceEnabled(newState);
+                  if (newState && 'speechSynthesis' in window) {
+                    speak('Voice navigation enabled');
+                  }
+                  toast.success(newState ? 'Voice navigation on' : 'Voice navigation off');
+                }}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition ${
+                  voiceEnabled 
+                    ? 'bg-green-500/20 border border-green-500/30' 
+                    : 'bg-white/5 border border-white/10'
+                }`}
+              >
+                {voiceEnabled ? (
+                  <Volume2 className="w-4 h-4 text-green-400" />
+                ) : (
+                  <VolumeX className="w-4 h-4 text-gray-400" />
+                )}
+                <span className={`text-xs font-medium ${voiceEnabled ? 'text-green-300' : 'text-gray-400'}`}>
+                  Voice {voiceEnabled ? 'ON' : 'OFF'}
+                </span>
+              </button>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
                 <X className="w-5 h-5" />
               </button>
@@ -536,9 +623,9 @@ export default function NavigationModal({ open, onClose, ride }) {
                     <div className="text-white font-bold text-xl mb-1">{currentStep.instruction}</div>
                     <div className="text-gray-400 text-sm flex items-center gap-3">
                       <span>{currentStep.distance}</span>
-                      {distanceToNextTurn !== null && (
-                        <span className="text-yellow-400 font-bold">
-                          {(distanceToNextTurn * 1000).toFixed(0)}m away
+                      {distanceToNextTurn !== null && distanceToNextTurn < 1 && (
+                        <span className="text-yellow-400 font-bold animate-pulse">
+                          {(distanceToNextTurn * 1000).toFixed(0)}m to turn
                         </span>
                       )}
                     </div>
