@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
-import { Navigation, MapPin, Clock, ExternalLink, AlertTriangle, TrendingUp, X } from "lucide-react";
+import { Navigation, MapPin, Clock, ExternalLink, AlertTriangle, TrendingUp, X, Volume2, VolumeX, RefreshCw, MapPinned } from "lucide-react";
 import L from "leaflet";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import "leaflet/dist/leaflet.css";
 
 // Decode polyline algorithm (Google encoded polyline format)
@@ -58,19 +60,29 @@ export default function NavigationModal({ open, onClose, ride }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [distanceToNextTurn, setDistanceToNextTurn] = useState(null);
+  const [navigationPhase, setNavigationPhase] = useState('pickup'); // 'pickup' or 'dropoff'
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [reroutingInProgress, setReroutingInProgress] = useState(false);
+  const [trafficCheckInterval, setTrafficCheckInterval] = useState(null);
+  const lastSpokenStep = useRef(-1);
+  const rerouteThreshold = 100; // meters off route before re-routing
 
   useEffect(() => {
     if (ride?.pickup_coords && open) {
       fetchDirections();
       checkGeofence();
       startLocationTracking();
+      startTrafficMonitoring();
     }
     return () => {
       if (window.navigationWatcher) {
         navigator.geolocation.clearWatch(window.navigationWatcher);
       }
+      if (trafficCheckInterval) {
+        clearInterval(trafficCheckInterval);
+      }
     };
-  }, [ride, open]);
+  }, [ride, open, navigationPhase]);
 
   // Real-time location tracking for navigation
   const startLocationTracking = () => {
@@ -79,6 +91,11 @@ export default function NavigationModal({ open, onClose, ride }) {
         (position) => {
           const newLocation = [position.coords.latitude, position.coords.longitude];
           setCurrentLocation(newLocation);
+          
+          // Check if off-route and trigger re-routing
+          if (directions?.steps && currentStepIndex < directions.steps.length) {
+            checkIfOffRoute(newLocation);
+          }
           
           // Auto-advance to next step based on proximity
           if (autoAdvance && directions?.steps && currentStepIndex < directions.steps.length - 1) {
@@ -93,13 +110,45 @@ export default function NavigationModal({ open, onClose, ride }) {
               
               // Auto-advance when within 50 meters of turn
               if (distance < 0.05) {
-                setCurrentStepIndex(prev => prev + 1);
+                const nextIndex = currentStepIndex + 1;
+                setCurrentStepIndex(nextIndex);
+                
+                // Announce next turn via voice
+                if (voiceEnabled && nextIndex !== lastSpokenStep.current) {
+                  speakInstruction(directions.steps[nextIndex]);
+                  lastSpokenStep.current = nextIndex;
+                }
               }
+              
+              // Announce when approaching turn (200m)
+              if (voiceEnabled && distance < 0.2 && distance > 0.19 && currentStepIndex !== lastSpokenStep.current) {
+                speakInstruction(currentStep, true);
+                lastSpokenStep.current = currentStepIndex;
+              }
+            }
+          }
+          
+          // Check if reached destination
+          if (navigationPhase === 'pickup' && ride?.pickup_coords) {
+            const distToPickup = calculateDistance(
+              newLocation[0], newLocation[1],
+              ride.pickup_coords[0], ride.pickup_coords[1]
+            );
+            if (distToPickup < 0.05) {
+              handleReachedPickup();
+            }
+          } else if (navigationPhase === 'dropoff' && ride?.dropoff_coords) {
+            const distToDropoff = calculateDistance(
+              newLocation[0], newLocation[1],
+              ride.dropoff_coords[0], ride.dropoff_coords[1]
+            );
+            if (distToDropoff < 0.05) {
+              handleReachedDropoff();
             }
           }
         },
         (error) => console.log('Location tracking error:', error),
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
   };
@@ -115,20 +164,31 @@ export default function NavigationModal({ open, onClose, ride }) {
     return R * c; // Distance in km
   };
 
-  const fetchDirections = async () => {
+  const fetchDirections = async (fromLocation = null) => {
     setLoading(true);
     try {
+      const origin = fromLocation || currentLocation || 'current location';
+      const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      
       const response = await base44.functions.invoke('getDirections', {
-        origin: 'current location',
-        destination: ride.pickup_coords,
+        origin,
+        destination,
         mode: 'driving'
       });
 
       if (response.data && !response.data.error) {
         setDirections(response.data);
+        setCurrentStepIndex(0);
+        lastSpokenStep.current = -1;
+        
+        if (voiceEnabled) {
+          const phase = navigationPhase === 'pickup' ? 'pickup location' : 'drop-off location';
+          speak(`Navigation started to ${phase}. Distance: ${response.data.distance.text}. Time: ${response.data.duration.text}`);
+        }
       }
     } catch (err) {
       console.error('Failed to get directions:', err);
+      toast.error('Failed to load directions');
     } finally {
       setLoading(false);
     }
@@ -149,8 +209,147 @@ export default function NavigationModal({ open, onClose, ride }) {
     }
   };
 
+  // Voice Navigation
+  const speak = (text) => {
+    if ('speechSynthesis' in window && voiceEnabled) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const speakInstruction = (step, approaching = false) => {
+    if (!step || !voiceEnabled) return;
+    const prefix = approaching ? `In ${step.distance}, ` : '';
+    speak(prefix + step.instruction);
+  };
+
+  // Check if driver is off-route
+  const checkIfOffRoute = (currentPos) => {
+    if (!directions?.polyline || reroutingInProgress) return;
+    
+    const routeCoords = decodePolyline(directions.polyline);
+    let minDistance = Infinity;
+    
+    for (const coord of routeCoords) {
+      const dist = calculateDistance(currentPos[0], currentPos[1], coord[0], coord[1]);
+      if (dist < minDistance) minDistance = dist;
+    }
+    
+    // If more than 100m off route, re-route
+    if (minDistance > 0.1) {
+      handleReroute();
+    }
+  };
+
+  // Handle re-routing
+  const handleReroute = async () => {
+    if (reroutingInProgress) return;
+    
+    setReroutingInProgress(true);
+    toast.info('Re-routing based on your location...');
+    
+    if (voiceEnabled) {
+      speak('Re-routing');
+    }
+    
+    await fetchDirections(currentLocation);
+    
+    setTimeout(() => setReroutingInProgress(false), 5000);
+  };
+
+  // Monitor traffic and re-route if needed
+  const startTrafficMonitoring = () => {
+    const interval = setInterval(async () => {
+      if (!currentLocation || !directions) return;
+      
+      // Re-fetch route to check for traffic updates
+      const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      try {
+        const response = await base44.functions.invoke('getDirections', {
+          origin: currentLocation,
+          destination,
+          mode: 'driving'
+        });
+        
+        if (response.data && response.data.duration) {
+          const newDuration = response.data.duration.minutes;
+          const currentDuration = directions.duration.minutes;
+          
+          // If route is now 30% slower, suggest re-route
+          if (newDuration > currentDuration * 1.3) {
+            toast.warning('Heavy traffic detected!', {
+              description: 'Re-routing to save time...',
+              duration: 4000
+            });
+            if (voiceEnabled) {
+              speak('Heavy traffic ahead. Finding faster route.');
+            }
+            await handleReroute();
+          }
+        }
+      } catch (err) {
+        console.log('Traffic check skipped:', err);
+      }
+    }, 120000); // Check every 2 minutes
+    
+    setTrafficCheckInterval(interval);
+  };
+
+  // Handle reaching pickup location
+  const handleReachedPickup = () => {
+    toast.success('Arrived at pickup!');
+    speak('You have arrived at the pickup location');
+    
+    // Update ride status
+    base44.entities.RideRequest.update(ride.id, {
+      status: 'arrived'
+    });
+    
+    // Notify passenger
+    base44.entities.Notification.create({
+      recipient_email: ride.created_by,
+      type: "ride_update",
+      title: "📍 Driver Has Arrived!",
+      message: `Your driver is at the pickup location`,
+      reference_type: "ride",
+      reference_id: ride.id,
+      read: false
+    });
+  };
+
+  // Handle reaching dropoff location
+  const handleReachedDropoff = () => {
+    toast.success('Arrived at destination!');
+    speak('You have arrived at the destination');
+    
+    // Update ride status
+    base44.entities.RideRequest.update(ride.id, {
+      status: 'completed',
+      end_time: new Date().toISOString()
+    });
+    
+    onClose();
+  };
+
+  // Switch to dropoff navigation
+  const switchToDropoff = () => {
+    setNavigationPhase('dropoff');
+    setCurrentStepIndex(0);
+    setDirections(null);
+    toast.info('Navigating to drop-off location');
+    
+    // Update ride status to in_progress
+    base44.entities.RideRequest.update(ride.id, {
+      status: 'in_progress'
+    });
+  };
+
   const openInGoogleMaps = () => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.pickup_address)}`;
+    const address = navigationPhase === 'pickup' ? ride.pickup_address : ride.dropoff_address;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
     window.open(url, '_blank');
   };
 
@@ -172,11 +371,24 @@ export default function NavigationModal({ open, onClose, ride }) {
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl flex items-center gap-2">
               <Navigation className="w-6 h-6 text-blue-400" />
-              Navigate to Pickup
+              {navigationPhase === 'pickup' ? 'Navigate to Pickup' : 'Navigate to Drop-off'}
             </DialogTitle>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full">
+                <Volume2 className={`w-4 h-4 ${voiceEnabled ? 'text-green-400' : 'text-gray-400'}`} />
+                <Switch
+                  checked={voiceEnabled}
+                  onCheckedChange={(checked) => {
+                    setVoiceEnabled(checked);
+                    speak(checked ? 'Voice navigation enabled' : 'Voice navigation disabled');
+                  }}
+                  className="data-[state=checked]:bg-green-500"
+                />
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -199,12 +411,60 @@ export default function NavigationModal({ open, onClose, ride }) {
             </div>
           )}
 
-          {/* Traffic Alert */}
+          {/* Navigation Phase Indicator */}
+          <div className="flex items-center gap-3">
+            <div className={`flex-1 p-3 rounded-lg border-2 ${
+              navigationPhase === 'pickup' 
+                ? 'bg-blue-500/20 border-blue-500' 
+                : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="flex items-center gap-2">
+                <MapPin className={`w-4 h-4 ${navigationPhase === 'pickup' ? 'text-blue-400' : 'text-gray-400'}`} />
+                <span className={`text-sm font-medium ${navigationPhase === 'pickup' ? 'text-blue-300' : 'text-gray-400'}`}>
+                  Pickup
+                </span>
+              </div>
+            </div>
+            <div className={`flex-1 p-3 rounded-lg border-2 ${
+              navigationPhase === 'dropoff' 
+                ? 'bg-purple-500/20 border-purple-500' 
+                : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="flex items-center gap-2">
+                <MapPinned className={`w-4 h-4 ${navigationPhase === 'dropoff' ? 'text-purple-400' : 'text-gray-400'}`} />
+                <span className={`text-sm font-medium ${navigationPhase === 'dropoff' ? 'text-purple-300' : 'text-gray-400'}`}>
+                  Drop-off
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Traffic & Re-routing Alert */}
           {trafficDelay > 2 && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-red-400" />
-              <span className="text-red-300 text-sm">
-                Heavy traffic detected - {trafficDelay} min delay
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-red-400" />
+                <span className="text-red-300 text-sm">
+                  Heavy traffic detected - {trafficDelay} min delay
+                </span>
+              </div>
+              <Button
+                onClick={handleReroute}
+                disabled={reroutingInProgress}
+                size="sm"
+                className="bg-red-500 hover:bg-red-600"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${reroutingInProgress ? 'animate-spin' : ''}`} />
+                Re-route
+              </Button>
+            </div>
+          )}
+          
+          {reroutingInProgress && (
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-center gap-2">
+              <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
+              <span className="text-blue-300 text-sm">
+                Finding optimal route...
               </span>
             </div>
           )}
@@ -372,10 +632,34 @@ export default function NavigationModal({ open, onClose, ride }) {
             </div>
           </div>
 
-          {/* Action Button */}
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            {navigationPhase === 'pickup' && (
+              <Button
+                onClick={switchToDropoff}
+                className="bg-purple-600 hover:bg-purple-700 text-lg py-6"
+              >
+                <MapPinned className="w-5 h-5 mr-2" />
+                Go to Drop-off
+              </Button>
+            )}
+            <Button
+              onClick={handleReroute}
+              disabled={reroutingInProgress}
+              variant="outline"
+              className={`bg-white/5 border-white/20 text-white hover:bg-white/10 text-lg py-6 ${
+                navigationPhase === 'pickup' ? '' : 'col-span-2'
+              }`}
+            >
+              <RefreshCw className={`w-5 h-5 mr-2 ${reroutingInProgress ? 'animate-spin' : ''}`} />
+              Re-route Now
+            </Button>
+          </div>
+          
           <Button
             onClick={openInGoogleMaps}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
+            variant="outline"
+            className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
           >
             <ExternalLink className="w-5 h-5 mr-2" />
             Open in Google Maps
