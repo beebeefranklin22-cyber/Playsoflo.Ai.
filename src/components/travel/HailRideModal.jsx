@@ -130,12 +130,20 @@ export default function HailRideModal({ open, onClose }) {
 
 
   const openPaymentModal = () => {
-    if (!estimatedDistance || !estimatedDuration) {
-      toast.error("Please wait for route calculation");
+    if (!pickup || !dropoff) {
+      toast.error("Please enter pickup and dropoff addresses");
       return;
     }
     if (!selectedVehicle) {
       toast.error("Please select a vehicle type");
+      return;
+    }
+    if (!estimatedDistance || !estimatedDuration) {
+      toast.error("Please wait for route calculation to complete");
+      return;
+    }
+    if (!pickupCoords || !dropoffCoords) {
+      toast.error("Invalid addresses. Please enter valid, complete addresses.");
       return;
     }
     setShowPaymentModal(true);
