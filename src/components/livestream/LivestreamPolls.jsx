@@ -8,7 +8,7 @@ import { BarChart3, Plus, X, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export default function LivestreamPolls({ streamId, isCreator, currentUser }) {
+export default function LivestreamPolls({ streamId, isCreator, currentUser, isOverlay = false }) {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [pollForm, setPollForm] = useState({

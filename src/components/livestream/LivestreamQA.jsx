@@ -8,7 +8,7 @@ import { MessageCircleQuestion, ArrowUp, Pin, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export default function LivestreamQA({ streamId, isCreator, currentUser }) {
+export default function LivestreamQA({ streamId, isCreator, currentUser, isOverlay = false }) {
   const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
 

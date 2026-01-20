@@ -7,7 +7,7 @@ import { Send, Pin, Trash2, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-export default function LivestreamChat({ streamId, isCreator, currentUser }) {
+export default function LivestreamChat({ streamId, isCreator, currentUser, isOverlay = false }) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [showModMenu, setShowModMenu] = useState(null);
@@ -92,16 +92,18 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   const regularMessages = messages.filter(m => !m.is_pinned);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-white/10">
-        <h3 className="text-white font-bold flex items-center gap-2">
-          Live Chat
-          <span className="text-xs text-green-400 flex items-center gap-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            {messages.length} messages
-          </span>
-        </h3>
-      </div>
+    <div className={`flex flex-col ${isOverlay ? 'h-[280px]' : 'h-full'}`}>
+      {!isOverlay && (
+        <div className="p-4 border-b border-white/10 flex-shrink-0">
+          <h3 className="text-white font-bold flex items-center gap-2">
+            Live Chat
+            <span className="text-xs text-green-400 flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              {messages.length} messages
+            </span>
+          </h3>
+        </div>
+      )}
 
       {/* Pinned Messages */}
       {pinnedMessages.length > 0 && (
