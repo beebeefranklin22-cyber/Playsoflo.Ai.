@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, X, Plus, ExternalLink, DollarSign, Package, Image as ImageIcon, Link2 } from "lucide-react";
+import { ShoppingCart, X, Plus, ExternalLink, DollarSign, Package, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import QuickPaymentModal from "./QuickPaymentModal";
 
 export default function ProductShowcase({ streamId, isCreator, currentUser }) {
   const queryClient = useQueryClient();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [products, setProducts] = useState([]);
   const [featuredProduct, setFeaturedProduct] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [productForm, setProductForm] = useState({
     name: "",
     price: "",
@@ -264,16 +267,31 @@ export default function ProductShowcase({ streamId, isCreator, currentUser }) {
                     )}
                   </div>
                   
-                  <Button
-                    onClick={() => {
-                      trackClickMutation.mutate(featuredProduct.id);
-                      window.open(featuredProduct.link, '_blank');
-                    }}
-                    className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3"
-                  >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    Buy Now
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        trackClickMutation.mutate(featuredProduct.id);
+                        setSelectedProduct(featuredProduct);
+                        setShowPaymentModal(true);
+                      }}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3"
+                    >
+                      <ShoppingCart className="w-5 h-5 mr-2" />
+                      Buy Now
+                    </Button>
+                    {featuredProduct.link && (
+                      <Button
+                        onClick={() => {
+                          trackClickMutation.mutate(featuredProduct.id);
+                          window.open(featuredProduct.link, '_blank');
+                        }}
+                        variant="outline"
+                        className="border-white/20"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -359,12 +377,13 @@ export default function ProductShowcase({ streamId, isCreator, currentUser }) {
                   <Button
                     onClick={() => {
                       trackClickMutation.mutate(product.id);
-                      window.open(product.link, '_blank');
+                      setSelectedProduct(product);
+                      setShowPaymentModal(true);
                     }}
                     size="sm"
                     className="w-full bg-green-600 hover:bg-green-700"
                   >
-                    <ExternalLink className="w-3 h-3 mr-1" />
+                    <ShoppingCart className="w-3 h-3 mr-1" />
                     Buy
                   </Button>
                 </CardContent>
@@ -372,6 +391,26 @@ export default function ProductShowcase({ streamId, isCreator, currentUser }) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedProduct && (
+        <QuickPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedProduct(null);
+          }}
+          type="product"
+          amount={parseFloat(selectedProduct.price)}
+          creatorEmail={creatorEmail}
+          streamId={streamId}
+          productData={selectedProduct}
+          currentUser={currentUser}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['creator-products'] });
+          }}
+        />
       )}
     </div>
   );
