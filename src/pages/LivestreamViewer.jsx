@@ -16,12 +16,14 @@ import CoHostManager from "../components/livestream/CoHostManager.jsx";
 import ReactionEffects from "../components/livestream/ReactionEffects.jsx";
 import PPVTicketGate from "../components/livestream/PPVTicketGate.jsx";
 import LiveTippingOverlay from "../components/livestream/LiveTippingOverlay.jsx";
+import ProductShowcase from "../components/livestream/ProductShowcase.jsx";
 
 export default function LivestreamViewer() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [streamId, setStreamId] = useState(null);
   const [activeTab, setActiveTab] = useState('chat');
+  const [showProducts, setShowProducts] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -256,6 +258,16 @@ export default function LivestreamViewer() {
                     >
                       Q&A
                     </button>
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className={`px-4 py-2 rounded-full text-xs font-semibold transition backdrop-blur-md border ${
+                        activeTab === 'products' 
+                          ? 'bg-green-500/80 text-white border-green-400' 
+                          : 'bg-black/40 text-gray-300 border-white/20 hover:bg-black/60'
+                      }`}
+                    >
+                      Products
+                    </button>
                   </div>
 
                   {/* Chat Overlay */}
@@ -290,6 +302,17 @@ export default function LivestreamViewer() {
                         isCreator={isStreamCreator}
                         currentUser={currentUser}
                         isOverlay={true}
+                      />
+                    </div>
+                  )}
+
+                  {/* Products Overlay */}
+                  {activeTab === 'products' && (
+                    <div className="bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-sm pb-4 px-4 max-h-[400px] overflow-y-auto">
+                      <ProductShowcase
+                        streamId={streamId}
+                        isCreator={isStreamCreator}
+                        currentUser={currentUser}
                       />
                     </div>
                   )}

@@ -23,8 +23,10 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
 
   // Subscribe to new tips in real-time
   useEffect(() => {
+    if (!streamId) return;
+
     const unsubscribe = base44.entities.TipTransaction.subscribe((event) => {
-      if (event.type === 'create' && event.data.content_id === streamId) {
+      if (event.type === 'create' && event.data?.content_id === streamId) {
         // Show tip animation
         setRecentTips(prev => [{
           id: event.data.id,
@@ -40,7 +42,7 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
       }
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, [streamId]);
 
   const sendTipMutation = useMutation({
