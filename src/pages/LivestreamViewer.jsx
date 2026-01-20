@@ -30,6 +30,7 @@ export default function LivestreamViewer() {
   const [activeTab, setActiveTab] = useState('chat');
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isBroadcaster, setIsBroadcaster] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -43,10 +44,12 @@ export default function LivestreamViewer() {
     };
     fetchUser();
 
-    // Get stream ID from URL
+    // Get stream ID and broadcaster status from URL
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
+    const broadcaster = params.get('broadcaster') === 'true';
     setStreamId(id);
+    setIsBroadcaster(broadcaster);
 
     // Track viewer analytics
     if (id) {
@@ -84,10 +87,6 @@ export default function LivestreamViewer() {
       };
     }
   }, []);
-
-  // Determine if user is broadcaster
-  const params = new URLSearchParams(window.location.search);
-  const isBroadcaster = params.get('broadcaster') === 'true';
 
   const { data: stream } = useQuery({
     queryKey: ['stream', streamId],
