@@ -179,13 +179,9 @@ export default function HailRideModal({ open, onClose }) {
       setShowPaymentModal(false);
       setShowWaitScreen(true);
       
-      // Send notification to nearby drivers
-      await base44.entities.Notification.create({
-        user_email: "drivers@soflolive.com", // Broadcast to drivers
-        title: "New Ride Request",
-        message: `${selectedVehicle.name} ride from ${pickup}`,
-        type: "ride_request",
-        data: { ride_id: ride.id }
+      // Match optimal drivers using smart algorithm
+      await base44.functions.invoke('matchOptimalDriver', {
+        ride_id: ride.id
       });
       
       toast.success("Ride requested! Finding you a driver...");
