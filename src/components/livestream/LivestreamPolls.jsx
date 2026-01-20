@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,37 @@ export default function LivestreamPolls({ streamId, isCreator, currentUser }) {
     duration_seconds: 60
   });
 
-  const { data: polls = [] } = useQuery({
-    queryKey: ['stream-polls', streamId],
-    queryFn: () => base44.entities.LivestreamPoll.filter({ stream_id: streamId, status: 'active' }),
-    refetchInterval: 3000,
-    initialData: []
-  });
+  const [polls, setPolls] = useState([]);
+
+  // Real-time subscription for polls
+  useEffect(() => {
+    if (!streamId) return;
+    
+    // Initial fetch
+    const fetchPolls = async () => {
+      const p = await base44.entities.LivestreamPoll.filter({ 
+        stream_id: streamId, 
+        status: 'active' 
+      });
+      setPolls(p);
+    };
+    fetchPolls();
+
+    // Subscribe to real-time updates
+    const unsubscribe = base44.entities.LivestreamPoll.subscribe((event) => {
+      if (event.data?.stream_id === streamId) {
+        if (event.type === 'create') {
+          setPolls(prev => [...prev, event.data]);
+        } else if (event.type === 'update') {
+          setPolls(prev => prev.map(p => p.id === event.id ? event.data : p));
+        } else if (event.type === 'delete') {
+          setPolls(prev => prev.filter(p => p.id !== event.id));
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [streamId]);
 
   const { data: myVotes = [] } = useQuery({
     queryKey: ['my-poll-votes', currentUser?.email],
@@ -48,7 +73,6 @@ export default function LivestreamPolls({ streamId, isCreator, currentUser }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-polls'] });
       setShowCreate(false);
       setPollForm({ question: "", options: ["", ""], duration_seconds: 60 });
       toast.success('Poll created!');
@@ -68,13 +92,11 @@ export default function LivestreamPolls({ streamId, isCreator, currentUser }) {
         opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
       );
       
-      await base44.asServiceRole.entities.LivestreamPoll.update(pollId, {
+      await base44.entities.LivestreamPoll.update(pollId, {
         options: updatedOptions
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-polls'] });
-      queryClient.invalidateQueries({ queryKey: ['my-poll-votes'] });
       toast.success('Vote recorded!');
     }
   });

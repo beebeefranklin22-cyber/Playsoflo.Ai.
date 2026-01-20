@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Video } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Users, Video, Crown } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
 import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
@@ -111,18 +112,30 @@ export default function LivestreamViewer() {
     enabled: !!currentUser && !!stream
   });
 
-  const { data: viewerCount = 0 } = useQuery({
-    queryKey: ['viewer-count', streamId],
-    queryFn: async () => {
+  const [viewerCount, setViewerCount] = useState(0);
+
+  // Real-time viewer count
+  useEffect(() => {
+    if (!streamId) return;
+    
+    const updateCount = async () => {
       const analytics = await base44.entities.ViewerAnalytics.filter({ 
         content_id: streamId,
         is_currently_watching: true
       });
-      return analytics.length;
-    },
-    refetchInterval: 5000,
-    enabled: !!streamId
-  });
+      setViewerCount(analytics.length);
+    };
+    updateCount();
+
+    // Subscribe to analytics changes
+    const unsubscribe = base44.entities.ViewerAnalytics.subscribe((event) => {
+      if (event.data?.content_id === streamId) {
+        updateCount();
+      }
+    });
+
+    return () => unsubscribe();
+  }, [streamId]);
 
   if (!stream) {
     return (

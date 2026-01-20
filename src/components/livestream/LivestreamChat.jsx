@@ -13,43 +13,62 @@ export default function LivestreamChat({ streamId, isCreator, currentUser }) {
   const [showModMenu, setShowModMenu] = useState(null);
   const chatEndRef = useRef(null);
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['livestream-chat', streamId],
-    queryFn: () => base44.entities.LivestreamChat.filter({ 
-      stream_id: streamId,
-      is_deleted: false 
-    }),
-    refetchInterval: 2000,
-    initialData: []
-  });
+  const [messages, setMessages] = useState([]);
+
+  // Real-time subscription for chat messages
+  useEffect(() => {
+    if (!streamId) return;
+    
+    // Initial fetch
+    const fetchMessages = async () => {
+      const msgs = await base44.entities.LivestreamChat.filter({ 
+        stream_id: streamId,
+        is_deleted: false 
+      });
+      setMessages(msgs);
+    };
+    fetchMessages();
+
+    // Subscribe to real-time updates
+    const unsubscribe = base44.entities.LivestreamChat.subscribe((event) => {
+      if (event.data?.stream_id === streamId && !event.data?.is_deleted) {
+        if (event.type === 'create') {
+          setMessages(prev => [...prev, event.data]);
+        } else if (event.type === 'update') {
+          setMessages(prev => prev.map(m => m.id === event.id ? event.data : m));
+        } else if (event.type === 'delete') {
+          setMessages(prev => prev.filter(m => m.id !== event.id));
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [streamId]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (data) => base44.entities.LivestreamChat.create({
       ...data,
-      is_priority: myTicket?.chat_priority || false,
-      user_badge: myTicket?.exclusive_badge || null,
-      badge_color: myTicket?.badge_color || null
+      is_priority: false,
+      user_badge: null,
+      badge_color: null
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       setMessage("");
     }
   });
 
   const pinMessageMutation = useMutation({
     mutationFn: ({ id, is_pinned }) => 
-      base44.asServiceRole.entities.LivestreamChat.update(id, { is_pinned }),
+      base44.entities.LivestreamChat.update(id, { is_pinned }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       toast.success('Message pinned!');
     }
   });
 
   const deleteMessageMutation = useMutation({
     mutationFn: (id) => 
-      base44.asServiceRole.entities.LivestreamChat.update(id, { is_deleted: true }),
+      base44.entities.LivestreamChat.update(id, { is_deleted: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['livestream-chat', streamId] });
       toast.success('Message deleted');
     }
   });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,45 @@ export default function LivestreamQA({ streamId, isCreator, currentUser }) {
   const queryClient = useQueryClient();
   const [question, setQuestion] = useState("");
 
-  const { data: questions = [] } = useQuery({
-    queryKey: ['stream-qa', streamId],
-    queryFn: () => base44.entities.QAQuestion.filter({ stream_id: streamId }),
-    refetchInterval: 3000,
-    initialData: []
-  });
+  const [questions, setQuestions] = useState([]);
+
+  // Real-time subscription for Q&A
+  useEffect(() => {
+    if (!streamId) return;
+    
+    // Initial fetch
+    const fetchQuestions = async () => {
+      const q = await base44.entities.QAQuestion.filter({ stream_id: streamId });
+      setQuestions(q);
+    };
+    fetchQuestions();
+
+    // Subscribe to real-time updates
+    const unsubscribe = base44.entities.QAQuestion.subscribe((event) => {
+      if (event.data?.stream_id === streamId) {
+        if (event.type === 'create') {
+          setQuestions(prev => [...prev, event.data]);
+        } else if (event.type === 'update') {
+          setQuestions(prev => prev.map(q => q.id === event.id ? event.data : q));
+        } else if (event.type === 'delete') {
+          setQuestions(prev => prev.filter(q => q.id !== event.id));
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [streamId]);
 
   const askMutation = useMutation({
     mutationFn: (data) => base44.entities.QAQuestion.create({
       ...data,
       stream_id: streamId,
       user_email: currentUser.email,
-      user_name: currentUser.full_name || currentUser.email
+      user_name: currentUser.full_name || currentUser.email,
+      upvotes: 0,
+      status: 'pending'
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-qa'] });
       setQuestion("");
       toast.success('Question submitted!');
     }
@@ -36,32 +59,31 @@ export default function LivestreamQA({ streamId, isCreator, currentUser }) {
   const upvoteMutation = useMutation({
     mutationFn: async (questionId) => {
       const q = questions.find(q => q.id === questionId);
-      await base44.asServiceRole.entities.QAQuestion.update(questionId, {
-        upvotes: q.upvotes + 1
+      await base44.entities.QAQuestion.update(questionId, {
+        upvotes: (q.upvotes || 0) + 1
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-qa'] });
+      toast.success('Upvoted!');
     }
   });
 
   const answerMutation = useMutation({
     mutationFn: ({ questionId, answer }) => 
-      base44.asServiceRole.entities.QAQuestion.update(questionId, {
+      base44.entities.QAQuestion.update(questionId, {
         answer,
         status: 'answered'
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-qa'] });
       toast.success('Answer posted!');
     }
   });
 
   const pinMutation = useMutation({
     mutationFn: (questionId) => 
-      base44.asServiceRole.entities.QAQuestion.update(questionId, { status: 'pinned' }),
+      base44.entities.QAQuestion.update(questionId, { status: 'pinned' }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-qa'] });
+      toast.success('Question pinned!');
     }
   });
 
