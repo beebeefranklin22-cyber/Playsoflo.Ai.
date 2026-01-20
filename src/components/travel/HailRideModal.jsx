@@ -34,12 +34,51 @@ export default function HailRideModal({ open, onClose }) {
     ac_preference: "medium",
     music_genre: "none"
   });
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [pickupCoords, setPickupCoords] = useState(null);
+  const [dropoffCoords, setDropoffCoords] = useState(null);
 
   useEffect(() => {
     if (open) {
       base44.auth.me().then(setCurrentUser).catch(() => {});
+      getCurrentLocation();
     }
   }, [open]);
+
+  const getCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    setGettingLocation(true);
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
+
+      const { latitude, longitude } = position.coords;
+      setPickupCoords([latitude, longitude]);
+
+      // Reverse geocode to get address
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${await getGoogleMapsKey()}`
+      );
+      const data = await response.json();
+      
+      if (data.status === 'OK' && data.results[0]) {
+        setPickup(data.results[0].formatted_address);
+      }
+    } catch (error) {
+      console.log("Location access denied or failed");
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
+  const getGoogleMapsKey = async () => {
+    // In production, this should be handled server-side
+    return "YOUR_API_KEY"; // Placeholder - actual implementation uses backend
+  };
 
   useEffect(() => {
     const autoCalculate = async () => {
@@ -47,23 +86,39 @@ export default function HailRideModal({ open, onClose }) {
       
       setCalculating(true);
       try {
-        // Auto-calculate when both addresses are filled
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // In production, use Google Maps Distance Matrix API
-        const mockDistance = Math.random() * 15 + 2;
-        const mockDuration = Math.random() * 30 + 5;
-        
-        setEstimatedDistance(mockDistance);
-        setEstimatedDuration(mockDuration);
+        const response = await base44.functions.invoke('calculateRideRoute', {
+          pickup,
+          dropoff
+        });
+
+        if (response.data.error) {
+          toast.error(response.data.error);
+          setEstimatedDistance(null);
+          setEstimatedDuration(null);
+        } else {
+          setEstimatedDistance(response.data.distance_miles);
+          setEstimatedDuration(response.data.duration_minutes);
+          setPickupCoords(response.data.pickup_coords);
+          setDropoffCoords(response.data.dropoff_coords);
+          
+          // Update with formatted addresses if available
+          if (response.data.pickup_formatted && response.data.pickup_formatted !== pickup) {
+            setPickup(response.data.pickup_formatted);
+          }
+          if (response.data.dropoff_formatted && response.data.dropoff_formatted !== dropoff) {
+            setDropoff(response.data.dropoff_formatted);
+          }
+        }
       } catch (error) {
         console.error("Calculation error:", error);
+        toast.error("Failed to calculate route");
       } finally {
         setCalculating(false);
       }
     };
 
-    autoCalculate();
+    const timer = setTimeout(autoCalculate, 800);
+    return () => clearTimeout(timer);
   }, [pickup, dropoff]);
 
 
@@ -104,8 +159,8 @@ export default function HailRideModal({ open, onClose }) {
         status: "requested",
         is_shared: selectedVehicle.id === 'shared',
         max_passengers: selectedVehicle.id === 'shared' ? 2 : 1,
-        pickup_coords: [25.7617, -80.1918],
-        dropoff_coords: [25.7743, -80.1937],
+        pickup_coords: pickupCoords || [25.7617, -80.1918],
+        dropoff_coords: dropoffCoords || [25.7743, -80.1937],
         estimated_distance_miles: estimatedDistance,
         estimated_duration_minutes: estimatedDuration,
         rider_preferences: riderPreferences,
@@ -190,12 +245,25 @@ export default function HailRideModal({ open, onClose }) {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-green-400 flex-shrink-0" />
-                  <Input 
-                    placeholder="Pickup address" 
-                    value={pickup} 
-                    onChange={(e) => setPickup(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <div className="flex-1 flex gap-2">
+                    <Input 
+                      placeholder={gettingLocation ? "Getting your location..." : "Pickup address"} 
+                      value={pickup} 
+                      onChange={(e) => setPickup(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white flex-1"
+                      disabled={gettingLocation}
+                    />
+                    <Button
+                      type="button"
+                      onClick={getCurrentLocation}
+                      disabled={gettingLocation}
+                      variant="outline"
+                      size="icon"
+                      className="bg-white/10 border-white/20 hover:bg-white/20"
+                    >
+                      <Navigation className="w-4 h-4 text-white" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Navigation className="w-5 h-5 text-red-400 flex-shrink-0" />
