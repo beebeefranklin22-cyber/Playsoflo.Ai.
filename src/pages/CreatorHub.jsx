@@ -442,7 +442,16 @@ export default function CreatorHub() {
 
           {/* VOD Management Tab */}
           <TabsContent value="vod" className="space-y-6">
-            <VODManager currentUser={currentUser} />
+            <VODManager 
+              currentUser={currentUser}
+              onEditVideo={(content) => {
+                // Switch to video editor with the content loaded
+                setActiveTab('video-editor');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('loadVideoForEdit', { detail: content }));
+                }, 100);
+              }}
+            />
           </TabsContent>
 
           {/* Content Tab */}

@@ -10,7 +10,7 @@ import { Film, Edit, Trash2, Eye, DollarSign, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function VODManager({ currentUser }) {
+export default function VODManager({ currentUser, onEditVideo }) {
   const queryClient = useQueryClient();
   const [editingContent, setEditingContent] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -157,8 +157,19 @@ export default function VODManager({ currentUser }) {
                       className="flex-1 bg-white/5 border-white/20 hover:bg-white/10"
                     >
                       <Edit className="w-4 h-4 mr-1" />
-                      Edit
+                      Settings
                     </Button>
+                    {content.video_url && onEditVideo && (
+                      <Button
+                        onClick={() => onEditVideo(content)}
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400"
+                      >
+                        <Film className="w-4 h-4 mr-1" />
+                        Edit Video
+                      </Button>
+                    )}
                     <Button
                       onClick={() => {
                         if (confirm('Delete this content?')) {
