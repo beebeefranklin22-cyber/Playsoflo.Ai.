@@ -30,7 +30,7 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
           id: event.data.id,
           amount: event.data.amount_usd,
           message: event.data.message,
-          tipper: event.data.tipper_name || 'Anonymous'
+          tipper: event.data.tipper_username || event.data.tipper_name || 'Anonymous'
         }, ...prev.slice(0, 4)]);
         
         // Remove after animation
