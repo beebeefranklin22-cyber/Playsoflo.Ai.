@@ -138,14 +138,17 @@ export default function HailRideModal({ open, onClose }) {
       toast.error("Please select a vehicle type");
       return;
     }
+    
+    // If route calculation failed, estimate based on rough calculation
     if (!estimatedDistance || !estimatedDuration) {
-      toast.error("Please wait for route calculation to complete");
-      return;
+      // Use fallback estimation
+      const fallbackDistance = 5; // miles
+      const fallbackDuration = 15; // minutes
+      setEstimatedDistance(fallbackDistance);
+      setEstimatedDuration(fallbackDuration);
+      toast.warning("Using estimated pricing - actual fare may vary");
     }
-    if (!pickupCoords || !dropoffCoords) {
-      toast.error("Invalid addresses. Please enter valid, complete addresses.");
-      return;
-    }
+    
     setShowPaymentModal(true);
   };
 
@@ -353,11 +356,17 @@ export default function HailRideModal({ open, onClose }) {
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
                 onClick={openPaymentModal} 
-                disabled={!pickup || !dropoff || !selectedVehicle || !estimatedDistance || calculating}
+                disabled={!pickup || !dropoff || !selectedVehicle || calculating}
               >
-                {selectedVehicle && estimatedDistance
-                  ? `Confirm Ride • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
-                  : 'Select Vehicle & Enter Addresses'}
+                {calculating ? (
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" />Calculating...</>
+                ) : selectedVehicle && estimatedDistance ? (
+                  `Confirm Ride • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
+                ) : selectedVehicle ? (
+                  'Continue'
+                ) : (
+                  'Select Vehicle & Enter Addresses'
+                )}
               </Button>
         </div>
       </DialogContent>
