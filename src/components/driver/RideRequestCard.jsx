@@ -44,6 +44,9 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
         driver_status: "accepted",
         status: "en_route",
         driver_email: currentUser.email,
+        driver_name: currentUser.full_name,
+        driver_profile_picture: currentUser.driver_profile_picture || currentUser.profile_picture,
+        driver_vehicle_info: currentUser.driver_vehicle_info,
         matched_at: new Date().toISOString()
       });
       
@@ -163,10 +166,15 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
             </div>
             
             <div className="text-right ml-4">
-              <div className="text-green-400 text-3xl font-bold mb-1">
-                ${estimatedEarnings}
+              <div className="text-green-400 text-2xl font-bold mb-1">
+                ${(ride.fare_breakdown?.driver_earnings || estimatedEarnings)}
               </div>
-              <div className="text-gray-400 text-xs">You earn (90%)</div>
+              <div className="text-gray-400 text-xs">You earn (88%)</div>
+              {ride.vehicle_class_details && (
+                <Badge className="bg-purple-500/20 text-purple-300 text-xs mt-2">
+                  {ride.vehicle_class_details.name}
+                </Badge>
+              )}
               <div className="text-gray-500 text-xs mt-1">
                 <Clock className="w-3 h-3 inline mr-1" />
                 {new Date(ride.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
