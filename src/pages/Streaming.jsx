@@ -104,13 +104,16 @@ export default function Streaming() {
     category: "entertainment",
     description: "",
     thumbnail_url: "",
+    video_url: "",
     duration: "",
     rating: "",
+    tags: [],
     requires_subscription: false,
     is_monetized: false,
     price_usd: 0,
     rental_price_usd: 0,
   });
+  const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
   
   // Purchase states
@@ -149,11 +152,13 @@ export default function Streaming() {
   const filteredContent = (() => {
     let filtered = content;
     
-    // Search filter
+    // Search filter (including tags)
     if (searchQuery) {
       filtered = filtered.filter(item => 
         item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        item.creator_username?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -247,8 +252,8 @@ export default function Streaming() {
       return;
     }
     
-    if (!uploadData.title || !uploadData.thumbnail_url) {
-      toast.error("Please fill in all required fields");
+    if (!uploadData.title || !uploadData.thumbnail_url || !uploadData.video_url) {
+      toast.error("Please fill in all required fields (title, video URL, thumbnail)");
       return;
     }
     
@@ -257,9 +262,12 @@ export default function Streaming() {
       await base44.entities.StreamingContent.create({
         ...uploadData,
         creator_email: currentUser.email,
+        creator_username: currentUser.username,
         rating: parseFloat(uploadData.rating) || 0,
         price_usd: parseFloat(uploadData.price_usd) || 0,
         rental_price_usd: parseFloat(uploadData.rental_price_usd) || 0,
+        is_live: false,
+        status: "published"
       });
       toast.success("Content uploaded successfully!");
       setShowUpload(false);
@@ -269,13 +277,16 @@ export default function Streaming() {
         category: "entertainment",
         description: "",
         thumbnail_url: "",
+        video_url: "",
         duration: "",
         rating: "",
+        tags: [],
         requires_subscription: false,
         is_monetized: false,
         price_usd: 0,
         rental_price_usd: 0,
       });
+      setTagInput("");
     } catch (error) {
       toast.error("Upload failed: " + error.message);
     } finally {
@@ -1052,6 +1063,17 @@ export default function Streaming() {
               </div>
 
               <div>
+                <label className="text-gray-400 text-sm mb-2 block">Video URL *</label>
+                <Input
+                  value={uploadData.video_url}
+                  onChange={(e) => setUploadData({ ...uploadData, video_url: e.target.value })}
+                  placeholder="Enter video URL (MP4, HLS, etc.)"
+                  className="bg-white/10 border-white/20 text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">Direct link to your video file or streaming URL</p>
+              </div>
+
+              <div>
                 <label className="text-gray-400 text-sm mb-2 block">Thumbnail *</label>
                 <input
                   type="file"
@@ -1072,6 +1094,56 @@ export default function Streaming() {
                   {uploadData.thumbnail_url && (
                     <img src={uploadData.thumbnail_url} className="h-10 w-16 object-cover rounded" />
                   )}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Tags (for discoverability)</label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (tagInput.trim()) {
+                            setUploadData({ ...uploadData, tags: [...uploadData.tags, tagInput.trim()] });
+                            setTagInput("");
+                          }
+                        }
+                      }}
+                      placeholder="Add tags (press Enter)"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (tagInput.trim()) {
+                          setUploadData({ ...uploadData, tags: [...uploadData.tags, tagInput.trim()] });
+                          setTagInput("");
+                        }
+                      }}
+                      variant="outline"
+                      className="bg-white/10 border-white/20"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadData.tags.map((tag, idx) => (
+                      <div key={idx} className="bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-full text-sm text-white flex items-center gap-2">
+                        #{tag}
+                        <button
+                          type="button"
+                          onClick={() => setUploadData({ ...uploadData, tags: uploadData.tags.filter((_, i) => i !== idx) })}
+                          className="text-white/60 hover:text-white"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
