@@ -5,26 +5,29 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Car, Bike, Rocket, Users, Share2, Clock, Crown, Calendar, CheckCircle, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Users, Share2, Clock, Crown, Calendar, CheckCircle, Loader2, X, Settings } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RideTrackingModal from "./RideTrackingModal";
+import VehicleTypeSelector, { vehicleTypes } from "./VehicleTypeSelector";
 
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [rideType, setRideType] = useState("car");
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [estimatedDistance, setEstimatedDistance] = useState(5);
+  const [estimatedDuration, setEstimatedDuration] = useState(15);
   const [isShared, setIsShared] = useState(false);
-  const [waitForShared, setWaitForShared] = useState(false);
-  const [maxPassengers, setMaxPassengers] = useState(2);
-  const [estimatedFare, setEstimatedFare] = useState(15);
-  const [isGroupBooking, setIsGroupBooking] = useState(false);
-  const [vehiclesNeeded, setVehiclesNeeded] = useState(2);
-  const [groupBookingType, setGroupBookingType] = useState("event_pickup");
   const [currentRide, setCurrentRide] = useState(null);
   const [showTracking, setShowTracking] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [riderPreferences, setRiderPreferences] = useState({
+    quiet_ride: false,
+    ac_preference: "medium",
+    music_genre: "none"
+  });
 
   useEffect(() => {
     if (open) {
@@ -34,55 +37,62 @@ export default function HailRideModal({ open, onClose }) {
 
 
 
-  const RideBtn = ({ type, Icon, label }) => (
-    <button
-      onClick={() => setRideType(type)}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
-        rideType === type ? "border-purple-500 bg-purple-500/10 text-purple-400" : "border-white/20 text-white/80"
-      }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="text-sm">{label}</span>
-    </button>
-  );
-
   const requestRide = async () => {
-    const baseFare = isGroupBooking ? estimatedFare * vehiclesNeeded : estimatedFare;
+    if (!selectedVehicle) {
+      toast.error("Please select a vehicle type");
+      return;
+    }
+
+    if (!pickup || !dropoff) {
+      toast.error("Please enter pickup and dropoff addresses");
+      return;
+    }
+
+    const baseFare = selectedVehicle.basePrice;
+    const distanceFare = selectedVehicle.pricePerMile * estimatedDistance;
+    const timeFare = selectedVehicle.pricePerMinute * estimatedDuration;
+    const totalFare = baseFare + distanceFare + timeFare;
+    const driverEarnings = totalFare * 0.88;
+    const platformFee = totalFare * 0.12;
     
     try {
       const ride = await base44.entities.RideRequest.create({
         pickup_address: pickup,
         dropoff_address: dropoff,
-        ride_type: rideType,
+        ride_type: selectedVehicle.id,
+        vehicle_class_details: {
+          name: selectedVehicle.name,
+          base_price: selectedVehicle.basePrice,
+          price_per_mile: selectedVehicle.pricePerMile,
+          price_per_minute: selectedVehicle.pricePerMinute,
+          capacity: selectedVehicle.capacity,
+          description: selectedVehicle.description
+        },
         status: "requested",
-        first_ride_free_applied: !isGroupBooking,
-        is_shared: isShared && !isGroupBooking,
-        wait_for_shared: waitForShared,
-        max_passengers: isShared ? maxPassengers : 1,
-        shareable_link: isShared && !isGroupBooking ? `${window.location.origin}/share-ride/${Math.random().toString(36).substring(7)}` : null,
-        is_group_booking: isGroupBooking,
-        vehicles_needed: isGroupBooking ? vehiclesNeeded : 1,
-        group_booking_type: isGroupBooking ? groupBookingType : null,
-        pickup_coords: [25.7617, -80.1918], // Default Miami coords
+        is_shared: selectedVehicle.id === 'shared',
+        max_passengers: selectedVehicle.id === 'shared' ? 2 : 1,
+        pickup_coords: [25.7617, -80.1918],
         dropoff_coords: [25.7743, -80.1937],
+        estimated_distance_miles: estimatedDistance,
+        estimated_duration_minutes: estimatedDuration,
+        rider_preferences: riderPreferences,
         wait_time_seconds: 0,
         fare_breakdown: {
-          total_fare: baseFare,
-          shared_discount: isShared && !isGroupBooking ? estimatedFare * 0.3 : 0,
-          per_passenger_fare: isShared && !isGroupBooking ? (estimatedFare * 0.7) / maxPassengers : estimatedFare
+          base_fare: baseFare,
+          distance_fare: distanceFare,
+          time_fare: timeFare,
+          surge_multiplier: 1.0,
+          total_fare: totalFare,
+          driver_earnings: driverEarnings,
+          platform_fee: platformFee
         }
       });
       
       setCurrentRide(ride);
       setShowTracking(true);
-      toast.success('Ride requested! Finding a driver...');
-      
-      if (isShared && !isGroupBooking && ride.shareable_link) {
-        navigator.clipboard.writeText(ride.shareable_link);
-        toast.info('Share link copied to clipboard');
-      }
+      toast.success(`${selectedVehicle.name} ride requested!`);
     } catch (error) {
-      toast.error('Failed to request ride');
+      toast.error(error.message || 'Failed to request ride');
     }
   };
 
@@ -100,182 +110,105 @@ export default function HailRideModal({ open, onClose }) {
         />
       ) : (
         <Dialog open={open} onOpenChange={onClose}>
-          <DialogContent className="bg-gray-900 border border-white/10 text-white">
+          <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Hail a Ride</DialogTitle>
+              <DialogTitle className="text-2xl">Book Your Ride</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-          <div className="flex gap-2">
-            <RideBtn type="car" Icon={Car} label="Car" />
-            <RideBtn type="motorcycle" Icon={Bike} label="Motorcycle" />
-            <RideBtn type="ebike" Icon={Bike} label="e-Bike" />
-            <RideBtn type="scooter" Icon={Rocket} label="Scooter" />
-          </div>
-          <Input placeholder="Pickup address" value={pickup} onChange={(e) => setPickup(e.target.value)} />
-          <Input placeholder="Dropoff address" value={dropoff} onChange={(e) => setDropoff(e.target.value)} />
-          
-          {/* Group/Motorcade Booking */}
-          <div className="bg-white/5 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-yellow-400" />
-                <span className="text-white font-medium">Group Booking / Motorcade</span>
-              </div>
-              <Switch 
-                checked={isGroupBooking} 
-                onCheckedChange={(checked) => {
-                  setIsGroupBooking(checked);
-                  if (checked) setIsShared(false); // Can't be both
-                }} 
+            <div className="space-y-6">
+              <VehicleTypeSelector
+                selectedType={selectedVehicle?.id}
+                onSelect={(vehicle) => setSelectedVehicle(vehicle)}
+                estimatedDistance={estimatedDistance}
+                estimatedDuration={estimatedDuration}
               />
-            </div>
-            
-            {isGroupBooking && (
-              <>
-                <div className="text-purple-400 text-sm">
-                  Perfect for events, clubs, VIP transport, or airport groups
-                </div>
-                
-                <div>
-                  <label className="text-white text-sm mb-2 block">Number of Vehicles</label>
-                  <div className="flex gap-2">
-                    {[2, 3, 4, 5, 6].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setVehiclesNeeded(n)}
-                        className={`flex-1 py-2 rounded-lg ${
-                          vehiclesNeeded === n 
-                            ? 'bg-purple-600 text-white' 
-                            : 'bg-white/10 text-gray-300'
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="text-white text-sm mb-2 block">Booking Type</label>
-                  <Select value={groupBookingType} onValueChange={setGroupBookingType}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="motorcade">VIP Motorcade</SelectItem>
-                      <SelectItem value="event_pickup">Event Pickup</SelectItem>
-                      <SelectItem value="event_dropoff">Event Dropoff</SelectItem>
-                      <SelectItem value="club_transport">Club Transport</SelectItem>
-                      <SelectItem value="airport_group">Airport Group</SelectItem>
-                      <SelectItem value="custom">Custom Group</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="border-t border-white/10 pt-3">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-400">Per vehicle:</span>
-                    <span className="text-gray-400">${estimatedFare.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white font-medium">Total ({vehiclesNeeded} vehicles):</span>
-                    <span className="text-yellow-400 font-bold text-lg">
-                      ${(estimatedFare * vehiclesNeeded).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                  <p className="text-yellow-300 text-xs">
-                    <strong>Note:</strong> All vehicles will arrive together and follow the same route for coordinated transport.
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          
-          {/* Ride Sharing Options */}
-          {!isGroupBooking && (
-          <div className="bg-white/5 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                <span className="text-white font-medium">Share Ride</span>
-              </div>
-              <Switch checked={isShared} onCheckedChange={setIsShared} />
-            </div>
-            
-            {isShared && (
-              <>
-                <div className="text-green-400 text-sm">
-                  Save up to 30%! Split costs with other riders.
-                </div>
-                
-                <div>
-                  <label className="text-white text-sm mb-2 block">Max Passengers (including you)</label>
-                  <div className="flex gap-2">
-                    {[2, 3, 4].map(n => (
-                      <button
-                        key={n}
-                        onClick={() => setMaxPassengers(n)}
-                        className={`flex-1 py-2 rounded-lg ${
-                          maxPassengers === n 
-                            ? 'bg-purple-600 text-white' 
-                            : 'bg-white/10 text-gray-300'
-                        }`}
-                      >
-                        {n} People
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-400" />
-                    <span className="text-white text-sm">Wait for others to join</span>
-                  </div>
-                  <Switch checked={waitForShared} onCheckedChange={setWaitForShared} />
-                </div>
-                
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Share2 className="w-4 h-4 text-blue-400" />
-                    <span className="text-blue-300 text-sm font-medium">Share with friends</span>
-                  </div>
-                  <p className="text-blue-200 text-xs">
-                    We'll generate a link you can share to fill seats and split costs
-                  </p>
-                </div>
-                
-                <div className="border-t border-white/10 pt-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Original fare:</span>
-                    <span className="text-gray-400 line-through">${estimatedFare.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white font-medium">Your share:</span>
-                    <span className="text-green-400 font-bold text-lg">
-                      ${((estimatedFare * 0.7) / maxPassengers).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-          )}
 
-          <Button 
-            className="w-full bg-purple-600 hover:bg-purple-700" 
-            onClick={requestRide} 
-            disabled={!pickup || !dropoff}
-          >
-            {isGroupBooking 
-              ? `Book ${vehiclesNeeded} Vehicles` 
-              : isShared 
-              ? 'Create Shared Ride' 
-              : 'Request Ride'} {!isGroupBooking && '(First Ride Free)'}
-          </Button>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <MapPin className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <Input 
+                    placeholder="Pickup address" 
+                    value={pickup} 
+                    onChange={(e) => setPickup(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <Navigation className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <Input 
+                    placeholder="Dropoff address" 
+                    value={dropoff} 
+                    onChange={(e) => setDropoff(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowPreferences(!showPreferences)}
+                variant="outline"
+                className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                {showPreferences ? "Hide" : "Show"} Ride Preferences
+              </Button>
+
+              {showPreferences && (
+                <div className="bg-white/5 rounded-xl p-4 space-y-3 border border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-sm">Quiet Ride</span>
+                    <Switch
+                      checked={riderPreferences.quiet_ride}
+                      onCheckedChange={(checked) => setRiderPreferences({ ...riderPreferences, quiet_ride: checked })}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-white text-sm mb-2 block">AC Preference</label>
+                    <Select
+                      value={riderPreferences.ac_preference}
+                      onValueChange={(v) => setRiderPreferences({ ...riderPreferences, ac_preference: v })}
+                    >
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="off">Off</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-white text-sm mb-2 block">Music</label>
+                    <Select
+                      value={riderPreferences.music_genre}
+                      onValueChange={(v) => setRiderPreferences({ ...riderPreferences, music_genre: v })}
+                    >
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Music</SelectItem>
+                        <SelectItem value="pop">Pop</SelectItem>
+                        <SelectItem value="rock">Rock</SelectItem>
+                        <SelectItem value="hip-hop">Hip Hop</SelectItem>
+                        <SelectItem value="jazz">Jazz</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
+                onClick={requestRide} 
+                disabled={!pickup || !dropoff || !selectedVehicle}
+              >
+                {selectedVehicle 
+                  ? `Request ${selectedVehicle.name} • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
+                  : 'Select Vehicle Type'}
+              </Button>
         </div>
       </DialogContent>
     </Dialog>
