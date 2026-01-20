@@ -34,6 +34,7 @@ export default function QuickPaymentModal({
           creator_email: creatorEmail,
           tipper_email: currentUser.email,
           tipper_name: currentUser.full_name,
+          tipper_username: currentUser.username,
           amount_usd: customAmount,
           message: message || `$${customAmount} tip during livestream!`,
           content_id: streamId,

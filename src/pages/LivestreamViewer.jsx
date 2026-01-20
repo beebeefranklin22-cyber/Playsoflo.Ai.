@@ -92,6 +92,18 @@ export default function LivestreamViewer() {
     queryKey: ['stream', streamId],
     queryFn: async () => {
       const streams = await base44.entities.StreamingContent.filter({ id: streamId });
+      if (streams[0]) {
+        // Fetch creator username
+        try {
+          const users = await base44.entities.User.filter({ email: streams[0].created_by });
+          return {
+            ...streams[0],
+            creator_username: users[0]?.username || streams[0].created_by
+          };
+        } catch {
+          return streams[0];
+        }
+      }
       return streams[0];
     },
     enabled: !!streamId
@@ -232,12 +244,12 @@ export default function LivestreamViewer() {
                 
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {stream.created_by?.[0]?.toUpperCase()}
+                    {stream.creator_username?.[0]?.toUpperCase() || stream.created_by?.[0]?.toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <h1 className="text-white font-bold text-base truncate">{stream.title}</h1>
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-400 truncate">{stream.created_by}</span>
+                      <span className="text-gray-400 truncate">@{stream.creator_username || stream.created_by}</span>
                       <Badge className="bg-red-500 text-white border-0 px-2 py-0 text-xs flex-shrink-0">
                         <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse mr-1" />
                         LIVE
@@ -486,7 +498,10 @@ export default function LivestreamViewer() {
               <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h2 className="text-white font-bold text-2xl mb-2">{stream.title}</h2>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-white font-bold text-2xl">{stream.title}</h2>
+                    </div>
+                    <p className="text-purple-400 text-sm mb-2">@{stream.creator_username || stream.created_by}</p>
                     {stream.description && (
                       <p className="text-gray-300 text-sm mb-4">{stream.description}</p>
                     )}
