@@ -82,17 +82,23 @@ export default function HailRideModal({ open, onClose }) {
 
   useEffect(() => {
     const autoCalculate = async () => {
-      if (!pickup || !dropoff || calculating) return;
+      // Validate minimum address length
+      if (!pickup || !dropoff || pickup.trim().length < 5 || dropoff.trim().length < 5 || calculating) {
+        return;
+      }
       
       setCalculating(true);
       try {
         const response = await base44.functions.invoke('calculateRideRoute', {
-          pickup,
-          dropoff
+          pickup: pickup.trim(),
+          dropoff: dropoff.trim()
         });
 
         if (response.data.error) {
-          toast.error(response.data.error);
+          // Silently fail for partial addresses, only show error for complete ones
+          if (pickup.length > 15 && dropoff.length > 15) {
+            toast.error(response.data.error);
+          }
           setEstimatedDistance(null);
           setEstimatedDuration(null);
         } else {
@@ -110,14 +116,14 @@ export default function HailRideModal({ open, onClose }) {
           }
         }
       } catch (error) {
+        // Silently handle errors for partial addresses
         console.error("Calculation error:", error);
-        toast.error("Failed to calculate route");
       } finally {
         setCalculating(false);
       }
     };
 
-    const timer = setTimeout(autoCalculate, 800);
+    const timer = setTimeout(autoCalculate, 1000);
     return () => clearTimeout(timer);
   }, [pickup, dropoff]);
 
