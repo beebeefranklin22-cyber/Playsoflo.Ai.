@@ -11,6 +11,9 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RideTrackingModal from "./RideTrackingModal";
 import VehicleTypeSelector, { vehicleTypes } from "./VehicleTypeSelector";
+import SavedAddresses from "./SavedAddresses";
+import PaymentConfirmationModal from "./PaymentConfirmationModal";
+import RideWaitScreen from "./RideWaitScreen";
 
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
@@ -19,6 +22,8 @@ export default function HailRideModal({ open, onClose }) {
   const [estimatedDistance, setEstimatedDistance] = useState(null);
   const [estimatedDuration, setEstimatedDuration] = useState(null);
   const [calculating, setCalculating] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showWaitScreen, setShowWaitScreen] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [currentRide, setCurrentRide] = useState(null);
   const [showTracking, setShowTracking] = useState(false);
@@ -36,49 +41,46 @@ export default function HailRideModal({ open, onClose }) {
     }
   }, [open]);
 
-  const calculateRoute = async () => {
-    if (!pickup || !dropoff) {
-      toast.error("Please enter both pickup and dropoff addresses");
-      return;
-    }
-
-    setCalculating(true);
-    try {
-      // Simulate distance/duration calculation (in production, use Google Maps API)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+  useEffect(() => {
+    const autoCalculate = async () => {
+      if (!pickup || !dropoff || calculating) return;
       
-      // Mock calculation - in production, call Google Maps Distance Matrix API
-      const mockDistance = Math.random() * 15 + 2; // 2-17 miles
-      const mockDuration = Math.random() * 30 + 5; // 5-35 minutes
-      
-      setEstimatedDistance(mockDistance);
-      setEstimatedDuration(mockDuration);
-      toast.success("Route calculated!");
-    } catch (error) {
-      toast.error("Failed to calculate route");
-    } finally {
-      setCalculating(false);
-    }
-  };
+      setCalculating(true);
+      try {
+        // Auto-calculate when both addresses are filled
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // In production, use Google Maps Distance Matrix API
+        const mockDistance = Math.random() * 15 + 2;
+        const mockDuration = Math.random() * 30 + 5;
+        
+        setEstimatedDistance(mockDistance);
+        setEstimatedDuration(mockDuration);
+      } catch (error) {
+        console.error("Calculation error:", error);
+      } finally {
+        setCalculating(false);
+      }
+    };
+
+    autoCalculate();
+  }, [pickup, dropoff]);
 
 
 
-  const requestRide = async () => {
+  const openPaymentModal = () => {
     if (!estimatedDistance || !estimatedDuration) {
-      toast.error("Please calculate route first");
+      toast.error("Please wait for route calculation");
       return;
     }
-
     if (!selectedVehicle) {
       toast.error("Please select a vehicle type");
       return;
     }
+    setShowPaymentModal(true);
+  };
 
-    if (!pickup || !dropoff) {
-      toast.error("Please enter pickup and dropoff addresses");
-      return;
-    }
-
+  const confirmPaymentAndRequestRide = async () => {
     const baseFare = selectedVehicle.basePrice;
     const distanceFare = selectedVehicle.pricePerMile * estimatedDistance;
     const timeFare = selectedVehicle.pricePerMinute * estimatedDuration;
@@ -107,7 +109,6 @@ export default function HailRideModal({ open, onClose }) {
         estimated_distance_miles: estimatedDistance,
         estimated_duration_minutes: estimatedDuration,
         rider_preferences: riderPreferences,
-        wait_time_seconds: 0,
         fare_breakdown: {
           base_fare: baseFare,
           distance_fare: distanceFare,
@@ -120,8 +121,19 @@ export default function HailRideModal({ open, onClose }) {
       });
       
       setCurrentRide(ride);
-      setShowTracking(true);
-      toast.success(`${selectedVehicle.name} ride requested!`);
+      setShowPaymentModal(false);
+      setShowWaitScreen(true);
+      
+      // Send notification to nearby drivers
+      await base44.entities.Notification.create({
+        user_email: "drivers@soflolive.com", // Broadcast to drivers
+        title: "New Ride Request",
+        message: `${selectedVehicle.name} ride from ${pickup}`,
+        type: "ride_request",
+        data: { ride_id: ride.id }
+      });
+      
+      toast.success("Ride requested! Finding you a driver...");
     } catch (error) {
       toast.error(error.message || 'Failed to request ride');
     }
@@ -129,7 +141,15 @@ export default function HailRideModal({ open, onClose }) {
 
   return (
     <>
-      {showTracking && currentRide ? (
+      {showWaitScreen && currentRide ? (
+        <RideWaitScreen
+          rideRequest={currentRide}
+          onOpenTracking={() => {
+            setShowWaitScreen(false);
+            setShowTracking(true);
+          }}
+        />
+      ) : showTracking && currentRide ? (
         <RideTrackingModal
           rideRequest={currentRide}
           onClose={() => {
@@ -146,6 +166,20 @@ export default function HailRideModal({ open, onClose }) {
               <DialogTitle className="text-2xl">Book Your Ride</DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
+              {/* Saved Addresses */}
+              {currentUser && (
+                <SavedAddresses
+                  currentUser={currentUser}
+                  onSelectAddress={(address) => {
+                    if (!pickup) {
+                      setPickup(address);
+                    } else {
+                      setDropoff(address);
+                    }
+                  }}
+                />
+              )}
+
               <VehicleTypeSelector
                 selectedType={selectedVehicle?.id}
                 onSelect={(vehicle) => setSelectedVehicle(vehicle)}
@@ -174,20 +208,12 @@ export default function HailRideModal({ open, onClose }) {
                 </div>
               </div>
 
-              <Button
-                onClick={calculateRoute}
-                disabled={!pickup || !dropoff || calculating}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {calculating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Calculating Route...
-                  </>
-                ) : (
-                  "Calculate Price"
-                )}
-              </Button>
+              {calculating && (
+                <div className="flex items-center justify-center gap-2 text-blue-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Calculating route...</span>
+                </div>
+              )}
               <Button
                 onClick={() => setShowPreferences(!showPreferences)}
                 variant="outline"
@@ -248,19 +274,35 @@ export default function HailRideModal({ open, onClose }) {
 
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
-                onClick={requestRide} 
-                disabled={!pickup || !dropoff || !selectedVehicle || !estimatedDistance}
+                onClick={openPaymentModal} 
+                disabled={!pickup || !dropoff || !selectedVehicle || !estimatedDistance || calculating}
               >
                 {selectedVehicle && estimatedDistance
-                  ? `Request ${selectedVehicle.name} • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
-                  : selectedVehicle
-                  ? `Request ${selectedVehicle.name}`
-                  : 'Select Vehicle Type'}
+                  ? `Confirm Ride • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
+                  : 'Select Vehicle & Enter Addresses'}
               </Button>
         </div>
       </DialogContent>
     </Dialog>
       )}
+
+      {/* Payment Confirmation Modal */}
+      <PaymentConfirmationModal
+        open={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={confirmPaymentAndRequestRide}
+        currentUser={currentUser}
+        rideDetails={{
+          pickup,
+          dropoff,
+          vehicleName: selectedVehicle?.name,
+          distance: estimatedDistance?.toFixed(1),
+          duration: Math.round(estimatedDuration),
+          totalFare: selectedVehicle && estimatedDistance 
+            ? selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration
+            : 0
+        }}
+      />
     </>
   );
 }
