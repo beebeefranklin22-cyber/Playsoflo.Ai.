@@ -25,6 +25,7 @@ import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
 import DisputeResolutionModal from "../components/driver/DisputeResolutionModal";
 import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
 import DriverStatsOverview from "../components/driver/DriverStatsOverview";
+import DriverProfileSetup from "../components/driver/DriverProfileSetup";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -36,12 +37,18 @@ export default function DriverHub() {
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [disputeRide, setDisputeRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
       setIsOnline(user.driver_is_online || false);
+      
+      // Check if driver profile is complete
+      if (user.is_driver && (!user.driver_profile_picture || !user.driver_vehicle_type)) {
+        setShowProfileSetup(true);
+      }
       
       // Set initial location from user data
       if (user.driver_current_lat && user.driver_current_lng) {
@@ -898,6 +905,24 @@ export default function DriverHub() {
           onClose={() => setDisputeRide(null)}
           ride={disputeRide}
         />
+      )}
+
+      {/* Driver Profile Setup */}
+      {showProfileSetup && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8">
+            <h2 className="text-3xl font-bold text-white mb-2">Complete Your Driver Profile</h2>
+            <p className="text-gray-400 mb-6">Add your photo and vehicle details to start accepting rides</p>
+            <DriverProfileSetup
+              currentUser={currentUser}
+              onComplete={() => {
+                setShowProfileSetup(false);
+                queryClient.invalidateQueries();
+                toast.success("Profile completed! You can now accept rides.");
+              }}
+            />
+          </div>
+        </div>
       )}
       </div>
       </>
