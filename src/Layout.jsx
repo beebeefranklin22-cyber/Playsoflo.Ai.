@@ -19,8 +19,6 @@ import SecurityValidator from "./components/security/SecurityValidator";
 import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
 import GlobalSecurityHandler from "./components/security/GlobalSecurityHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
-import { useAnomalyDetection } from "./components/security/AnomalyDetector";
-import { useSessionManager } from "./components/security/SessionManager";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -31,10 +29,6 @@ export default function Layout({ children, currentPageName }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
-
-  // Initialize security layers
-  useAnomalyDetection();
-  useSessionManager();
 
   useEffect(() => {
     const fetchUser = async () => {
