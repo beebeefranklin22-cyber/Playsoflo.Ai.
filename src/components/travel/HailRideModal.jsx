@@ -16,8 +16,9 @@ export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [estimatedDistance, setEstimatedDistance] = useState(5);
-  const [estimatedDuration, setEstimatedDuration] = useState(15);
+  const [estimatedDistance, setEstimatedDistance] = useState(null);
+  const [estimatedDuration, setEstimatedDuration] = useState(null);
+  const [calculating, setCalculating] = useState(false);
   const [isShared, setIsShared] = useState(false);
   const [currentRide, setCurrentRide] = useState(null);
   const [showTracking, setShowTracking] = useState(false);
@@ -35,9 +36,39 @@ export default function HailRideModal({ open, onClose }) {
     }
   }, [open]);
 
+  const calculateRoute = async () => {
+    if (!pickup || !dropoff) {
+      toast.error("Please enter both pickup and dropoff addresses");
+      return;
+    }
+
+    setCalculating(true);
+    try {
+      // Simulate distance/duration calculation (in production, use Google Maps API)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Mock calculation - in production, call Google Maps Distance Matrix API
+      const mockDistance = Math.random() * 15 + 2; // 2-17 miles
+      const mockDuration = Math.random() * 30 + 5; // 5-35 minutes
+      
+      setEstimatedDistance(mockDistance);
+      setEstimatedDuration(mockDuration);
+      toast.success("Route calculated!");
+    } catch (error) {
+      toast.error("Failed to calculate route");
+    } finally {
+      setCalculating(false);
+    }
+  };
+
 
 
   const requestRide = async () => {
+    if (!estimatedDistance || !estimatedDuration) {
+      toast.error("Please calculate route first");
+      return;
+    }
+
     if (!selectedVehicle) {
       toast.error("Please select a vehicle type");
       return;
@@ -142,6 +173,21 @@ export default function HailRideModal({ open, onClose }) {
                   />
                 </div>
               </div>
+
+              <Button
+                onClick={calculateRoute}
+                disabled={!pickup || !dropoff || calculating}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {calculating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Calculating Route...
+                  </>
+                ) : (
+                  "Calculate Price"
+                )}
+              </Button>
               <Button
                 onClick={() => setShowPreferences(!showPreferences)}
                 variant="outline"
@@ -203,10 +249,12 @@ export default function HailRideModal({ open, onClose }) {
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
                 onClick={requestRide} 
-                disabled={!pickup || !dropoff || !selectedVehicle}
+                disabled={!pickup || !dropoff || !selectedVehicle || !estimatedDistance}
               >
-                {selectedVehicle 
+                {selectedVehicle && estimatedDistance
                   ? `Request ${selectedVehicle.name} • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
+                  : selectedVehicle
+                  ? `Request ${selectedVehicle.name}`
                   : 'Select Vehicle Type'}
               </Button>
         </div>

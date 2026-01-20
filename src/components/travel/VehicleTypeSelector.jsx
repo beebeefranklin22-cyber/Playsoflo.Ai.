@@ -67,8 +67,9 @@ const vehicleTypes = [
   }
 ];
 
-export default function VehicleTypeSelector({ selectedType, onSelect, estimatedDistance = 5, estimatedDuration = 15 }) {
+export default function VehicleTypeSelector({ selectedType, onSelect, estimatedDistance, estimatedDuration }) {
   const calculateEstimate = (vehicle) => {
+    if (!estimatedDistance || !estimatedDuration) return null;
     const baseFare = vehicle.basePrice;
     const distanceFare = vehicle.pricePerMile * estimatedDistance;
     const timeFare = vehicle.pricePerMinute * estimatedDuration;
@@ -116,8 +117,14 @@ export default function VehicleTypeSelector({ selectedType, onSelect, estimatedD
                 </div>
 
                 <div className="text-right flex-shrink-0">
-                  <div className="text-white font-bold text-xl">${estimate}</div>
-                  <div className="text-gray-400 text-xs">estimated</div>
+                  {estimate ? (
+                    <>
+                      <div className="text-white font-bold text-xl">${estimate}</div>
+                      <div className="text-gray-400 text-xs">estimated</div>
+                    </>
+                  ) : (
+                    <div className="text-gray-500 text-sm">Calculate route</div>
+                  )}
                 </div>
               </div>
 
