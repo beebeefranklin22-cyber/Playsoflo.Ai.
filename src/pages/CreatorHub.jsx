@@ -17,6 +17,7 @@ import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
 import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
 import PPVContentManager from "../components/creator/PPVContentManager.jsx";
+import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 import MembershipManager from "../components/creator/MembershipManager.jsx";
 import SubscriptionTiersManager from "../components/monetization/SubscriptionTiersManager.jsx";
 import DigitalGoodsStore from "../components/monetization/DigitalGoodsStore.jsx";
@@ -38,6 +39,7 @@ export default function CreatorHub() {
   const qc = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [showGoLiveModal, setShowGoLiveModal] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(async (user) => {
@@ -339,11 +341,22 @@ export default function CreatorHub() {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-            <Gift className="w-10 h-10 text-pink-400" />
-            Creator Hub
-          </h1>
-          <p className="text-gray-300 text-lg">Manage your content, products, and earnings</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+                <Gift className="w-10 h-10 text-pink-400" />
+                Creator Hub
+              </h1>
+              <p className="text-gray-300 text-lg">Manage your content, products, and earnings</p>
+            </div>
+            <Button
+              onClick={() => setShowGoLiveModal(true)}
+              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold"
+            >
+              <Radio className="w-4 h-4 mr-2 animate-pulse" />
+              Go Live Now
+            </Button>
+          </div>
         </div>
 
         {/* Quick Actions with Collaboration */}
@@ -1182,6 +1195,7 @@ export default function CreatorHub() {
 
           {/* Earnings Tab */}
           <TabsContent value="earnings" className="space-y-6">
+            <ComprehensiveAnalyticsDashboard currentUser={currentUser} />
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-white/10">
                 <CardContent className="p-6">
@@ -1253,6 +1267,13 @@ export default function CreatorHub() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Go Live Modal */}
+        <GoLiveNowModal
+          isOpen={showGoLiveModal}
+          onClose={() => setShowGoLiveModal(false)}
+          currentUser={currentUser}
+        />
       </div>
     </div>
   );
