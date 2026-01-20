@@ -5,6 +5,7 @@ import { X, Download, Building, CreditCard, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function WithdrawModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
@@ -58,20 +59,19 @@ export default function WithdrawModal({ currentUser, onClose }) {
     try {
       const feeAmount = getFeeAmount();
       
-      // Create payout record
-      await base44.entities.Payment.create({
-        amount_usd: parseFloat(amount),
-        amount_rri: 0,
-        method: method === "instant" ? "instant_payout" : method === "card" ? "card" : "bank_transfer",
-        status: "pending",
-        reference_type: "withdrawal",
+      // Use secure backend function to deduct balance
+      const { data } = await secureBalanceUpdate({
+        operation: 'subtract',
+        amount: totalWithFees,
+        reference_type: 'withdrawal',
         memo: `Withdraw to ${method} (Fee: $${feeAmount.toFixed(2)})`
       });
 
-      // Update user balance (deduct withdrawal amount + fees)
-      await base44.auth.updateMe({
-        usd_balance: availableBalance - totalWithFees
-      });
+      if (!data.success) {
+        alert(data.error || "Withdrawal failed");
+        setLoading(false);
+        return;
+      }
 
       // Create notification
       await base44.entities.Notification.create({
@@ -94,7 +94,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
       onClose();
     } catch (err) {
       console.error("Withdrawal failed:", err);
-      alert("Failed to process withdrawal: " + err.message);
+      alert("Failed to process withdrawal: " + (err?.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }

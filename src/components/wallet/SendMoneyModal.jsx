@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { X, Send, User, DollarSign, MessageCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { processP2PPayment } from "@/functions/processP2PPayment";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import PaymentConfirmation from "../payment/PaymentConfirmation";
@@ -43,57 +43,39 @@ export default function SendMoneyModal({ currentUser, onClose }) {
     try {
       const sendAmount = parseFloat(amount);
 
-      // Verify recipient exists
-      const recipientUsers = await base44.entities.User.filter({});
-      const recipientUser = recipientUsers.find(u => u.email === recipient);
-      
-      if (!recipientUser) {
-        toast.error("Recipient not found");
+      if (isNaN(sendAmount) || sendAmount <= 0) {
+        toast.error("Invalid amount");
         setLoading(false);
         return;
       }
 
       if (currency === "USD") {
-        // Check sender balance
-        if (currentUser.balance_usd < sendAmount) {
-          toast.error("Insufficient USD balance");
+        // Use secure backend function for transfer
+        const { data } = await secureBalanceUpdate({
+          operation: 'transfer',
+          amount: sendAmount,
+          recipient_email: recipient,
+          reference_type: 'transfer',
+          memo: message || undefined
+        });
+
+        if (data.success) {
+          setShowConfirmation(true);
+          toast.success(`$${sendAmount.toFixed(2)} sent successfully!`);
+        } else {
+          toast.error(data.error || "Transfer failed");
+        }
+      } else if (currency === "SoFloCoin") {
+        // Verify recipient exists
+        const recipientUsers = await base44.entities.User.filter({});
+        const recipientUser = recipientUsers.find(u => u.email === recipient);
+        
+        if (!recipientUser) {
+          toast.error("Recipient not found");
           setLoading(false);
           return;
         }
 
-        // Deduct from sender
-        await base44.auth.updateMe({
-          balance_usd: currentUser.balance_usd - sendAmount
-        });
-
-        // Add to recipient using service role
-        await base44.asServiceRole.entities.User.update(recipientUser.id, {
-          balance_usd: (recipientUser.balance_usd || 0) + sendAmount
-        });
-
-        // Create payment record
-        await base44.entities.Payment.create({
-          amount_usd: sendAmount,
-          amount_rri: 0,
-          method: "internal_transfer",
-          status: "completed",
-          reference_type: "sent",
-          sender_email: currentUser.email,
-          recipient_email: recipient,
-          memo: message || `Transfer to ${recipientUser.full_name || recipient}`
-        });
-
-        // Create notification with sound
-        await base44.entities.Notification.create({
-          recipient_email: recipient,
-          type: "payment_received",
-          title: "Money Received",
-          message: `${currentUser.full_name || currentUser.email} sent you $${sendAmount.toFixed(2)}${message ? `: "${message}"` : ''}`,
-          sender_email: currentUser.email,
-          sender_name: currentUser.full_name,
-          read: false
-        });
-      } else if (currency === "SoFloCoin") {
         const currentCoins = currentUser.soflo_coins || 0;
         if (currentCoins < sendAmount) {
           toast.error("Insufficient SoFloCoin balance");
@@ -101,7 +83,8 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           return;
         }
 
-        // Atomic SoFloCoin transfer
+        // Server-side SoFloCoin transfer would go here
+        // For now keeping the existing logic but in production this should also be server-side
         const senderNewCoins = currentCoins - sendAmount;
         const recipientCoins = recipientUser.soflo_coins || 0;
         const recipientNewCoins = recipientCoins + sendAmount;
@@ -114,7 +97,6 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           soflo_coins: recipientNewCoins
         });
 
-        // Create payment records
         await base44.entities.Payment.create({
           amount_usd: 0,
           amount_rri: sendAmount,
@@ -126,7 +108,6 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           memo: message || `SoFloCoin transfer to ${recipientUser.full_name || recipient}`
         });
 
-        // Notification with sound
         await base44.entities.Notification.create({
           recipient_email: recipient,
           type: "payment_received",
@@ -136,12 +117,12 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           sender_name: currentUser.full_name,
           read: false
         });
-      }
 
-      setShowConfirmation(true);
+        setShowConfirmation(true);
+      }
     } catch (err) {
       console.error("Send failed:", err);
-      toast.error(err?.message || "Failed to send money");
+      toast.error(err?.response?.data?.error || err?.message || "Failed to send money");
     } finally {
       setLoading(false);
     }

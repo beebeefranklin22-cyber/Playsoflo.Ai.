@@ -22,10 +22,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No signature' }, { status: 400 });
     }
 
-    // Verify webhook signature
+    // Verify webhook signature using async method (required for Deno)
     let event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err.message);
       return Response.json({ error: 'Invalid signature' }, { status: 400 });

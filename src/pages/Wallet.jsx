@@ -29,6 +29,7 @@ import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings"
 import TaxReportingModal from "../components/wallet/TaxReportingModal";
 import DeFiTracker from "../components/wallet/DeFiTracker";
 import CurrencySelector from "../components/wallet/CurrencySelector";
+import EnhancedCurrencySelector from "../components/wallet/EnhancedCurrencySelector";
 import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";
 import TransactionHistoryFilter from "../components/wallet/TransactionHistoryFilter";
@@ -969,7 +970,7 @@ export default function Wallet() {
         <DeFiTracker currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'currency-settings' && currentUser && (
-        <CurrencySelector currentUser={currentUser} onClose={() => setActiveModal(null)} />
+        <EnhancedCurrencySelector currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'rewards' && currentUser && (
         <RewardsProgram currentUser={currentUser} onClose={() => setActiveModal(null)} />
