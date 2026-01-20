@@ -32,6 +32,7 @@ import VideoReviewWorkflow from "../components/collaboration/VideoReviewWorkflow
 import DigitalProductsManager from "../components/creator/DigitalProductsManager.jsx";
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
 import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
+import VODManager from "../components/creator/VODManager";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
@@ -369,6 +370,7 @@ export default function CreatorHub() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 bg-white/10 backdrop-blur-xl border border-white/20 p-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="vod">VOD Manager</TabsTrigger>
             <TabsTrigger value="video-editor">Video Editor</TabsTrigger>
             <TabsTrigger value="livestream">Livestream</TabsTrigger>
             <TabsTrigger value="ppv">PPV</TabsTrigger>
@@ -436,6 +438,11 @@ export default function CreatorHub() {
           {/* Sponsorships Tab */}
           <TabsContent value="sponsors" className="space-y-6">
             <SponsoredContentManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* VOD Management Tab */}
+          <TabsContent value="vod" className="space-y-6">
+            <VODManager currentUser={currentUser} />
           </TabsContent>
 
           {/* Content Tab */}
