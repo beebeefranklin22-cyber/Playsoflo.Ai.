@@ -9,11 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Film, Edit, Trash2, Eye, DollarSign, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import DirectUploadModal from "./DirectUploadModal";
+import { Upload } from "lucide-react";
 
 export default function VODManager({ currentUser, onEditVideo }) {
   const queryClient = useQueryClient();
   const [editingContent, setEditingContent] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const { data: myContent = [] } = useQuery({
     queryKey: ['my-vod-content'],
@@ -93,8 +96,17 @@ export default function VODManager({ currentUser, onEditVideo }) {
           <Film className="w-6 h-6" />
           My VOD Content
         </h2>
-        <div className="text-gray-400">
-          {myContent.length} videos
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Content
+          </Button>
+          <div className="text-gray-400">
+            {myContent.length} videos
+          </div>
         </div>
       </div>
 
@@ -356,6 +368,16 @@ export default function VODManager({ currentUser, onEditVideo }) {
           </motion.div>
         </div>
       )}
+
+      {/* Upload Modal */}
+      <DirectUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        currentUser={currentUser}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['my-vod-content'] });
+        }}
+      />
     </div>
   );
 }

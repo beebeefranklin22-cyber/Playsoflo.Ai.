@@ -31,6 +31,7 @@ export default function LivestreamManager({ currentUser }) {
     duration_minutes: 60,
     category: "entertainment",
     thumbnail_url: "",
+    thumbnail_file: null,
     is_recurring: false,
     recurrence_pattern: "none",
     recurrence_day: "",
@@ -129,8 +130,18 @@ export default function LivestreamManager({ currentUser }) {
   // Schedule livestream
   const scheduleStreamMutation = useMutation({
     mutationFn: async (data) => {
+      // Upload thumbnail if file was provided
+      let thumbnail_url = data.thumbnail_url;
+      if (data.thumbnail_file) {
+        const uploaded = await base44.integrations.Core.UploadFile({
+          file: data.thumbnail_file
+        });
+        thumbnail_url = uploaded.file_url;
+      }
+      
       const schedule = await base44.entities.LivestreamSchedule.create({
         ...data,
+        thumbnail_url,
         creator_email: currentUser.email
       });
 
@@ -497,6 +508,26 @@ export default function LivestreamManager({ currentUser }) {
                     <SelectItem value="lifestyle">Lifestyle</SelectItem>
                   </SelectContent>
                 </Select>
+
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Thumbnail (Image or Video)</label>
+                  <Input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setScheduleForm({...scheduleForm, thumbnail_file: file});
+                      }
+                    }}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                  {scheduleForm.thumbnail_file && (
+                    <p className="text-green-400 text-xs mt-1">
+                      ✓ {scheduleForm.thumbnail_file.name} ({(scheduleForm.thumbnail_file.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
+                </div>
 
                 {/* Recurring Options */}
                 <div className="border-t border-white/10 pt-4">
