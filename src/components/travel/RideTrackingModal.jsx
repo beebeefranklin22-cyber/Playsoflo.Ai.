@@ -328,9 +328,11 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
             {driver && ride?.status !== 'requested' && (
               <div className="p-6 border-b border-white/10 bg-white/5">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl">
-                    {driver.profile_photo ? (
-                      <img src={driver.profile_photo} className="w-full h-full object-cover" alt={driver.full_name} />
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl border-2 border-white/20">
+                    {ride.driver_profile_picture || driver.driver_profile_picture ? (
+                      <img src={ride.driver_profile_picture || driver.driver_profile_picture} className="w-full h-full object-cover" alt={driver.full_name} />
+                    ) : driver.profile_picture ? (
+                      <img src={driver.profile_picture} className="w-full h-full object-cover" alt={driver.full_name} />
                     ) : (
                       driver.full_name?.[0] || "D"
                     )}
@@ -344,10 +346,17 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                       </div>
                       <span className="text-gray-400 text-sm">• {driver.total_rides || 0} rides</span>
                     </div>
-                    {driver.driver_vehicle_info && (
+                    {(ride.driver_vehicle_info || driver.driver_vehicle_info) && (
                       <p className="text-gray-400 text-sm mt-1">
-                        {driver.driver_vehicle_info.color} {driver.driver_vehicle_info.make} {driver.driver_vehicle_info.model} • {driver.driver_vehicle_info.license_plate}
+                        {(ride.driver_vehicle_info || driver.driver_vehicle_info).color} {(ride.driver_vehicle_info || driver.driver_vehicle_info).make} {(ride.driver_vehicle_info || driver.driver_vehicle_info).model} • {(ride.driver_vehicle_info || driver.driver_vehicle_info).license_plate}
                       </p>
+                    )}
+                    {ride.vehicle_class_details && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs">
+                          {ride.vehicle_class_details.name}
+                        </Badge>
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
