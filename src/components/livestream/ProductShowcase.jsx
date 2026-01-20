@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import QuickPaymentModal from "./QuickPaymentModal";
 
-export default function ProductShowcase({ streamId, isCreator, currentUser }) {
+export default function ProductShowcase({ streamId, isCreator, currentUser, creatorEmail }) {
   const queryClient = useQueryClient();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [products, setProducts] = useState([]);

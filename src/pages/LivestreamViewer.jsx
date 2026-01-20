@@ -458,6 +458,7 @@ export default function LivestreamViewer() {
                             streamId={streamId}
                             isCreator={isStreamCreator}
                             currentUser={currentUser}
+                            creatorEmail={stream.created_by}
                           />
                         )}
                       </div>
@@ -613,6 +614,7 @@ export default function LivestreamViewer() {
                         streamId={streamId}
                         isCreator={isStreamCreator}
                         currentUser={currentUser}
+                        creatorEmail={stream.created_by}
                       />
                     </div>
                   )}
