@@ -66,6 +66,7 @@ export default function LivestreamViewer() {
       return () => {
         const cleanup = async () => {
           try {
+            const user = await base44.auth.me().catch(() => null);
             const analytics = await base44.entities.ViewerAnalytics.filter({
               content_id: id,
               created_by: user?.email
