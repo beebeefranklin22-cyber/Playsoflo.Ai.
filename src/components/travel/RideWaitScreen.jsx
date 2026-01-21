@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Car, Clock, MapPin, User, Phone, MessageCircle, Navigation } from "lucide-react";
+import { Car, Clock, MapPin, User, Phone, MessageCircle, Navigation, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import CancelRideModal from "./CancelRideModal";
+import RideChatModal from "../chat/RideChatModal";
 
 export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [currentStatus, setCurrentStatus] = useState(rideRequest.status);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [ride, setRide] = useState(rideRequest);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -20,6 +30,7 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
     const unsubscribe = base44.entities.RideRequest.subscribe((event) => {
       if (event.data?.id === rideRequest.id && event.type === 'update') {
         setCurrentStatus(event.data.status);
+        setRide(event.data);
         if (event.data.status === 'accepted') {
           toast.success("Driver accepted your ride!");
         }
@@ -82,7 +93,7 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
         </div>
 
         {/* Driver Info (shown when accepted) */}
-        {currentStatus === 'accepted' && rideRequest.driver_name && (
+        {currentStatus === 'accepted' && ride.driver_name && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,29 +101,28 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                {rideRequest.driver_name?.[0]}
+                {ride.driver_name?.[0]}
               </div>
               <div className="flex-1">
-                <h3 className="text-white font-bold text-lg">{rideRequest.driver_name}</h3>
+                <h3 className="text-white font-bold text-lg">{ride.driver_name}</h3>
                 <p className="text-gray-400 text-sm">Your driver</p>
               </div>
             </div>
 
-            {rideRequest.driver_vehicle_info && (
+            {ride.driver_vehicle_info && (
               <div className="bg-white/5 rounded-lg p-3 mb-4">
                 <p className="text-white font-semibold">
-                  {rideRequest.driver_vehicle_info.color} {rideRequest.driver_vehicle_info.make} {rideRequest.driver_vehicle_info.model}
+                  {ride.driver_vehicle_info.color} {ride.driver_vehicle_info.make} {ride.driver_vehicle_info.model}
                 </p>
-                <p className="text-gray-400 text-sm">{rideRequest.driver_vehicle_info.license_plate}</p>
+                <p className="text-gray-400 text-sm">{ride.driver_vehicle_info.license_plate}</p>
               </div>
             )}
 
             <div className="flex gap-2">
-              <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
-                <Phone className="w-4 h-4 mr-2" />
-                Call
-              </Button>
-              <Button className="flex-1 bg-purple-600 hover:bg-purple-700">
+              <Button 
+                onClick={() => setShowChat(true)}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+              >
                 <MessageCircle className="w-4 h-4 mr-2" />
                 Message
               </Button>
@@ -131,16 +141,30 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
         {/* Cancel Ride */}
         <Button
           variant="outline"
-          className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10"
-          onClick={async () => {
-            await base44.entities.RideRequest.update(rideRequest.id, { status: 'cancelled' });
-            toast.success("Ride cancelled");
-            window.location.reload();
-          }}
+          className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10 py-4"
+          onClick={() => setShowCancelModal(true)}
         >
+          <X className="w-5 h-5 mr-2" />
           Cancel Ride
         </Button>
       </div>
+
+      {showCancelModal && (
+        <CancelRideModal
+          open={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          ride={ride}
+          currentUser={currentUser}
+        />
+      )}
+
+      {showChat && ride.driver_email && (
+        <RideChatModal
+          open={showChat}
+          onClose={() => setShowChat(false)}
+          ride={ride}
+        />
+      )}
     </div>
   );
 }
