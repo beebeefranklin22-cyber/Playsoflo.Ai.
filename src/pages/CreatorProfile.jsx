@@ -212,7 +212,7 @@ export default function CreatorProfile() {
             <div className="flex-1">
               <h1 className="text-4xl font-bold text-white mb-2">{creator.full_name}</h1>
               {creator.username && (
-                <p className="text-purple-300 text-lg mb-2">@{creator.username}</p>
+                <p className="text-purple-300 text-lg mb-2">{"@"}{creator.username}</p>
               )}
               <div className="flex items-center gap-6 text-gray-300">
                 <div className="flex items-center gap-2">
