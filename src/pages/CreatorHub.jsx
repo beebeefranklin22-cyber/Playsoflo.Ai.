@@ -43,6 +43,18 @@ export default function CreatorHub() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
 
+  // Show loading state
+  if (currentUser === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading Creator Hub...</p>
+        </div>
+      </div>
+    );
+  }
+
   useEffect(() => {
     base44.auth.me().then(async (user) => {
       setCurrentUser(user);
@@ -51,7 +63,10 @@ export default function CreatorHub() {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
       if (tabParam) setActiveTab(tabParam);
-    }).catch(() => {});
+    }).catch((error) => {
+      console.log("Auth error:", error);
+      setCurrentUser(null);
+    });
   }, []);
 
   const { data: products = [] } = useQuery({

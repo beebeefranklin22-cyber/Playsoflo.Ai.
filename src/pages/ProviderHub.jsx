@@ -76,6 +76,18 @@ export default function ProviderHub() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Show loading state while user loads
+  if (currentUser === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading Provider Hub...</p>
+        </div>
+      </div>
+    );
+  }
   const [availabilityForm, setAvailabilityForm] = useState({
     day_of_week: "monday",
     is_available: true,
@@ -163,6 +175,7 @@ export default function ProviderHub() {
         }
       } catch (error) {
         console.log("Error loading user:", error);
+        setCurrentUser(null);
       }
     };
     loadUser();

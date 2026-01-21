@@ -31,6 +31,18 @@ export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("today");
   const [isOnline, setIsOnline] = useState(false);
+
+  // Show loading state
+  if (currentUser === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 via-emerald-950 to-green-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading Driver Hub...</p>
+        </div>
+      </div>
+    );
+  }
   const [chatRide, setChatRide] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [navRide, setNavRide] = useState(null);
@@ -54,7 +66,10 @@ export default function DriverHub() {
       if (user.driver_current_lat && user.driver_current_lng) {
         setDriverLocation([user.driver_current_lat, user.driver_current_lng]);
       }
-    }).catch(() => {});
+    }).catch((error) => {
+      console.log("Auth error:", error);
+      setCurrentUser(null);
+    });
 
     // Get driver's current location
     if (navigator.geolocation) {
