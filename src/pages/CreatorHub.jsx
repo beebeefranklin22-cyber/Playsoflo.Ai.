@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   TrendingUp, DollarSign, Users, Heart, 
   Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
-  Upload, X, Loader2, Video, Radio, Star, ShoppingBag, Briefcase
+  Upload, X, Loader2, Video, Radio, Star, ShoppingBag, Briefcase,
+  Crown, Package, Home, Lock
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -19,8 +20,9 @@ import LivestreamManager from "../components/livestream/LivestreamManager.jsx";
 import PPVContentManager from "../components/creator/PPVContentManager.jsx";
 import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 import MembershipManager from "../components/creator/MembershipManager.jsx";
-import SubscriptionTiersManager from "../components/monetization/SubscriptionTiersManager.jsx";
-import DigitalGoodsStore from "../components/monetization/DigitalGoodsStore.jsx";
+import SubscriptionTiersManager from "../components/creator/SubscriptionTiersManager";
+import DigitalProductsStore from "../components/creator/DigitalProductsStore";
+import AdvancedAnalyticsDashboard from "../components/creator/AdvancedAnalyticsDashboard";
 import CrowdfundingManager from "../components/monetization/CrowdfundingManager.jsx";
 import SponsoredContentManager from "../components/monetization/SponsoredContentManager.jsx";
 import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
@@ -440,7 +442,7 @@ export default function CreatorHub() {
 
           {/* Digital Store Tab */}
           <TabsContent value="store" className="space-y-6">
-            <DigitalGoodsStore currentUser={currentUser} viewMode="manage" />
+            <DigitalProductsStore currentUser={currentUser} />
           </TabsContent>
 
           {/* Crowdfunding Tab */}
@@ -1190,7 +1192,7 @@ export default function CreatorHub() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
-            <CreatorAnalyticsDashboard currentUser={currentUser} />
+            <AdvancedAnalyticsDashboard currentUser={currentUser} />
           </TabsContent>
 
           {/* Earnings Tab */}

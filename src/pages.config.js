@@ -73,6 +73,7 @@ import RestaurantOwnerHub from './pages/RestaurantOwnerHub';
 import Rewards from './pages/Rewards';
 import RideHistory from './pages/RideHistory';
 import RonronAI from './pages/RonronAI';
+import SecurityAudit from './pages/SecurityAudit';
 import SecurityDashboard from './pages/SecurityDashboard';
 import ServiceProviders from './pages/ServiceProviders';
 import SharedDocument from './pages/SharedDocument';
@@ -102,7 +103,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import SecurityAudit from './pages/SecurityAudit';
 import __Layout from './Layout.jsx';
 
 
@@ -182,6 +182,7 @@ export const PAGES = {
     "Rewards": Rewards,
     "RideHistory": RideHistory,
     "RonronAI": RonronAI,
+    "SecurityAudit": SecurityAudit,
     "SecurityDashboard": SecurityDashboard,
     "ServiceProviders": ServiceProviders,
     "SharedDocument": SharedDocument,
@@ -211,7 +212,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "SecurityAudit": SecurityAudit,
 }
 
 export const pagesConfig = {
