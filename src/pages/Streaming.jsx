@@ -19,6 +19,7 @@ import StreamScheduler from "../components/livestream/StreamScheduler";
 import WatchPartyModal from "../components/livestream/WatchPartyModal";
 import StreamGoalsWidget from "../components/livestream/StreamGoalsWidget";
 import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
+import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 
 const categories = [
   { id: "all", label: "All", icon: Tv },
@@ -126,6 +127,8 @@ export default function Streaming() {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showWatchParty, setShowWatchParty] = useState(null);
   const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
+  const [showGoLive, setShowGoLive] = useState(false);
+  const [browseByCreator, setBrowseByCreator] = useState(false);
 
   React.useEffect(() => {
     const fetchUser = async () => {
@@ -151,20 +154,43 @@ export default function Streaming() {
   // Only show ACTIVE livestreams (is_live=true)
   const activeLivestreams = content.filter(item => item.is_live === true);
 
+  // Get unique active creators (currently livestreaming)
+  const { data: activeCreators = [] } = useQuery({
+    queryKey: ['active-creators'],
+    queryFn: async () => {
+      const liveStreams = await base44.entities.StreamingContent.filter({ 
+        is_live: true,
+        status: "published" 
+      });
+      const creatorEmails = [...new Set(liveStreams.map(s => s.creator_email))];
+      const creators = await Promise.all(
+        creatorEmails.map(async (email) => {
+          const users = await base44.entities.User.filter({ email });
+          return users[0] || null;
+        })
+      );
+      return creators.filter(c => c !== null);
+    },
+    refetchInterval: 30000,
+    initialData: []
+  });
+
   const trendingContent = [...content]
+    .filter(item => !item.is_live) // Exclude active livestreams from trending (show only VOD)
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 10);
 
   const filteredContent = (() => {
-    let filtered = content;
+    let filtered = [...content].filter(item => !item.is_live); // Don't show active livestreams in browse
     
-    // Search filter (including tags)
+    // Search filter (including tags and creator)
     if (searchQuery) {
       filtered = filtered.filter(item => 
         item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.creator_username?.toLowerCase().includes(searchQuery.toLowerCase())
+        item.creator_username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.creator_email?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -533,19 +559,26 @@ export default function Streaming() {
               {currentUser && (
                 <>
                   <Button
-                    onClick={() => setShowScheduler(true)}
-                    variant="outline"
-                    className="bg-white/10 border-white/20"
+                    onClick={() => setShowGoLive(true)}
+                    className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 animate-pulse"
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule
+                    <Radio className="w-4 h-4 mr-2" />
+                    Go Live
                   </Button>
                   <Button
                     onClick={() => setShowUpload(true)}
                     className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                   >
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload
+                    Upload Video
+                  </Button>
+                  <Button
+                    onClick={() => setShowScheduler(true)}
+                    variant="outline"
+                    className="bg-white/10 border-white/20"
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Schedule
                   </Button>
                 </>
               )}
@@ -594,14 +627,63 @@ export default function Streaming() {
 
       {/* Search Bar */}
       <div className="px-6 mb-8">
-        <Input
-          type="text"
-          placeholder="Search content by title, description, genre..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-12 text-lg"
-        />
+        <div className="flex gap-4">
+          <Input
+            type="text"
+            placeholder="Search by title, creator, tags, genre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-12 text-lg"
+          />
+          <Button
+            onClick={() => setBrowseByCreator(!browseByCreator)}
+            variant={browseByCreator ? "default" : "outline"}
+            className={browseByCreator ? "bg-purple-600" : "bg-white/10 border-white/20"}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Browse Creators
+          </Button>
+        </div>
       </div>
+
+      {/* Active Creators Section */}
+      {browseByCreator && activeCreators.length > 0 && (
+        <div className="px-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+            <Radio className="w-6 h-6 text-green-500 animate-pulse" />
+            Live Creators ({activeCreators.length} online)
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {activeCreators.map(creator => (
+              <motion.div
+                key={creator.email}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="cursor-pointer group"
+                onClick={() => navigate(createPageUrl("CreatorProfile") + `?creator=${creator.email}`)}
+              >
+                <div className="relative">
+                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-900 mb-2">
+                    <img 
+                      src={creator.profile_picture || `https://ui-avatars.com/api/?name=${creator.full_name}`}
+                      alt={creator.full_name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                    <div className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
+                  </div>
+                  <h3 className="text-white font-semibold text-sm text-center line-clamp-1">
+                    {creator.full_name}
+                  </h3>
+                  {creator.username && (
+                    <p className="text-purple-400 text-xs text-center">{"@"}{creator.username}</p>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Trending Now Section */}
       {trendingContent.length > 0 && !searchQuery && (
@@ -679,14 +761,20 @@ export default function Streaming() {
                 </div>
 
                 <div className="absolute inset-x-0 bottom-0 p-6">
-                  <div className="mb-2">
-                    {item.creator_username && (
-                      <p className="text-gray-300 text-sm mb-1">@{item.creator_username}</p>
-                    )}
-                    <h3 className="text-2xl font-bold text-white">
-                      {item.title}
-                    </h3>
-                  </div>
+                <div className="mb-2">
+                  {item.creator_username && (
+                    <p className="text-gray-300 text-sm mb-1 cursor-pointer hover:text-purple-400 transition"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         navigate(createPageUrl("CreatorProfile") + `?creator=${item.creator_email}`);
+                       }}>
+                      {"@"}{item.creator_username}
+                    </p>
+                  )}
+                  <h3 className="text-2xl font-bold text-white">
+                    {item.title}
+                  </h3>
+                </div>
                   <div className="flex items-center gap-4 text-gray-300 text-sm">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
@@ -885,7 +973,14 @@ export default function Streaming() {
       </div>
 
       <div className="px-6">
-        <h2 className="text-2xl font-bold text-white mb-4">Browse Content</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white">
+            {browseByCreator ? "Browse by Creator" : "Browse Content"}
+          </h2>
+          {searchQuery && (
+            <p className="text-gray-400 text-sm">{filteredContent.length} results found</p>
+          )}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <AnimatePresence>
             {filteredContent.map((item) => (
@@ -951,6 +1046,15 @@ export default function Streaming() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
+                    {item.creator_username && (
+                      <p className="text-purple-400 text-xs mb-1 cursor-pointer hover:text-purple-300"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           navigate(createPageUrl("CreatorProfile") + `?creator=${item.creator_email}`);
+                         }}>
+                        {"@"}{item.creator_username}
+                      </p>
+                    )}
                     <h3 className="text-white font-bold mb-1 line-clamp-2">
                       {item.title}
                     </h3>
@@ -965,9 +1069,6 @@ export default function Streaming() {
                         <span>★ {item.rating}</span>
                       )}
                     </div>
-                    {item.is_live && item.id && (
-                      <StreamGoalsWidget streamId={item.id} />
-                    )}
                   </div>
                 </div>
               </motion.div>
@@ -1383,6 +1484,18 @@ export default function Streaming() {
 
       {showTMDBBrowser && (
         <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />
+      )}
+
+      {showGoLive && currentUser && (
+        <GoLiveNowModal
+          currentUser={currentUser}
+          onClose={() => setShowGoLive(false)}
+          onSuccess={() => {
+            setShowGoLive(false);
+            toast.success("Stream started! Redirecting...");
+            setTimeout(() => window.location.reload(), 1000);
+          }}
+        />
       )}
 
       <style>{`
