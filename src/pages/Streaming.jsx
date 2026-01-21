@@ -141,9 +141,15 @@ export default function Streaming() {
 
   const { data: content = [], isLoading } = useQuery({
     queryKey: ['streaming-content'],
-    queryFn: () => base44.entities.StreamingContent.list(),
+    queryFn: async () => {
+      const allContent = await base44.entities.StreamingContent.filter({ status: "published" });
+      return allContent;
+    },
     initialData: []
   });
+
+  // Only show ACTIVE livestreams (is_live=true)
+  const activeLivestreams = content.filter(item => item.is_live === true);
 
   const trendingContent = [...content]
     .sort((a, b) => (b.views || 0) - (a.views || 0))
@@ -493,8 +499,6 @@ export default function Streaming() {
     }
   };
 
-  const liveContent = content.filter(item => item.is_live);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-red-950 to-gray-950 pb-20">
       <div className="relative h-64 flex items-end">
@@ -648,14 +652,14 @@ export default function Streaming() {
         </div>
       )}
 
-      {liveContent.length > 0 && (
+      {activeLivestreams.length > 0 && (
         <div className="px-6 mb-8">
           <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
             <Radio className="w-6 h-6 text-red-500 animate-pulse" />
-            Live Now
+            Live Now - {activeLivestreams.length} Active Stream{activeLivestreams.length !== 1 ? 's' : ''}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {liveContent.slice(0, 2).map((item) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeLivestreams.map((item) => (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -675,13 +679,18 @@ export default function Streaming() {
                 </div>
 
                 <div className="absolute inset-x-0 bottom-0 p-6">
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    {item.title}
-                  </h3>
+                  <div className="mb-2">
+                    {item.creator_username && (
+                      <p className="text-gray-300 text-sm mb-1">@{item.creator_username}</p>
+                    )}
+                    <h3 className="text-2xl font-bold text-white">
+                      {item.title}
+                    </h3>
+                  </div>
                   <div className="flex items-center gap-4 text-gray-300 text-sm">
                     <div className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      45.2K watching
+                      {item.views || 0} watching
                     </div>
                     {item.betting_available && (
                       <span className="px-2 py-1 bg-yellow-500/20 rounded text-yellow-300 text-xs font-bold">

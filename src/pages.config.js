@@ -103,6 +103,7 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
+import CreatorProfile from './pages/CreatorProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -212,6 +213,7 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
+    "CreatorProfile": CreatorProfile,
 }
 
 export const pagesConfig = {
