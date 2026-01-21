@@ -489,45 +489,77 @@ export default function RestaurantOwnerHub() {
                     )}
 
                     {!['delivered', 'cancelled'].includes(order.status) && (
-                      <div className="flex gap-2">
-                        {order.status === 'pending' && (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          {order.status === 'pending' && (
+                            <Button
+                              onClick={() => updateOrderStatusMutation.mutate({ 
+                                orderId: order.id, 
+                                newStatus: 'confirmed',
+                                customerEmail: order.created_by
+                              })}
+                              className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            >
+                              Confirm Order
+                            </Button>
+                          )}
+                          {order.status === 'confirmed' && (
+                            <Button
+                              onClick={() => updateOrderStatusMutation.mutate({ 
+                                orderId: order.id, 
+                                newStatus: 'preparing',
+                                customerEmail: order.created_by
+                              })}
+                              className="flex-1 bg-purple-600 hover:bg-purple-700"
+                            >
+                              <ChefHat className="w-4 h-4 mr-2" />
+                              Start Preparing
+                            </Button>
+                          )}
+                          {order.status === 'preparing' && (
+                            <Button
+                              onClick={() => updateOrderStatusMutation.mutate({ 
+                                orderId: order.id, 
+                                newStatus: 'ready',
+                                customerEmail: order.created_by
+                              })}
+                              className="flex-1 bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Mark as Ready
+                            </Button>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
                           <Button
-                            onClick={() => updateOrderStatusMutation.mutate({ 
-                              orderId: order.id, 
-                              newStatus: 'confirmed',
-                              customerEmail: order.created_by
-                            })}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700"
+                            onClick={async () => {
+                              const reason = prompt("Reason for cancellation:");
+                              if (!reason) return;
+                              
+                              try {
+                                const response = await base44.functions.invoke('cancelOrderSecure', {
+                                  order_id: order.id,
+                                  restaurant_email: currentUser.email,
+                                  cancellation_reason: reason
+                                });
+                                
+                                if (response.data.error) {
+                                  toast.error(response.data.error);
+                                } else {
+                                  toast.success("Order cancelled and customer refunded");
+                                  queryClient.invalidateQueries(['restaurant-orders']);
+                                }
+                              } catch (error) {
+                                toast.error("Cancellation failed");
+                              }
+                            }}
+                            variant="outline"
+                            className="flex-1 bg-red-500/10 border-red-500/30 hover:bg-red-500/20"
                           >
-                            Confirm Order
+                            <X className="w-4 h-4 mr-2" />
+                            Cancel & Refund
                           </Button>
-                        )}
-                        {order.status === 'confirmed' && (
-                          <Button
-                            onClick={() => updateOrderStatusMutation.mutate({ 
-                              orderId: order.id, 
-                              newStatus: 'preparing',
-                              customerEmail: order.created_by
-                            })}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700"
-                          >
-                            <ChefHat className="w-4 h-4 mr-2" />
-                            Start Preparing
-                          </Button>
-                        )}
-                        {order.status === 'preparing' && (
-                          <Button
-                            onClick={() => updateOrderStatusMutation.mutate({ 
-                              orderId: order.id, 
-                              newStatus: 'ready',
-                              customerEmail: order.created_by
-                            })}
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Mark as Ready
-                          </Button>
-                        )}
+                        </div>
                       </div>
                     )}
                   </motion.div>

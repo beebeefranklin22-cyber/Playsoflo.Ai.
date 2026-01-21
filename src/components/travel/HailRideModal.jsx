@@ -106,7 +106,17 @@ export default function HailRideModal({ open, onClose }) {
           setEstimatedDuration(response.data.duration_minutes);
           setPickupCoords(response.data.pickup_coords);
           setDropoffCoords(response.data.dropoff_coords);
-          
+
+          // Update vehicle pricing with dynamic 15% discount
+          if (response.data.pricing && selectedVehicle) {
+            setSelectedVehicle({
+              ...selectedVehicle,
+              basePrice: response.data.pricing.our_base_price,
+              pricePerMile: response.data.pricing.our_price_per_mile,
+              pricePerMinute: response.data.pricing.our_price_per_minute
+            });
+          }
+
           // Update with formatted addresses if available
           if (response.data.pickup_formatted && response.data.pickup_formatted !== pickup) {
             setPickup(response.data.pickup_formatted);

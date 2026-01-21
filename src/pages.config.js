@@ -16,6 +16,7 @@ import ContentHub from './pages/ContentHub';
 import CreatorDiscovery from './pages/CreatorDiscovery';
 import CreatorHub from './pages/CreatorHub';
 import CreatorOnboarding from './pages/CreatorOnboarding';
+import CreatorProfile from './pages/CreatorProfile';
 import CreatorStorefront from './pages/CreatorStorefront';
 import CustomerBookings from './pages/CustomerBookings';
 import DeliveryDriverHub from './pages/DeliveryDriverHub';
@@ -103,7 +104,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import CreatorProfile from './pages/CreatorProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -126,6 +126,7 @@ export const PAGES = {
     "CreatorDiscovery": CreatorDiscovery,
     "CreatorHub": CreatorHub,
     "CreatorOnboarding": CreatorOnboarding,
+    "CreatorProfile": CreatorProfile,
     "CreatorStorefront": CreatorStorefront,
     "CustomerBookings": CustomerBookings,
     "DeliveryDriverHub": DeliveryDriverHub,
@@ -213,7 +214,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "CreatorProfile": CreatorProfile,
 }
 
 export const pagesConfig = {
