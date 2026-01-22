@@ -80,6 +80,46 @@ export default function NotificationCenter({ currentUser, compact = false }) {
     }
   });
 
+  const handleFollowAction = useMutation({
+    mutationFn: async ({ requestId, action, notificationId }) => {
+      await base44.entities.FollowRequest.update(requestId, { status: action });
+      await base44.entities.Notification.update(notificationId, { read: true });
+    },
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries(['notifications']);
+      queryClient.invalidateQueries(['unread-notifications']);
+      toast.success(action === 'accepted' ? 'Follow request accepted!' : 'Follow request declined');
+    }
+  });
+
+  const handleRideAction = useMutation({
+    mutationFn: async ({ rideId, action, notificationId }) => {
+      const status = action === 'accept' ? 'accepted' : 'declined_by_customer';
+      await base44.entities.RideRequest.update(rideId, { 
+        driver_status: action === 'accept' ? 'accepted' : 'declined',
+        status 
+      });
+      await base44.entities.Notification.update(notificationId, { read: true });
+    },
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries(['notifications']);
+      toast.success(action === 'accept' ? 'Ride accepted!' : 'Ride declined');
+    }
+  });
+
+  const handleBookingAction = useMutation({
+    mutationFn: async ({ bookingId, action, notificationId }) => {
+      await base44.entities.Booking.update(bookingId, { 
+        status: action === 'accept' ? 'confirmed' : 'cancelled'
+      });
+      await base44.entities.Notification.update(notificationId, { read: true });
+    },
+    onSuccess: (_, { action }) => {
+      queryClient.invalidateQueries(['notifications']);
+      toast.success(action === 'accept' ? 'Booking confirmed!' : 'Booking declined');
+    }
+  });
+
   const handleNotificationClick = (notification) => {
     markAsReadMutation.mutate(notification.id);
 
@@ -270,6 +310,149 @@ export default function NotificationCenter({ currentUser, compact = false }) {
                                       )}
                                     </div>
                                     <p className="text-gray-300 text-sm mb-2">{notif.message}</p>
+                                    
+                                    {/* Action Buttons */}
+                                    {notif.metadata?.follow_request_id && (
+                                      <div className="flex gap-2 mb-3">
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleFollowAction.mutate({ 
+                                              requestId: notif.metadata.follow_request_id, 
+                                              action: 'accepted',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleFollowAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Accept
+                                        </Button>
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleFollowAction.mutate({ 
+                                              requestId: notif.metadata.follow_request_id, 
+                                              action: 'declined',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleFollowAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-red-600 hover:bg-red-700"
+                                        >
+                                          <X className="w-3 h-3 mr-1" />
+                                          Decline
+                                        </Button>
+                                      </div>
+                                    )}
+
+                                    {notif.metadata?.ride_id && notif.type === 'ride_request' && (
+                                      <div className="flex gap-2 mb-3">
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRideAction.mutate({ 
+                                              rideId: notif.metadata.ride_id, 
+                                              action: 'accept',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleRideAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                          <Car className="w-3 h-3 mr-1" />
+                                          Accept Ride
+                                        </Button>
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRideAction.mutate({ 
+                                              rideId: notif.metadata.ride_id, 
+                                              action: 'decline',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleRideAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-red-600 hover:bg-red-700"
+                                        >
+                                          <X className="w-3 h-3 mr-1" />
+                                          Decline
+                                        </Button>
+                                      </div>
+                                    )}
+
+                                    {notif.metadata?.booking_id && notif.type === 'booking_request' && (
+                                      <div className="flex gap-2 mb-3">
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleBookingAction.mutate({ 
+                                              bookingId: notif.metadata.booking_id, 
+                                              action: 'accept',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleBookingAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-green-600 hover:bg-green-700"
+                                        >
+                                          <Check className="w-3 h-3 mr-1" />
+                                          Confirm
+                                        </Button>
+                                        <Button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleBookingAction.mutate({ 
+                                              bookingId: notif.metadata.booking_id, 
+                                              action: 'decline',
+                                              notificationId: notif.id 
+                                            });
+                                          }}
+                                          disabled={handleBookingAction.isPending}
+                                          size="sm"
+                                          className="flex-1 bg-red-600 hover:bg-red-700"
+                                        >
+                                          <X className="w-3 h-3 mr-1" />
+                                          Decline
+                                        </Button>
+                                      </div>
+                                    )}
+
+                                    {notif.metadata?.order_id && (
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          markAsReadMutation.mutate(notif.id);
+                                          navigate(createPageUrl('FoodOrderTracking'));
+                                        }}
+                                        size="sm"
+                                        className="w-full mb-3 bg-blue-600 hover:bg-blue-700"
+                                      >
+                                        <Package className="w-3 h-3 mr-1" />
+                                        View Order
+                                      </Button>
+                                    )}
+
+                                    {notif.metadata?.sender_email && notif.type === 'message' && (
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          markAsReadMutation.mutate(notif.id);
+                                          navigate(createPageUrl('Messages') + `?chat=${notif.metadata.conversation_id || notif.metadata.sender_email}`);
+                                        }}
+                                        size="sm"
+                                        className="w-full mb-3 bg-purple-600 hover:bg-purple-700"
+                                      >
+                                        <MessageCircle className="w-3 h-3 mr-1" />
+                                        Reply
+                                      </Button>
+                                    )}
+
                                     <div className="flex items-center justify-between">
                                       <span className="text-gray-500 text-xs">
                                         {new Date(notif.created_date).toLocaleString()}
