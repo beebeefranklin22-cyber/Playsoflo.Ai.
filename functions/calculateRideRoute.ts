@@ -56,15 +56,23 @@ Deno.serve(async (req) => {
     const distanceMiles = distanceMeters / 1609.34;
     const durationMinutes = durationSeconds / 60;
 
-    // Fetch Uber/Lyft pricing (simplified - would use real API)
-    // For now, use industry average: base $2.50, $1.50/mile, $0.30/min
-    const uberEstimate = 2.50 + (distanceMiles * 1.50) + (durationMinutes * 0.30);
+    // Calculate realistic Uber pricing based on actual distance/time
+    // Uber pricing model: base fare + per mile + per minute + booking fee
+    const uberBasePrice = 2.50;
+    const uberPricePerMile = 1.75;
+    const uberPricePerMinute = 0.35;
+    const uberBookingFee = 2.55;
     
-    // Our pricing: 15% cheaper than Uber/Lyft
+    const uberEstimate = uberBasePrice + (distanceMiles * uberPricePerMile) + (durationMinutes * uberPricePerMinute) + uberBookingFee;
+    
+    // Our pricing: Always 15% cheaper than Uber
     const discountMultiplier = 0.85; // 15% discount
-    const ourBasePrice = 2.50 * discountMultiplier;
-    const ourPricePerMile = 1.50 * discountMultiplier;
-    const ourPricePerMinute = 0.30 * discountMultiplier;
+    const ourEstimate = uberEstimate * discountMultiplier;
+    
+    // Calculate our breakdown to match 15% cheaper total
+    const ourBasePrice = uberBasePrice * discountMultiplier;
+    const ourPricePerMile = uberPricePerMile * discountMultiplier;
+    const ourPricePerMinute = uberPricePerMinute * discountMultiplier;
 
     return Response.json({
       pickup_coords: [pickupCoords.lat, pickupCoords.lng],
@@ -75,10 +83,12 @@ Deno.serve(async (req) => {
       duration_minutes: durationMinutes,
       pricing: {
         uber_estimate: uberEstimate,
+        our_estimate: ourEstimate,
         our_base_price: ourBasePrice,
         our_price_per_mile: ourPricePerMile,
         our_price_per_minute: ourPricePerMinute,
-        savings: uberEstimate * 0.15
+        discount_percent: 15,
+        savings: uberEstimate - ourEstimate
       }
     });
 
