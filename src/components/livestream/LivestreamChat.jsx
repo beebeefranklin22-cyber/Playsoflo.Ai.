@@ -84,6 +84,7 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
       stream_id: streamId,
       user_email: currentUser.email,
       user_name: currentUser.full_name || currentUser.email.split('@')[0],
+      user_profile_picture: currentUser.profile_picture || currentUser.profile_photo,
       message: message.trim()
     });
   };
@@ -134,9 +135,17 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
               className="group relative"
             >
               <div className={`flex items-start gap-2 ${msg.is_priority ? 'order-first' : ''}`}>
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {msg.user_name?.[0]?.toUpperCase()}
-                </div>
+                {msg.user_profile_picture ? (
+                  <img 
+                    src={msg.user_profile_picture} 
+                    alt={msg.user_name}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-white/20"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {msg.user_name?.[0]?.toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-purple-300 font-semibold text-sm">
