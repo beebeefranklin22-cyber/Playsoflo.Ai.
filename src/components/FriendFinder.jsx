@@ -202,9 +202,17 @@ function UserCard({ user, currentUser, pendingRequests, onFollow, onViewProfile,
   return (
     <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition">
       <button onClick={onViewProfile} className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-          {(user.full_name?.[0] || "U").toUpperCase()}
-        </div>
+        {user.profile_picture || user.profile_photo ? (
+          <img 
+            src={user.profile_picture || user.profile_photo} 
+            alt={user.full_name}
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-white/20"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+            {(user.full_name?.[0] || "U").toUpperCase()}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-white font-semibold truncate">{user.full_name}</p>
           {user.username && (
