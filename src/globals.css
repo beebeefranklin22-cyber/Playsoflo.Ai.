@@ -114,8 +114,18 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
+.low-power-mode *,
+.reduce-animations * {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
 .slow-network img {
   loading: lazy;
+}
+
+.slow-network video {
+  preload: none;
 }
 
 /* Responsive viewport height */

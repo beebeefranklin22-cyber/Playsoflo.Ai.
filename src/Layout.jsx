@@ -130,11 +130,13 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
+    <EnhancedErrorBoundary>
     <ErrorBoundary>
     <GlobalSecurityHandler />
     <SecurityValidator>
     <SecureOperationWrapper>
     <TVNavigationHandler>
+    <PerformanceMonitor>
     <PostHogProvider user={currentUser}>
       <SafeErrorHandler />
       <ServiceWorkerManager />
@@ -429,9 +431,11 @@ export default function Layout({ children, currentPageName }) {
       <RideNotificationHandler currentUser={currentUser} />
       </div>
       </PostHogProvider>
+      </PerformanceMonitor>
       </TVNavigationHandler>
       </SecureOperationWrapper>
       </SecurityValidator>
       </ErrorBoundary>
+      </EnhancedErrorBoundary>
       );
       }
