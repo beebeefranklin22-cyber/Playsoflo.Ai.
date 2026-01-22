@@ -130,7 +130,6 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
-    <EnhancedErrorBoundary>
     <ErrorBoundary>
     <GlobalSecurityHandler />
     <SecurityValidator>
@@ -436,6 +435,5 @@ export default function Layout({ children, currentPageName }) {
       </SecureOperationWrapper>
       </SecurityValidator>
       </ErrorBoundary>
-      </EnhancedErrorBoundary>
-    );
+      );
   }
