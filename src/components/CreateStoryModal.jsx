@@ -493,9 +493,10 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
 
             </form>
             </div>
+          </div>
 
-            {/* Bottom Action Bar */}
-            <div className="p-4 border-t border-white/10 bg-black">
+          {/* Bottom Action Bar */}
+          <div className="p-4 border-t border-white/10 bg-black">
               <Button
                 onClick={handleSubmit}
                 disabled={createStoryMutation.isPending || (!formData.media_url && !formData.caption)}
