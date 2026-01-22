@@ -1,186 +1,162 @@
-// Input sanitization and validation utilities
-import { toast } from 'sonner';
+import DOMPurify from 'dompurify';
 
-export class InputSanitizer {
-  // Sanitize HTML to prevent XSS
-  static sanitizeHTML(input) {
-    if (!input) return '';
-    
-    const div = document.createElement('div');
-    div.textContent = input;
-    return div.innerHTML;
+class InputSanitizer {
+  // Sanitize HTML content to prevent XSS
+  static sanitizeHTML(dirty) {
+    if (!dirty) return '';
+    return DOMPurify.sanitize(dirty, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li'],
+      ALLOWED_ATTR: ['href', 'target', 'rel'],
+      ALLOW_DATA_ATTR: false
+    });
+  }
+
+  // Sanitize rich text (for messages, comments)
+  static sanitizeRichText(dirty) {
+    if (!dirty) return '';
+    return DOMPurify.sanitize(dirty, {
+      ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre'],
+      ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
+      ALLOW_DATA_ATTR: false
+    });
+  }
+
+  // Sanitize plain text (strip all HTML)
+  static sanitizePlainText(dirty) {
+    if (!dirty) return '';
+    return DOMPurify.sanitize(dirty, { ALLOWED_TAGS: [] });
+  }
+
+  // Sanitize URL to prevent javascript: and data: schemes
+  static sanitizeURL(url) {
+    if (!url) return '';
+    const sanitized = DOMPurify.sanitize(url);
+    try {
+      const parsed = new URL(sanitized);
+      if (['http:', 'https:'].includes(parsed.protocol)) {
+        return sanitized;
+      }
+    } catch (e) {
+      return '';
+    }
+    return '';
   }
 
   // Validate and sanitize email
   static sanitizeEmail(email) {
     if (!email) return '';
-    
-    const sanitized = email.trim().toLowerCase();
+    const cleaned = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
-    if (!emailRegex.test(sanitized)) {
-      throw new Error('Invalid email format');
-    }
-    
-    return sanitized;
+    return emailRegex.test(cleaned) ? cleaned : '';
   }
 
-  // Sanitize URL
-  static sanitizeURL(url) {
-    if (!url) return '';
-    
-    try {
-      const parsed = new URL(url);
-      // Only allow http and https
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
-        throw new Error('Invalid URL protocol');
-      }
-      return parsed.href;
-    } catch (err) {
-      throw new Error('Invalid URL format');
-    }
+  // Sanitize phone number (digits only)
+  static sanitizePhone(phone) {
+    if (!phone) return '';
+    return phone.replace(/\D/g, '');
+  }
+
+  // Sanitize numeric input
+  static sanitizeNumber(value, { min, max, allowFloat = false } = {}) {
+    if (value === null || value === undefined) return null;
+    const num = allowFloat ? parseFloat(value) : parseInt(value, 10);
+    if (isNaN(num)) return null;
+    if (min !== undefined && num < min) return min;
+    if (max !== undefined && num > max) return max;
+    return num;
+  }
+
+  // Sanitize search query
+  static sanitizeSearchQuery(query) {
+    if (!query) return '';
+    // Remove special characters that could be used for injection
+    return query.replace(/[<>\"'`${}();]/g, '').trim().slice(0, 200);
   }
 
   // Sanitize file name
   static sanitizeFileName(fileName) {
     if (!fileName) return '';
-    
+    // Remove path traversal attempts and dangerous characters
     return fileName
-      .replace(/[^a-zA-Z0-9._-]/g, '_')
+      .replace(/\.\./g, '')
+      .replace(/[\/\\:*?"<>|]/g, '')
+      .trim()
       .slice(0, 255);
   }
 
-  // Validate numeric input
-  static validateNumber(value, min = -Infinity, max = Infinity) {
-    const num = parseFloat(value);
-    
-    if (isNaN(num)) {
-      throw new Error('Invalid number');
-    }
-    
-    if (num < min || num > max) {
-      throw new Error(`Number must be between ${min} and ${max}`);
-    }
-    
-    return num;
+  // Validate price/amount
+  static sanitizeAmount(amount) {
+    const num = parseFloat(amount);
+    if (isNaN(num) || num < 0) return 0;
+    return Math.round(num * 100) / 100; // Round to 2 decimals
   }
 
-  // Check for SQL injection patterns (defense in depth)
-  static detectSQLInjection(input) {
-    if (!input) return false;
-    
-    const sqlPatterns = [
-      /(\bunion\b.*\bselect\b)/i,
-      /(\bselect\b.*\bfrom\b)/i,
-      /(\bdrop\b.*\btable\b)/i,
-      /(\binsert\b.*\binto\b)/i,
-      /(\bdelete\b.*\bfrom\b)/i,
-      /(\bupdate\b.*\bset\b)/i,
-      /(;.*--)/,
-      /('.*or.*'.*=.*')/i
-    ];
-    
-    return sqlPatterns.some(pattern => pattern.test(input));
-  }
-
-  // Check for XSS patterns
-  static detectXSS(input) {
-    if (!input) return false;
-    
-    const xssPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /<iframe/i,
-      /<object/i,
-      /<embed/i,
-      /eval\(/i,
-      /expression\(/i
-    ];
-    
-    return xssPatterns.some(pattern => pattern.test(input));
-  }
-
-  // Comprehensive validation
-  static validate(input, type = 'text') {
-    if (this.detectSQLInjection(input)) {
-      throw new Error('Potential SQL injection detected');
-    }
-    
-    if (this.detectXSS(input)) {
-      throw new Error('Potential XSS attack detected');
-    }
-    
-    switch (type) {
-      case 'email':
-        return this.sanitizeEmail(input);
-      case 'url':
-        return this.sanitizeURL(input);
-      case 'html':
-        return this.sanitizeHTML(input);
-      case 'filename':
-        return this.sanitizeFileName(input);
-      default:
-        return input.trim();
-    }
-  }
-
-  // Validate object with schema
-  static validateObject(obj, schema) {
-    const errors = [];
-    
-    for (const [key, rules] of Object.entries(schema)) {
-      const value = obj[key];
-      
-      if (rules.required && !value) {
-        errors.push(`${key} is required`);
-        continue;
-      }
-      
-      if (value && rules.type) {
-        try {
-          this.validate(value, rules.type);
-        } catch (err) {
-          errors.push(`${key}: ${err.message}`);
-        }
-      }
-      
-      if (value && rules.maxLength && value.length > rules.maxLength) {
-        errors.push(`${key} exceeds maximum length of ${rules.maxLength}`);
-      }
-      
-      if (value && rules.minLength && value.length < rules.minLength) {
-        errors.push(`${key} must be at least ${rules.minLength} characters`);
-      }
-    }
-    
-    if (errors.length > 0) {
-      throw new Error(`Validation failed: ${errors.join(', ')}`);
-    }
-    
-    return true;
-  }
-}
-
-// React hook for safe input handling
-export function useSafeInput(initialValue = '', type = 'text') {
-  const [value, setValue] = useState(initialValue);
-  const [error, setError] = useState(null);
-
-  const handleChange = (newValue) => {
+  // Sanitize JSON input
+  static sanitizeJSON(jsonString) {
     try {
-      const sanitized = InputSanitizer.validate(newValue, type);
-      setValue(sanitized);
-      setError(null);
-      return sanitized;
-    } catch (err) {
-      setError(err.message);
-      toast.error(`Input validation failed: ${err.message}`);
+      const parsed = JSON.parse(jsonString);
+      // Recursively sanitize strings in object
+      return JSON.parse(JSON.stringify(parsed, (key, value) => {
+        if (typeof value === 'string') {
+          return this.sanitizePlainText(value);
+        }
+        return value;
+      }));
+    } catch (e) {
       return null;
     }
-  };
+  }
 
-  return { value, setValue: handleChange, error };
+  // Rate limiting helper
+  static createRateLimiter(maxRequests, timeWindow) {
+    const requests = new Map();
+    
+    return (key) => {
+      const now = Date.now();
+      const userRequests = requests.get(key) || [];
+      const recentRequests = userRequests.filter(time => now - time < timeWindow);
+      
+      if (recentRequests.length >= maxRequests) {
+        return false; // Rate limit exceeded
+      }
+      
+      recentRequests.push(now);
+      requests.set(key, recentRequests);
+      return true;
+    };
+  }
 }
 
 export default InputSanitizer;
+
+// React hook for sanitized input
+export function useSanitizedInput(initialValue = '', type = 'text') {
+  const [value, setValue] = React.useState(initialValue);
+  const [sanitized, setSanitized] = React.useState(initialValue);
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    setValue(raw);
+
+    let cleaned;
+    switch (type) {
+      case 'html':
+        cleaned = InputSanitizer.sanitizeHTML(raw);
+        break;
+      case 'url':
+        cleaned = InputSanitizer.sanitizeURL(raw);
+        break;
+      case 'email':
+        cleaned = InputSanitizer.sanitizeEmail(raw);
+        break;
+      case 'number':
+        cleaned = InputSanitizer.sanitizeNumber(raw);
+        break;
+      default:
+        cleaned = InputSanitizer.sanitizePlainText(raw);
+    }
+    setSanitized(cleaned);
+  };
+
+  return [value, sanitized, handleChange];
+}

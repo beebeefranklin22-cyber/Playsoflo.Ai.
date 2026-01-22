@@ -438,7 +438,7 @@ export default function Layout({ children, currentPageName }) {
       </TVNavigationHandler>
       </SecureOperationWrapper>
       </SecurityValidator>
-      </ErrorBoundary>
+      </EnhancedErrorBoundary>
       </EnhancedErrorBoundary>
       );
       }
