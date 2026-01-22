@@ -133,16 +133,17 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
-    <EnhancedErrorBoundary>
+    <ErrorBoundaryWithLogging>
+    <GlobalErrorHandler>
     <ErrorBoundary>
     <GlobalSecurityHandler />
     <SecurityValidator>
     <SecureOperationWrapper>
     <TVNavigationHandler>
-    <PerformanceMonitor>
     <PostHogProvider user={currentUser}>
       <SafeErrorHandler />
       <ServiceWorkerManager />
+      <PerformanceMonitor enabled={process.env.NODE_ENV === 'development'} />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
@@ -434,11 +435,11 @@ export default function Layout({ children, currentPageName }) {
       <RideNotificationHandler currentUser={currentUser} />
       </div>
       </PostHogProvider>
-      </PerformanceMonitor>
       </TVNavigationHandler>
       </SecureOperationWrapper>
       </SecurityValidator>
-      </EnhancedErrorBoundary>
-      </EnhancedErrorBoundary>
+      </ErrorBoundary>
+      </GlobalErrorHandler>
+      </ErrorBoundaryWithLogging>
       );
       }
