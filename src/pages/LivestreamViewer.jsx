@@ -20,6 +20,8 @@ import ReactionEffects from "../components/livestream/ReactionEffects.jsx";
 import PPVTicketGate from "../components/livestream/PPVTicketGate.jsx";
 import LiveTippingOverlay from "../components/livestream/LiveTippingOverlay.jsx";
 import ProductShowcase from "../components/livestream/ProductShowcase.jsx";
+import JoinRequestButton from "../components/livestream/JoinRequestButton.jsx";
+import JoinRequestsPanel from "../components/livestream/JoinRequestsPanel.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -269,17 +271,24 @@ export default function LivestreamViewer() {
               {/* Right - Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">
                 {!isStreamCreator && (
-                  <Button
-                    onClick={() => followMutation.mutate()}
-                    size="sm"
-                    className={isFollowing 
-                      ? "bg-white/10 hover:bg-white/20 border border-white/20" 
-                      : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    }
-                  >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Button>
+                  <>
+                    <JoinRequestButton
+                      streamId={streamId}
+                      currentUser={currentUser}
+                      isCreator={isStreamCreator}
+                    />
+                    <Button
+                      onClick={() => followMutation.mutate()}
+                      size="sm"
+                      className={isFollowing 
+                        ? "bg-white/10 hover:bg-white/20 border border-white/20" 
+                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                      }
+                    >
+                      <UserPlus className="w-4 h-4 mr-1" />
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </Button>
+                  </>
                 )}
                 
                 <Button
@@ -523,6 +532,11 @@ export default function LivestreamViewer() {
                   />
                 </div>
               </div>
+            )}
+
+            {/* Join Requests Panel - Host Only */}
+            {!isTheaterMode && isStreamCreator && (
+              <JoinRequestsPanel streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
             )}
 
             {/* Co-Host Manager */}
