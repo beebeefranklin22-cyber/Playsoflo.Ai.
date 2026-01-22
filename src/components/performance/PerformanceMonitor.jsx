@@ -1,124 +1,141 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
 
-export default function PerformanceMonitor({ children }) {
+/**
+ * Performance Monitor - Tracks app performance metrics
+ * Monitors: FPS, memory usage, network speed, render times
+ */
+export default function PerformanceMonitor({ enabled = true }) {
   const [metrics, setMetrics] = useState({
     fps: 60,
     memoryUsage: 0,
-    networkSpeed: 'fast',
-    batteryLevel: 100,
-    isLowPowerMode: false
+    slowRenders: 0,
+    networkSpeed: 'unknown'
   });
+  const frameCountRef = useRef(0);
+  const lastTimeRef = useRef(performance.now());
+  const slowRenderThreshold = 16.67; // 60fps = 16.67ms per frame
 
   useEffect(() => {
-    // Monitor FPS
-    let lastTime = performance.now();
-    let frames = 0;
-    let fps = 60;
+    if (!enabled) return;
 
-    const measureFPS = () => {
-      frames++;
+    // Track FPS
+    let animationFrameId;
+    const trackFPS = () => {
+      frameCountRef.current++;
       const currentTime = performance.now();
-      if (currentTime >= lastTime + 1000) {
-        fps = Math.round((frames * 1000) / (currentTime - lastTime));
-        frames = 0;
-        lastTime = currentTime;
+      const elapsed = currentTime - lastTimeRef.current;
+
+      if (elapsed >= 1000) {
+        const fps = Math.round((frameCountRef.current * 1000) / elapsed);
         setMetrics(prev => ({ ...prev, fps }));
+        
+        // Log performance warning if FPS drops below 30
+        if (fps < 30) {
+          console.warn(`[Performance] Low FPS detected: ${fps}`);
+        }
+        
+        frameCountRef.current = 0;
+        lastTimeRef.current = currentTime;
       }
-      requestAnimationFrame(measureFPS);
-    };
-    
-    const fpsId = requestAnimationFrame(measureFPS);
 
-    // Monitor Memory (if available)
-    const checkMemory = () => {
+      animationFrameId = requestAnimationFrame(trackFPS);
+    };
+    trackFPS();
+
+    // Track Memory Usage (if available)
+    const trackMemory = setInterval(() => {
       if (performance.memory) {
-        const usedMemory = performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit;
-        setMetrics(prev => ({ ...prev, memoryUsage: usedMemory }));
-      }
-    };
-    const memoryInterval = setInterval(checkMemory, 5000);
-
-    // Monitor Network
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (connection) {
-      const updateConnectionStatus = () => {
-        const effectiveType = connection.effectiveType;
+        const usedMB = Math.round(performance.memory.usedJSHeapSize / 1048576);
+        const limitMB = Math.round(performance.memory.jsHeapSizeLimit / 1048576);
         setMetrics(prev => ({ 
           ...prev, 
-          networkSpeed: effectiveType === '4g' ? 'fast' : effectiveType === '3g' ? 'medium' : 'slow'
+          memoryUsage: Math.round((usedMB / limitMB) * 100)
         }));
-      };
-      updateConnectionStatus();
-      connection.addEventListener('change', updateConnectionStatus);
-    }
 
-    // Monitor Battery
-    if ('getBattery' in navigator) {
-      navigator.getBattery().then((battery) => {
-        const updateBatteryStatus = () => {
-          setMetrics(prev => ({
-            ...prev,
-            batteryLevel: battery.level * 100,
-            isLowPowerMode: battery.level < 0.2 || !battery.charging
-          }));
-        };
-        updateBatteryStatus();
-        battery.addEventListener('levelchange', updateBatteryStatus);
-        battery.addEventListener('chargingchange', updateBatteryStatus);
-      });
-    }
+        // Warn if memory usage exceeds 80%
+        if (usedMB / limitMB > 0.8) {
+          console.warn(`[Performance] High memory usage: ${usedMB}MB / ${limitMB}MB`);
+        }
+      }
+    }, 5000);
 
-    // Log performance issues
-    const logPerformanceIssue = async () => {
-      if (fps < 30 || metrics.memoryUsage > 0.9) {
-        try {
-          await base44.entities.ErrorLog.create({
-            error_message: `Performance degradation detected`,
-            error_type: 'performance',
-            user_email: (await base44.auth.me())?.email || 'anonymous',
-            url: window.location.href,
-            user_agent: navigator.userAgent,
-            component_stack: JSON.stringify({
-              fps,
-              memoryUsage: metrics.memoryUsage,
-              networkSpeed: metrics.networkSpeed
-            })
-          });
-        } catch (e) {
-          console.warn('Failed to log performance issue:', e);
+    // Track Network Speed
+    const trackNetwork = () => {
+      if (navigator.connection) {
+        const effectiveType = navigator.connection.effectiveType;
+        setMetrics(prev => ({ ...prev, networkSpeed: effectiveType }));
+        
+        if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+          console.warn('[Performance] Slow network detected');
         }
       }
     };
+    trackNetwork();
+    navigator.connection?.addEventListener('change', trackNetwork);
 
-    const perfLogInterval = setInterval(logPerformanceIssue, 30000);
-
-    // Apply performance optimizations based on metrics
-    const applyOptimizations = () => {
-      if (metrics.isLowPowerMode || metrics.fps < 40 || metrics.memoryUsage > 0.8) {
-        document.body.classList.add('low-power-mode');
-        document.body.classList.add('reduce-animations');
-      } else {
-        document.body.classList.remove('low-power-mode');
-        document.body.classList.remove('reduce-animations');
+    // Track Long Tasks (slow renders)
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.duration > slowRenderThreshold) {
+          setMetrics(prev => ({ ...prev, slowRenders: prev.slowRenders + 1 }));
+          console.warn(`[Performance] Slow render detected: ${entry.duration}ms`);
+        }
       }
-
-      if (metrics.networkSpeed === 'slow') {
-        document.body.classList.add('slow-network');
-      } else {
-        document.body.classList.remove('slow-network');
-      }
-    };
-
-    const optimizationInterval = setInterval(applyOptimizations, 2000);
+    });
+    
+    if ('PerformanceObserver' in window) {
+      observer.observe({ entryTypes: ['measure', 'navigation'] });
+    }
 
     return () => {
-      cancelAnimationFrame(fpsId);
-      clearInterval(memoryInterval);
-      clearInterval(perfLogInterval);
-      clearInterval(optimizationInterval);
+      cancelAnimationFrame(animationFrameId);
+      clearInterval(trackMemory);
+      navigator.connection?.removeEventListener('change', trackNetwork);
+      observer.disconnect();
     };
-  }, []);
+  }, [enabled]);
 
-  return children;
+  // Report critical performance issues to backend
+  useEffect(() => {
+    if (metrics.fps < 20 || metrics.memoryUsage > 90) {
+      const reportIssue = async () => {
+        try {
+          await base44.entities.ErrorLog.create({
+            error_message: 'Performance degradation detected',
+            error_type: 'performance',
+            user_agent: navigator.userAgent,
+            url: window.location.href,
+            component_stack: JSON.stringify(metrics)
+          });
+        } catch (err) {
+          console.error('Failed to report performance issue:', err);
+        }
+      };
+      reportIssue();
+    }
+  }, [metrics.fps, metrics.memoryUsage]);
+
+  if (!enabled || process.env.NODE_ENV === 'production') return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 z-[9999] bg-black/90 text-white text-xs p-3 rounded-lg font-mono backdrop-blur-sm border border-white/20">
+      <div className="space-y-1">
+        <div className={metrics.fps < 30 ? 'text-red-400' : 'text-green-400'}>
+          FPS: {metrics.fps}
+        </div>
+        <div className={metrics.memoryUsage > 80 ? 'text-red-400' : 'text-gray-300'}>
+          Memory: {metrics.memoryUsage}%
+        </div>
+        <div className="text-gray-300">
+          Network: {metrics.networkSpeed}
+        </div>
+        {metrics.slowRenders > 0 && (
+          <div className="text-yellow-400">
+            Slow renders: {metrics.slowRenders}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

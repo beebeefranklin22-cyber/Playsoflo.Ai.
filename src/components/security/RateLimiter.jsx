@@ -1,100 +1,57 @@
-import { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
-import { toast } from 'sonner';
+import { useRef, useCallback } from "react";
+import { toast } from "sonner";
 
-// Client-side rate limiting with distributed tracking
-class RateLimiter {
-  constructor() {
-    this.limits = new Map();
-    this.violations = new Map();
-  }
+/**
+ * Rate Limiter Hook
+ * Prevents abuse by limiting action frequency
+ */
+export function useRateLimiter(
+  maxAttempts = 5,
+  windowMs = 60000, // 1 minute
+  onLimitExceeded
+) {
+  const attempts = useRef([]);
 
-  async checkLimit(key, maxRequests = 100, windowMs = 60000) {
+  const checkLimit = useCallback(() => {
     const now = Date.now();
-    const userKey = `${key}_${Math.floor(now / windowMs)}`;
-    
-    const current = this.limits.get(userKey) || { count: 0, resetAt: now + windowMs };
-    
-    if (current.count >= maxRequests) {
-      // Log violation
-      const violationKey = `${key}_violations`;
-      const violations = this.violations.get(violationKey) || 0;
-      this.violations.set(violationKey, violations + 1);
+    const windowStart = now - windowMs;
+
+    // Remove old attempts outside the time window
+    attempts.current = attempts.current.filter(time => time > windowStart);
+
+    // Check if limit exceeded
+    if (attempts.current.length >= maxAttempts) {
+      const oldestAttempt = attempts.current[0];
+      const timeUntilReset = Math.ceil((oldestAttempt + windowMs - now) / 1000);
       
-      if (violations > 5) {
-        // Suspicious activity - escalate
-        await this.logSecurityEvent('RATE_LIMIT_EXCESSIVE_VIOLATIONS', {
-          key,
-          violations: violations + 1,
-          threshold: maxRequests
-        });
+      if (onLimitExceeded) {
+        onLimitExceeded(timeUntilReset);
+      } else {
+        toast.error(`Too many attempts. Please wait ${timeUntilReset} seconds.`);
       }
       
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt: current.resetAt
-      };
+      return false;
     }
-    
-    this.limits.set(userKey, {
-      count: current.count + 1,
-      resetAt: current.resetAt
-    });
-    
-    return {
-      allowed: true,
-      remaining: maxRequests - (current.count + 1),
-      resetAt: current.resetAt
-    };
-  }
 
-  async logSecurityEvent(eventType, metadata) {
-    try {
-      await base44.entities.ErrorLog.create({
-        error_message: `Security Event: ${eventType}`,
-        error_type: 'global_error',
-        error_stack: JSON.stringify(metadata),
-        url: window.location.href,
-        user_agent: navigator.userAgent
-      });
-    } catch (err) {
-      console.error('Failed to log security event:', err);
-    }
-  }
+    // Record this attempt
+    attempts.current.push(now);
+    return true;
+  }, [maxAttempts, windowMs, onLimitExceeded]);
 
-  cleanup() {
-    const now = Date.now();
-    for (const [key, value] of this.limits.entries()) {
-      if (value.resetAt < now) {
-        this.limits.delete(key);
-      }
-    }
-  }
+  const reset = useCallback(() => {
+    attempts.current = [];
+  }, []);
+
+  return { checkLimit, reset, attemptCount: attempts.current.length };
 }
 
-export const rateLimiter = new RateLimiter();
-
-// Cleanup old entries every 5 minutes
-setInterval(() => rateLimiter.cleanup(), 300000);
-
-export function useRateLimit(identifier, maxRequests = 100, windowMs = 60000) {
-  const [isLimited, setIsLimited] = useState(false);
-  
-  const checkAndExecute = async (fn) => {
-    const result = await rateLimiter.checkLimit(identifier, maxRequests, windowMs);
-    
-    if (!result.allowed) {
-      setIsLimited(true);
-      toast.error(`Rate limit exceeded. Try again in ${Math.ceil((result.resetAt - Date.now()) / 1000)}s`);
-      return null;
-    }
-    
-    setIsLimited(false);
-    return fn();
-  };
-
-  return { checkAndExecute, isLimited };
-}
-
-export default RateLimiter;
+/**
+ * Usage:
+ * 
+ * const { checkLimit } = useRateLimiter(3, 60000);
+ * 
+ * const handleAction = () => {
+ *   if (!checkLimit()) return;
+ *   // Perform action
+ * };
+ */

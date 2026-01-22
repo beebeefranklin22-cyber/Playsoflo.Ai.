@@ -1,177 +1,116 @@
-import React, { useCallback } from "react";
+import { forwardRef, useState } from "react";
 import DOMPurify from "dompurify";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
-// Secure input validation and sanitization
-const sanitizeInput = (value, type = 'text') => {
-  if (!value) return value;
-
-  // Remove potential XSS
-  let sanitized = DOMPurify.sanitize(value, { 
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [] 
-  });
-
-  // Type-specific validation
-  switch (type) {
-    case 'email':
-      // Basic email validation
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitized)) {
-        return null;
-      }
-      break;
-    case 'url':
-      // URL validation
-      try {
-        new URL(sanitized);
-      } catch {
-        return null;
-      }
-      break;
-    case 'number':
-      // Number validation
-      sanitized = sanitized.replace(/[^\d.-]/g, '');
-      break;
-    case 'phone':
-      // Phone number validation
-      sanitized = sanitized.replace(/[^\d+()-\s]/g, '');
-      break;
-    case 'currency':
-      // Currency validation
-      sanitized = sanitized.replace(/[^\d.]/g, '');
-      const parts = sanitized.split('.');
-      if (parts.length > 2) return null;
-      if (parts[1] && parts[1].length > 2) {
-        sanitized = parts[0] + '.' + parts[1].substring(0, 2);
-      }
-      break;
-    default:
-      // Remove common injection patterns
-      sanitized = sanitized
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '');
-  }
-
-  return sanitized;
-};
-
-export const SecureInput = ({ 
-  value, 
-  onChange, 
-  validationType = 'text',
+/**
+ * Secure Input Component with XSS Protection and Validation
+ */
+const SecureInput = forwardRef(({ 
+  type = "text",
+  multiline = false,
+  validate,
+  sanitize = true,
   maxLength = 1000,
-  showError = true,
+  allowedTags = [],
+  onChange,
+  onBlur,
+  value,
+  error: externalError,
   ...props 
-}) => {
-  const handleChange = useCallback((e) => {
-    const rawValue = e.target.value;
+}, ref) => {
+  const [error, setError] = useState(null);
+  const [touched, setTouched] = useState(false);
+
+  const sanitizeInput = (input) => {
+    if (!sanitize || type === "password") return input;
     
-    // Length check
-    if (rawValue.length > maxLength) {
-      if (showError) {
-        toast.error(`Input too long. Maximum ${maxLength} characters.`);
-      }
-      return;
-    }
-
-    const sanitized = sanitizeInput(rawValue, validationType);
+    // XSS Protection
+    const config = {
+      ALLOWED_TAGS: allowedTags.length > 0 ? allowedTags : [],
+      ALLOWED_ATTR: [],
+      KEEP_CONTENT: true
+    };
     
-    if (sanitized === null) {
-      if (showError) {
-        toast.error(`Invalid ${validationType} format`);
-      }
-      return;
+    return DOMPurify.sanitize(input, config);
+  };
+
+  const validateInput = (input) => {
+    // Length validation
+    if (input.length > maxLength) {
+      return `Maximum ${maxLength} characters allowed`;
     }
 
-    if (sanitized !== rawValue && showError) {
-      toast.warning('Input was sanitized for security');
+    // SQL Injection patterns
+    const sqlPattern = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|DECLARE)\b)/gi;
+    if (sqlPattern.test(input)) {
+      return "Invalid input detected";
     }
 
-    onChange({ ...e, target: { ...e.target, value: sanitized } });
-  }, [onChange, validationType, maxLength, showError]);
-
-  return <Input {...props} value={value} onChange={handleChange} />;
-};
-
-export const SecureTextarea = ({ 
-  value, 
-  onChange, 
-  maxLength = 5000,
-  showError = true,
-  ...props 
-}) => {
-  const handleChange = useCallback((e) => {
-    const rawValue = e.target.value;
-    
-    if (rawValue.length > maxLength) {
-      if (showError) {
-        toast.error(`Input too long. Maximum ${maxLength} characters.`);
-      }
-      return;
+    // XSS patterns
+    const xssPattern = /<script|javascript:|onerror=|onload=/gi;
+    if (xssPattern.test(input)) {
+      return "Invalid characters detected";
     }
 
-    const sanitized = sanitizeInput(rawValue, 'text');
-    
-    if (sanitized !== rawValue && showError) {
-      toast.warning('Input was sanitized for security');
+    // Custom validation
+    if (validate) {
+      return validate(input);
     }
 
-    onChange({ ...e, target: { ...e.target, value: sanitized } });
-  }, [onChange, maxLength, showError]);
-
-  return <Textarea {...props} value={value} onChange={handleChange} />;
-};
-
-export const validateFileUpload = (file, options = {}) => {
-  const {
-    maxSize = 10 * 1024 * 1024, // 10MB default
-    allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-    allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
-  } = options;
-
-  // Check file size
-  if (file.size > maxSize) {
-    toast.error(`File too large. Maximum size is ${maxSize / (1024 * 1024)}MB`);
-    return false;
-  }
-
-  // Check MIME type
-  if (!allowedTypes.includes(file.type)) {
-    toast.error('Invalid file type');
-    return false;
-  }
-
-  // Check file extension
-  const ext = '.' + file.name.split('.').pop().toLowerCase();
-  if (!allowedExtensions.includes(ext)) {
-    toast.error('Invalid file extension');
-    return false;
-  }
-
-  return true;
-};
-
-export const sanitizeHTML = (html) => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br'],
-    ALLOWED_ATTR: ['href', 'target']
-  });
-};
-
-export const sanitizeURL = (url) => {
-  try {
-    const parsed = new URL(url);
-    // Only allow http and https protocols
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      toast.error('Invalid URL protocol');
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    toast.error('Invalid URL format');
     return null;
-  }
-};
+  };
+
+  const handleChange = (e) => {
+    let newValue = e.target.value;
+    
+    // Sanitize input
+    newValue = sanitizeInput(newValue);
+    
+    // Validate input
+    const validationError = validateInput(newValue);
+    setError(validationError);
+
+    // Call parent onChange
+    if (onChange) {
+      onChange({
+        ...e,
+        target: { ...e.target, value: newValue }
+      });
+    }
+  };
+
+  const handleBlur = (e) => {
+    setTouched(true);
+    if (onBlur) onBlur(e);
+  };
+
+  const showError = (touched && error) || externalError;
+  const Component = multiline ? Textarea : Input;
+
+  return (
+    <div className="space-y-1">
+      <Component
+        ref={ref}
+        type={type}
+        value={value}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        maxLength={maxLength}
+        className={showError ? "border-red-500 focus:ring-red-500" : ""}
+        {...props}
+      />
+      {showError && (
+        <div className="flex items-center gap-1 text-red-500 text-xs">
+          <AlertCircle className="w-3 h-3" />
+          <span>{error || externalError}</span>
+        </div>
+      )}
+    </div>
+  );
+});
+
+SecureInput.displayName = 'SecureInput';
+
+export default SecureInput;
