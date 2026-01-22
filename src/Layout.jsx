@@ -16,9 +16,6 @@ import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
-import SecurityValidator from "./components/security/SecurityValidator";
-import SecureOperationWrapper from "./components/security/SecureOperationWrapper";
-import GlobalSecurityHandler from "./components/security/GlobalSecurityHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 
 export default function Layout({ children, currentPageName }) {
