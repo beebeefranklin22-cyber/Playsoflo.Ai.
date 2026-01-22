@@ -300,12 +300,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Add referral tracking and ensure all have tracking URLs
+    // Add referral tracking and ensure all have consistent field names
     const productsWithReferral = shopifyProducts.map(product => ({
       ...product,
       referral_code: user.referral_code || user.email,
       tracking_url: product.affiliate_link,
-      image_url: product.image_url // Ensure image_url is consistent
+      image: product.image_url, // Add 'image' field for consistency
+      in_stock: true,
+      stock_quantity: 999
     }));
 
     return Response.json({
