@@ -20,108 +20,26 @@ export default function PeopleSuggestions({ currentUser }) {
     queryFn: () => base44.entities.Friendship.filter({ status: 'active' })
   });
 
-  // Smart people suggestions algorithm
+  // Smart people suggestions using backend algorithm
   const { data: suggestedPeople = [] } = useQuery({
     queryKey: ['people-suggestions', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
 
-      const allUsers = await base44.entities.User.list();
-      
-      // Get current user's friendships
-      const myFriendships = allFriendships.filter(
-        f => f.user1_email === currentUser.email || f.user2_email === currentUser.email
-      );
-      
-      const myFriendEmails = myFriendships.map(f => 
-        f.user1_email === currentUser.email ? f.user2_email : f.user1_email
-      );
+      try {
+        const response = await base44.functions.invoke('getSmartFriendSuggestions', {
+          limit: 20
+        });
 
-      // Score each user
-      const scoredUsers = allUsers
-        .filter(user => 
-          user.email !== currentUser.email && 
-          !myFriendEmails.includes(user.email) &&
-          user.privacy_settings?.show_in_suggestions !== false &&
-          user.privacy_settings?.searchable !== false
-        )
-        .map(user => {
-          let score = 0;
-          const reasons = [];
-
-          // Calculate mutual friends
-          const userFriendships = allFriendships.filter(
-            f => f.user1_email === user.email || f.user2_email === user.email
-          );
-          const userFriendEmails = userFriendships.map(f => 
-            f.user1_email === user.email ? f.user2_email : f.user1_email
-          );
-          const mutualFriends = myFriendEmails.filter(email => 
-            userFriendEmails.includes(email)
-          );
-
-          // Mutual friends (highest priority)
-          if (mutualFriends.length > 0) {
-            score += mutualFriends.length * 100;
-            reasons.push(`${mutualFriends.length} mutual friend${mutualFriends.length > 1 ? 's' : ''}`);
-          }
-
-          // Shared interests
-          const userInterests = user.interests || [];
-          const myInterests = currentUser.interests || [];
-          const sharedInterests = userInterests.filter(interest => 
-            myInterests.includes(interest)
-          );
-          if (sharedInterests.length > 0) {
-            score += sharedInterests.length * 50;
-            reasons.push(`${sharedInterests.length} shared interest${sharedInterests.length > 1 ? 's' : ''}`);
-          }
-
-          // Same location
-          if (user.location && currentUser.location && 
-              user.location.toLowerCase() === currentUser.location.toLowerCase()) {
-            score += 30;
-            reasons.push('Same location');
-          }
-
-          // Similar provider/creator status
-          if (user.is_provider && currentUser.is_provider) {
-            score += 20;
-            reasons.push('Both providers');
-          }
-          if (user.is_creator && currentUser.is_creator) {
-            score += 20;
-            reasons.push('Both creators');
-          }
-
-          // Activity level (recent account = more likely to connect)
-          const accountAge = Date.now() - new Date(user.created_date).getTime();
-          const daysOld = accountAge / (1000 * 60 * 60 * 24);
-          if (daysOld < 30) {
-            score += 10;
-            reasons.push('New to platform');
-          }
-
-          // Verification bonus
-          if (user.verification_status === 'verified') {
-            score += 5;
-          }
-
-          return {
-            ...user,
-            score,
-            mutualFriends: mutualFriends.length,
-            sharedInterests: sharedInterests.length,
-            reasons: reasons.slice(0, 2) // Top 2 reasons
-          };
-        })
-        .filter(user => user.score > 0) // Only show users with some connection
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
-
-      return scoredUsers;
+        return response.data?.suggestions || [];
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+        return [];
+      }
     },
-    enabled: !!currentUser && allFriendships.length > 0
+    enabled: !!currentUser,
+    refetchInterval: 300000, // Refresh every 5 minutes
+    staleTime: 60000
   });
 
   const sendFriendRequestMutation = useMutation({
@@ -203,7 +121,7 @@ export default function PeopleSuggestions({ currentUser }) {
                   )}
 
                   {/* Reasons for suggestion */}
-                  {user.reasons.length > 0 && (
+                  {user.reasons && user.reasons.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {user.reasons.map((reason, idx) => (
                         <Badge
@@ -214,6 +132,13 @@ export default function PeopleSuggestions({ currentUser }) {
                         </Badge>
                       ))}
                     </div>
+                  )}
+                  
+                  {/* Mutual friend names */}
+                  {user.mutual_friend_names && user.mutual_friend_names.length > 0 && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      Friends with {user.mutual_friend_names.join(', ')}
+                    </p>
                   )}
                 </div>
               </button>

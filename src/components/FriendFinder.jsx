@@ -23,26 +23,16 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
   const { data: suggestedUsers = [] } = useQuery({
     queryKey: ['suggested-users', currentUser?.email],
     queryFn: async () => {
-      const users = await base44.entities.User.list();
-      
-      // Score users based on mutual connections
-      const scoredUsers = users
-        .filter(u => u.email !== currentUser?.email && !currentUser?.following?.includes(u.email))
-        .map(user => {
-          // Count mutual friends
-          const mutualFriends = (user.following || []).filter(email => 
-            currentUser?.following?.includes(email)
-          ).length;
-          
-          // Score: prioritize mutual friends
-          const score = mutualFriends * 10 + (user.followers_count || 0);
-          
-          return { ...user, mutualFriends, score };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 15);
-      
-      return scoredUsers;
+      try {
+        const response = await base44.functions.invoke('getSmartFriendSuggestions', {
+          limit: 15
+        });
+        
+        return response.data?.suggestions || [];
+      } catch (error) {
+        console.error('Failed to fetch suggestions:', error);
+        return [];
+      }
     },
     enabled: isOpen && !!currentUser
   });
@@ -220,10 +210,15 @@ function UserCard({ user, currentUser, pendingRequests, onFollow, onViewProfile,
           {user.username && (
             <p className="text-gray-400 text-sm truncate">@{user.username}</p>
           )}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
             <p className="text-gray-500 text-xs">{user.followers_count || 0} followers</p>
-            {user.mutualFriends > 0 && (
-              <p className="text-purple-400 text-xs">• {user.mutualFriends} mutual</p>
+            {user.mutual_friends > 0 && (
+              <p className="text-purple-400 text-xs font-semibold">
+                🤝 {user.mutual_friends} mutual friend{user.mutual_friends > 1 ? 's' : ''}
+              </p>
+            )}
+            {user.reasons && user.reasons.length > 0 && (
+              <p className="text-gray-400 text-[10px]">{user.reasons[0]}</p>
             )}
           </div>
         </div>
