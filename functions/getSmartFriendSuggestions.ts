@@ -12,11 +12,13 @@ Deno.serve(async (req) => {
     const { limit = 20 } = await req.json().catch(() => ({}));
 
     // Get all users, friendships, and interactions
-    const [allUsers, allFriendships, myFollowing, myLikes] = await Promise.all([
+    const [allUsers, allFriendships, myFollowing, allFollowing, myLikes, allLikes] = await Promise.all([
       base44.entities.User.list(),
       base44.entities.Friendship.filter({ status: 'active' }),
       base44.entities.Follow.filter({ follower_email: user.email }),
-      base44.entities.VideoLike.filter({ user_email: user.email })
+      base44.entities.Follow.list(),
+      base44.entities.VideoLike.filter({ user_email: user.email }),
+      base44.entities.VideoLike.list()
     ]);
 
     // Get my friend emails
