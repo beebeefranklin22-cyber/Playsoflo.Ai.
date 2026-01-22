@@ -10,6 +10,7 @@ import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PerformanceMonitor from "./components/performance/PerformanceMonitor";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
