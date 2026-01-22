@@ -17,7 +17,7 @@ export const usePlatform = () => {
   useEffect(() => {
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
     const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true;
+                      window.navigator.standalone === true;
 
     // iOS detection
     const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
@@ -28,7 +28,7 @@ export const usePlatform = () => {
     // tvOS detection (Apple TV)
     const isTVOS = /AppleTV/.test(userAgent) || 
                    (userAgent.includes('AppleWebKit') && userAgent.includes('Safari') && 
-                    !userAgent.includes('Mobile') && window.screen.width >= 1920);
+                    !userAgent.includes('Mobile') && window.screen && window.screen.width >= 1920);
     
     // PWA detection
     const isPWA = standalone || window.matchMedia('(display-mode: fullscreen)').matches;
