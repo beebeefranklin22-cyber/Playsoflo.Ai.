@@ -32,11 +32,11 @@ Deno.serve(async (req) => {
     // ============================================
     // STEP 3: Parse Request Body
     // ============================================
-    const { email, businessName, country = 'US' } = await req.json();
+    const { email, business_type = 'individual', country = 'US' } = await req.json();
 
-    if (!email || !businessName) {
+    if (!email) {
       return Response.json({ 
-        error: 'Missing required fields: email and businessName' 
+        error: 'Email is required' 
       }, { status: 400 });
     }
 
@@ -77,8 +77,13 @@ Deno.serve(async (req) => {
       // Store metadata for your app
       metadata: {
         app_user_email: user.email,
-        business_name: businessName,
         created_at: new Date().toISOString()
+      },
+
+      // Business profile
+      business_profile: {
+        url: `https://playsoflo.com/profile/${user.email}`,
+        mcc: '5734' // Computer software stores
       }
     });
 
@@ -87,6 +92,7 @@ Deno.serve(async (req) => {
     // ============================================
     // Save the Stripe account ID to the user so we can reference it later
     await base44.auth.updateMe({
+      stripe_account_id: account.id,
       stripe_connect_account_id: account.id
     });
 
@@ -95,9 +101,9 @@ Deno.serve(async (req) => {
     // ============================================
     return Response.json({
       success: true,
+      account_id: account.id,
       accountId: account.id,
       message: 'Connected account created successfully',
-      // Include useful account info
       details: {
         email: account.email,
         country: account.country,

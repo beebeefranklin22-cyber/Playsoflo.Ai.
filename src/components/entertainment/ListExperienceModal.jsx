@@ -1118,7 +1118,10 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     Payment Integration
                   </h3>
                   <p className="text-gray-300 text-sm mb-3">Connect your Stripe account to receive payments directly</p>
-                  <Button className="bg-green-600 hover:bg-green-700">
+                  <Button 
+                    onClick={() => window.location.href = '/StripeOnboarding'}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
                     Connect Stripe Account
                   </Button>
                 </div>

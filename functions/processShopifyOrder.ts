@@ -1,120 +1,99 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import Stripe from 'npm:stripe@17.4.0';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    const { session_id, order_id } = await req.json();
 
-    if (!session_id || !order_id) {
-      return Response.json({ error: 'Missing session_id or order_id' }, { status: 400 });
+    // Get session metadata from webhook
+    const { session_id, metadata } = await req.json();
+
+    if (!session_id || !metadata) {
+      return Response.json({ error: 'Missing session data' }, { status: 400 });
     }
 
-    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeSecretKey) {
-      return Response.json({ error: 'Stripe not configured' }, { status: 500 });
-    }
-
-    const stripe = new Stripe(stripeSecretKey);
-
-    // Retrieve the session to confirm payment
-    const session = await stripe.checkout.sessions.retrieve(session_id);
-
-    if (session.payment_status !== 'paid') {
-      return Response.json({ error: 'Payment not completed' }, { status: 400 });
-    }
-
-    // Get order
-    const order = await base44.asServiceRole.entities.Order.filter({ id: order_id });
-    if (order.length === 0) {
-      return Response.json({ error: 'Order not found' }, { status: 404 });
-    }
-
-    const orderData = order[0];
+    const userEmail = metadata.user_email;
+    const affiliateCommission = parseFloat(metadata.affiliate_commission || '0');
+    const productId = metadata.product_id;
 
     // Update order status
-    await base44.asServiceRole.entities.Order.update(order_id, {
-      status: 'confirmed',
+    const orders = await base44.asServiceRole.entities.Order.filter({
       stripe_session_id: session_id
     });
 
-    // Create payment record
-    await base44.asServiceRole.entities.Payment.create({
-      amount_usd: orderData.total_amount,
-      method: 'stripe',
-      status: 'completed',
-      reference_type: 'order',
-      reference_id: order_id,
-      sender_email: orderData.user_email,
-      memo: `Shopify product: ${orderData.product_name}`
-    });
-
-    // Track affiliate commission - 5% of purchase goes to buyer as commission
-    const commission = orderData.total_amount * 0.05;
-    
-    await base44.asServiceRole.entities.AffiliateReferral.create({
-      affiliate_program: 'shopify',
-      referral_code: orderData.user_email, 
-      referred_user_email: orderData.user_email,
-      product_id: orderData.product_id || order_id,
-      product_name: orderData.product_name,
-      order_value: orderData.total_amount,
-      status: 'completed',
-      commission_amount: commission,
-      commission_rate: 5,
-      conversion_date: new Date().toISOString()
-    });
-
-    // Instantly credit commission to user's USD balance
-    const users = await base44.asServiceRole.entities.User.filter({ email: orderData.user_email });
-    if (users.length > 0) {
-      const currentUser = users[0];
-      await base44.asServiceRole.entities.User.update(currentUser.id, {
-        total_referral_earnings: (currentUser.total_referral_earnings || 0) + commission,
-        usd_balance: (currentUser.usd_balance || 0) + commission
+    if (orders.length > 0) {
+      const order = orders[0];
+      
+      await base44.asServiceRole.entities.Order.update(order.id, {
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
       });
 
-      // Create payment record for commission
-      await base44.asServiceRole.entities.Payment.create({
-        amount_usd: commission,
-        method: 'internal_transfer',
-        status: 'completed',
-        reference_type: 'other',
-        reference_id: order_id,
-        recipient_email: orderData.user_email,
-        memo: `Shopify affiliate commission - ${orderData.product_name}`
-      });
+      // Pay affiliate commission instantly to user's wallet
+      if (affiliateCommission > 0) {
+        const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
+        
+        if (users.length > 0) {
+          const userToUpdate = users[0];
+          const currentBalance = parseFloat(userToUpdate.usd_balance) || 0;
+          const newBalance = currentBalance + affiliateCommission;
 
-      // Notify user of commission earned
+          await base44.asServiceRole.entities.User.update(userToUpdate.id, {
+            usd_balance: newBalance,
+            total_affiliate_earnings: (parseFloat(userToUpdate.total_affiliate_earnings) || 0) + affiliateCommission
+          });
+
+          // Create payment record
+          await base44.asServiceRole.entities.Payment.create({
+            amount_usd: affiliateCommission,
+            amount_rri: 0,
+            method: 'internal_transfer',
+            status: 'completed',
+            reference_type: 'affiliate_commission',
+            reference_id: order.id,
+            sender_email: 'platform@playsoflo.com',
+            recipient_email: userEmail,
+            memo: `Affiliate commission for ${metadata.product_id}`
+          });
+
+          // Notify user
+          await base44.asServiceRole.entities.Notification.create({
+            recipient_email: userEmail,
+            type: 'payment_received',
+            title: '🎉 Commission Earned!',
+            message: `You earned $${affiliateCommission.toFixed(2)} commission! Added to your wallet instantly.`,
+            reference_type: 'order',
+            reference_id: order.id
+          });
+        }
+      }
+
+      // Notify customer of order confirmation
       await base44.asServiceRole.entities.Notification.create({
-        recipient_email: orderData.user_email,
-        type: 'payment_received',
-        title: '💰 Commission Earned!',
-        message: `You earned $${commission.toFixed(2)} commission from your Shopify purchase!`,
-        action_url: '/Wallet',
-        read: false
+        recipient_email: userEmail,
+        type: 'system_alert',
+        title: '✅ Order Confirmed',
+        message: `Your order for ${order.item_name} has been confirmed! Tracking info will be sent shortly.`,
+        reference_type: 'order',
+        reference_id: order.id
       });
+
+      // Track affiliate conversion
+      if (user.referral_code) {
+        await base44.asServiceRole.entities.AffiliateReferral.create({
+          referrer_code: user.referral_code,
+          referred_email: userEmail,
+          conversion_type: 'product_purchase',
+          commission_amount: affiliateCommission,
+          order_id: order.id,
+          product_id: productId
+        });
+      }
     }
 
-    // Send confirmation email
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: orderData.user_email,
-      subject: '✅ Order Confirmed - PlaySoFlo Marketplace',
-      body: `Your order for ${orderData.product_name} has been confirmed!\n\nOrder #${order_id}\nTotal: $${orderData.total_amount.toFixed(2)}\n\nYour item will be shipped within 2-5 business days. You'll receive tracking information via email.`
-    });
-
-    return Response.json({
-      success: true,
-      message: 'Order processed successfully',
-      order_id: order_id
-    });
+    return Response.json({ success: true });
 
   } catch (error) {
-    console.error('Order processing error:', error);
-    return Response.json({ 
-      error: 'Order processing failed',
-      details: error.message 
-    }, { status: 500 });
+    console.error('Shopify order processing error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });

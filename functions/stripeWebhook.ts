@@ -124,20 +124,13 @@ Deno.serve(async (req) => {
         }
 
         // Handle Shopify order completion
-        if (orderId && description === 'Shopify product purchase') {
-          await base44.asServiceRole.entities.Order.update(orderId, {
-            status: 'confirmed',
-            stripe_session_id: session.id
-          });
-
-          // Notify customer
-          await base44.asServiceRole.entities.Notification.create({
-            recipient_email: userEmail,
-            type: 'system_alert',
-            title: '✅ Order Confirmed',
-            message: 'Your order has been confirmed and will be processed shortly.',
-            reference_type: 'order',
-            reference_id: orderId
+        if (description === 'Shopify product purchase' && session.metadata) {
+          const affiliateCommission = parseFloat(session.metadata.affiliate_commission || '0');
+          
+          // Process via dedicated function
+          await base44.asServiceRole.functions.invoke('processShopifyOrder', {
+            session_id: session.id,
+            metadata: session.metadata
           });
         }
         break;

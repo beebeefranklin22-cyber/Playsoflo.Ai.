@@ -63,39 +63,79 @@ export default function StripeOnboarding() {
         business_type: 'individual',
         country: 'US'
       });
+      
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
+      
       return response.data;
     },
     onSuccess: async (data) => {
-      await base44.auth.updateMe({ stripe_account_id: data.account_id });
+      if (!data.account_id && !data.accountId) {
+        toast.error('No account ID received');
+        return;
+      }
+
+      const accountId = data.account_id || data.accountId;
+      await base44.auth.updateMe({ 
+        stripe_account_id: accountId,
+        stripe_connect_account_id: accountId 
+      });
+      
       const updated = await base44.auth.me();
       setCurrentUser(updated);
       toast.success('Stripe account created!');
       setCurrentStep(2);
+      
+      // Auto-create onboarding link
+      setTimeout(() => {
+        createLinkMutation.mutate();
+      }, 500);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to create account');
+      console.error('Create account error:', error);
+      toast.error(error.message || 'Failed to create account');
     }
   });
 
   // Create account link mutation
   const createLinkMutation = useMutation({
     mutationFn: async () => {
+      if (!currentUser?.stripe_account_id) {
+        throw new Error('No Stripe account found');
+      }
+
       const response = await base44.functions.invoke('createAccountLink', {
         account_id: currentUser.stripe_account_id,
-        refresh_url: window.location.href,
-        return_url: window.location.href
+        return_url: window.location.href + '?onboarding=complete',
+        refresh_url: window.location.href + '?onboarding=refresh'
       });
+
+      if (!response || !response.data || !response.data.url) {
+        throw new Error('Invalid response from server');
+      }
+
       return response.data;
     },
     onSuccess: (data) => {
-      window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error('No onboarding URL received');
+      }
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to create onboarding link');
+      console.error('Create link error:', error);
+      toast.error(error.message || 'Failed to create onboarding link');
     }
   });
 
-  const handleStartOnboarding = () => {
+  const handleStartOnboarding = async () => {
+    if (!currentUser) {
+      toast.error('Please wait while we load your account');
+      return;
+    }
+
     if (!currentUser.stripe_account_id) {
       createAccountMutation.mutate();
     } else {

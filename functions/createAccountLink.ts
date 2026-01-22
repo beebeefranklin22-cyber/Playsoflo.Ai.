@@ -31,18 +31,22 @@ Deno.serve(async (req) => {
     // STEP 3: Parse Request Body
     // ============================================
     const body = await req.json();
-    const { accountId, returnUrl, refreshUrl } = body;
+    const { account_id, accountId, return_url, returnUrl, refresh_url, refreshUrl } = body;
     
-    if (!accountId) {
+    const finalAccountId = account_id || accountId;
+    const finalReturnUrl = return_url || returnUrl;
+    const finalRefreshUrl = refresh_url || refreshUrl;
+    
+    if (!finalAccountId) {
       return Response.json({ 
-        error: 'accountId is required',
+        error: 'account_id is required',
         hint: 'Provide the Stripe account ID'
       }, { status: 400 });
     }
 
-    if (!returnUrl || !refreshUrl) {
+    if (!finalReturnUrl || !finalRefreshUrl) {
       return Response.json({ 
-        error: 'returnUrl and refreshUrl are required'
+        error: 'return_url and refresh_url are required'
       }, { status: 400 });
     }
 
@@ -53,13 +57,13 @@ Deno.serve(async (req) => {
     // They expire after a short time (usually 5 minutes)
     const accountLink = await stripe.accountLinks.create({
       // The connected account to onboard
-      account: accountId,
+      account: finalAccountId,
       
       // Return URL after successful onboarding
-      return_url: returnUrl,
+      return_url: finalReturnUrl,
       
       // Refresh URL if the link expires or there's an error
-      refresh_url: refreshUrl,
+      refresh_url: finalRefreshUrl,
       
       // Type of link - account_onboarding for initial setup
       type: 'account_onboarding'

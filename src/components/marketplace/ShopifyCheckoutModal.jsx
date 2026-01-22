@@ -28,17 +28,24 @@ export default function ShopifyCheckoutModal({ product, onClose }) {
 
     setLoading(true);
     try {
-      const { data } = await base44.functions.invoke('createShopifyCheckout', {
+      const response = await base44.functions.invoke('createShopifyCheckout', {
         product_id: product.id,
         quantity,
         shipping_address: shippingAddress
       });
 
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
+      if (!response || !response.data) {
+        throw new Error('Invalid response from server');
+      }
+
+      if (response.data.checkout_url) {
+        window.location.href = response.data.checkout_url;
+      } else {
+        throw new Error('No checkout URL received');
       }
     } catch (error) {
-      toast.error('Checkout failed. Please try again.');
+      console.error('Checkout error:', error);
+      toast.error(error.message || 'Checkout failed. Please try again.');
       setLoading(false);
     }
   };

@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   try {
@@ -18,17 +18,29 @@ Deno.serve(async (req) => {
     const query = payload.query || 'music';
     const maxResults = payload.maxResults || 50;
     
-    // YouTube Data API v3 - Search for music videos, sorted by relevance for better results
+    // YouTube Data API v3 - Search for music videos
     const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query + ' music')}&type=video&videoCategoryId=10&maxResults=${maxResults}&order=relevance&key=${apiKey}`;
     
     const response = await fetch(youtubeUrl);
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'YouTube API error');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('YouTube API Error:', errorData);
+      return Response.json({ 
+        error: errorData.error?.message || 'YouTube API request failed',
+        tracks: [],
+        fallback: true 
+      }, { status: 200 }); // Return empty array instead of error
     }
 
     const data = await response.json();
+
+    if (!data.items || data.items.length === 0) {
+      return Response.json({ 
+        tracks: [],
+        message: 'No results found'
+      });
+    }
     
     // Transform YouTube data to match our format
     const tracks = data.items.map(item => ({
