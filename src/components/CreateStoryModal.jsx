@@ -147,91 +147,120 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/95"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-xl"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          transition={{ type: "spring", damping: 25 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gray-950 rounded-3xl overflow-hidden border border-purple-500/20 shadow-2xl"
+          className="w-full max-w-5xl h-[90vh] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex"
         >
-          <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 p-6">
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 p-2 bg-black/30 hover:bg-black/50 rounded-full transition"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
-            
-            <h2 className="text-3xl font-bold text-white mb-2">Create Story</h2>
-            <p className="text-white/90 text-sm">Share moments with your followers • Disappears in 24h</p>
-          </div>
-
-          <div className="p-6">
-            {/* Tabs */}
-            <div className="flex gap-2 mb-6 bg-white/5 p-1 rounded-xl">
+          {/* Left Panel - Preview */}
+          <div className="w-[45%] bg-gradient-to-br from-gray-900 to-black border-r border-white/10 flex flex-col">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="text-white font-semibold">Preview</h3>
               <button
-                onClick={() => setActiveTab('media')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                  activeTab === 'media'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
-                }`}
+                onClick={onClose}
+                className="p-2 hover:bg-white/10 rounded-full transition"
               >
-                <ImageIcon className="w-4 h-4" />
-                Media
-              </button>
-              <button
-                onClick={() => setActiveTab('text')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                  activeTab === 'text'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Type className="w-4 h-4" />
-                Text
-              </button>
-              <button
-                onClick={() => setActiveTab('gif')}
-                className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                  activeTab === 'gif'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                GIF
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
+            
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="w-full max-w-[280px] aspect-[9/16] bg-black rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl">
+                {formData.media_url && formData.media_url !== 'text-story' ? (
+                  <div className="relative w-full h-full">
+                    {formData.media_type === 'video' ? (
+                      <video src={formData.media_url} className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={formData.media_url} className="w-full h-full object-cover" alt="Story" />
+                    )}
+                    {formData.caption && (
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                        <p className="text-white text-sm font-medium">{formData.caption}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === 'text' && formData.caption ? (
+                  <div className={`w-full h-full bg-gradient-to-br ${bgGradients.find(b => b.id === textBg)?.class} flex items-center justify-center p-8`}>
+                    <p className="text-white text-2xl font-bold text-center leading-relaxed">
+                      {formData.caption}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                    <div className="text-center">
+                      <Sparkles className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm">Your story preview</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Right Panel - Creation Tools */}
+          <div className="flex-1 flex flex-col bg-black">
+            <div className="p-6 border-b border-white/10">
+              <h2 className="text-2xl font-bold text-white mb-1">Create Story</h2>
+              <p className="text-gray-400 text-sm">Visible for 24 hours</p>
+            </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {/* Tabs */}
+            <div className="p-4 border-b border-white/10">
+              <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveTab('media')}
+                  className={`flex-1 py-2.5 px-3 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm ${
+                    activeTab === 'media'
+                      ? 'bg-white text-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Media
+                </button>
+                <button
+                  onClick={() => setActiveTab('text')}
+                  className={`flex-1 py-2.5 px-3 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm ${
+                    activeTab === 'text'
+                      ? 'bg-white text-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Type className="w-4 h-4" />
+                  Text
+                </button>
+                <button
+                  onClick={() => setActiveTab('gif')}
+                  className={`flex-1 py-2.5 px-3 rounded-md font-medium transition flex items-center justify-center gap-2 text-sm ${
+                    activeTab === 'gif'
+                      ? 'bg-white text-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  GIF
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Media Upload Tab */}
               {activeTab === 'media' && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   className="space-y-4"
                 >
-                  {formData.media_url ? (
-                    <div className="relative aspect-[9/16] max-h-[500px] rounded-2xl overflow-hidden bg-black">
-                      {formData.media_type === 'video' ? (
-                        <video src={formData.media_url} className="w-full h-full object-contain" controls />
-                      ) : (
-                        <img src={formData.media_url} className="w-full h-full object-contain" alt="Story preview" />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, media_url: "" }))}
-                        className="absolute top-4 right-4 p-2.5 bg-red-500/90 backdrop-blur-sm rounded-full hover:bg-red-600 shadow-lg transition"
-                      >
-                        <X className="w-5 h-5 text-white" />
-                      </button>
-                    </div>
-                  ) : (
+                  {!formData.media_url ? (
                     <label className="block cursor-pointer group">
                       <input
                         type="file"
@@ -239,26 +268,44 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                         accept="image/*,video/*"
                         onChange={(e) => handleFileUpload(e.target.files?.[0])}
                       />
-                      <div className="aspect-[9/16] max-h-[500px] border-2 border-dashed border-purple-500/40 rounded-2xl bg-gradient-to-br from-purple-500/5 to-pink-500/5 hover:from-purple-500/10 hover:to-pink-500/10 transition-all flex flex-col items-center justify-center gap-4 group-hover:border-purple-500/60">
+                      <div className="border-2 border-dashed border-white/20 rounded-xl hover:border-white/40 transition-all p-12 text-center">
                         {uploading ? (
                           <>
-                            <Loader2 className="w-16 h-16 text-purple-400 animate-spin" />
-                            <p className="text-gray-400 text-sm">Uploading your media...</p>
+                            <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-3" />
+                            <p className="text-gray-400">Uploading...</p>
                           </>
                         ) : (
                           <>
-                            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
-                              <Upload className="w-12 h-12 text-white" />
+                            <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-white/20 transition">
+                              <Upload className="w-8 h-8 text-white" />
                             </div>
-                            <div className="text-center px-6">
-                              <p className="text-white font-bold text-xl mb-2">Upload Photo or Video</p>
-                              <p className="text-gray-400 text-sm">Tap to choose from your device</p>
-                              <p className="text-purple-400 text-xs mt-2">Max 100MB • JPG, PNG, MP4</p>
-                            </div>
+                            <p className="text-white font-semibold mb-1">Upload media</p>
+                            <p className="text-gray-400 text-sm">JPG, PNG or MP4 • Max 100MB</p>
                           </>
                         )}
                       </div>
                     </label>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                        {formData.media_type === 'video' ? (
+                          <Video className="w-6 h-6 text-white" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-medium text-sm">Media uploaded</p>
+                        <p className="text-gray-400 text-xs">{formData.media_type}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, media_url: "" }))}
+                        className="p-2 hover:bg-white/10 rounded-lg transition"
+                      >
+                        <X className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
                   )}
                 </motion.div>
               )}
@@ -266,39 +313,38 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
               {/* Text Story Tab */}
               {activeTab === 'text' && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="space-y-5"
                 >
-                  <div className={`aspect-[9/16] max-h-[500px] rounded-2xl bg-gradient-to-br ${bgGradients.find(b => b.id === textBg)?.class} p-8 flex items-center justify-center`}>
+                  <div>
+                    <label className="text-white font-medium mb-3 block text-sm">Your text</label>
                     <textarea
                       value={formData.caption}
-                      onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
-                      placeholder="Write something inspiring..."
-                      className="w-full bg-transparent border-none text-white text-3xl font-bold text-center placeholder-white/40 focus:outline-none resize-none"
-                      rows={6}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, caption: e.target.value, media_url: 'text-story' }));
+                      }}
+                      placeholder="What's on your mind?"
+                      className="w-full bg-white/5 border border-white/10 text-white text-lg p-4 rounded-xl placeholder-gray-500 focus:outline-none focus:border-white/30 resize-none"
+                      rows={4}
                       maxLength={200}
                     />
+                    <p className="text-gray-500 text-xs mt-2">{formData.caption.length}/200</p>
                   </div>
 
                   <div>
-                    <label className="text-white font-semibold mb-3 block flex items-center gap-2">
+                    <label className="text-white font-medium mb-3 block flex items-center gap-2 text-sm">
                       <Palette className="w-4 h-4" />
-                      Background Style
+                      Background
                     </label>
                     <div className="grid grid-cols-6 gap-2">
                       {bgGradients.map((bg) => (
                         <button
                           key={bg.id}
                           type="button"
-                          onClick={() => {
-                            setTextBg(bg.id);
-                            if (!formData.media_url) {
-                              setFormData(prev => ({ ...prev, media_url: 'text-story' }));
-                            }
-                          }}
-                          className={`h-16 rounded-xl bg-gradient-to-br ${bg.class} text-2xl flex items-center justify-center transition-all ${
-                            textBg === bg.id ? 'ring-4 ring-purple-400 scale-110' : 'opacity-60 hover:opacity-100 hover:scale-105'
+                          onClick={() => setTextBg(bg.id)}
+                          className={`h-14 rounded-lg bg-gradient-to-br ${bg.class} text-xl flex items-center justify-center transition-all ${
+                            textBg === bg.id ? 'ring-2 ring-white scale-105' : 'opacity-70 hover:opacity-100'
                           }`}
                         >
                           {bg.label}
@@ -312,90 +358,87 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
               {/* GIF Tab */}
               {activeTab === 'gif' && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
                   className="space-y-4"
                 >
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <Input
                       value={gifSearchQuery}
                       onChange={(e) => setGifSearchQuery(e.target.value)}
-                      placeholder="Search GIFs on Tenor..."
-                      className="pl-12 bg-white/10 border-purple-500/30 text-white placeholder-gray-400 h-12 text-lg"
+                      placeholder="Search GIFs..."
+                      className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-white/30"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-white/5 pr-2">
-                    {/* Placeholder GIF results */}
+                  <div className="grid grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
                     {gifSearchQuery && (
                       <>
                         {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div
+                          <button
                             key={i}
+                            type="button"
                             onClick={() => {
                               setFormData(prev => ({ 
                                 ...prev, 
                                 media_url: `https://media.tenor.com/example-${i}.gif`,
                                 media_type: 'image'
                               }));
-                              toast.success('✨ GIF selected!');
+                              toast.success('GIF selected!');
                             }}
-                            className="aspect-square bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl cursor-pointer hover:scale-105 hover:shadow-lg transition-all border border-purple-500/30 flex items-center justify-center"
+                            className="aspect-square bg-white/5 rounded-lg hover:bg-white/10 transition border border-white/10 flex items-center justify-center"
                           >
-                            <Sparkles className="w-8 h-8 text-purple-400" />
-                          </div>
+                            <Sparkles className="w-6 h-6 text-gray-500" />
+                          </button>
                         ))}
                       </>
                     )}
                     {!gifSearchQuery && (
-                      <div className="col-span-2 text-center py-12">
-                        <Sparkles className="w-12 h-12 text-purple-400 mx-auto mb-3 opacity-50" />
-                        <p className="text-gray-400">Search for the perfect GIF</p>
+                      <div className="col-span-3 text-center py-16">
+                        <Sparkles className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                        <p className="text-gray-500 text-sm">Search for GIFs</p>
                       </div>
                     )}
                   </div>
                 </motion.div>
               )}
 
-              {/* Caption Input (always visible) */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white font-semibold mb-2 block flex items-center gap-2">
-                  <Type className="w-4 h-4 text-purple-400" />
-                  Caption
-                </label>
-                <Input
-                  value={formData.caption}
-                  onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
-                  placeholder="Say something about this story..."
-                  className="bg-white/10 border-white/20 text-white placeholder-gray-500"
-                  maxLength={150}
-                />
-                <p className="text-gray-500 text-xs mt-1.5">{formData.caption.length}/150</p>
-              </div>
+              {/* Caption Input (for media tab) */}
+              {activeTab === 'media' && formData.media_url && (
+                <div>
+                  <label className="text-white font-medium mb-2 block text-sm">Add caption</label>
+                  <Input
+                    value={formData.caption}
+                    onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
+                    placeholder="Write a caption..."
+                    className="bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-white/30"
+                    maxLength={150}
+                  />
+                  <p className="text-gray-500 text-xs mt-1.5">{formData.caption.length}/150</p>
+                </div>
+              )}
 
               {/* Music Selection */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="text-white font-semibold mb-3 block flex items-center gap-2">
-                  <Music className="w-4 h-4 text-pink-400" />
-                  Add Music
+              <div className="border-t border-white/10 pt-5">
+                <label className="text-white font-medium mb-3 block flex items-center gap-2 text-sm">
+                  <Music className="w-4 h-4" />
+                  Add music
                 </label>
                 
                 {formData.music ? (
-                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-lg border border-pink-500/30">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="w-10 h-10 bg-pink-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Music className="w-5 h-5 text-pink-400 animate-pulse" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium text-sm truncate">{formData.music}</p>
-                        <p className="text-gray-400 text-xs">Now playing</p>
-                      </div>
+                  <div className="flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                    <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Music className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{formData.music}</p>
+                      <p className="text-gray-400 text-xs">Music added</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, music: "" }))}
-                      className="p-1.5 hover:bg-white/10 rounded-full transition flex-shrink-0"
+                      className="p-2 hover:bg-white/10 rounded-lg transition"
                     >
                       <X className="w-4 h-4 text-gray-400" />
                     </button>
@@ -408,12 +451,8 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                         value={musicSearchQuery}
                         onChange={(e) => setMusicSearchQuery(e.target.value)}
                         placeholder="Search songs..."
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder-gray-500"
+                        className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-white/30"
                       />
-                    </div>
-                    
-                    <div className="text-center">
-                      <span className="text-gray-400 text-xs">or</span>
                     </div>
 
                     <label className="block cursor-pointer">
@@ -423,15 +462,14 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                         accept="audio/*"
                         onChange={(e) => handleAudioUpload(e.target.files?.[0])}
                       />
-                      <div className="p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-2 border-dashed border-purple-500/30 rounded-lg hover:border-purple-500/60 transition-all text-center">
-                        <Upload className="w-6 h-6 text-purple-400 mx-auto mb-1" />
-                        <p className="text-white text-sm font-medium">Upload Audio File</p>
-                        <p className="text-gray-400 text-xs mt-0.5">MP3, WAV, M4A (Max 10MB)</p>
+                      <div className="p-3 border border-dashed border-white/20 rounded-lg hover:border-white/40 transition text-center">
+                        <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                        <p className="text-white text-xs">Upload audio</p>
                       </div>
                     </label>
                     
                     {musicResults.length > 0 && (
-                      <div className="space-y-1 max-h-40 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-white/5">
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
                         {musicResults.map((track, i) => (
                           <button
                             key={i}
@@ -439,12 +477,12 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                             onClick={() => {
                               setFormData(prev => ({ ...prev, music: `${track.artist} - ${track.title}` }));
                               setMusicSearchQuery("");
-                              toast.success('🎵 Music added!');
+                              toast.success('Music added!');
                             }}
-                            className="w-full text-left p-2.5 bg-white/5 hover:bg-white/10 rounded-lg transition-all group"
+                            className="w-full text-left p-2 bg-white/5 hover:bg-white/10 rounded-lg transition"
                           >
-                            <p className="text-white text-sm font-medium truncate group-hover:text-purple-400 transition">{track.title}</p>
-                            <p className="text-gray-400 text-xs truncate">{track.artist}</p>
+                            <p className="text-white text-xs font-medium truncate">{track.title}</p>
+                            <p className="text-gray-400 text-[10px] truncate">{track.artist}</p>
                           </button>
                         ))}
                       </div>
@@ -453,39 +491,25 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
                 )}
               </div>
 
-              {/* Preview & Submit */}
-              {formData.media_url && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4"
-                >
-                  <p className="text-green-400 font-semibold text-sm mb-2 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Ready to share!
-                  </p>
-                  <p className="text-gray-400 text-xs">Your story will be visible to followers only for 24 hours</p>
-                </motion.div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={createStoryMutation.isPending || (!formData.media_url && !formData.caption)}
-                className="w-full bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white font-bold py-5 text-lg shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {createStoryMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Sharing Story...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Share to Followers
-                  </>
-                )}
-              </Button>
             </form>
+          </div>
+
+          {/* Bottom Action Bar */}
+          <div className="p-4 border-t border-white/10 bg-black">
+            <Button
+              onClick={handleSubmit}
+              disabled={createStoryMutation.isPending || (!formData.media_url && !formData.caption)}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 rounded-xl disabled:opacity-50"
+            >
+              {createStoryMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Sharing...
+                </>
+              ) : (
+                'Share to Story'
+              )}
+            </Button>
           </div>
         </motion.div>
       </motion.div>
