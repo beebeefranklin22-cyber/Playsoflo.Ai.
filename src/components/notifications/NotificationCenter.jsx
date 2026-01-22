@@ -120,6 +120,19 @@ export default function NotificationCenter({ currentUser, compact = false }) {
     }
   });
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const groupedNotifications = notifications.reduce((acc, notif) => {
+    const today = new Date().toDateString();
+    const notifDate = new Date(notif.created_date).toDateString();
+    const key = notifDate === today ? 'Today' : 
+                notifDate === new Date(Date.now() - 86400000).toDateString() ? 'Yesterday' : 
+                'Earlier';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(notif);
+    return acc;
+  }, {});
+
   const handleNotificationClick = (notification) => {
     markAsReadMutation.mutate(notification.id);
 
@@ -146,19 +159,6 @@ export default function NotificationCenter({ currentUser, compact = false }) {
       navigate(createPageUrl('Wallet'));
     }
   };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const groupedNotifications = notifications.reduce((acc, notif) => {
-    const today = new Date().toDateString();
-    const notifDate = new Date(notif.created_date).toDateString();
-    const key = notifDate === today ? 'Today' : 
-                notifDate === new Date(Date.now() - 86400000).toDateString() ? 'Yesterday' : 
-                'Earlier';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(notif);
-    return acc;
-  }, {});
 
   if (compact) {
     return (
