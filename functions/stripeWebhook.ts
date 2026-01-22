@@ -48,6 +48,12 @@ Deno.serve(async (req) => {
         // Validate session amount matches expected amount (security check)
         const sessionAmount = session.amount_total / 100; // Stripe uses cents
         const expectedTotal = baseAmount + platformFee;
+
+        // Security: Verify amounts match within 1 cent tolerance
+        if (Math.abs(sessionAmount - expectedTotal) > 0.01) {
+          console.error(`Amount mismatch: session=${sessionAmount}, expected=${expectedTotal}`);
+          return Response.json({ error: 'Amount validation failed' }, { status: 400 });
+        }
         
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
           // Use the net amount (base_amount is already the net amount after fee calculation)

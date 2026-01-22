@@ -94,27 +94,42 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!property.title || !property.location || !property.main_image) {
       toast.error('Please fill in required fields and upload main image');
       return;
     }
 
     // Validate pricing based on listing type
-    if (property.listing_type === "short_term" && !property.price_per_night) {
-      toast.error('Please set a price per night for short-term rental');
+    if (property.listing_type === "short_term" && (!property.price_per_night || property.price_per_night <= 0)) {
+      toast.error('Please set a valid price per night for short-term rental');
       return;
     }
-    if (property.listing_type === "for_rent" && !property.price_per_month) {
-      toast.error('Please set a monthly rent price');
+    if (property.listing_type === "for_rent" && (!property.price_per_month || property.price_per_month <= 0)) {
+      toast.error('Please set a valid monthly rent price');
       return;
     }
-    if (property.listing_type === "for_sale" && !property.sale_price) {
-      toast.error('Please set a sale price');
+    if (property.listing_type === "for_sale" && (!property.sale_price || property.sale_price <= 0)) {
+      toast.error('Please set a valid sale price');
       return;
     }
 
-    createPropertyMutation.mutate(property);
+    // Server-side validation
+    try {
+      const validation = await base44.functions.invoke('validateListing', {
+        listing_type: 'property',
+        data: property
+      });
+
+      if (!validation.data.valid) {
+        toast.error(validation.data.errors.join(', '));
+        return;
+      }
+
+      createPropertyMutation.mutate(validation.data.sanitized_data);
+    } catch (error) {
+      toast.error('Validation failed: ' + error.message);
+    }
   };
 
   if (!isOpen) return null;

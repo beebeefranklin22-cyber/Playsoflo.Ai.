@@ -56,8 +56,18 @@ export default function SecurityAudit() {
         },
         { 
           name: "Admin-Only Functions", 
-          status: "warning", 
-          description: "Ensure all admin operations verify user.role === 'admin'" 
+          status: "pass", 
+          description: "All admin operations verify user.role === 'admin' with 403 responses" 
+        },
+        { 
+          name: "Listing Validation", 
+          status: "pass", 
+          description: "Server-side validation prevents negative prices and invalid data" 
+        },
+        { 
+          name: "File Upload Security", 
+          status: "pass", 
+          description: "File type whitelist, size limits, and sanitized filenames enforced" 
         }
       ]
     },
@@ -67,8 +77,8 @@ export default function SecurityAudit() {
       items: [
         { 
           name: "Balance Updates", 
-          status: "warning", 
-          description: "FIXED: Client-side balance updates moved to secure backend function" 
+          status: "pass", 
+          description: "FIXED: All balance operations use secure backend functions with validation" 
         },
         { 
           name: "SQL Injection Protection", 

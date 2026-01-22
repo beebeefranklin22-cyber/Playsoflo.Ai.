@@ -136,7 +136,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!experience.title || !experience.price || !experience.image_url) {
       toast.error('Please fill in all required fields');
       return;
@@ -147,11 +147,31 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
       return;
     }
 
-    createExperienceMutation.mutate({
-      ...experience,
-      provider_email: currentUser.email,
-      provider_name: currentUser.full_name
-    });
+    if (experience.price <= 0) {
+      toast.error('Price must be greater than $0');
+      return;
+    }
+
+    // Server-side validation
+    try {
+      const validation = await base44.functions.invoke('validateListing', {
+        listing_type: 'experience',
+        data: {
+          ...experience,
+          provider_email: currentUser.email,
+          provider_name: currentUser.full_name
+        }
+      });
+
+      if (!validation.data.valid) {
+        toast.error(validation.data.errors.join(', '));
+        return;
+      }
+
+      createExperienceMutation.mutate(validation.data.sanitized_data);
+    } catch (error) {
+      toast.error('Validation failed: ' + error.message);
+    }
   };
 
   const addTicketType = () => {
