@@ -9,9 +9,7 @@ import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
-import ErrorBoundary from "./components/ErrorBoundary";
-import ErrorBoundaryWithLogging from "./components/errors/ErrorBoundaryWithLogging";
-import GlobalErrorHandler from "./components/errors/GlobalErrorHandler";
+import { EnhancedErrorBoundary } from "./components/error/EnhancedErrorHandler";
 import PerformanceMonitor from "./components/performance/PerformanceMonitor";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
@@ -133,17 +131,15 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
-    <ErrorBoundaryWithLogging>
-    <GlobalErrorHandler>
-    <ErrorBoundary>
+    <EnhancedErrorBoundary>
     <GlobalSecurityHandler />
     <SecurityValidator>
     <SecureOperationWrapper>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
+      <PerformanceMonitor />
       <SafeErrorHandler />
       <ServiceWorkerManager />
-      <PerformanceMonitor enabled={process.env.NODE_ENV === 'development'} />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
@@ -438,8 +434,6 @@ export default function Layout({ children, currentPageName }) {
       </TVNavigationHandler>
       </SecureOperationWrapper>
       </SecurityValidator>
-      </ErrorBoundary>
-      </GlobalErrorHandler>
-      </ErrorBoundaryWithLogging>
-      );
-      }
+    </EnhancedErrorBoundary>
+  );
+}
