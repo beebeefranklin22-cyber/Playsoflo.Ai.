@@ -1,14 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { base44 } from "@/api/base44Client";
 
 export default function ServiceWorkerManager() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
   useEffect(() => {
+    // Monitor online/offline status
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success('Back online! ✅');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.info('You\'re offline. Some features may be limited.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
     if ('serviceWorker' in navigator) {
       // Register service worker (will be created by build process)
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then(async (registration) => {
-          console.log('✓ Service Worker registered');
+          console.log('✓ Service Worker registered for PWA support');
           
           // Request notification permission
           if (Notification.permission === 'default') {
@@ -107,7 +122,11 @@ export default function ServiceWorkerManager() {
     const interval = setInterval(checkNotifications, 5000);
     checkNotifications();
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   return null;

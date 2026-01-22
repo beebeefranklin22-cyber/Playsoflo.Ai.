@@ -17,6 +17,7 @@ import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import PlatformDetector from "./components/platform/PlatformDetector";
 import AppInstallPrompt from "./components/platform/AppInstallPrompt";
+import NativeAppBridge from "./components/platform/NativeAppBridge";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -136,6 +137,7 @@ export default function Layout({ children, currentPageName }) {
     <PostHogProvider user={currentUser}>
       <SafeErrorHandler />
       <ServiceWorkerManager />
+      <NativeAppBridge />
       <AppInstallPrompt />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
