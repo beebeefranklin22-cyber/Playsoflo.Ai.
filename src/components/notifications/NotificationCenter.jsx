@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, Check, Trash2, Settings, Car, Home, DollarSign,
-  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star
+  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star, Package, UserPlus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -40,8 +40,8 @@ export default function NotificationCenter({ currentUser, compact = false }) {
     queryFn: async () => {
       if (!currentUser) return [];
       const query = filter === 'unread' 
-        ? { user_email: currentUser.email, read: false }
-        : { user_email: currentUser.email };
+        ? { recipient_email: currentUser.email, read: false }
+        : { recipient_email: currentUser.email };
       return await base44.entities.Notification.filter(query, '-created_date', 50);
     },
     enabled: !!currentUser,
