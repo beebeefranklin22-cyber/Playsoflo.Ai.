@@ -15,6 +15,8 @@ import RealtimeNotificationManager from "./components/notifications/RealtimeNoti
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
+import PlatformDetector from "./components/platform/PlatformDetector";
+import AppInstallPrompt from "./components/platform/AppInstallPrompt";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -129,10 +131,12 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
+    <PlatformDetector>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
       <SafeErrorHandler />
       <ServiceWorkerManager />
+      <AppInstallPrompt />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
@@ -425,5 +429,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
-  );
-}
+      </PlatformDetector>
+      );
+      }
