@@ -9,8 +9,6 @@ import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
-import { EnhancedErrorBoundary } from "./components/error/EnhancedErrorHandler";
-import PerformanceMonitor from "./components/performance/PerformanceMonitor";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
@@ -128,13 +126,8 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
-    <EnhancedErrorBoundary>
-    <GlobalSecurityHandler />
-    <SecurityValidator>
-    <SecureOperationWrapper>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
-      <PerformanceMonitor />
       <SafeErrorHandler />
       <ServiceWorkerManager />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
@@ -429,8 +422,5 @@ export default function Layout({ children, currentPageName }) {
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
-      </SecureOperationWrapper>
-      </SecurityValidator>
-    </EnhancedErrorBoundary>
   );
 }
