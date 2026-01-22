@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { anomalyDetector } from './AnomalyDetector';
-import { rateLimiter } from './RateLimiter';
 import InputSanitizer from './InputSanitizer';
 import { toast } from 'sonner';
 
