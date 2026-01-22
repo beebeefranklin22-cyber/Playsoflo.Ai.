@@ -492,24 +492,25 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
               </div>
 
             </form>
-          </div>
+            </div>
 
-          {/* Bottom Action Bar */}
-          <div className="p-4 border-t border-white/10 bg-black">
-            <Button
-              onClick={handleSubmit}
-              disabled={createStoryMutation.isPending || (!formData.media_url && !formData.caption)}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 rounded-xl disabled:opacity-50"
-            >
-              {createStoryMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Sharing...
-                </>
-              ) : (
-                'Share to Story'
-              )}
-            </Button>
+            {/* Bottom Action Bar */}
+            <div className="p-4 border-t border-white/10 bg-black">
+              <Button
+                onClick={handleSubmit}
+                disabled={createStoryMutation.isPending || (!formData.media_url && !formData.caption)}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold h-12 rounded-xl disabled:opacity-50"
+              >
+                {createStoryMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Sharing...
+                  </>
+                ) : (
+                  'Share to Story'
+                )}
+              </Button>
+            </div>
           </div>
         </motion.div>
       </motion.div>
