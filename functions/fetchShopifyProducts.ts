@@ -300,15 +300,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Add referral tracking and ensure all have consistent field names
-    const productsWithReferral = shopifyProducts.map(product => ({
-      ...product,
-      referral_code: user.referral_code || user.email,
-      tracking_url: product.affiliate_link,
-      image: product.image_url, // Add 'image' field for consistency
-      in_stock: true,
-      stock_quantity: 999
-    }));
+    // Add referral tracking and hide affiliate link details
+    const productsWithReferral = shopifyProducts.map(product => {
+      // Remove affiliate link - keep internal only
+      const { affiliate_link, ...productWithoutLink } = product;
+      
+      return {
+        ...productWithoutLink,
+        referral_code: user.referral_code || user.email,
+        tracking_url: `/track/${product.id}`, // Internal tracking only
+        image: product.image_url,
+        in_stock: true,
+        stock_quantity: 999
+      };
+    });
 
     return Response.json({
       success: true,
