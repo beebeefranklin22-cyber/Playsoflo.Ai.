@@ -20,7 +20,7 @@ export const usePlatform = () => {
                       window.navigator.standalone === true;
 
     // iOS detection
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream;
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
     
     // Android detection
     const isAndroid = /android/i.test(userAgent);

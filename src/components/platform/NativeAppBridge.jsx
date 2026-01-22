@@ -19,54 +19,63 @@ export default function NativeAppBridge() {
 
     console.log('Running as native app via Capacitor');
 
-    // Import Capacitor plugins dynamically (only in native context)
+    // Initialize native features when Capacitor plugins are available
     const initNativeFeatures = async () => {
       try {
         const { Capacitor } = window;
-        const { StatusBar } = await import('@capacitor/status-bar');
-        const { SplashScreen } = await import('@capacitor/splash-screen');
-        const { App } = await import('@capacitor/app');
-        const { Keyboard } = await import('@capacitor/keyboard');
-
-        // Configure status bar
-        if (Capacitor.getPlatform() === 'ios') {
-          await StatusBar.setStyle({ style: 'dark' });
-          await StatusBar.setBackgroundColor({ color: '#07131A' });
-        } else if (Capacitor.getPlatform() === 'android') {
-          await StatusBar.setBackgroundColor({ color: '#07131A' });
-          await StatusBar.setStyle({ style: 'dark' });
+        
+        // Check if Capacitor plugins are actually installed
+        if (!window.Capacitor.Plugins) {
+          console.log('Capacitor plugins not available - running in PWA mode');
+          return;
         }
 
-        // Hide splash screen after app is ready
-        await SplashScreen.hide();
+        // Access plugins from Capacitor.Plugins (they're already loaded if app is built with Capacitor)
+        const { StatusBar, SplashScreen, App, Keyboard } = window.Capacitor.Plugins;
+
+        if (StatusBar && Capacitor.getPlatform() !== 'web') {
+          // Configure status bar
+          if (Capacitor.getPlatform() === 'ios') {
+            await StatusBar.setStyle({ style: 'DARK' });
+          } else if (Capacitor.getPlatform() === 'android') {
+            await StatusBar.setBackgroundColor({ color: '#07131A' });
+            await StatusBar.setStyle({ style: 'DARK' });
+          }
+        }
+
+        // Hide splash screen
+        if (SplashScreen) {
+          await SplashScreen.hide();
+        }
 
         // Handle app state changes
-        App.addListener('appStateChange', ({ isActive }) => {
-          console.log('App state changed. Is active?', isActive);
-        });
+        if (App) {
+          App.addListener('appStateChange', ({ isActive }) => {
+            console.log('App state changed. Is active?', isActive);
+          });
 
-        // Handle back button (Android)
-        App.addListener('backButton', ({ canGoBack }) => {
-          if (!canGoBack) {
-            App.exitApp();
-          } else {
-            window.history.back();
-          }
-        });
+          // Handle back button (Android)
+          App.addListener('backButton', ({ canGoBack }) => {
+            if (!canGoBack) {
+              App.exitApp();
+            } else {
+              window.history.back();
+            }
+          });
 
-        // Handle deep links
-        App.addListener('appUrlOpen', (data) => {
-          console.log('App opened with URL:', data.url);
-          // Parse and handle deep links
-          const url = new URL(data.url);
-          const path = url.pathname;
-          if (path) {
-            window.location.href = path;
-          }
-        });
+          // Handle deep links
+          App.addListener('appUrlOpen', (data) => {
+            console.log('App opened with URL:', data.url);
+            const url = new URL(data.url);
+            const path = url.pathname;
+            if (path) {
+              window.location.href = path;
+            }
+          });
+        }
 
         // Handle keyboard (mobile)
-        if (platform.isMobile) {
+        if (platform.isMobile && Keyboard) {
           Keyboard.addListener('keyboardWillShow', () => {
             document.body.classList.add('keyboard-visible');
           });
@@ -78,7 +87,7 @@ export default function NativeAppBridge() {
 
         console.log('Native app features initialized');
       } catch (error) {
-        console.error('Error initializing native features:', error);
+        console.log('Native features not available:', error.message);
       }
     };
 
