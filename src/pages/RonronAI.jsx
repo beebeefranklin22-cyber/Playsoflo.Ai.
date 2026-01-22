@@ -386,12 +386,14 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
           try {
             originCoords = await getCurrentLocation();
             origin = `${originCoords.lat},${originCoords.lng}`;
+            setLocationPermissionGranted(true);
           } catch (geoError) {
             setMessages(prev => [...prev, {
               role: "assistant",
-              content: "⚠️ Unable to access your location. Please enable location permissions in your browser settings to get accurate directions."
+              content: "⚠️ I need access to your location to provide turn-by-turn navigation. Please allow location access when prompted by your browser."
             }]);
             setIsLoading(false);
+            setLocationPermissionGranted(false);
             return;
           }
           
