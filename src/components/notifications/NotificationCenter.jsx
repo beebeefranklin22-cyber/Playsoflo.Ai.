@@ -438,12 +438,13 @@ export default function NotificationCenter({ currentUser, compact = false }) {
                                       </Button>
                                     )}
 
-                                    {notif.metadata?.sender_email && notif.type === 'message' && (
+                                    {(notif.metadata?.sender_email || notif.type === 'message' || notif.type === 'new_message' || notif.type === 'direct_message') && (
                                       <Button
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           markAsReadMutation.mutate(notif.id);
-                                          navigate(createPageUrl('Messages') + `?chat=${notif.metadata.conversation_id || notif.metadata.sender_email}`);
+                                          const chatId = notif.metadata?.conversation_id || notif.metadata?.sender_email || notif.sender_email;
+                                          navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
                                         }}
                                         size="sm"
                                         className="w-full mb-3 bg-purple-600 hover:bg-purple-700"

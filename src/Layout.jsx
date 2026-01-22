@@ -47,7 +47,10 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!currentUser) return 0;
       try {
-        const notifications = await base44.entities.Notification.filter({ read: false });
+        const notifications = await base44.entities.Notification.filter({ 
+          recipient_email: currentUser.email,
+          read: false 
+        });
         const requests = await base44.entities.FollowRequest.filter({ 
           to_email: currentUser.email, 
           status: 'pending' 
@@ -58,7 +61,7 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !!currentUser,
-    refetchInterval: 60000, // Only every 60 seconds
+    refetchInterval: 60000,
     refetchOnWindowFocus: false,
     staleTime: 30000
   });

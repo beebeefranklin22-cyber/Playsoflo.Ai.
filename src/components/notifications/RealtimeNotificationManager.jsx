@@ -165,10 +165,11 @@ export default function RealtimeNotificationManager({ currentUser }) {
         )}
 
         {/* Message Reply Action */}
-        {metadata.sender_email && notification.type === 'new_message' && (
+        {(metadata.sender_email || notification.type === 'new_message' || notification.type === 'message' || notification.type === 'direct_message') && (
           <button
             onClick={() => {
-              navigate(createPageUrl('Messages') + `?chat=${metadata.conversation_id || metadata.sender_email}`);
+              const chatId = metadata.conversation_id || metadata.sender_email || notification.sender_email;
+              navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
               base44.entities.Notification.update(notification.id, { read: true });
             }}
             className="w-full px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-lg transition mt-2"
