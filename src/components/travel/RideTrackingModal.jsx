@@ -13,9 +13,8 @@ import "leaflet/dist/leaflet.css";
 
 export default function RideTrackingModal({ rideRequest, onClose, currentUser }) {
   const navigate = useNavigate();
-  const [rating, setRating] = useState(0);
-  const [feedback, setFeedback] = useState("");
   const [showRating, setShowRating] = useState(false);
+  const [showTipping, setShowTipping] = useState(false);
 
   const { data: driver } = useQuery({
     queryKey: ['driver-info', rideRequest?.driver_email],
@@ -40,37 +39,14 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
   const ride = updatedRide || rideRequest;
 
   useEffect(() => {
-    if (ride?.status === 'completed' && !showRating) {
+    if (ride?.status === 'completed' && !showRating && !showTipping) {
       setShowRating(true);
     }
   }, [ride?.status]);
 
-  const handleRating = async () => {
-    if (!rating) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    try {
-      await base44.entities.RideRequest.update(ride.id, {
-        passenger_rating: rating,
-        passenger_feedback: feedback
-      });
-
-      await base44.entities.DriverRating.create({
-        driver_email: ride.driver_email,
-        passenger_email: currentUser.email,
-        ride_id: ride.id,
-        rating,
-        feedback,
-        ride_type: ride.ride_type
-      });
-
-      toast.success('Thank you for your feedback!');
-      onClose();
-    } catch (error) {
-      toast.error('Failed to submit rating');
-    }
+  const handleRatingComplete = () => {
+    setShowRating(false);
+    setShowTipping(true);
   };
 
   const statusConfig = {
@@ -105,6 +81,28 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
     minutes: Math.floor(liveWaitTime / 60)
   };
 
+  if (showRating) {
+    return (
+      <PassengerRatingModal
+        ride={ride}
+        onClose={() => {
+          setShowRating(false);
+          setShowTipping(true);
+        }}
+      />
+    );
+  }
+
+  if (showTipping) {
+    return (
+      <DriverTippingModal
+        ride={ride}
+        driver={driver}
+        onClose={onClose}
+      />
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -131,76 +129,6 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
           </button>
         </div>
 
-        {showRating ? (
-          <div className="p-8 text-center">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", duration: 0.5 }}
-            >
-              <CheckCircle className="w-20 h-20 text-green-400 mx-auto mb-4" />
-            </motion.div>
-            <h3 className="text-3xl font-bold text-white mb-2">Ride Completed!</h3>
-            <p className="text-gray-400 mb-6">Rate your experience with {driver?.full_name || 'your driver'}</p>
-
-            <div className="flex gap-2 justify-center mb-6">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <motion.button
-                  key={star}
-                  onClick={() => setRating(star)}
-                  className="transform transition-transform hover:scale-110 focus:outline-none"
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <Star
-                    className={`w-12 h-12 transition-all ${
-                      star <= rating ? 'fill-yellow-400 text-yellow-400 drop-shadow-lg' : 'text-gray-600'
-                    }`}
-                  />
-                </motion.button>
-              ))}
-            </div>
-
-            {rating > 0 && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-yellow-400 font-semibold mb-4"
-              >
-                {rating === 5 && '⭐ Outstanding!'}
-                {rating === 4 && '😊 Great!'}
-                {rating === 3 && '👍 Good'}
-                {rating === 2 && '😐 Could be better'}
-                {rating === 1 && '😞 Not satisfied'}
-              </motion.p>
-            )}
-
-            <textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Tell us about your ride (optional)"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 mb-6 focus:outline-none focus:border-purple-500 transition"
-              rows={3}
-            />
-
-            <div className="space-y-3">
-              <Button
-                onClick={handleRating}
-                disabled={!rating}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {rating ? 'Submit Rating ⭐' : 'Select a rating first'}
-              </Button>
-              <Button
-                onClick={onClose}
-                variant="ghost"
-                className="w-full text-gray-400"
-              >
-                Skip for now
-              </Button>
-            </div>
-          </div>
-        ) : (
           <>
             {/* Status Bar */}
             <div className="p-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-b border-white/10">
@@ -338,7 +266,12 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-bold text-xl">{driver.full_name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-white font-bold text-xl">{driver.full_name}</h3>
+                      {currentUser?.favorite_drivers?.includes(driver.email) && (
+                        <Heart className="w-5 h-5 fill-pink-500 text-pink-500" />
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -470,7 +403,6 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
               </div>
             )}
           </>
-        )}
       </motion.div>
     </motion.div>
   );

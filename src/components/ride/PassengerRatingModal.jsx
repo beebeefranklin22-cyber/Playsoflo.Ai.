@@ -65,7 +65,7 @@ export default function PassengerRatingModal({ ride, onClose }) {
         });
       }
 
-      toast.success('✅ Thank you for your feedback!');
+      toast.success('✅ Rating submitted!');
       onClose();
     } catch (error) {
       console.error('Rating error:', error);
