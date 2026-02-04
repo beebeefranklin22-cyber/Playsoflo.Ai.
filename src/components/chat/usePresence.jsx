@@ -17,7 +17,7 @@ export default function usePresence(currentUser) {
           status: 'online',
           last_seen: new Date().toISOString(),
           user_name: currentUser.full_name,
-          user_photo: currentUser.profile_photo
+          user_photo: currentUser.profile_picture
         };
 
         if (existing.length > 0) {
