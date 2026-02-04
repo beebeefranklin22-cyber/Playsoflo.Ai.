@@ -51,68 +51,83 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         // If host, create and publish tracks
         if (role === "host") {
           try {
-            // Get available devices first
-            const devices = await AgoraRTC.getDevices();
-            const cameras = devices.filter(d => d.kind === 'videoinput');
-            const mics = devices.filter(d => d.kind === 'audioinput');
-
-            console.log("Available cameras:", cameras.length);
-            console.log("Available microphones:", mics.length);
-
-            if (cameras.length === 0) {
-              throw new Error("No camera found. Please connect a camera and allow permissions.");
+            // Request permissions first
+            console.log("Requesting camera and microphone permissions...");
+            
+            // Create video track with fallback options
+            let videoTrack;
+            try {
+              // Try with facingMode first (mobile)
+              videoTrack = await AgoraRTC.createCameraVideoTrack({
+                facingMode: cameraFacing,
+                encoderConfig: {
+                  width: { ideal: 1280, min: 640 },
+                  height: { ideal: 720, min: 480 },
+                  frameRate: { ideal: 30, min: 15 },
+                  bitrateMin: 400,
+                  bitrateMax: 1000,
+                },
+                optimizationMode: "detail"
+              });
+            } catch (e) {
+              console.log("FacingMode failed, trying default camera...", e);
+              // Fallback to default camera
+              videoTrack = await AgoraRTC.createCameraVideoTrack({
+                encoderConfig: {
+                  width: 640,
+                  height: 480,
+                  frameRate: 30,
+                }
+              });
             }
-            if (mics.length === 0) {
-              throw new Error("No microphone found. Please connect a microphone.");
-            }
-
-            // Create video track with facingMode for mobile
-            const videoTrack = await AgoraRTC.createCameraVideoTrack({
-              facingMode: cameraFacing,
-              encoderConfig: {
-                width: 640,
-                height: 480,
-                frameRate: 30,
-                bitrateMin: 400,
-                bitrateMax: 800,
-              },
-              optimizationMode: "detail"
-            });
 
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
               encoderConfig: "music_standard",
             });
 
-            console.log("Tracks created successfully");
-
+            console.log("✅ Media tracks created successfully");
             setLocalVideoTrack(videoTrack);
             setLocalAudioTrack(audioTrack);
 
-            // Ensure container is ready before playing
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Wait for container to be ready
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             if (localVideoRef.current) {
-              console.log("Container dimensions:", {
+              console.log("📹 Playing video in container, size:", {
                 width: localVideoRef.current.offsetWidth,
                 height: localVideoRef.current.offsetHeight
               });
               
-              // Play video in container with explicit settings
-              videoTrack.play(localVideoRef.current, { fit: "contain" });
-              console.log("Video track playing in container");
+              // Play video track
+              videoTrack.play(localVideoRef.current, { 
+                fit: "cover",
+                mirror: cameraFacing === "user"
+              });
+              console.log("✅ Video preview started");
             } else {
-              console.error("Video container ref not available!");
+              console.error("❌ Video container not found!");
             }
 
             // Publish to channel
             await client.publish([videoTrack, audioTrack]);
-            console.log("Tracks published to channel");
-            toast.success("You're now live!");
+            console.log("✅ Stream published to channel");
+            toast.success("🔴 You're now LIVE!");
+            
           } catch (mediaError) {
-            console.error("Media error:", mediaError);
-            const errorMsg = mediaError.message || "Camera/microphone access denied";
+            console.error("❌ Media access error:", mediaError);
+            let errorMsg = "Failed to access camera/microphone";
+            
+            if (mediaError.message?.includes("Permission denied")) {
+              errorMsg = "Camera or microphone access denied. Please allow permissions and refresh.";
+            } else if (mediaError.message?.includes("not found")) {
+              errorMsg = "No camera or microphone found. Please connect devices.";
+            } else {
+              errorMsg = mediaError.message || errorMsg;
+            }
+            
             setError(errorMsg);
             toast.error(errorMsg);
+            throw mediaError;
           }
         }
 
