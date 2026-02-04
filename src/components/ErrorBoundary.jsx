@@ -1,75 +1,64 @@
-import React from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
+import { AlertCircle, RefreshCw, Home } from 'lucide-react';
+import { Button } from './ui/button';
 
-export default class ErrorBoundary extends React.Component {
+class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error };
+    return { hasError: true };
   }
 
   componentDidCatch(error, errorInfo) {
-    const errorMsg = error?.message || error?.toString() || 'Unknown error';
-    console.error('ErrorBoundary caught:', errorMsg, errorInfo);
-    
-    // Send to backend for analysis (silent)
-    this.reportErrorToBackend(error, errorInfo);
-    
-    // Try to recover automatically for non-critical errors
-    const isCritical = errorMsg.includes('ChunkLoadError') || 
-                       errorMsg.includes('Failed to fetch') ||
-                       errorMsg.includes('Network');
-    
-    if (!isCritical) {
-      // Auto-recover after 1 second
-      setTimeout(() => {
-        this.setState({ hasError: false, error: null });
-      }, 1000);
-    }
+    console.error('ErrorBoundary caught:', error, errorInfo);
+    this.setState({ error, errorInfo });
   }
-
-  reportErrorToBackend = async (error, errorInfo) => {
-    try {
-      // Dynamic import to avoid circular dependencies
-      const { base44 } = await import('@/api/base44Client');
-      
-      await base44.functions.invoke('logError', {
-        error: error?.message || error?.toString(),
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString(),
-        type: 'component_error',
-        url: window.location.href,
-        userAgent: navigator.userAgent
-      }).catch(() => {
-        console.log('Background error logging skipped');
-      });
-    } catch (e) {
-      // Silent fail
-      console.log('Error reporting failed silently');
-    }
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    // Don't reload immediately - give state a chance to reset
-    setTimeout(() => {
-      window.location.href = window.location.pathname;
-    }, 100);
-  };
 
   render() {
     if (this.state.hasError) {
-      // Show minimal loading instead of error
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="animate-spin w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto" />
-            <p className="text-gray-400 text-sm">Loading...</p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full border border-white/20">
+            <div className="text-center">
+              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-white mb-2">Oops! Something went wrong</h1>
+              <p className="text-gray-300 mb-6">
+                Don't worry, this happens sometimes. Try refreshing the page.
+              </p>
+              
+              <div className="space-y-3">
+                <Button
+                  onClick={() => window.location.reload()}
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh Page
+                </Button>
+                
+                <Button
+                  onClick={() => window.location.href = '/'}
+                  variant="outline"
+                  className="w-full border-white/20 text-white hover:bg-white/10"
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Go Home
+                </Button>
+              </div>
+
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <details className="mt-6 text-left">
+                  <summary className="text-sm text-gray-400 cursor-pointer hover:text-white">
+                    Error Details
+                  </summary>
+                  <pre className="mt-2 text-xs text-red-300 bg-black/30 p-3 rounded overflow-auto max-h-40">
+                    {this.state.error.toString()}
+                  </pre>
+                </details>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -78,3 +67,5 @@ export default class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

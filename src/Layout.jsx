@@ -18,6 +18,7 @@ import SafeErrorHandler from "./components/SafeErrorHandler";
 import PlatformDetector from "./components/platform/PlatformDetector";
 import AppInstallPrompt from "./components/platform/AppInstallPrompt";
 import NativeAppBridge from "./components/platform/NativeAppBridge";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -59,14 +60,16 @@ export default function Layout({ children, currentPageName }) {
           status: 'pending' 
         });
         return notifications.length + requests.length;
-      } catch {
+      } catch (error) {
+        console.error("Notification check error:", error);
         return 0;
       }
     },
     enabled: !!currentUser,
     refetchInterval: 60000,
     refetchOnWindowFocus: false,
-    staleTime: 30000
+    staleTime: 30000,
+    retry: false
   });
 
   const handleSearch = (e) => {
@@ -131,6 +134,7 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
+    <ErrorBoundary>
     <PlatformDetector>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
@@ -279,14 +283,15 @@ export default function Layout({ children, currentPageName }) {
           {/* Mobile Overlay */}
           {sidebarOpen && (
             <div
-              className="fixed inset-0 z-40 bg-black/60"
+              className="fixed inset-0 z-50 bg-black/60"
               onClick={() => setSidebarOpen(false)}
+              style={{ touchAction: 'none' }}
             />
           )}
 
           {/* Sidebar */}
           <aside
-            className={`fixed top-16 left-0 bottom-20 lg:bottom-0 w-64 z-40 glass-effect border-r border-white/10 transition-transform duration-300 ${
+            className={`fixed top-16 left-0 bottom-20 lg:bottom-0 w-64 z-[60] glass-effect border-r border-white/10 transition-transform duration-300 ${
               sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
@@ -373,7 +378,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {!isFullScreen && (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 glass-effect border-t border-white/10">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 glass-effect border-t border-white/10" style={{ touchAction: 'manipulation' }}>
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-around py-3">
               {navItems.map((item) => {
@@ -383,11 +388,13 @@ export default function Layout({ children, currentPageName }) {
                     key={item.path}
                     onClick={() => handleNavigation(item.path)}
                     disabled={isNavigating}
-                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
+                    type="button"
+                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all active:scale-95 ${
                       isActive 
                         ? 'bg-purple-500/20 text-purple-400' 
-                        : 'text-gray-400 hover:text-white'
+                        : 'text-gray-400 hover:text-white active:text-white'
                     } ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <item.icon className="w-5 h-5" />
                     <span className="text-xs font-medium">{item.label}</span>
@@ -431,5 +438,6 @@ export default function Layout({ children, currentPageName }) {
       </PostHogProvider>
       </TVNavigationHandler>
       </PlatformDetector>
+      </ErrorBoundary>
       );
       }
