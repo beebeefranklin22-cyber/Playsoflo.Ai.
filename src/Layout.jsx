@@ -98,9 +98,8 @@ export default function Layout({ children, currentPageName }) {
     { icon: Navigation, label: "Rides", path: "Travel" },
     { icon: TrendingUp, label: "Ads Manager", path: "AdsManager" },
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
-    { icon: Package, label: "Orders", path: "FoodOrderTracking" },
-    { icon: TrendingUp, label: "Menu", path: "FoodDelivery" },
-    { icon: DollarSign, label: "Earnings", path: "RestaurantOwnerHub" },
+    { icon: Package, label: "Food Orders", path: "FoodOrderTracking" },
+    { icon: TrendingUp, label: "Food Menu", path: "FoodDelivery" },
     { icon: MessageCircle, label: "Messages", path: "Messages" },
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },
@@ -300,11 +299,11 @@ export default function Layout({ children, currentPageName }) {
               </div>
 
               <nav className="space-y-2">
-                {sidebarSections.map((item) => {
+                {sidebarSections.map((item, idx) => {
                   const isActive = location.pathname === createPageUrl(item.path);
                   return (
                     <button
-                      key={item.path}
+                      key={`${item.path}-${idx}`}
                       onClick={() => {
                         handleNavigation(item.path);
                         setSidebarOpen(false);
