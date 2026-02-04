@@ -29,15 +29,15 @@ export default function usePresence(currentUser) {
           });
         }
       } catch (err) {
-        console.log("Failed to update presence");
+        // Silently fail - presence is not critical
       }
     };
 
     // Update immediately
     updatePresence();
 
-    // Then update every 30 seconds
-    intervalRef.current = setInterval(updatePresence, 30000);
+    // Then update every 60 seconds (reduced frequency)
+    intervalRef.current = setInterval(updatePresence, 60000);
 
     // Set offline on unmount
     return () => {

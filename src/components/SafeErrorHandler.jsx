@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { safeSessionStorage } from './utils/SafeStorage';
 
 export default function SafeErrorHandler() {
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function SafeErrorHandler() {
       }, 60000);
     }
 
-    // Global error handler - silent logging only
+    // Global error handler
     const handleError = (event) => {
       try {
         const loopActive = sessionStorage.getItem('refresh_loop_detected') === 'true';
@@ -58,28 +57,25 @@ export default function SafeErrorHandler() {
         // Storage access denied - continue
       }
 
-      // Properly format error message
+      // Format error message
       const errorMessage = event.error?.message || 
                           event.error?.toString() || 
                           'Unknown error';
       
-      // Silent logging only - no user notifications
-      console.error('Global error (silent):', errorMessage);
+      console.error('Global error:', errorMessage, event.error);
       
-      // Send to backend for analysis (using Base44 function)
-      import('@/api/base44Client').then(({ base44 }) => {
-        base44.functions.invoke('logError', {
-          error: errorMessage,
-          stack: event.error?.stack,
-          timestamp: new Date().toISOString(),
-          type: 'global_error',
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        }).catch(() => {});
-      }).catch(() => {});
+      // Don't show toast for network/fetch errors
+      const isNetworkError = errorMessage.includes('fetch') || 
+                            errorMessage.includes('Failed to fetch') ||
+                            errorMessage.includes('network');
       
-      // Prevent default error display
+      if (!isNetworkError) {
+        toast.error('Something went wrong. Please refresh if issues persist.');
+      }
+      
+      // Prevent white screen
       event.preventDefault();
+      return true;
     };
 
     const handleUnhandledRejection = (event) => {
@@ -93,27 +89,24 @@ export default function SafeErrorHandler() {
         // Storage access denied - continue
       }
 
-      // Properly format rejection reason
-      const reason = typeof event.reason === 'object' 
-        ? JSON.stringify(event.reason) 
-        : String(event.reason);
+      // Format rejection reason
+      const reason = event.reason?.message || 
+                     (typeof event.reason === 'object' ? JSON.stringify(event.reason) : String(event.reason));
       
-      // Silent logging only
-      console.error('Unhandled rejection (silent):', reason);
+      console.error('Unhandled promise rejection:', reason, event.reason);
       
-      // Send to backend
-      import('@/api/base44Client').then(({ base44 }) => {
-        base44.functions.invoke('logError', {
-          error: reason,
-          timestamp: new Date().toISOString(),
-          type: 'promise_rejection',
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        }).catch(() => {});
-      }).catch(() => {});
+      // Don't show toast for network errors
+      const isNetworkError = reason.includes('fetch') || 
+                            reason.includes('Failed to fetch') ||
+                            reason.includes('network');
       
-      // Prevent default
+      if (!isNetworkError) {
+        toast.error('An error occurred. Please try again.');
+      }
+      
+      // Prevent white screen
       event.preventDefault();
+      return true;
     };
 
     window.addEventListener('error', handleError);
