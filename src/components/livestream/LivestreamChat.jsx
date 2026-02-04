@@ -15,27 +15,34 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
 
   const [messages, setMessages] = useState([]);
 
-  // Real-time subscription for chat messages
+  // Real-time subscription for chat messages with smooth animations
   useEffect(() => {
     if (!streamId) return;
     
-    // Initial fetch
+    // Initial fetch with sorting
     const fetchMessages = async () => {
       const msgs = await base44.entities.LivestreamChat.filter({ 
         stream_id: streamId,
         is_deleted: false 
       });
-      setMessages(msgs);
+      // Sort by created_date to ensure proper order
+      const sortedMsgs = msgs.sort((a, b) => 
+        new Date(a.created_date).getTime() - new Date(b.created_date).getTime()
+      );
+      setMessages(sortedMsgs);
     };
     fetchMessages();
 
     // Subscribe to real-time updates
     const unsubscribe = base44.entities.LivestreamChat.subscribe((event) => {
-      if (event.data?.stream_id === streamId && !event.data?.is_deleted) {
-        if (event.type === 'create') {
+      if (event.data?.stream_id === streamId) {
+        if (event.type === 'create' && !event.data?.is_deleted) {
+          // Add new message instantly at the bottom
           setMessages(prev => [...prev, event.data]);
         } else if (event.type === 'update') {
-          setMessages(prev => prev.map(m => m.id === event.id ? event.data : m));
+          setMessages(prev => prev.map(m => 
+            m.id === event.id ? event.data : m
+          ).filter(m => !m.is_deleted));
         } else if (event.type === 'delete') {
           setMessages(prev => prev.filter(m => m.id !== event.id));
         }
@@ -73,9 +80,15 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
     }
   });
 
+  // Smooth auto-scroll to latest message
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0) {
+      const timer = setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length]);
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -126,12 +139,18 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         <AnimatePresence>
-          {regularMessages.map((msg) => (
+          {regularMessages.map((msg, index) => (
             <motion.div
               key={msg.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 500, 
+                damping: 30,
+                delay: index === regularMessages.length - 1 ? 0 : 0
+              }}
               className="group relative"
             >
               <div className={`flex items-start gap-2 ${msg.is_priority ? 'order-first' : ''}`}>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -23,12 +23,48 @@ export default function CoHostManager({ streamId, currentUser, isCreator }) {
       });
     },
     enabled: !!streamId,
-    refetchInterval: 5000,
+    refetchInterval: 3000,
     initialData: []
   });
 
+  // Real-time subscription for instant co-host updates
+  useEffect(() => {
+    if (!streamId) return;
+
+    const unsubscribe = base44.entities.CoStreamParticipant.subscribe((event) => {
+      if (event.data?.stream_id === streamId) {
+        queryClient.invalidateQueries(['co-hosts', streamId]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [streamId, queryClient]);
+
   const inviteMutation = useMutation({
     mutationFn: async (email) => {
+      // Check if already invited or active
+      const existing = await base44.entities.CoStreamParticipant.filter({
+        stream_id: streamId,
+        participant_email: email
+      });
+      
+      if (existing.length > 0) {
+        throw new Error('This user is already invited or co-hosting');
+      }
+
+      // Send notification to the invited user
+      await base44.entities.Notification.create({
+        recipient_email: email,
+        type: 'message',
+        title: 'Co-Host Invitation',
+        message: `You've been invited to co-host a livestream by ${currentUser.full_name || currentUser.email}`,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        metadata: {
+          stream_id: streamId
+        }
+      });
+
       return await base44.entities.CoStreamParticipant.create({
         stream_id: streamId,
         participant_email: email,
@@ -39,25 +75,48 @@ export default function CoHostManager({ streamId, currentUser, isCreator }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['co-hosts', streamId]);
-      toast.success('Co-host invitation sent!');
+      toast.success('✅ Co-host invitation sent!');
       setShowInviteModal(false);
       setCoHostEmail("");
     },
     onError: (error) => {
-      toast.error('Failed to invite co-host');
+      toast.error(error.message || 'Failed to invite co-host');
     }
   });
 
   const acceptInviteMutation = useMutation({
     mutationFn: async (inviteId) => {
-      return await base44.entities.CoStreamParticipant.update(inviteId, {
+      const updated = await base44.entities.CoStreamParticipant.update(inviteId, {
         status: 'accepted',
         joined_at: new Date().toISOString()
       });
+
+      // Get stream details
+      const streams = await base44.entities.StreamingContent.filter({ id: streamId });
+      const stream = streams[0];
+
+      // Notify the host
+      if (stream?.created_by) {
+        await base44.entities.Notification.create({
+          recipient_email: stream.created_by,
+          type: 'message',
+          title: 'Co-Host Joined',
+          message: `${currentUser.full_name || currentUser.email} has joined your livestream as a co-host`,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name
+        });
+      }
+
+      return updated;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['co-hosts', streamId]);
-      toast.success('You are now co-hosting!');
+      toast.success('🎉 You are now co-hosting! Refresh to start broadcasting.');
+      
+      // Reload page to re-initialize as broadcaster
+      setTimeout(() => {
+        window.location.href = `${window.location.pathname}?id=${streamId}&broadcaster=true`;
+      }, 2000);
     }
   });
 
