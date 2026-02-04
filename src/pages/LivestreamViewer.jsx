@@ -160,14 +160,6 @@ export default function LivestreamViewer() {
     return () => unsubscribe();
   }, [streamId]);
 
-  if (!stream) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-white">Loading stream...</p>
-      </div>
-    );
-  }
-
   const isStreamCreator = currentUser?.email === stream?.created_by;
 
   // Check if following creator
