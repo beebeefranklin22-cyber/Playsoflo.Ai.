@@ -217,7 +217,14 @@ export default function LivestreamViewer() {
     }
   };
 
-  // Wrap content in PPV gate if applicable
+  if (!stream) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <p className="text-white">Loading stream...</p>
+      </div>
+    );
+  }
+
   const content = (
     <div className={`min-h-screen bg-black ${isTheaterMode ? '' : 'pb-20'}`}>
       {/* Premium Header */}
