@@ -53,14 +53,16 @@ export default function GoLiveButton({ currentUser }) {
       await Promise.all(
         followers.map(f => 
           base44.entities.Notification.create({
-            user_email: f.follower_email,
+            recipient_email: f.follower_email,
             type: "livestream_started",
             title: `${currentUser.full_name} is live!`,
             message: title || "Join the livestream now",
             reference_type: "livestream",
             reference_id: stream.id,
             action_url: `/LivestreamViewer?id=${stream.id}`,
-            read: false
+            sender_email: currentUser.email,
+            sender_name: currentUser.full_name,
+            sender_photo: currentUser.profile_picture
           })
         )
       );

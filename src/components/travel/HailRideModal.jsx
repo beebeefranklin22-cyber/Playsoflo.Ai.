@@ -269,13 +269,21 @@ export default function HailRideModal({ open, onClose }) {
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-green-400 flex-shrink-0" />
                   <div className="flex-1 flex gap-2">
-                    <Input 
-                      placeholder={gettingLocation ? "Getting your location..." : "Pickup address"} 
-                      value={pickup} 
-                      onChange={(e) => setPickup(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white flex-1"
-                      disabled={gettingLocation}
-                    />
+                    <div className="flex-1 relative">
+                      <Input 
+                        placeholder={gettingLocation ? "Getting your location..." : "Pickup address"} 
+                        value={pickup} 
+                        onChange={(e) => setPickup(e.target.value)}
+                        className="bg-white/10 border-white/20 text-white"
+                        disabled={gettingLocation}
+                        list="pickup-suggestions"
+                      />
+                      <datalist id="pickup-suggestions">
+                        <option value="Home" />
+                        <option value="Work" />
+                        <option value="Airport" />
+                      </datalist>
+                    </div>
                     <Button
                       type="button"
                       onClick={getCurrentLocation}
@@ -290,12 +298,22 @@ export default function HailRideModal({ open, onClose }) {
                 </div>
                 <div className="flex items-center gap-3">
                   <Navigation className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <Input 
-                    placeholder="Dropoff address" 
-                    value={dropoff} 
-                    onChange={(e) => setDropoff(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <div className="flex-1 relative">
+                    <Input 
+                      placeholder="Dropoff address" 
+                      value={dropoff} 
+                      onChange={(e) => setDropoff(e.target.value)}
+                      className="bg-white/10 border-white/20 text-white"
+                      list="dropoff-suggestions"
+                    />
+                    <datalist id="dropoff-suggestions">
+                      <option value="Home" />
+                      <option value="Work" />
+                      <option value="Airport" />
+                      <option value="Beach" />
+                      <option value="Mall" />
+                    </datalist>
+                  </div>
                 </div>
               </div>
 
