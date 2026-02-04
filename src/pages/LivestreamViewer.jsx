@@ -136,6 +136,8 @@ export default function LivestreamViewer() {
   });
 
   const [viewerCount, setViewerCount] = useState(0);
+  
+  const isStreamCreator = currentUser?.email === stream?.created_by;
 
   // Real-time viewer count
   useEffect(() => {
@@ -159,8 +161,6 @@ export default function LivestreamViewer() {
 
     return () => unsubscribe();
   }, [streamId]);
-
-  const isStreamCreator = currentUser?.email === stream?.created_by;
 
   // Check if following creator
   useEffect(() => {
