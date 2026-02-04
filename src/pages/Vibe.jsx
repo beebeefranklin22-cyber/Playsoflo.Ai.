@@ -96,30 +96,43 @@ export default function Vibe() {
     }
   ];
 
+  // Debounced search query
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Fetch trending tracks from the app
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['music-discovery', selectedGenre, searchQuery],
+    queryKey: ['music-discovery', selectedGenre, debouncedSearch],
     queryFn: async () => {
       // Load user-uploaded tracks (fast, local DB)
       const userTracks = await base44.entities.MusicTrack.filter({
         status: "published"
       });
 
-      // For search, fetch from YouTube (faster debounced search)
-      if (searchQuery?.trim() && searchQuery.length >= 2) {
+      // For search, fetch from YouTube
+      if (debouncedSearch?.trim() && debouncedSearch.length >= 2) {
         try {
           const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
-            query: searchQuery,
+            query: debouncedSearch,
             maxResults: 20
           });
-          const youtubeTracks = youtubeResponse?.tracks || [];
+          const youtubeTracks = youtubeResponse?.data?.tracks || youtubeResponse?.tracks || [];
+          
+          // Filter local tracks
+          const filteredUserTracks = userTracks.filter(t => 
+            t.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            t.artist_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+          );
           
           // Merge and prioritize user tracks first
           return { 
-            tracks: [...userTracks.filter(t => 
-              t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              t.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
-            ), ...youtubeTracks], 
+            tracks: [...filteredUserTracks, ...youtubeTracks], 
             source: 'mixed' 
           };
         } catch (err) {
@@ -127,8 +140,8 @@ export default function Vibe() {
           // Fallback to user tracks only
           return {
             tracks: userTracks.filter(t => 
-              t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              t.artist_name?.toLowerCase().includes(searchQuery.toLowerCase())
+              t.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+              t.artist_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
             ),
             source: 'app'
           };
@@ -146,7 +159,7 @@ export default function Vibe() {
       };
     },
     initialData: { tracks: sampleTracks, source: 'demo' },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     enabled: true
   });
