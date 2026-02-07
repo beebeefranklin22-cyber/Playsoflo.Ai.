@@ -9,6 +9,7 @@ import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
 import CustomerSupportChat from "./components/support/CustomerSupportChat";
+import { ThemeProvider } from "./components/ui/ThemeProvider";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
@@ -135,6 +136,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <ErrorBoundary>
+    <ThemeProvider>
     <PlatformDetector>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
@@ -194,22 +196,35 @@ export default function Layout({ children, currentPageName }) {
       {!isFullScreen && (
         <div className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex-shrink-0"
-            >
-              {currentUser?.profile_picture ? (
-                <img 
-                  src={currentUser.profile_picture} 
-                  alt={currentUser.full_name}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-white/20 hover:border-purple-500/50 transition"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold hover:scale-105 transition">
-                  {currentUser?.full_name?.[0] || "U"}
-                </div>
-              )}
-            </button>
+            {location.pathname !== createPageUrl("Home") && 
+             location.pathname !== createPageUrl("Universe") && 
+             location.pathname !== createPageUrl("Wallet") && 
+             location.pathname !== createPageUrl("Profile") && 
+             location.pathname !== createPageUrl("RonronAI") ? (
+              <button
+                onClick={() => navigate(-1)}
+                className="flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition"
+              >
+                <ChevronRight className="w-6 h-6 text-white rotate-180" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="flex-shrink-0"
+              >
+                {currentUser?.profile_picture ? (
+                  <img 
+                    src={currentUser.profile_picture} 
+                    alt={currentUser.full_name}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white/20 hover:border-purple-500/50 transition"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold hover:scale-105 transition">
+                    {currentUser?.full_name?.[0] || "U"}
+                  </div>
+                )}
+              </button>
+            )}
 
             <form onSubmit={handleSearch} className="flex-1">
               <div className="relative">
@@ -438,6 +453,7 @@ export default function Layout({ children, currentPageName }) {
       </PostHogProvider>
       </TVNavigationHandler>
       </PlatformDetector>
+      </ThemeProvider>
       </ErrorBoundary>
       );
       }

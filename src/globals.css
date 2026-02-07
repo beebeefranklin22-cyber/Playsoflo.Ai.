@@ -33,7 +33,7 @@
     /* Platform-specific variables */
     --safe-area-top: 0px;
     --safe-area-bottom: 0px;
-    --touch-target: 32px;
+    --touch-target: 44px;
     --vh: 1vh;
   }
 
@@ -70,6 +70,16 @@
   -webkit-overflow-scrolling: touch;
   padding-top: var(--safe-area-top);
   padding-bottom: var(--safe-area-bottom);
+  overscroll-behavior: none;
+}
+
+/* Disable rubber-banding while keeping inner scrolling */
+body {
+  overscroll-behavior-y: none;
+}
+
+.scrollable-content {
+  overscroll-behavior-y: auto;
 }
 
 .platform-ios input,
@@ -142,9 +152,11 @@
 
 /* Touch device optimizations */
 .touch-device button,
-.touch-device a {
-  min-height: 44px;
-  min-width: 44px;
+.touch-device a,
+button,
+a[role="button"] {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
 }
 
 /* High DPI optimizations */

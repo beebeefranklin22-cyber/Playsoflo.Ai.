@@ -53,6 +53,7 @@ import AdminPanel from './pages/AdminPanel';
 import AdsManager from './pages/AdsManager';
 import AffiliateHub from './pages/AffiliateHub';
 import AffiliateProgram from './pages/AffiliateProgram';
+import AppStorePrep from './pages/AppStorePrep';
 import ArtistProfile from './pages/ArtistProfile';
 import CarRentals from './pages/CarRentals';
 import Cart from './pages/Cart';
@@ -153,7 +154,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import AppStorePrep from './pages/AppStorePrep';
 import __Layout from './Layout.jsx';
 
 
@@ -164,6 +164,7 @@ export const PAGES = {
     "AdsManager": AdsManager,
     "AffiliateHub": AffiliateHub,
     "AffiliateProgram": AffiliateProgram,
+    "AppStorePrep": AppStorePrep,
     "ArtistProfile": ArtistProfile,
     "CarRentals": CarRentals,
     "Cart": Cart,
@@ -264,7 +265,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "AppStorePrep": AppStorePrep,
 }
 
 export const pagesConfig = {
