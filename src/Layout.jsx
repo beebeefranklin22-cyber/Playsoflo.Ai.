@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
@@ -30,6 +30,34 @@ export default function Layout({ children, currentPageName }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
+  const [direction, setDirection] = useState(0);
+  const prevPathRef = useRef(location.pathname);
+
+  // Preserve tab state
+  const tabStates = useRef({});
+  const currentPath = location.pathname;
+  
+  // Determine if navigating to root or child
+  const rootPaths = [
+    createPageUrl("Home"),
+    createPageUrl("Universe"),
+    createPageUrl("Wallet"),
+    createPageUrl("Profile"),
+    createPageUrl("RonronAI")
+  ];
+  
+  const isRootPath = rootPaths.includes(currentPath);
+  const wasRootPath = rootPaths.includes(prevPathRef.current);
+
+  useEffect(() => {
+    // Determine slide direction
+    if (isRootPath && !wasRootPath) {
+      setDirection(-1); // Slide from left (back)
+    } else if (!isRootPath && wasRootPath) {
+      setDirection(1); // Slide from right (forward)
+    }
+    prevPathRef.current = currentPath;
+  }, [currentPath]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -194,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {!isFullScreen && (
-        <div className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-white/10">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
             {location.pathname !== createPageUrl("Home") && 
              location.pathname !== createPageUrl("Universe") && 
@@ -364,7 +392,7 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"}`}>
+      <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"} overflow-x-hidden`}>
         {/* Breadcrumbs */}
         {!isFullScreen && breadcrumbs.length > 1 && (
           <div className="glass-effect border-b border-white/10 px-4 py-3">
@@ -389,11 +417,27 @@ export default function Layout({ children, currentPageName }) {
           </div>
         )}
 
-        {children}
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentPath}
+            custom={direction}
+            initial={{ x: direction > 0 ? '100%' : direction < 0 ? '-20%' : 0, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction > 0 ? '-20%' : direction < 0 ? '100%' : 0, opacity: 0 }}
+            transition={{ 
+              type: 'spring', 
+              stiffness: 300, 
+              damping: 30,
+              opacity: { duration: 0.2 }
+            }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {!isFullScreen && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 glass-effect border-t border-white/10" style={{ touchAction: 'manipulation' }}>
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation' }}>
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center justify-around py-3">
               {navItems.map((item) => {

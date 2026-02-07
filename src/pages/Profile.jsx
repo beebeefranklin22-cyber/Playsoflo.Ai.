@@ -30,6 +30,7 @@ import RidePreferencesModal from "../components/ride/RidePreferencesModal";
 import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 import FriendRequestsModal from "../components/friends/FriendRequestsModal";
 import FriendsListModal from "../components/friends/FriendsListModal";
+import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ export default function Profile() {
   const [showVehicleInfo, setShowVehicleInfo] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
     full_name: "",
@@ -1024,21 +1026,7 @@ export default function Profile() {
             </Button>
 
             <Button
-              onClick={async () => {
-                if (window.confirm('⚠️ Are you absolutely sure? This will permanently delete your account and all your data. This action cannot be undone.')) {
-                  if (window.confirm('This is your final confirmation. Delete account?')) {
-                    try {
-                      toast.loading('Deleting account...');
-                      // Call secure deletion function (would need to be created)
-                      await base44.auth.logout();
-                      navigate('/');
-                      toast.success('Account deleted successfully');
-                    } catch (error) {
-                      toast.error('Failed to delete account. Please contact support.');
-                    }
-                  }
-                }
-              }}
+              onClick={() => setShowDeleteAccount(true)}
               variant="outline"
               className="w-full mt-2 border-red-500/50 text-red-500 hover:bg-red-500/10"
             >
@@ -1208,6 +1196,13 @@ export default function Profile() {
           onClose={() => setShowFriends(false)}
         />
       )}
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+        currentUser={currentUser}
+      />
 
       {/* Interests Modal */}
         {showInterests && (
