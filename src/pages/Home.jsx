@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import PullToRefresh from "../components/PullToRefresh";
 import CreatePostModal from "../components/CreatePostModal";
 import CreateStoryModal from "../components/CreateStoryModal";
 import StoryViewer from "../components/story/StoryViewer";
@@ -175,25 +176,51 @@ export default function Home() {
     refetchOnWindowFocus: false
   });
 
-  const toggleLike = (postId) => {
-    setLikedPosts(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(postId)) {
-        newSet.delete(postId);
-      } else {
-        newSet.add(postId);
-        // Track like interaction
-        if (currentUser?.email) {
-          trackInteractionMutation.mutate({
-            interaction_type: "like",
-            content_type: "post",
-            content_id: postId,
-            content_category: "social"
-          });
+  const likeMutation = useMutation({
+    mutationFn: async ({ postId, isLiked }) => {
+      // Simulate API call - in real app, call backend
+      return new Promise(resolve => setTimeout(resolve, 500));
+    },
+    onMutate: async ({ postId, isLiked }) => {
+      // Optimistic update
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        if (isLiked) {
+          newSet.delete(postId);
+        } else {
+          newSet.add(postId);
         }
-      }
-      return newSet;
-    });
+        return newSet;
+      });
+    },
+    onError: (error, { postId, isLiked }) => {
+      // Revert on error
+      setLikedPosts(prev => {
+        const newSet = new Set(prev);
+        if (!isLiked) {
+          newSet.delete(postId);
+        } else {
+          newSet.add(postId);
+        }
+        return newSet;
+      });
+      toast.error('Failed to update like');
+    }
+  });
+
+  const toggleLike = (postId) => {
+    const isLiked = likedPosts.has(postId);
+    likeMutation.mutate({ postId, isLiked });
+    
+    // Track like interaction
+    if (!isLiked && currentUser?.email) {
+      trackInteractionMutation.mutate({
+        interaction_type: "like",
+        content_type: "post",
+        content_id: postId,
+        content_category: "social"
+      });
+    }
   };
 
   const vibeColors = {
@@ -254,6 +281,7 @@ export default function Home() {
   });
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen pb-20">
       {/* Stories Bar */}
       <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
@@ -618,5 +646,6 @@ export default function Home() {
         }
       `}</style>
     </div>
+    </PullToRefresh>
   );
 }

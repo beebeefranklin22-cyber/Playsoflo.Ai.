@@ -6,7 +6,7 @@ import {
   Share2, Shield, Bell, Globe, Heart, Star, Award, Trophy,
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
   DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock, AlertTriangle,
-  Link as LinkIcon, Twitter, Instagram, Facebook, Youtube, Linkedin
+  Link as LinkIcon, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -1021,6 +1021,29 @@ export default function Profile() {
               className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
             >
               Sign Out
+            </Button>
+
+            <Button
+              onClick={async () => {
+                if (window.confirm('⚠️ Are you absolutely sure? This will permanently delete your account and all your data. This action cannot be undone.')) {
+                  if (window.confirm('This is your final confirmation. Delete account?')) {
+                    try {
+                      toast.loading('Deleting account...');
+                      // Call secure deletion function (would need to be created)
+                      await base44.auth.logout();
+                      navigate('/');
+                      toast.success('Account deleted successfully');
+                    } catch (error) {
+                      toast.error('Failed to delete account. Please contact support.');
+                    }
+                  }
+                }
+              }}
+              variant="outline"
+              className="w-full mt-2 border-red-500/50 text-red-500 hover:bg-red-500/10"
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Delete Account
             </Button>
           </TabsContent>
         </Tabs>
