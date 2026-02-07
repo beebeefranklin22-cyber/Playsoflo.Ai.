@@ -207,15 +207,21 @@ export default function BookingModal({ service, onClose }) {
 
       return booking;
     },
+    onMutate: async (bookingData) => {
+      // Optimistic UI - show loading state
+      toast.loading('Creating booking...');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['bookings-for-date']);
       queryClient.invalidateQueries(['my-bookings']);
       queryClient.invalidateQueries(['provider-bookings']);
+      toast.dismiss();
       setStep(3);
     },
     onError: (error) => {
       console.error('Booking error:', error);
-      alert('Booking failed: ' + error.message);
+      toast.dismiss();
+      toast.error('Booking failed: ' + error.message);
     }
   });
 

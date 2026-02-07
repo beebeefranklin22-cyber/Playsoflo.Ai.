@@ -61,6 +61,30 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
 
         return comment;
     },
+    onMutate: async (newComment) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries(['post-comments', postId]);
+      
+      // Snapshot previous value
+      const previousComments = queryClient.getQueryData(['post-comments', postId]);
+      
+      // Optimistically update
+      const optimisticComment = {
+        id: 'temp-' + Date.now(),
+        ...newComment,
+        created_date: new Date().toISOString(),
+        likes_count: 0
+      };
+      
+      queryClient.setQueryData(['post-comments', postId], old => [...(old || []), optimisticComment]);
+      
+      return { previousComments };
+    },
+    onError: (err, newComment, context) => {
+      // Rollback on error
+      queryClient.setQueryData(['post-comments', postId], context.previousComments);
+      toast.error("Failed to post comment");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['post-comments', postId]);
       queryClient.invalidateQueries(['social-feed']);
@@ -84,6 +108,33 @@ export default function CommentSection({ postId, commentsCount, currentUser }) {
         liked_by: newLikedBy,
         likes_count: isLiked ? currentLikesCount - 1 : currentLikesCount + 1
       });
+    },
+    onMutate: async ({ commentId, liked_by, currentLikesCount }) => {
+      await queryClient.cancelQueries(['post-comments', postId]);
+      const previousComments = queryClient.getQueryData(['post-comments', postId]);
+      
+      // Optimistic update
+      queryClient.setQueryData(['post-comments', postId], old => 
+        old.map(comment => {
+          if (comment.id === commentId) {
+            const likedByArray = liked_by || [];
+            const isLiked = likedByArray.includes(currentUser.email);
+            return {
+              ...comment,
+              liked_by: isLiked 
+                ? likedByArray.filter(email => email !== currentUser.email)
+                : [...likedByArray, currentUser.email],
+              likes_count: isLiked ? currentLikesCount - 1 : currentLikesCount + 1
+            };
+          }
+          return comment;
+        })
+      );
+      
+      return { previousComments };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['post-comments', postId], context.previousComments);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['post-comments', postId]);
