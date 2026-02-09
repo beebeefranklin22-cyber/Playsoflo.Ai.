@@ -87,47 +87,70 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
     e.preventDefault();
     if (!newMessage.trim() || sending) return;
 
+    const messageContent = newMessage.trim();
+    setNewMessage('');
     setSending(true);
+    
+    // Optimistic update
+    const optimisticMessage = {
+      id: 'temp-' + Date.now(),
+      conversation_id: conversation.id,
+      sender_email: currentUser.email,
+      content: messageContent,
+      message_type: 'text',
+      read_by: [currentUser.email],
+      delivered_to: [currentUser.email],
+      created_date: new Date().toISOString(),
+      _optimistic: true
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    scrollToBottom();
+
     try {
       const messageData = {
         conversation_id: conversation.id,
         sender_email: currentUser.email,
-        content: newMessage.trim(),
+        content: messageContent,
         message_type: 'text',
         read_by: [currentUser.email],
         delivered_to: [currentUser.email]
       };
 
-      await base44.entities.ChatMessage.create(messageData);
+      const createdMessage = await base44.entities.ChatMessage.create(messageData);
+      
+      // Replace optimistic message with real one
+      setMessages(prev => prev.map(m => m.id === optimisticMessage.id ? createdMessage : m));
       
       // Update conversation's last message
       await base44.entities.ChatConversation.update(conversation.id, {
-        last_message: newMessage.trim().substring(0, 100),
+        last_message: messageContent.substring(0, 100),
         last_message_time: new Date().toISOString(),
         last_message_sender: currentUser.email
       });
-
-      setNewMessage('');
       
       // Send notification to other participants
       const otherParticipants = conversation.participants.filter(p => p !== currentUser.email);
-      for (const participant of otherParticipants) {
-        await base44.entities.Notification.create({
+      const notificationPromises = otherParticipants.map(participant =>
+        base44.entities.Notification.create({
           recipient_email: participant,
           type: 'new_message',
           title: 'New Message',
-          message: `${currentUser.full_name}: ${newMessage.substring(0, 50)}`,
+          message: `${currentUser.full_name}: ${messageContent.substring(0, 50)}`,
           sender_email: currentUser.email,
           sender_name: currentUser.full_name,
           reference_type: 'message',
           reference_id: conversation.id,
           action_url: `/messages?conversation=${conversation.id}`
-        }).catch(() => {});
-      }
+        }).catch(err => console.error('Notification error:', err))
+      );
+      await Promise.all(notificationPromises);
       
     } catch (error) {
       console.error('Failed to send message:', error);
       toast.error('Failed to send message');
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticMessage.id));
+      setNewMessage(messageContent);
     } finally {
       setSending(false);
     }

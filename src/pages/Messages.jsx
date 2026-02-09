@@ -187,7 +187,6 @@ export default function Messages() {
       );
       
       const notificationPromises = otherParticipants.map(async (recipient) => {
-        // Create notification
         await base44.entities.Notification.create({
           recipient_email: recipient,
           type: "new_message",
@@ -206,43 +205,45 @@ export default function Messages() {
           action_url: `/messages?conv=${selectedConversation.id}`,
           read: false
         });
-
-        // Try to send push notification if available
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            const title = selectedConversation.is_group 
-              ? `${currentUser.full_name || currentUser.email} in ${selectedConversation.name}`
-              : currentUser.full_name || currentUser.email;
-            
-            const body = encryptionEnabled ? "🔒 Encrypted message" :
-                        (data.message_type === 'image' ? "📷 Photo" :
-                         data.message_type === 'video' ? "🎥 Video" :
-                         data.message_type === 'audio' ? "🎵 Audio" :
-                         data.message_type === 'file' ? `📎 ${data.file_name}` :
-                         data.content.substring(0, 100));
-
-            new Notification(title, {
-              body,
-              icon: currentUser.profile_photo || '/icon.png',
-              badge: '/badge.png',
-              tag: selectedConversation.id,
-              requireInteraction: false,
-              vibrate: [200, 100, 200]
-            });
-          } catch (error) {
-            console.error('Push notification error:', error);
-          }
-        }
       });
       
       await Promise.all(notificationPromises);
 
       return message;
     },
+    onMutate: async (newMessageData) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries(['messages', selectedConversation?.id]);
+      
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData(['messages', selectedConversation?.id]);
+      
+      // Optimistically update
+      const optimisticMessage = {
+        id: 'temp-' + Date.now(),
+        ...newMessageData,
+        created_date: new Date().toISOString(),
+        read_by: [currentUser.email],
+        delivered_to: [currentUser.email],
+        _optimistic: true
+      };
+      
+      queryClient.setQueryData(['messages', selectedConversation?.id], old => [...(old || []), optimisticMessage]);
+      
+      setTimeout(scrollToBottom, 100);
+      
+      return { previousMessages };
+    },
+    onError: (err, newMessage, context) => {
+      // Rollback on error
+      queryClient.setQueryData(['messages', selectedConversation?.id], context.previousMessages);
+      toast.error("Failed to send message");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setMessageInput("");
+      setReplyingTo(null);
       scrollToBottom();
     }
   });

@@ -74,7 +74,8 @@ export default function DirectChatModal({
         sender_name: currentUser.full_name,
         sender_photo: currentUser.profile_photo,
         recipient_email: targetUser.email,
-        content
+        content,
+        read: false
       });
 
       // Send notification to recipient
@@ -87,10 +88,41 @@ export default function DirectChatModal({
         reference_id: message.id,
         sender_email: currentUser.email,
         sender_name: currentUser.full_name,
-        sender_photo: currentUser.profile_photo
+        sender_photo: currentUser.profile_photo,
+        read: false
       });
 
       return message;
+    },
+    onMutate: async (content) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries(['direct-messages', conversationId]);
+      
+      // Snapshot previous value
+      const previousMessages = queryClient.getQueryData(['direct-messages', conversationId]);
+      
+      // Optimistically update
+      const optimisticMessage = {
+        id: 'temp-' + Date.now(),
+        conversation_id: conversationId,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_photo,
+        recipient_email: targetUser.email,
+        content,
+        created_date: new Date().toISOString(),
+        read: false,
+        _optimistic: true
+      };
+      
+      queryClient.setQueryData(['direct-messages', conversationId], old => [...(old || []), optimisticMessage]);
+      
+      return { previousMessages };
+    },
+    onError: (err, content, context) => {
+      // Rollback on error
+      queryClient.setQueryData(['direct-messages', conversationId], context.previousMessages);
+      toast.error("Failed to send message");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['direct-messages', conversationId] });
