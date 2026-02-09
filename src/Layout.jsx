@@ -116,11 +116,11 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const navItems = [
-    { icon: Brain, label: "Beebee", path: "RonronAI" },
-    { icon: Home, label: "Home", path: "Home" },
-    { icon: Compass, label: "Universe", path: "Universe" },
-    { icon: Wallet, label: "Wallet", path: "Wallet" },
-    { icon: User, label: "Profile", path: "Profile" },
+    { icon: Brain, label: "Beebee", path: "RonronAI", id: "nav-ronronai" },
+    { icon: Home, label: "Home", path: "Home", id: "nav-home" },
+    { icon: Compass, label: "Universe", path: "Universe", id: "nav-universe" },
+    { icon: Wallet, label: "Wallet", path: "Wallet", id: "nav-wallet" },
+    { icon: User, label: "Profile", path: "Profile", id: "nav-profile" },
   ];
 
   const sidebarSections = [
@@ -444,7 +444,7 @@ export default function Layout({ children, currentPageName }) {
                 const isActive = location.pathname === createPageUrl(item.path);
                 return (
                   <button
-                    key={item.path}
+                    key={item.id}
                     onClick={() => handleNavigation(item.path)}
                     disabled={isNavigating}
                     type="button"
