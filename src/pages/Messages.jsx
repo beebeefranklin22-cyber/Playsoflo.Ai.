@@ -57,26 +57,6 @@ export default function Messages() {
     }
   }, []);
 
-  // Handle URL params for direct conversation
-  useEffect(() => {
-    const userParam = searchParams.get("user");
-    const convParam = searchParams.get("conv");
-    
-    if (convParam && conversations.length > 0) {
-      const conv = conversations.find(c => c.id === convParam);
-      if (conv) setSelectedConversation(conv);
-    } else if (userParam && currentUser && conversations.length > 0) {
-      const conv = conversations.find(c => 
-        !c.is_group && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
-      );
-      if (conv) {
-        setSelectedConversation(conv);
-      } else {
-        createConversationMutation.mutate(userParam);
-      }
-    }
-  }, [searchParams, conversations, currentUser]);
-
   const { data: conversations = [] } = useQuery({
     queryKey: ['conversations', currentUser?.email],
     queryFn: async () => {
@@ -100,6 +80,28 @@ export default function Messages() {
     
     return unsubscribe;
   }, [currentUser]);
+
+  // Handle URL params for direct conversation
+  useEffect(() => {
+    const userParam = searchParams.get("user");
+    const convParam = searchParams.get("conv");
+    
+    if (!currentUser || !conversations) return;
+    
+    if (convParam && conversations.length > 0) {
+      const conv = conversations.find(c => c.id === convParam);
+      if (conv) setSelectedConversation(conv);
+    } else if (userParam && conversations.length > 0) {
+      const conv = conversations.find(c => 
+        !c.is_group && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
+      );
+      if (conv) {
+        setSelectedConversation(conv);
+      } else {
+        createConversationMutation.mutate(userParam);
+      }
+    }
+  }, [searchParams, conversations, currentUser]);
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', selectedConversation?.id],
