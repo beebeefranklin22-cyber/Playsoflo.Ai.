@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tantml:query";
 import { base44 } from "@/api/base44Client";
 import { useSearchParams } from "react-router-dom";
+import { formatTimeOnly } from "../components/utils/dateUtils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -780,10 +781,7 @@ export default function Messages() {
                       </div>
                       {conv.last_message_time && (
                         <span className="text-xs text-gray-500">
-                          {new Date(conv.last_message_time).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                          {formatTimeOnly(conv.last_message_time)}
                         </span>
                       )}
                     </div>
@@ -1168,12 +1166,9 @@ export default function Messages() {
                         )}
 
                         <div className="flex items-center gap-1 mt-1 px-2">
-                          <span className="text-xs text-gray-500">
-                            {new Date(message.created_date).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
+                         <span className="text-xs text-gray-500">
+                           {formatTimeOnly(message.created_date)}
+                         </span>
                           {isOwn && (
                             selectedConversation.is_group ? (
                               readCount > 0 ? (
