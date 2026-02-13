@@ -156,6 +156,29 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
           </Select>
         </div>
 
+        {/* Availability Slots */}
+        <div>
+          <label className="text-gray-300 text-sm font-semibold mb-3 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-green-400" />
+            Availability Slots
+          </label>
+          <Select
+            value={filters.availabilitySlots || 'all'}
+            onValueChange={(value) => updateFilter('availabilitySlots', value === 'all' ? null : value)}
+          >
+            <SelectTrigger className="bg-white/10 border-white/20 text-white">
+              <SelectValue placeholder="Any time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any Time</SelectItem>
+              <SelectItem value="morning">Morning (8AM-12PM)</SelectItem>
+              <SelectItem value="afternoon">Afternoon (12PM-5PM)</SelectItem>
+              <SelectItem value="evening">Evening (5PM-10PM)</SelectItem>
+              <SelectItem value="weekend">Weekend Available</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Special Features */}
         <div>
           <label className="text-gray-300 text-sm font-semibold mb-3 flex items-center gap-2">

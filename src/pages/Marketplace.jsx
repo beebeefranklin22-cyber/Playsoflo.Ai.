@@ -555,7 +555,8 @@ export default function Marketplace() {
               verification: null,
               serviceArea: null,
               instantBooking: false,
-              escrowProtected: false
+              escrowProtected: false,
+              availabilitySlots: null
             })}
           />
         </div>
