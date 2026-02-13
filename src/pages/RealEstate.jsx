@@ -66,7 +66,11 @@ export default function RealEstate() {
     bathroomsMax: "",
     sqftMin: "",
     sqftMax: "",
-    amenities: []
+    amenities: [],
+    yearBuiltMin: "",
+    yearBuiltMax: "",
+    zoning: "",
+    county: ""
   });
   const [viewMode, setViewMode] = useState("grid");
   const [mapCenter, setMapCenter] = useState(null);
@@ -171,8 +175,22 @@ export default function RealEstate() {
         prop.amenities?.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
       );
     
+    // Property age filter
+    const yearBuiltMin = advancedFilters.yearBuiltMin ? parseFloat(advancedFilters.yearBuiltMin) : 0;
+    const yearBuiltMax = advancedFilters.yearBuiltMax ? parseFloat(advancedFilters.yearBuiltMax) : Infinity;
+    const yearBuiltMatch = !prop.year_built || (prop.year_built >= yearBuiltMin && prop.year_built <= yearBuiltMax);
+    
+    // Zoning filter
+    const zoningMatch = !advancedFilters.zoning || !prop.zoning || 
+      prop.zoning.toLowerCase().includes(advancedFilters.zoning.toLowerCase());
+    
+    // County filter
+    const countyMatch = !advancedFilters.county || !prop.county || 
+      prop.county.toLowerCase().includes(advancedFilters.county.toLowerCase());
+    
     return categoryMatch && listingMatch && priceMatch && bedroomsMatch && 
-           bathroomsMatch && sqftMatch && amenitiesMatch && boundsMatch;
+           bathroomsMatch && sqftMatch && amenitiesMatch && boundsMatch &&
+           yearBuiltMatch && zoningMatch && countyMatch;
   });
 
   // Sort properties
@@ -522,11 +540,13 @@ export default function RealEstate() {
             <h3 className="text-2xl font-bold text-white mb-2">No properties found</h3>
             <p className="text-gray-400 mb-4">Try adjusting your filters</p>
             {(advancedFilters.amenities?.length > 0 || advancedFilters.priceMin || 
-              advancedFilters.bedroomsMin || advancedFilters.sqftMin) && (
+              advancedFilters.bedroomsMin || advancedFilters.sqftMin || advancedFilters.yearBuiltMin ||
+              advancedFilters.zoning || advancedFilters.county) && (
               <Button
                 onClick={() => setAdvancedFilters({
                   priceMin: "", priceMax: "", bedroomsMin: "", bedroomsMax: "",
-                  bathroomsMin: "", bathroomsMax: "", sqftMin: "", sqftMax: "", amenities: []
+                  bathroomsMin: "", bathroomsMax: "", sqftMin: "", sqftMax: "", amenities: [],
+                  yearBuiltMin: "", yearBuiltMax: "", zoning: "", county: ""
                 })}
                 variant="outline"
                 className="border-emerald-500 text-emerald-400"

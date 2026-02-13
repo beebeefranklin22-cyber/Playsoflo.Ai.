@@ -12,7 +12,7 @@ import {
   Sparkles, Search, Filter, Plus, Loader2, TrendingUp,
   Gift, Calendar, Sun, Snowflake, Heart, MessageSquare, Ticket,
   Theater, Laugh, Zap, Globe, Mic, Flame, Moon, Trophy,
-  Smile, Activity, Cpu, Utensils, Drum, Palette
+  Smile, Activity, Cpu, Utensils, Drum, Palette, SlidersHorizontal
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -90,6 +90,12 @@ export default function EntertainmentExperiences() {
   const [eventsSearch, setEventsSearch] = useState({ keyword: "", city: "Miami" });
   const [selectedExperience, setSelectedExperience] = useState(null);
   const [showTicketModal, setShowTicketModal] = useState(false);
+  const [filters, setFilters] = useState({
+    durationMin: "",
+    durationMax: "",
+    ageRestriction: "",
+    dressCode: ""
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -131,9 +137,24 @@ export default function EntertainmentExperiences() {
     enabled: selectedCategory === 'live_events'
   });
 
-  const filteredExperiences = experiences.filter(exp =>
-    searchQuery ? exp.title.toLowerCase().includes(searchQuery.toLowerCase()) : true
-  );
+  const filteredExperiences = experiences.filter(exp => {
+    const searchMatch = searchQuery ? exp.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
+    
+    // Duration filter
+    const durationMin = filters.durationMin ? parseFloat(filters.durationMin) : 0;
+    const durationMax = filters.durationMax ? parseFloat(filters.durationMax) : Infinity;
+    const durationMatch = !exp.duration_minutes || (exp.duration_minutes >= durationMin && exp.duration_minutes <= durationMax);
+    
+    // Age restriction filter
+    const ageMatch = !filters.ageRestriction || !exp.age_restriction || 
+      exp.age_restriction.toLowerCase().includes(filters.ageRestriction.toLowerCase());
+    
+    // Dress code filter
+    const dressMatch = !filters.dressCode || !exp.dress_code || 
+      exp.dress_code.toLowerCase().includes(filters.dressCode.toLowerCase());
+    
+    return searchMatch && durationMatch && ageMatch && dressMatch;
+  });
 
   // Cross-sell suggestions (other services to add on)
   const getCrossSellSuggestions = (mainCategory) => {
@@ -244,6 +265,68 @@ Return as JSON array with this structure:
               <Sparkles className="w-4 h-4 mr-2" />
               List Your Experience
             </Button>
+          </div>
+        </div>
+
+        {/* Advanced Filters */}
+        <div className="mb-6">
+          <div className="bg-white/5 border border-white/20 rounded-2xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-purple-400" />
+              Filters
+            </h3>
+            <div className="grid md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-gray-400 text-xs mb-1 block">Min Duration (min)</label>
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.durationMin}
+                  onChange={(e) => setFilters({ ...filters, durationMin: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white h-9"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1 block">Max Duration (min)</label>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.durationMax}
+                  onChange={(e) => setFilters({ ...filters, durationMax: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white h-9"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1 block">Age Restriction</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., 21+"
+                  value={filters.ageRestriction}
+                  onChange={(e) => setFilters({ ...filters, ageRestriction: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white h-9"
+                />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1 block">Dress Code</label>
+                <Input
+                  type="text"
+                  placeholder="e.g., Casual"
+                  value={filters.dressCode}
+                  onChange={(e) => setFilters({ ...filters, dressCode: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white h-9"
+                />
+              </div>
+            </div>
+            {(filters.durationMin || filters.ageRestriction || filters.dressCode) && (
+              <Button
+                onClick={() => setFilters({ durationMin: "", durationMax: "", ageRestriction: "", dressCode: "" })}
+                variant="outline"
+                size="sm"
+                className="mt-3 border-purple-500 text-purple-400"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         </div>
 

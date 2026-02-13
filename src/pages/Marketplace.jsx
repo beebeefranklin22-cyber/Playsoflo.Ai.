@@ -148,7 +148,8 @@ export default function Marketplace() {
     verification: null,
     serviceArea: null,
     instantBooking: false,
-    escrowProtected: false
+    escrowProtected: false,
+    availabilitySlots: null
   });
 
   const handleRefresh = async () => {
@@ -380,10 +381,22 @@ export default function Marketplace() {
     // Special features filters
     const matchesInstantBooking = !filters.instantBooking || item.instant_booking === true;
     const matchesEscrow = !filters.escrowProtected || item.escrow_required === true;
+    
+    // Availability slots filter (based on availability field)
+    let matchesSlots = true;
+    if (filters.availabilitySlots === 'morning') {
+      matchesSlots = item.availability === 'available'; // Assume available items have flexible hours
+    } else if (filters.availabilitySlots === 'afternoon') {
+      matchesSlots = item.availability === 'available';
+    } else if (filters.availabilitySlots === 'evening') {
+      matchesSlots = item.availability === 'available';
+    } else if (filters.availabilitySlots === 'weekend') {
+      matchesSlots = item.availability !== 'booked';
+    }
 
     return matchesCategory && matchesSearch && matchesPrice && matchesRating && 
            matchesAvailability && matchesVerification && matchesServiceArea && 
-           matchesInstantBooking && matchesEscrow;
+           matchesInstantBooking && matchesEscrow && matchesSlots;
   });
 
   // Group items by service/title to show multiple providers

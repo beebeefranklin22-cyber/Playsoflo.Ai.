@@ -30,7 +30,11 @@ export default function AdvancedPropertyFilters({ filters, onFiltersChange, onCl
       bathroomsMax: "",
       sqftMin: "",
       sqftMax: "",
-      amenities: []
+      amenities: [],
+      yearBuiltMin: "",
+      yearBuiltMax: "",
+      zoning: "",
+      county: ""
     };
     setLocalFilters(resetFilters);
     onFiltersChange(resetFilters);
@@ -169,6 +173,55 @@ export default function AdvancedPropertyFilters({ filters, onFiltersChange, onCl
                 />
               </div>
             </div>
+          </div>
+
+          {/* Property Age */}
+          <div>
+            <label className="text-white font-semibold mb-3 block">Property Age (Year Built)</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Input
+                  type="number"
+                  placeholder="Min Year"
+                  value={localFilters.yearBuiltMin}
+                  onChange={(e) => setLocalFilters({ ...localFilters, yearBuiltMin: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  placeholder="Max Year"
+                  value={localFilters.yearBuiltMax}
+                  onChange={(e) => setLocalFilters({ ...localFilters, yearBuiltMax: e.target.value })}
+                  className="bg-white/10 border-white/20 text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Zoning */}
+          <div>
+            <label className="text-white font-semibold mb-3 block">Zoning</label>
+            <Input
+              type="text"
+              placeholder="e.g., Residential, Commercial"
+              value={localFilters.zoning}
+              onChange={(e) => setLocalFilters({ ...localFilters, zoning: e.target.value })}
+              className="bg-white/10 border-white/20 text-white"
+            />
+          </div>
+
+          {/* County */}
+          <div>
+            <label className="text-white font-semibold mb-3 block">County</label>
+            <Input
+              type="text"
+              placeholder="e.g., Miami-Dade"
+              value={localFilters.county}
+              onChange={(e) => setLocalFilters({ ...localFilters, county: e.target.value })}
+              className="bg-white/10 border-white/20 text-white"
+            />
           </div>
 
           {/* Amenities */}
