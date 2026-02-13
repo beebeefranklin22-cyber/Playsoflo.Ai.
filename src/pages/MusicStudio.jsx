@@ -732,37 +732,35 @@ Make it legally sound, fair, and industry-standard.`;
 
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Genre</label>
-                    <Select value={trackForm.genre} onValueChange={(v) => setTrackForm({...trackForm, genre: v})}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue placeholder="Select genre" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-white/20">
-                        <SelectItem value="hip_hop">Hip Hop</SelectItem>
-                        <SelectItem value="rap">Rap</SelectItem>
-                        <SelectItem value="r_n_b">R&B</SelectItem>
-                        <SelectItem value="pop">Pop</SelectItem>
-                        <SelectItem value="rock">Rock</SelectItem>
-                        <SelectItem value="electronic">Electronic</SelectItem>
-                        <SelectItem value="latin">Latin</SelectItem>
-                        <SelectItem value="country">Country</SelectItem>
-                        <SelectItem value="jazz">Jazz</SelectItem>
-                        <SelectItem value="reggae">Reggae</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={trackForm.genre}
+                      onChange={(e) => setTrackForm({...trackForm, genre: e.target.value})}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-purple-500 transition"
+                    >
+                      <option value="hip_hop">Hip Hop</option>
+                      <option value="rap">Rap</option>
+                      <option value="r_n_b">R&B</option>
+                      <option value="pop">Pop</option>
+                      <option value="rock">Rock</option>
+                      <option value="electronic">Electronic</option>
+                      <option value="latin">Latin</option>
+                      <option value="country">Country</option>
+                      <option value="jazz">Jazz</option>
+                      <option value="reggae">Reggae</option>
+                    </select>
                   </div>
 
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Monetization Model</label>
-                    <Select value={trackForm.pricing_model} onValueChange={(v) => setTrackForm({...trackForm, pricing_model: v})}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-white/20">
-                        <SelectItem value="free">Free</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="hybrid">Hybrid (Free streams + Paid downloads)</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={trackForm.pricing_model}
+                      onChange={(e) => setTrackForm({...trackForm, pricing_model: e.target.value})}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-purple-500 transition"
+                    >
+                      <option value="free">Free</option>
+                      <option value="paid">Paid</option>
+                      <option value="hybrid">Hybrid (Free streams + Paid downloads)</option>
+                    </select>
                   </div>
 
                   {trackForm.pricing_model !== 'free' && (
@@ -929,18 +927,17 @@ Make it legally sound, fair, and industry-standard.`;
 
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Pool Type</label>
-                    <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm({...poolForm, pool_type: v})}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-white/20">
-                        <SelectItem value="concert_show">Concert/Show</SelectItem>
-                        <SelectItem value="music_video">Music Video</SelectItem>
-                        <SelectItem value="album_release">Album Release</SelectItem>
-                        <SelectItem value="tour">Tour</SelectItem>
-                        <SelectItem value="merchandise">Merchandise</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={poolForm.pool_type}
+                      onChange={(e) => setPoolForm({...poolForm, pool_type: e.target.value})}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-500 transition"
+                    >
+                      <option value="concert_show">Concert/Show</option>
+                      <option value="music_video">Music Video</option>
+                      <option value="album_release">Album Release</option>
+                      <option value="tour">Tour</option>
+                      <option value="merchandise">Merchandise</option>
+                    </select>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
@@ -1041,18 +1038,17 @@ Make it legally sound, fair, and industry-standard.`;
                 <div className="space-y-4">
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Deal Type</label>
-                    <Select value={dealForm.deal_type} onValueChange={(v) => setDealForm({...dealForm, deal_type: v})}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-white/20">
-                        <SelectItem value="record_label">Record Label Deal</SelectItem>
-                        <SelectItem value="distribution">Distribution Deal</SelectItem>
-                        <SelectItem value="management">Management Contract</SelectItem>
-                        <SelectItem value="publishing">Publishing Deal</SelectItem>
-                        <SelectItem value="sponsorship">Brand Sponsorship</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={dealForm.deal_type}
+                      onChange={(e) => setDealForm({...dealForm, deal_type: e.target.value})}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-yellow-500 transition"
+                    >
+                      <option value="record_label">Record Label Deal</option>
+                      <option value="distribution">Distribution Deal</option>
+                      <option value="management">Management Contract</option>
+                      <option value="publishing">Publishing Deal</option>
+                      <option value="sponsorship">Brand Sponsorship</option>
+                    </select>
                   </div>
 
                   <Input
@@ -1149,17 +1145,16 @@ Make it legally sound, fair, and industry-standard.`;
                 <div className="space-y-4">
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Contract Type</label>
-                    <Select value={contractForm.contract_type} onValueChange={(v) => setContractForm({...contractForm, contract_type: v})}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-white/20">
-                        <SelectItem value="collaboration_agreement">Collaboration Agreement</SelectItem>
-                        <SelectItem value="performance_contract">Performance Contract</SelectItem>
-                        <SelectItem value="production_agreement">Production Agreement</SelectItem>
-                        <SelectItem value="licensing_agreement">Licensing Agreement</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={contractForm.contract_type}
+                      onChange={(e) => setContractForm({...contractForm, contract_type: e.target.value})}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-green-500 transition"
+                    >
+                      <option value="collaboration_agreement">Collaboration Agreement</option>
+                      <option value="performance_contract">Performance Contract</option>
+                      <option value="production_agreement">Production Agreement</option>
+                      <option value="licensing_agreement">Licensing Agreement</option>
+                    </select>
                   </div>
 
                   <textarea
