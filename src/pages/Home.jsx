@@ -14,6 +14,7 @@ import {
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import PullToRefresh from "../components/PullToRefresh";
+import { formatLocalTime } from "../components/utils/dateUtils";
 import CreatePostModal from "../components/CreatePostModal";
 import CreateStoryModal from "../components/CreateStoryModal";
 import StoryViewer from "../components/story/StoryViewer";
@@ -555,8 +556,8 @@ export default function Home() {
             )}
 
             {/* Time */}
-            <p className="px-4 pb-3 text-gray-500 text-xs uppercase">
-              {new Date(post.created_date).toLocaleDateString()}
+            <p className="px-4 pb-3 text-gray-500 text-xs">
+              {formatLocalTime(post.created_date)}
             </p>
           </motion.div>
           </React.Fragment>
