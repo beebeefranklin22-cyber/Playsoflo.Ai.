@@ -664,15 +664,16 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
             {step === 4 && (
               <>
-                <RecurringEventScheduler
-                  schedule={experience.recurring_schedule || {}}
-                  onChange={(schedule) => setExperience({ ...experience, recurring_schedule: schedule })}
-                />
-
-                <SeatingChartManager
-                  zones={experience.seating_zones || []}
-                  onChange={(zones) => setExperience({ ...experience, seating_zones: zones, seating_enabled: zones.length > 0 })}
-                />
+                <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4">
+                  <h3 className="text-white font-bold mb-3">Step 4: Scheduling (Optional)</h3>
+                  <p className="text-gray-300 text-sm mb-4">Advanced scheduling and seating features available after listing</p>
+                  <Button 
+                    onClick={() => setStep(5)}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    Skip to Next Step
+                  </Button>
+                </div>
               </>
             )}
 
