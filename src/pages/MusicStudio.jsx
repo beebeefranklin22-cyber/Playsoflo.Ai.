@@ -730,34 +730,40 @@ Make it legally sound, fair, and industry-standard.`;
                     className="bg-white/10 border-white/20 text-white"
                   />
 
-                  <Select value={trackForm.genre} onValueChange={(v) => setTrackForm({...trackForm, genre: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue placeholder="Select genre" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hip_hop">Hip Hop</SelectItem>
-                      <SelectItem value="rap">Rap</SelectItem>
-                      <SelectItem value="r&b">R&B</SelectItem>
-                      <SelectItem value="pop">Pop</SelectItem>
-                      <SelectItem value="rock">Rock</SelectItem>
-                      <SelectItem value="electronic">Electronic</SelectItem>
-                      <SelectItem value="latin">Latin</SelectItem>
-                      <SelectItem value="country">Country</SelectItem>
-                      <SelectItem value="jazz">Jazz</SelectItem>
-                      <SelectItem value="reggae">Reggae</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Genre</label>
+                    <Select value={trackForm.genre} onValueChange={(v) => setTrackForm({...trackForm, genre: v})}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue placeholder="Select genre" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-white/20">
+                        <SelectItem value="hip_hop">Hip Hop</SelectItem>
+                        <SelectItem value="rap">Rap</SelectItem>
+                        <SelectItem value="r_n_b">R&B</SelectItem>
+                        <SelectItem value="pop">Pop</SelectItem>
+                        <SelectItem value="rock">Rock</SelectItem>
+                        <SelectItem value="electronic">Electronic</SelectItem>
+                        <SelectItem value="latin">Latin</SelectItem>
+                        <SelectItem value="country">Country</SelectItem>
+                        <SelectItem value="jazz">Jazz</SelectItem>
+                        <SelectItem value="reggae">Reggae</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  <Select value={trackForm.pricing_model} onValueChange={(v) => setTrackForm({...trackForm, pricing_model: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="hybrid">Hybrid (Free streams + Paid downloads)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Monetization Model</label>
+                    <Select value={trackForm.pricing_model} onValueChange={(v) => setTrackForm({...trackForm, pricing_model: v})}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-white/20">
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="hybrid">Hybrid (Free streams + Paid downloads)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   {trackForm.pricing_model !== 'free' && (
                     <div className="grid grid-cols-2 gap-4">
@@ -921,18 +927,21 @@ Make it legally sound, fair, and industry-standard.`;
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
                   />
 
-                  <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm({...poolForm, pool_type: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="concert_show">Concert/Show</SelectItem>
-                      <SelectItem value="music_video">Music Video</SelectItem>
-                      <SelectItem value="album_release">Album Release</SelectItem>
-                      <SelectItem value="tour">Tour</SelectItem>
-                      <SelectItem value="merchandise">Merchandise</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Pool Type</label>
+                    <Select value={poolForm.pool_type} onValueChange={(v) => setPoolForm({...poolForm, pool_type: v})}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-white/20">
+                        <SelectItem value="concert_show">Concert/Show</SelectItem>
+                        <SelectItem value="music_video">Music Video</SelectItem>
+                        <SelectItem value="album_release">Album Release</SelectItem>
+                        <SelectItem value="tour">Tour</SelectItem>
+                        <SelectItem value="merchandise">Merchandise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <Input
@@ -1030,18 +1039,21 @@ Make it legally sound, fair, and industry-standard.`;
                   Apply for Music Deals
                 </h2>
                 <div className="space-y-4">
-                  <Select value={dealForm.deal_type} onValueChange={(v) => setDealForm({...dealForm, deal_type: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="record_label">Record Label Deal</SelectItem>
-                      <SelectItem value="distribution">Distribution Deal</SelectItem>
-                      <SelectItem value="management">Management Contract</SelectItem>
-                      <SelectItem value="publishing">Publishing Deal</SelectItem>
-                      <SelectItem value="sponsorship">Brand Sponsorship</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Deal Type</label>
+                    <Select value={dealForm.deal_type} onValueChange={(v) => setDealForm({...dealForm, deal_type: v})}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-white/20">
+                        <SelectItem value="record_label">Record Label Deal</SelectItem>
+                        <SelectItem value="distribution">Distribution Deal</SelectItem>
+                        <SelectItem value="management">Management Contract</SelectItem>
+                        <SelectItem value="publishing">Publishing Deal</SelectItem>
+                        <SelectItem value="sponsorship">Brand Sponsorship</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <Input
                     value={dealForm.artist_name}
@@ -1135,17 +1147,20 @@ Make it legally sound, fair, and industry-standard.`;
                   Generate AI Smart Contract
                 </h2>
                 <div className="space-y-4">
-                  <Select value={contractForm.contract_type} onValueChange={(v) => setContractForm({...contractForm, contract_type: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="collaboration_agreement">Collaboration Agreement</SelectItem>
-                      <SelectItem value="performance_contract">Performance Contract</SelectItem>
-                      <SelectItem value="production_agreement">Production Agreement</SelectItem>
-                      <SelectItem value="licensing_agreement">Licensing Agreement</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Contract Type</label>
+                    <Select value={contractForm.contract_type} onValueChange={(v) => setContractForm({...contractForm, contract_type: v})}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-white/20">
+                        <SelectItem value="collaboration_agreement">Collaboration Agreement</SelectItem>
+                        <SelectItem value="performance_contract">Performance Contract</SelectItem>
+                        <SelectItem value="production_agreement">Production Agreement</SelectItem>
+                        <SelectItem value="licensing_agreement">Licensing Agreement</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <textarea
                     value={contractForm.description}
