@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -174,32 +174,30 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="text-white font-semibold mb-2 block">Property Type</label>
-                <Select value={property.property_type} onValueChange={(v) => setProperty({ ...property, property_type: v })}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/20 text-white">
-                    <SelectItem value="apartment">Apartment</SelectItem>
-                    <SelectItem value="house">House</SelectItem>
-                    <SelectItem value="villa">Villa</SelectItem>
-                    <SelectItem value="penthouse">Penthouse</SelectItem>
-                    <SelectItem value="hotel">Hotel Room</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={property.property_type}
+                  onChange={(e) => setProperty({ ...property, property_type: e.target.value })}
+                  className="w-full h-10 px-3 rounded-md bg-white/10 border border-white/20 text-white"
+                >
+                  <option value="apartment">Apartment</option>
+                  <option value="house">House</option>
+                  <option value="villa">Villa</option>
+                  <option value="penthouse">Penthouse</option>
+                  <option value="hotel">Hotel Room</option>
+                </select>
               </div>
 
               <div>
                 <label className="text-white font-semibold mb-2 block">Listing Type</label>
-                <Select value={property.listing_type} onValueChange={(v) => setProperty({ ...property, listing_type: v })}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-white/20 text-white">
-                    <SelectItem value="short_term">Short-Term Rental</SelectItem>
-                    <SelectItem value="for_rent">For Rent (Long-Term)</SelectItem>
-                    <SelectItem value="for_sale">For Sale</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select
+                  value={property.listing_type}
+                  onChange={(e) => setProperty({ ...property, listing_type: e.target.value })}
+                  className="w-full h-10 px-3 rounded-md bg-white/10 border border-white/20 text-white"
+                >
+                  <option value="short_term">Short-Term Rental</option>
+                  <option value="for_rent">For Rent (Long-Term)</option>
+                  <option value="for_sale">For Sale</option>
+                </select>
               </div>
             </div>
 
