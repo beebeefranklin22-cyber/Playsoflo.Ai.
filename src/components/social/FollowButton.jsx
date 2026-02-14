@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
@@ -8,10 +8,11 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
   const queryClient = useQueryClient();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
 
-  // Check actual follow status
-  const { data: actualFollowing } = useQuery({
+  // Check actual follow status from database
+  const { data: followStatus, refetch } = useQuery({
     queryKey: ['is-following', currentUser?.email, targetUserEmail],
     queryFn: async () => {
+      if (!currentUser || !targetUserEmail) return false;
       const follows = await base44.entities.Follow.filter({
         follower_email: currentUser.email,
         following_email: targetUserEmail
@@ -21,14 +22,16 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
     enabled: !!currentUser && !!targetUserEmail
   });
 
-  React.useEffect(() => {
-    if (actualFollowing !== undefined) {
-      setIsFollowing(actualFollowing);
+  useEffect(() => {
+    if (followStatus !== undefined) {
+      setIsFollowing(followStatus);
     }
-  }, [actualFollowing]);
+  }, [followStatus]);
 
   const followMutation = useMutation({
     mutationFn: async (shouldFollow) => {
+      console.log('Follow mutation:', shouldFollow, currentUser.email, targetUserEmail);
+      
       if (shouldFollow) {
         // Get target user details
         const users = await base44.entities.User.list();
@@ -40,6 +43,8 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
           follower_name: currentUser.full_name || currentUser.email,
           following_name: targetUser?.full_name || targetUserEmail
         });
+
+        console.log('Follow created:', follow);
 
         // Send notification to the followed user
         await base44.entities.Notification.create({
@@ -58,22 +63,26 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
           follower_email: currentUser.email,
           following_email: targetUserEmail
         });
+        
+        console.log('Unfollowing, found follows:', follows);
+        
         if (follows.length > 0) {
           await base44.entities.Follow.delete(follows[0].id);
+          console.log('Follow deleted');
         }
       }
     },
     onMutate: async (shouldFollow) => {
-      // Optimistic update
+      console.log('Optimistic update:', shouldFollow);
       setIsFollowing(shouldFollow);
     },
     onError: (error, shouldFollow) => {
-      // Revert on error
-      setIsFollowing(!shouldFollow);
-      toast.error('Failed to update follow status');
       console.error('Follow error:', error);
+      setIsFollowing(!shouldFollow);
+      toast.error('Failed to update follow status: ' + error.message);
     },
     onSuccess: (data, shouldFollow) => {
+      console.log('Follow success');
       queryClient.invalidateQueries({ queryKey: ['follows'] });
       queryClient.invalidateQueries({ queryKey: ['my-followers'] });
       queryClient.invalidateQueries({ queryKey: ['user-followers'] });
@@ -81,6 +90,8 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
       queryClient.invalidateQueries({ queryKey: ['followers-count'] });
       queryClient.invalidateQueries({ queryKey: ['following-count'] });
       queryClient.invalidateQueries({ queryKey: ['is-following'] });
+      queryClient.invalidateQueries({ queryKey: ['artist-followers-count'] });
+      refetch();
       toast.success(shouldFollow ? 'Now following' : 'Unfollowed');
     }
   });
@@ -91,7 +102,11 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
 
   return (
     <button
-      onClick={() => followMutation.mutate(!isFollowing)}
+      onClick={(e) => {
+        e.stopPropagation();
+        console.log('Follow button clicked, current status:', isFollowing);
+        followMutation.mutate(!isFollowing);
+      }}
       disabled={followMutation.isPending}
       className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition ${
         isFollowing
