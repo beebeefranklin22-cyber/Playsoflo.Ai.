@@ -12,11 +12,13 @@ import {
   Calendar, MapPin, Ticket, ShoppingBag, TrendingUp, Video,
   Bell, BellOff, Users, DollarSign, Star, Award, Clock,
   Instagram, Twitter, Youtube, Facebook, Globe, Verified,
-  Download, Plus, MessageCircle
+  Download, Plus, MessageCircle, ShoppingCart, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatLocalTime, formatDateOnly } from "../components/utils/dateUtils";
+import PurchaseAccessGate from "../components/payment/PurchaseAccessGate";
+import UniversalPaymentGate from "../components/payment/UniversalPaymentGate";
 
 export default function ArtistProfile() {
   const [searchParams] = useSearchParams();
@@ -182,13 +184,48 @@ export default function ArtistProfile() {
     }
   });
 
+  const [purchasingTrack, setPurchasingTrack] = useState(null);
+
+  // Check track purchases
+  const { data: purchasedTracks = [] } = useQuery({
+    queryKey: ['purchased-tracks', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      const purchases = await base44.entities.ContentPurchase.filter({
+        buyer_email: currentUser.email,
+        item_type: "music_track"
+      });
+      return purchases.map(p => p.item_id);
+    },
+    enabled: !!currentUser
+  });
+
   const handlePlayTrack = (track) => {
+    // Check if track requires purchase
+    if (track.price_usd > 0 && !purchasedTracks.includes(track.id)) {
+      setPurchasingTrack(track);
+      return;
+    }
+
     setPlayingTrack(track);
     // Update user's current music
     if (currentUser) {
       base44.auth.updateMe({
         current_music: `${track.title} - ${track.artist_name || artist?.full_name}`
       });
+    }
+
+    // Increment stream count
+    base44.entities.MusicTrack.update(track.id, {
+      stream_count: (track.stream_count || 0) + 1
+    });
+  };
+
+  const handleTrackPurchaseSuccess = () => {
+    queryClient.invalidateQueries(['purchased-tracks']);
+    if (purchasingTrack) {
+      handlePlayTrack(purchasingTrack);
+      setPurchasingTrack(null);
     }
   };
 
@@ -481,13 +518,23 @@ export default function ArtistProfile() {
                           </div>
                         </div>
 
-                        <Button
-                          onClick={() => handlePlayTrack(track)}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600"
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          Play
-                        </Button>
+                        {track.price_usd > 0 && !purchasedTracks.includes(track.id) ? (
+                          <Button
+                            onClick={() => setPurchasingTrack(track)}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600"
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            ${track.price_usd}
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handlePlayTrack(track)}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600"
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Play
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -740,6 +787,24 @@ export default function ArtistProfile() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Purchase Track Modal */}
+      {purchasingTrack && (
+        <UniversalPaymentGate
+          isOpen={!!purchasingTrack}
+          onClose={() => setPurchasingTrack(null)}
+          amount={purchasingTrack.price_usd}
+          itemType="music_track"
+          itemId={purchasingTrack.id}
+          itemDetails={{
+            name: purchasingTrack.title,
+            description: `By ${artist.full_name}`,
+            seller_email: artist.email
+          }}
+          onPaymentSuccess={handleTrackPurchaseSuccess}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }
