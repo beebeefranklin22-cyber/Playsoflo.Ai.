@@ -18,7 +18,16 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
       const followData = await base44.entities.Follow.filter({
         following_email: userEmail
       });
-      return followData;
+      
+      // Get full user details for each follower
+      const users = await base44.entities.User.list();
+      return followData.map(follow => {
+        const followerUser = users.find(u => u.email === follow.follower_email);
+        return {
+          ...follow,
+          follower_user: followerUser
+        };
+      });
     },
     enabled: isOpen && activeTab === 'followers'
   });
@@ -29,7 +38,16 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
       const followData = await base44.entities.Follow.filter({
         follower_email: userEmail
       });
-      return followData;
+      
+      // Get full user details for each following
+      const users = await base44.entities.User.list();
+      return followData.map(follow => {
+        const followingUser = users.find(u => u.email === follow.following_email);
+        return {
+          ...follow,
+          following_user: followingUser
+        };
+      });
     },
     enabled: isOpen && activeTab === 'following'
   });
@@ -111,6 +129,9 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
             <div className="space-y-3">
               {displayList.map((follow) => {
                 const displayEmail = activeTab === 'followers' ? follow.follower_email : follow.following_email;
+                const displayUser = activeTab === 'followers' ? follow.follower_user : follow.following_user;
+                const displayName = activeTab === 'followers' ? follow.follower_name : follow.following_name;
+                
                 return (
                   <div key={follow.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition">
                     <button
@@ -120,12 +141,20 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
                       }}
                       className="flex items-center gap-3 flex-1"
                     >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                        {displayEmail[0]?.toUpperCase()}
-                      </div>
+                      {displayUser?.profile_picture ? (
+                        <img 
+                          src={displayUser.profile_picture} 
+                          className="w-12 h-12 rounded-full object-cover"
+                          alt={displayName}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                          {(displayName || displayEmail)[0]?.toUpperCase()}
+                        </div>
+                      )}
                       <div className="text-left">
-                        <p className="text-white font-semibold">{displayEmail.split('@')[0]}</p>
-                        <p className="text-gray-400 text-sm">{displayEmail}</p>
+                        <p className="text-white font-semibold">{displayName || displayEmail.split('@')[0]}</p>
+                        <p className="text-gray-400 text-sm">@{displayUser?.username || displayEmail.split('@')[0]}</p>
                       </div>
                     </button>
                     
