@@ -162,6 +162,7 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
                       <FollowButton 
                         targetUserEmail={displayEmail}
                         currentUser={currentUser}
+                        isFollowing={false}
                       />
                     )}
                   </div>

@@ -157,6 +157,7 @@ export default function Messages() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data) => {
+      console.log('Sending message with data:', data);
       let messageData = { ...data };
 
       // Encrypt if enabled and key exists
@@ -170,7 +171,9 @@ export default function Messages() {
         };
       }
 
+      console.log('Creating message in database:', messageData);
       const message = await base44.entities.ChatMessage.create(messageData);
+      console.log('Message created:', message);
       
       // Update conversation
       await base44.entities.ChatConversation.update(selectedConversation.id, {
@@ -238,9 +241,10 @@ export default function Messages() {
       return { previousMessages };
     },
     onError: (err, newMessage, context) => {
+      console.error('Message send error:', err);
       // Rollback on error
       queryClient.setQueryData(['messages', selectedConversation?.id], context.previousMessages);
-      toast.error("Failed to send message");
+      toast.error("Failed to send message: " + err.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages'] });
@@ -308,6 +312,8 @@ export default function Messages() {
 
   const createConversationMutation = useMutation({
     mutationFn: async (participantEmail) => {
+      console.log('Creating conversation with:', participantEmail);
+      
       // Check if conversation already exists
       const allConvs = await base44.entities.ChatConversation.list();
       const existing = allConvs.find(conv => 
@@ -317,22 +323,36 @@ export default function Messages() {
         conv.participants.includes(participantEmail)
       );
 
-      if (existing) return existing;
+      if (existing) {
+        console.log('Found existing conversation:', existing);
+        return existing;
+      }
 
       const participant = allUsers.find(u => u.email === participantEmail);
-      return await base44.entities.ChatConversation.create({
+      console.log('Creating new conversation');
+      
+      const newConv = await base44.entities.ChatConversation.create({
         participants: [currentUser.email, participantEmail],
         name: participant?.full_name || participantEmail,
         is_group: false,
         type: "general",
         unread_count: {}
       });
+      
+      console.log('Conversation created:', newConv);
+      return newConv;
     },
     onSuccess: (conversation) => {
+      console.log('Conversation mutation success:', conversation);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       setSelectedConversation(conversation);
       setShowNewChat(false);
       setSearchQuery("");
+      toast.success('Conversation created!');
+    },
+    onError: (error) => {
+      console.error('Conversation creation error:', error);
+      toast.error('Failed to create conversation: ' + error.message);
     }
   });
 
