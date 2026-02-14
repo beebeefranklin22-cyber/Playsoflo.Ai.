@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { UserPlus, UserCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,25 @@ import { toast } from 'sonner';
 export default function FollowButton({ targetUserEmail, currentUser, isFollowing: initialFollowing = false }) {
   const queryClient = useQueryClient();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
+
+  // Check actual follow status
+  const { data: actualFollowing } = useQuery({
+    queryKey: ['is-following', currentUser?.email, targetUserEmail],
+    queryFn: async () => {
+      const follows = await base44.entities.Follow.filter({
+        follower_email: currentUser.email,
+        following_email: targetUserEmail
+      });
+      return follows.length > 0;
+    },
+    enabled: !!currentUser && !!targetUserEmail
+  });
+
+  React.useEffect(() => {
+    if (actualFollowing !== undefined) {
+      setIsFollowing(actualFollowing);
+    }
+  }, [actualFollowing]);
 
   const followMutation = useMutation({
     mutationFn: async (shouldFollow) => {
