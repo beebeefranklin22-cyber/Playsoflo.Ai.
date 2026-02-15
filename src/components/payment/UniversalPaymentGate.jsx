@@ -9,7 +9,9 @@ import { base44 } from "@/api/base44Client";
 import { DollarSign, CreditCard, Wallet, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 function PaymentForm({ amount, onSuccess, onCancel, itemDetails }) {
   const stripe = useStripe();
@@ -211,7 +213,7 @@ export default function UniversalPaymentGate({
               </Button>
             </div>
 
-            {clientSecret ? (
+            {clientSecret && stripePromise ? (
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <PaymentForm
                   amount={amount}
@@ -223,6 +225,13 @@ export default function UniversalPaymentGate({
                   itemDetails={itemDetails}
                 />
               </Elements>
+            ) : !stripePromise ? (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
+                <p className="text-red-400 text-sm">Stripe is not configured. Please use wallet payment.</p>
+                <Button onClick={() => setUseWallet(true)} className="mt-3">
+                  Switch to Wallet
+                </Button>
+              </div>
             ) : (
               <div className="text-center py-8">
                 <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto" />
