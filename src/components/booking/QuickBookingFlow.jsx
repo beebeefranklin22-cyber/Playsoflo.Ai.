@@ -127,6 +127,11 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
         status: 'confirmed',
         payment_intent_id: paymentIntentId
       });
+      
+      // Haptic feedback for success
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
 
       // Send notifications
       try {
@@ -184,6 +189,12 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
     },
     onError: (error) => {
       toast.error('Booking failed: ' + error.message);
+      
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+      
       setCurrentStep(3);
     }
   });
@@ -248,9 +259,14 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
                   className="bg-white/10 border-white/20 text-white"
                 />
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('light');
+                    }
+                    setCurrentStep(2);
+                  }}
                   disabled={!bookingData.date}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  className="w-full bg-purple-600 hover:bg-purple-700 min-h-[44px]"
                 >
                   Continue
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -313,9 +329,14 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
                         Back
                       </Button>
                       <Button
-                        onClick={() => setCurrentStep(3)}
+                        onClick={() => {
+                          if (window.NativeAppBridge?.triggerHaptic) {
+                            window.NativeAppBridge.triggerHaptic('light');
+                          }
+                          setCurrentStep(3);
+                        }}
                         disabled={!bookingData.time}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
                       >
                         Continue
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -438,15 +459,20 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
                 </p>
                 <div className="space-y-3">
                   <Button
-                    onClick={() => navigate(createPageUrl("CustomerBookings"))}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    onClick={() => {
+                      if (window.NativeAppBridge?.triggerHaptic) {
+                        window.NativeAppBridge.triggerHaptic('light');
+                      }
+                      navigate(createPageUrl("CustomerBookings"));
+                    }}
+                    className="w-full bg-purple-600 hover:bg-purple-700 min-h-[44px]"
                   >
                     View My Bookings
                   </Button>
                   <Button
                     onClick={onClose}
                     variant="outline"
-                    className="w-full"
+                    className="w-full min-h-[44px]"
                   >
                     Close
                   </Button>

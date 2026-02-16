@@ -1041,21 +1041,46 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            <Button
-              onClick={() => base44.auth.logout()}
-              className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 min-h-[44px]"
-            >
-              Sign Out
-            </Button>
+            <Card className="glass-effect border-white/10 mt-6">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                  Account Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('light');
+                    }
+                    base44.auth.logout();
+                  }}
+                  className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 min-h-[44px]"
+                >
+                  Sign Out
+                </Button>
 
-            <Button
-              onClick={() => setShowDeleteAccount(true)}
-              variant="outline"
-              className="w-full mt-2 border-red-500/50 text-red-500 hover:bg-red-500/10 min-h-[44px]"
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Delete Account
-            </Button>
+                <div className="pt-3 border-t border-white/10">
+                  <p className="text-gray-400 text-sm mb-3">
+                    Permanently delete your account and all associated data. This action cannot be undone.
+                  </p>
+                  <Button
+                    onClick={() => {
+                      if (window.NativeAppBridge?.triggerHaptic) {
+                        window.NativeAppBridge.triggerHaptic('warning');
+                      }
+                      setShowDeleteAccount(true);
+                    }}
+                    variant="outline"
+                    className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10 min-h-[44px]"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

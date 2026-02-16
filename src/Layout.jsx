@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
 import { PostHogProvider } from "./components/analytics/PostHogProvider";
 import ServiceWorkerManager from "./components/ServiceWorkerManager";
@@ -33,6 +33,7 @@ export default function Layout({ children, currentPageName }) {
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [direction, setDirection] = useState(0);
   const prevPathRef = useRef(location.pathname);
+  const queryClient = useQueryClient();
 
   // Tab-based navigation stacks
   const tabStacks = useRef({
