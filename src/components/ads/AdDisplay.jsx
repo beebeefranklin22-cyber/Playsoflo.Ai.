@@ -26,65 +26,22 @@ export default function AdDisplay({ currentUser, position = "feed" }) {
     }
   }, []);
 
-  const { data: eligibleAds = [] } = useQuery({
-    queryKey: ['eligible-ads', currentUser?.email, position, userLocation],
+  const { data: adData } = useQuery({
+    queryKey: ['targeted-ad', currentUser?.email, position, Array.from(shownAds)],
     queryFn: async () => {
-      const activeAds = await base44.entities.AdCampaign.filter({ status: 'active' });
-      
-      // Filter based on user targeting
-      const eligible = activeAds.filter(ad => {
-        // Check placement
-        const placementMatch = !ad.placements || ad.placements.length === 0 || 
-          ad.placements.includes(position);
-        
-        if (!placementMatch || !ad.media_urls?.length) return false;
-        if (!ad.targeting) return true;
-        
-        // Age targeting
-        const userAge = currentUser?.age || 25;
-        const ageMatch = userAge >= (ad.targeting.age_min || 0) && 
-                        userAge <= (ad.targeting.age_max || 100);
-        
-        // Interest targeting
-        const userInterests = currentUser?.interests || [];
-        const adInterests = ad.targeting.interests || [];
-        const interestMatch = adInterests.length === 0 || 
-          adInterests.some(interest => 
-            userInterests.some(ui => 
-              ui.toLowerCase().includes(interest.toLowerCase()) ||
-              interest.toLowerCase().includes(ui.toLowerCase())
-            )
-          );
-        
-        // Location targeting (city/state match)
-        let locationMatch = true;
-        if (ad.targeting.locations && ad.targeting.locations.length > 0) {
-          const userAddr = currentUser?.address || "";
-          locationMatch = ad.targeting.locations.some(loc => 
-            userAddr.toLowerCase().includes(loc.toLowerCase())
-          );
-        }
-        
-        // Gender targeting
-        let genderMatch = true;
-        if (ad.targeting.genders && ad.targeting.genders.length > 0 && 
-            !ad.targeting.genders.includes("all")) {
-          genderMatch = currentUser?.gender && 
-            ad.targeting.genders.includes(currentUser.gender);
-        }
-        
-        return ageMatch && interestMatch && locationMatch && genderMatch;
+      const { data } = await base44.functions.invoke('serveTargetedAd', {
+        position,
+        exclude_ids: Array.from(shownAds)
       });
-
-      // Prioritize by audience score and randomize
-      return eligible
-        .sort((a, b) => (b.ai_audience_score || 0) - (a.ai_audience_score || 0))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+      return data;
     },
     enabled: !!currentUser,
-    refetchInterval: 60000
+    refetchInterval: 120000,
+    staleTime: 60000
   });
+
+  const ad = adData?.ad;
+  const eligibleAds = ad ? [ad] : [];
 
   const trackImpression = async (campaignId) => {
     if (shownAds.has(campaignId)) return;

@@ -16,14 +16,17 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import CampaignAnalytics from "../components/ads/CampaignAnalytics";
 
 export default function AdsManager() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentUser, setCurrentUser] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creatingCampaign, setCreatingCampaign] = useState(false);
+  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'campaigns');
+  const [selectedCampaignId, setSelectedCampaignId] = useState(searchParams.get('campaign'));
 
   const [campaignForm, setCampaignForm] = useState({
     campaign_name: "",
@@ -78,10 +81,19 @@ export default function AdsManager() {
     queryKey: ['ad-campaigns', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      return await base44.entities.AdCampaign.filter({ advertiser_email: currentUser.email });
+      return await base44.entities.AdCampaign.filter({ advertiser_email: currentUser.email }, '-created_date');
     },
     enabled: !!currentUser
   });
+
+  const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
+
+  useEffect(() => {
+    if (searchParams.get('view') === 'analytics' && searchParams.get('campaign')) {
+      setViewMode('analytics');
+      setSelectedCampaignId(searchParams.get('campaign'));
+    }
+  }, [searchParams]);
 
   const handleFileUpload = async (file) => {
     if (!file) return;
@@ -137,6 +149,23 @@ export default function AdsManager() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (viewMode === 'analytics' && selectedCampaign) {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="max-w-7xl mx-auto">
+          <CampaignAnalytics 
+            campaign={selectedCampaign}
+            onBack={() => {
+              setViewMode('campaigns');
+              setSelectedCampaignId(null);
+              setSearchParams({});
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -300,10 +329,11 @@ export default function AdsManager() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => navigate(`/AdsManager?view=analytics&campaign=${campaign.id}`)}
                           className="bg-white/5 border-white/20 hover:bg-white/10"
                         >
                           <BarChart3 className="w-4 h-4 mr-1" />
-                          View Analytics
+                          Analytics
                         </Button>
                       </div>
                     </div>
