@@ -9,7 +9,8 @@ import {
   ChevronLeft, // Added ChevronLeft icon
   Building, // Added Building icon for Real Estate
   Car, // Added Car icon for Car Rentals
-  Music // Added Music icon
+  Music,
+  Users // Added Users icon for Community Hub
 } from "lucide-react"; // Changed import from "lucide" to "lucide-react"
 import { motion } from "framer-motion";
 import CardStack from "../components/CardStack";
