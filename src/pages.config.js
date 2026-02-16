@@ -161,6 +161,8 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
+import NewsCreatorDashboard from './pages/NewsCreatorDashboard';
+import NewsCreatorProfile from './pages/NewsCreatorProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -279,6 +281,8 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
+    "NewsCreatorDashboard": NewsCreatorDashboard,
+    "NewsCreatorProfile": NewsCreatorProfile,
 }
 
 export const pagesConfig = {
