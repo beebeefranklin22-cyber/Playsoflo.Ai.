@@ -40,27 +40,6 @@ export default function CommunityForums() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const threadId = searchParams.get("thread");
-    if (threadId && threads.length > 0) {
-      const thread = threads.find(t => t.id === threadId);
-      if (thread) setSelectedThread(thread);
-    }
-  }, [searchParams, threads]);
-
-  useEffect(() => {
-    const fetchGroup = async () => {
-      if (groupId) {
-        const group = await base44.entities.ForumGroup.list();
-        const found = group.find(g => g.id === groupId);
-        setCurrentGroup(found);
-      } else {
-        setCurrentGroup(null);
-      }
-    };
-    fetchGroup();
-  }, [groupId]);
-
   const { data: threads = [], isLoading } = useQuery({
     queryKey: ['forum-threads', filterCategory, groupId],
     queryFn: async () => {
@@ -92,6 +71,27 @@ export default function CommunityForums() {
     enabled: !!selectedThread,
     initialData: []
   });
+
+  useEffect(() => {
+    const threadId = searchParams.get("thread");
+    if (threadId && threads.length > 0) {
+      const thread = threads.find(t => t.id === threadId);
+      if (thread) setSelectedThread(thread);
+    }
+  }, [searchParams, threads]);
+
+  useEffect(() => {
+    const fetchGroup = async () => {
+      if (groupId) {
+        const group = await base44.entities.ForumGroup.list();
+        const found = group.find(g => g.id === groupId);
+        setCurrentGroup(found);
+      } else {
+        setCurrentGroup(null);
+      }
+    };
+    fetchGroup();
+  }, [groupId]);
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

@@ -51,6 +51,7 @@ import AIStudio from './pages/AIStudio';
 import ARShowroom from './pages/ARShowroom';
 import AdminPanel from './pages/AdminPanel';
 import AdsManager from './pages/AdsManager';
+import AffiliateDashboard from './pages/AffiliateDashboard';
 import AffiliateHub from './pages/AffiliateHub';
 import AffiliateProgram from './pages/AffiliateProgram';
 import AppStorePrep from './pages/AppStorePrep';
@@ -87,6 +88,7 @@ import FoodCart from './pages/FoodCart';
 import FoodDelivery from './pages/FoodDelivery';
 import FoodDriverHub from './pages/FoodDriverHub';
 import FoodOrderTracking from './pages/FoodOrderTracking';
+import ForumGroups from './pages/ForumGroups';
 import FranchiseHub from './pages/FranchiseHub';
 import Gaming from './pages/Gaming';
 import GiveBack from './pages/GiveBack';
@@ -159,8 +161,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import AffiliateDashboard from './pages/AffiliateDashboard';
-import ForumGroups from './pages/ForumGroups';
 import __Layout from './Layout.jsx';
 
 
@@ -169,6 +169,7 @@ export const PAGES = {
     "ARShowroom": ARShowroom,
     "AdminPanel": AdminPanel,
     "AdsManager": AdsManager,
+    "AffiliateDashboard": AffiliateDashboard,
     "AffiliateHub": AffiliateHub,
     "AffiliateProgram": AffiliateProgram,
     "AppStorePrep": AppStorePrep,
@@ -205,6 +206,7 @@ export const PAGES = {
     "FoodDelivery": FoodDelivery,
     "FoodDriverHub": FoodDriverHub,
     "FoodOrderTracking": FoodOrderTracking,
+    "ForumGroups": ForumGroups,
     "FranchiseHub": FranchiseHub,
     "Gaming": Gaming,
     "GiveBack": GiveBack,
@@ -277,8 +279,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "AffiliateDashboard": AffiliateDashboard,
-    "ForumGroups": ForumGroups,
 }
 
 export const pagesConfig = {
