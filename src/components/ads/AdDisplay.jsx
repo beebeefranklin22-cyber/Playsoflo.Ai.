@@ -41,7 +41,6 @@ export default function AdDisplay({ currentUser, position = "feed" }) {
   });
 
   const ad = adData?.ad;
-  const eligibleAds = ad ? [ad] : [];
 
   const trackImpression = async (campaignId) => {
     if (shownAds.has(campaignId)) return;
@@ -70,14 +69,12 @@ export default function AdDisplay({ currentUser, position = "feed" }) {
   };
 
   useEffect(() => {
-    eligibleAds.forEach(ad => {
+    if (ad) {
       trackImpression(ad.id);
-    });
-  }, [eligibleAds]);
+    }
+  }, [ad?.id]);
 
-  if (!eligibleAds || eligibleAds.length === 0) return null;
-
-  const ad = eligibleAds[0];
+  if (!ad) return null;
 
   // Story format
   if (position === "stories") {
