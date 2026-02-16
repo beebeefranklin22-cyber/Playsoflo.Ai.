@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Newspaper, Plus, Heart, MessageCircle, Eye, Edit2, Trash2,
-  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2, Radio
+  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2, Radio, Search, TrendingUp
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -32,6 +32,8 @@ export default function CommunityNews() {
   const [isLiveBroadcasting, setIsLiveBroadcasting] = useState(false);
   const [activeLivePost, setActiveLivePost] = useState(null);
   const [liveChannelName, setLiveChannelName] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
   const videoInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -47,19 +49,35 @@ export default function CommunityNews() {
   }, []);
 
   const { data: posts = [], isLoading } = useQuery({
-    queryKey: ['news-posts'],
+    queryKey: ['news-posts', sortBy],
     queryFn: async () => {
       const allPosts = await base44.entities.NewsPost.list('-created_date');
       const published = allPosts.filter(p => p.status === 'published');
-      // Sort live posts first
-      return published.sort((a, b) => {
+      
+      // Sort based on selection
+      let sorted = [...published];
+      if (sortBy === 'popular') {
+        sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+      } else if (sortBy === 'trending') {
+        sorted.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
+      }
+      
+      // Live posts always first
+      return sorted.sort((a, b) => {
         if (a.is_live && !b.is_live) return -1;
         if (!a.is_live && b.is_live) return 1;
         return 0;
       });
     },
     initialData: [],
-    refetchInterval: 10000 // Refetch every 10s to update live status
+    refetchInterval: 10000
+  });
+
+  const filteredPosts = posts.filter(post => {
+    if (!searchQuery) return true;
+    return post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           post.author_name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const { data: comments = [] } = useQuery({
@@ -228,6 +246,10 @@ export default function CommunityNews() {
           </div>
           {currentUser && (
             <div className="flex gap-2">
+              <Button onClick={() => navigate(createPageUrl("NewsCreatorDashboard"))} variant="outline" className="border-white/20 text-white">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
               <Button onClick={() => setShowGoLiveModal(true)} className="bg-red-600 hover:bg-red-700">
                 <Radio className="w-4 h-4 mr-2" />
                 Go Live
@@ -242,9 +264,33 @@ export default function CommunityNews() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search and Filters */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search news by title, content, or author..."
+              className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-40 bg-white/10 border-white/20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Recent</SelectItem>
+              <SelectItem value="popular">Most Viewed</SelectItem>
+              <SelectItem value="trending">Trending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="grid gap-6">
           <AnimatePresence>
-            {posts.map((post, idx) => (
+            {filteredPosts.map((post, idx) => (
               <motion.div
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -280,10 +326,16 @@ export default function CommunityNews() {
                         <img
                           src={post.author_photo || "https://via.placeholder.com/40"}
                           alt={post.author_name}
-                          className="w-10 h-10 rounded-full"
+                          className="w-10 h-10 rounded-full cursor-pointer hover:ring-2 ring-blue-500 transition"
+                          onClick={() => navigate(createPageUrl("NewsCreatorProfile") + `?email=${post.author_email}`)}
                         />
                         <div>
-                          <p className="text-white font-semibold">{post.author_name}</p>
+                          <p 
+                            className="text-white font-semibold hover:text-blue-400 cursor-pointer"
+                            onClick={() => navigate(createPageUrl("NewsCreatorProfile") + `?email=${post.author_email}`)}
+                          >
+                            {post.author_name}
+                          </p>
                           <p className="text-gray-400 text-xs">{new Date(post.created_date).toLocaleDateString()}</p>
                         </div>
                       </div>
