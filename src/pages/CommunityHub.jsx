@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Newspaper, Briefcase, MessageSquare, DollarSign,
   TrendingUp, Users, ChevronRight, Clock, Eye,
-  Plus, Star
+  Plus, Star, Search
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -122,6 +122,30 @@ export default function CommunityHub() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => navigate(createPageUrl("CommunitySearch") + (searchQuery ? `?q=${encodeURIComponent(searchQuery)}` : ''))}
+          className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 mb-8 cursor-pointer hover:bg-white/15 transition"
+        >
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search news, jobs, forums, affiliate programs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  navigate(createPageUrl("CommunitySearch") + `?q=${encodeURIComponent(searchQuery)}`);
+                }
+              }}
+              className="w-full pl-12 pr-4 py-3 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            />
+          </div>
+        </motion.div>
+
         {/* Main Sections Grid */}
         <div className="grid md:grid-cols-2 gap-6 mb-8">
           {sections.map((section, idx) => {
