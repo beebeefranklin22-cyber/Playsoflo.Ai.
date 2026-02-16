@@ -14,7 +14,10 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 
-export default function DeleteAccountModal({ open, onOpenChange, userEmail }) {
+export default function DeleteAccountModal({ isOpen, onClose, currentUser }) {
+  const open = isOpen;
+  const onOpenChange = onClose;
+  const userEmail = currentUser?.email;
   const [step, setStep] = useState(1);
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);

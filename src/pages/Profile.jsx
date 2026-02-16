@@ -31,6 +31,7 @@ import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 import FriendRequestsModal from "../components/friends/FriendRequestsModal";
 import FriendsListModal from "../components/friends/FriendsListModal";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
+import UsernameSetup from "../components/profile/UsernameSetup";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -1020,7 +1021,7 @@ export default function Profile() {
 
             <Button
               onClick={() => base44.auth.logout()}
-              className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
+              className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 min-h-[44px]"
             >
               Sign Out
             </Button>
@@ -1028,7 +1029,7 @@ export default function Profile() {
             <Button
               onClick={() => setShowDeleteAccount(true)}
               variant="outline"
-              className="w-full mt-2 border-red-500/50 text-red-500 hover:bg-red-500/10"
+              className="w-full mt-2 border-red-500/50 text-red-500 hover:bg-red-500/10 min-h-[44px]"
             >
               <AlertTriangle className="w-4 h-4 mr-2" />
               Delete Account
