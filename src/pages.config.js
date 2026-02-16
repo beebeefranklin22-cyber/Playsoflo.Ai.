@@ -107,6 +107,8 @@ import MyP2POrders from './pages/MyP2POrders';
 import MyPropertyBookings from './pages/MyPropertyBookings';
 import MyRides from './pages/MyRides';
 import MyTickets from './pages/MyTickets';
+import NewsCreatorDashboard from './pages/NewsCreatorDashboard';
+import NewsCreatorProfile from './pages/NewsCreatorProfile';
 import NotificationPreferences from './pages/NotificationPreferences';
 import Notifications from './pages/Notifications';
 import OnboardingFlow from './pages/OnboardingFlow';
@@ -161,8 +163,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import NewsCreatorDashboard from './pages/NewsCreatorDashboard';
-import NewsCreatorProfile from './pages/NewsCreatorProfile';
 import __Layout from './Layout.jsx';
 
 
@@ -227,6 +227,8 @@ export const PAGES = {
     "MyPropertyBookings": MyPropertyBookings,
     "MyRides": MyRides,
     "MyTickets": MyTickets,
+    "NewsCreatorDashboard": NewsCreatorDashboard,
+    "NewsCreatorProfile": NewsCreatorProfile,
     "NotificationPreferences": NotificationPreferences,
     "Notifications": Notifications,
     "OnboardingFlow": OnboardingFlow,
@@ -281,8 +283,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "NewsCreatorDashboard": NewsCreatorDashboard,
-    "NewsCreatorProfile": NewsCreatorProfile,
 }
 
 export const pagesConfig = {

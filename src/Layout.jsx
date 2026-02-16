@@ -33,11 +33,25 @@ export default function Layout({ children, currentPageName }) {
   const [direction, setDirection] = useState(0);
   const prevPathRef = useRef(location.pathname);
 
-  // Preserve tab state
-  const tabStates = useRef({});
-  const currentPath = location.pathname;
+  // Tab-based navigation stacks
+  const tabStacks = useRef({
+    home: [createPageUrl("Home")],
+    universe: [createPageUrl("Universe")],
+    wallet: [createPageUrl("Wallet")],
+    profile: [createPageUrl("Profile")],
+    ronronai: [createPageUrl("RonronAI")]
+  });
   
-  // Determine if navigating to root or child
+  const tabScrollPositions = useRef({});
+  const currentPath = location.pathname;
+  const [activeTab, setActiveTab] = useState(
+    currentPath === createPageUrl("RonronAI") ? "ronronai" :
+    currentPath === createPageUrl("Universe") ? "universe" :
+    currentPath === createPageUrl("Wallet") ? "wallet" :
+    currentPath === createPageUrl("Profile") ? "profile" :
+    "home"
+  );
+  
   const rootPaths = [
     createPageUrl("Home"),
     createPageUrl("Universe"),
@@ -49,6 +63,23 @@ export default function Layout({ children, currentPageName }) {
   const isRootPath = rootPaths.includes(currentPath);
   const wasRootPath = rootPaths.includes(prevPathRef.current);
 
+  // Save scroll position when leaving a page
+  useEffect(() => {
+    return () => {
+      tabScrollPositions.current[currentPath] = window.scrollY;
+    };
+  }, [currentPath]);
+
+  // Restore scroll position when returning to a page
+  useEffect(() => {
+    const savedPosition = tabScrollPositions.current[currentPath];
+    if (savedPosition !== undefined) {
+      setTimeout(() => window.scrollTo(0, savedPosition), 0);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [currentPath]);
+
   useEffect(() => {
     // Determine slide direction
     if (isRootPath && !wasRootPath) {
@@ -56,6 +87,23 @@ export default function Layout({ children, currentPageName }) {
     } else if (!isRootPath && wasRootPath) {
       setDirection(1); // Slide from right (forward)
     }
+    
+    // Update tab stacks
+    const currentTab = 
+      currentPath === createPageUrl("RonronAI") ? "ronronai" :
+      currentPath === createPageUrl("Universe") ? "universe" :
+      currentPath === createPageUrl("Wallet") ? "wallet" :
+      currentPath === createPageUrl("Profile") ? "profile" :
+      currentPath.startsWith(createPageUrl("Home")) ? "home" : null;
+    
+    if (currentTab) {
+      const stack = tabStacks.current[currentTab];
+      if (!stack.includes(currentPath)) {
+        tabStacks.current[currentTab] = [...stack, currentPath];
+      }
+      setActiveTab(currentTab);
+    }
+    
     prevPathRef.current = currentPath;
   }, [currentPath]);
 
@@ -111,7 +159,23 @@ export default function Layout({ children, currentPageName }) {
   const handleNavigation = (path) => {
     if (isNavigating) return;
     setIsNavigating(true);
-    navigate(createPageUrl(path));
+    
+    const targetPath = createPageUrl(path);
+    const targetTab = 
+      path === "RonronAI" ? "ronronai" :
+      path === "Universe" ? "universe" :
+      path === "Wallet" ? "wallet" :
+      path === "Profile" ? "profile" :
+      "home";
+    
+    // If switching to a tab we've visited, go to the last page in that tab's stack
+    if (targetTab !== activeTab && tabStacks.current[targetTab]) {
+      const lastPage = tabStacks.current[targetTab][tabStacks.current[targetTab].length - 1];
+      navigate(lastPage);
+    } else {
+      navigate(targetPath);
+    }
+    
     setTimeout(() => setIsNavigating(false), 100);
   };
 
@@ -230,8 +294,17 @@ export default function Layout({ children, currentPageName }) {
              location.pathname !== createPageUrl("Profile") && 
              location.pathname !== createPageUrl("RonronAI") ? (
               <button
-                onClick={() => navigate(-1)}
-                className="flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition"
+                onClick={() => {
+                  const stack = tabStacks.current[activeTab];
+                  if (stack && stack.length > 1) {
+                    // Go to previous page in current tab's stack
+                    tabStacks.current[activeTab] = stack.slice(0, -1);
+                    navigate(stack[stack.length - 2]);
+                  } else {
+                    navigate(-1);
+                  }
+                }}
+                className="flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <ChevronRight className="w-6 h-6 text-white rotate-180" />
               </button>
@@ -270,7 +343,7 @@ export default function Layout({ children, currentPageName }) {
             {/* Cart Button */}
             <button
               onClick={() => navigate(createPageUrl("Cart"))}
-              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition"
+              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <ShoppingCart className="w-6 h-6 text-white" />
             </button>
@@ -278,7 +351,7 @@ export default function Layout({ children, currentPageName }) {
             {/* Notifications Bell */}
             <button
               onClick={() => navigate(createPageUrl("Notifications"))}
-              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition"
+              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <Bell className="w-6 h-6 text-white" />
               {unreadCount > 0 && (
@@ -448,7 +521,7 @@ export default function Layout({ children, currentPageName }) {
                     onClick={() => handleNavigation(item.path)}
                     disabled={isNavigating}
                     type="button"
-                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all active:scale-95 ${
+                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all active:scale-95 min-w-[44px] min-h-[44px] ${
                       isActive 
                         ? 'bg-purple-500/20 text-purple-400' 
                         : 'text-gray-400 hover:text-white active:text-white'

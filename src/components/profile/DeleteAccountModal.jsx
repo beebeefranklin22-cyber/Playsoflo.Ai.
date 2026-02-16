@@ -1,124 +1,164 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Trash2, X, Loader2 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { base44 } from '@/api/base44Client';
-import { deleteUserAccount } from '@/functions/deleteUserAccount';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
 
-export default function DeleteAccountModal({ isOpen, onClose, currentUser }) {
-  const [confirmText, setConfirmText] = useState('');
+export default function DeleteAccountModal({ open, onOpenChange, userEmail }) {
+  const [step, setStep] = useState(1);
+  const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (confirmText !== 'DELETE') {
-      toast.error('Please type DELETE to confirm');
+    if (confirmText !== "DELETE") {
+      toast.error('Please type "DELETE" to confirm');
       return;
     }
 
     setIsDeleting(true);
     try {
-      await deleteUserAccount({});
-      toast.success('Account deleted successfully');
+      await base44.functions.invoke('deleteUserAccount', {
+        confirm: true
+      });
+      
+      toast.success("Account deleted successfully. Redirecting...");
+      
+      // Wait a moment then logout and redirect
       setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
+        base44.auth.logout();
+      }, 2000);
+      
     } catch (error) {
-      toast.error('Failed to delete account: ' + error.message);
+      toast.error("Failed to delete account: " + error.message);
       setIsDeleting(false);
     }
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-x-4 top-1/2 -translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50 bg-gray-900 rounded-3xl p-6 border border-red-500/30"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Delete Account</h3>
-                  <p className="text-gray-400 text-sm">This action is permanent</p>
-                </div>
+  const resetAndClose = () => {
+    setStep(1);
+    setConfirmText("");
+    setIsDeleting(false);
+    onOpenChange(false);
+  };
+
+  if (step === 1) {
+    return (
+      <AlertDialog open={open} onOpenChange={resetAndClose}>
+        <AlertDialogContent className="bg-gray-900 border-red-500/30">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
               </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
+              <AlertDialogTitle className="text-2xl text-white">
+                Delete Account?
+              </AlertDialogTitle>
             </div>
-
-            <div className="space-y-4 mb-6">
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                <p className="text-red-300 text-sm mb-3 font-semibold">
-                  ⚠️ This will permanently delete:
-                </p>
-                <ul className="space-y-2 text-gray-300 text-sm">
-                  <li>• All your posts, stories, and content</li>
-                  <li>• Your wallet balance and transaction history</li>
-                  <li>• All bookings, orders, and tickets</li>
-                  <li>• Your profile, photos, and personal data</li>
-                  <li>• All messages and conversations</li>
-                  <li>• Your followers and connections</li>
-                </ul>
-              </div>
-
-              <p className="text-white text-sm">
-                Type <span className="font-bold text-red-400">DELETE</span> to confirm:
+            <AlertDialogDescription className="text-gray-300 text-base space-y-3">
+              <p className="font-semibold text-red-400">
+                This action is permanent and cannot be undone.
               </p>
-              <Input
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="Type DELETE"
-                className="bg-white/10 border-red-500/30 text-white"
-                disabled={isDeleting}
-              />
-            </div>
+              <p>
+                Deleting your account will:
+              </p>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Permanently delete all your posts, messages, and content</li>
+                <li>Remove your profile and account information</li>
+                <li>Cancel any active subscriptions or bookings</li>
+                <li>Delete all your wallet balance and transaction history</li>
+                <li>Remove you from all groups and communities</li>
+              </ul>
+              <p className="text-yellow-400 font-medium mt-4">
+                Are you absolutely sure you want to continue?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-gray-800 hover:bg-gray-700 border-gray-700">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                setStep(2);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Yes, Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
 
-            <div className="flex gap-3">
-              <Button
-                onClick={onClose}
-                variant="outline"
-                className="flex-1 border-white/20"
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleDelete}
-                disabled={confirmText !== 'DELETE' || isDeleting}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Forever
-                  </>
-                )}
-              </Button>
+  return (
+    <AlertDialog open={open} onOpenChange={resetAndClose}>
+      <AlertDialogContent className="bg-gray-900 border-red-500/30">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            <AlertDialogTitle className="text-2xl text-white">
+              Final Confirmation
+            </AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-gray-300 text-base space-y-4">
+            <p className="font-semibold text-red-400">
+              Last chance to reconsider!
+            </p>
+            <p>
+              Type <span className="font-mono font-bold text-white">DELETE</span> to permanently delete your account.
+            </p>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type DELETE here"
+              className="bg-gray-800 border-red-500/30 text-white font-mono"
+              disabled={isDeleting}
+            />
+            <p className="text-sm text-gray-400">
+              Deleting account: <span className="text-white font-semibold">{userEmail}</span>
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel 
+            className="bg-gray-800 hover:bg-gray-700 border-gray-700"
+            disabled={isDeleting}
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            disabled={confirmText !== "DELETE" || isDeleting}
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              "Delete My Account"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
