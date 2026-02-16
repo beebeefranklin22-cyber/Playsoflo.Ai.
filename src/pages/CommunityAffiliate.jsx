@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -12,20 +12,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DollarSign, Plus, Heart, MessageCircle, Eye, Edit2, Trash2,
-  ChevronLeft, ExternalLink, Send, TrendingUp, Star
+  ChevronLeft, ExternalLink, Send, TrendingUp, Star, Upload, 
+  Image as ImageIcon, Video, Loader2, X, BarChart3
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import AffiliateReviewsModal from "../components/affiliate/AffiliateReviewsModal";
 
 export default function CommunityAffiliate() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingListing, setEditingListing] = useState(null);
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [editingListing, setEditingListing] = useState(null);
   const [comment, setComment] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -36,6 +43,9 @@ export default function CommunityAffiliate() {
     company_name: "",
     contact_email: "",
     featured_image: "",
+    images: [],
+    video_url: "",
+    video_file: "",
     benefits: "",
     requirements: ""
   });
@@ -88,7 +98,7 @@ export default function CommunityAffiliate() {
       setFormData({
         title: "", description: "", category: "other", affiliate_url: "",
         commission_rate: "", payout_method: "", company_name: "",
-        contact_email: "", featured_image: "", benefits: "", requirements: ""
+        contact_email: "", featured_image: "", images: [], video_url: "", video_file: "", benefits: "", requirements: ""
       });
       toast.success('Affiliate listing created!');
     }
@@ -175,6 +185,56 @@ export default function CommunityAffiliate() {
     }
   });
 
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingImages(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        urls.push(file_url);
+      }
+      setFormData({ ...formData, images: [...(formData.images || []), ...urls] });
+      toast.success('Images uploaded!');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      alert('Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a video file');
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({ ...formData, video_file: file_url });
+      toast.success('Video uploaded!');
+    } catch (error) {
+      console.error('Video upload error:', error);
+      alert('Failed to upload video');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const removeImage = (index) => {
+    setFormData({
+      ...formData,
+      images: formData.images.filter((_, i) => i !== index)
+    });
+  };
+
   const handleMessage = async (posterEmail) => {
     const convs = await base44.entities.ChatConversation.list();
     const existing = convs.find(c => 
@@ -215,12 +275,22 @@ export default function CommunityAffiliate() {
                 <p className="text-gray-400 text-sm">{listings.length} programs</p>
               </div>
             </div>
-            {currentUser && (
-              <Button onClick={() => setShowCreateModal(true)} className="bg-orange-600 hover:bg-orange-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Program
+            <div className="flex gap-3">
+              <Button
+                onClick={() => navigate(createPageUrl("AffiliateDashboard"))}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Dashboard
               </Button>
-            )}
+              {currentUser && (
+                <Button onClick={() => setShowCreateModal(true)} className="bg-orange-600 hover:bg-orange-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Program
+                </Button>
+              )}
+            </div>
           </div>
 
           <Select value={filterCategory} onValueChange={setFilterCategory}>
@@ -274,6 +344,9 @@ export default function CommunityAffiliate() {
                                 company_name: listing.company_name || "",
                                 contact_email: listing.contact_email || "",
                                 featured_image: listing.featured_image || "",
+                                images: listing.images || [],
+                                video_url: listing.video_url || "",
+                                video_file: listing.video_file || "",
                                 benefits: listing.benefits?.join('\n') || "",
                                 requirements: listing.requirements?.join('\n') || ""
                               });
@@ -313,6 +386,16 @@ export default function CommunityAffiliate() {
                       <button onClick={() => setSelectedListing(listing)} className="flex items-center gap-1 text-gray-400">
                         <MessageCircle className="w-4 h-4" />
                         Comments
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedListing(listing);
+                          setShowReviewsModal(true);
+                        }}
+                        className="flex items-center gap-1 text-gray-400 hover:text-white transition"
+                      >
+                        <Star className="w-4 h-4 text-yellow-400" />
+                        {listing.rating || 0} ({listing.review_count || 0})
                       </button>
                       <div className="flex items-center gap-1 text-gray-400">
                         <Eye className="w-4 h-4" />
@@ -382,6 +465,43 @@ export default function CommunityAffiliate() {
             <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} placeholder="Company Name" className="bg-white/10 border-white/20" />
             <Input value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} placeholder="Contact Email" type="email" className="bg-white/10 border-white/20" />
             <Input value={formData.featured_image} onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })} placeholder="Featured Image URL" className="bg-white/10 border-white/20" />
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Product/Service Images</label>
+              <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+              <Button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImages} className="w-full bg-blue-600 hover:bg-blue-700">
+                {uploadingImages ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><ImageIcon className="w-4 h-4 mr-2" />Upload Images</>}
+              </Button>
+              {formData.images && formData.images.length > 0 && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {formData.images.map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <img src={img} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                      <button type="button" onClick={() => removeImage(idx)} className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Video</label>
+              <Input value={formData.video_url} onChange={(e) => setFormData({ ...formData, video_url: e.target.value })} placeholder="Video URL (e.g., YouTube)" className="bg-white/10 border-white/20 mb-2" />
+              <div className="text-center text-gray-400 my-2">OR</div>
+              <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+              <Button type="button" onClick={() => videoInputRef.current?.click()} disabled={uploadingVideo} className="w-full bg-purple-600 hover:bg-purple-700">
+                {uploadingVideo ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><Upload className="w-4 h-4 mr-2" />Upload Video</>}
+              </Button>
+              {formData.video_file && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-green-400">
+                  <Video className="w-4 h-4" />
+                  Video uploaded
+                </div>
+              )}
+            </div>
+
             <Textarea value={formData.benefits} onChange={(e) => setFormData({ ...formData, benefits: e.target.value })} placeholder="Benefits (one per line)" rows={3} className="bg-white/10 border-white/20" />
             <Textarea value={formData.requirements} onChange={(e) => setFormData({ ...formData, requirements: e.target.value })} placeholder="Requirements (one per line)" rows={3} className="bg-white/10 border-white/20" />
             <div className="flex gap-3">
@@ -393,7 +513,7 @@ export default function CommunityAffiliate() {
       </Dialog>
 
       {/* Comments Modal */}
-      <Dialog open={!!selectedListing} onOpenChange={() => setSelectedListing(null)}>
+      <Dialog open={!!selectedListing && !showReviewsModal} onOpenChange={() => setSelectedListing(null)}>
         <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Comments</DialogTitle></DialogHeader>
           <div className="space-y-4">
@@ -417,6 +537,19 @@ export default function CommunityAffiliate() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reviews Modal */}
+      {selectedListing && (
+        <AffiliateReviewsModal
+          listing={selectedListing}
+          isOpen={showReviewsModal}
+          onClose={() => {
+            setShowReviewsModal(false);
+            setSelectedListing(null);
+          }}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }

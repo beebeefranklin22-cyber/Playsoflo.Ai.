@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Newspaper, Plus, Heart, MessageCircle, Eye, Edit2, Trash2,
-  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send
+  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ export default function CommunityNews() {
   const [editingPost, setEditingPost] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [comment, setComment] = useState("");
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const videoInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -127,7 +129,6 @@ export default function CommunityNews() {
         content
       });
 
-      // Notify post author
       const post = posts.find(p => p.id === postId);
       if (post && post.author_email !== currentUser.email) {
         await base44.entities.Notification.create({
@@ -147,6 +148,28 @@ export default function CommunityNews() {
       toast.success('Comment posted!');
     }
   });
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a video file');
+      return;
+    }
+
+    setUploadingVideo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({ ...formData, video_url: file_url });
+      toast.success('Video uploaded!');
+    } catch (error) {
+      console.error('Video upload error:', error);
+      alert('Failed to upload video');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -389,13 +412,45 @@ export default function CommunityNews() {
               />
             </div>
             <div>
-              <label className="text-sm text-gray-400 mb-2 block">Video URL</label>
+              <label className="text-sm text-gray-400 mb-2 block">Video</label>
               <Input
                 value={formData.video_url}
                 onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                placeholder="https://..."
+                placeholder="Video URL (e.g., YouTube)"
                 className="bg-white/10 border-white/20"
               />
+              <div className="text-center text-gray-400 my-2">OR</div>
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                onChange={handleVideoUpload}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                {uploadingVideo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Video from Phone
+                  </>
+                )}
+              </Button>
+              {formData.video_url && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-green-400">
+                  <Video className="w-4 h-4" />
+                  Video added
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm text-gray-400 mb-2 block">Source URL</label>
