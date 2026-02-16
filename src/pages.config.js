@@ -156,6 +156,8 @@ import Wellness from './pages/Wellness';
 import explore from './pages/explore';
 import CommunityNews from './pages/CommunityNews';
 import CommunityJobs from './pages/CommunityJobs';
+import CommunityForums from './pages/CommunityForums';
+import CommunityAffiliate from './pages/CommunityAffiliate';
 import __Layout from './Layout.jsx';
 
 
@@ -269,6 +271,8 @@ export const PAGES = {
     "explore": explore,
     "CommunityNews": CommunityNews,
     "CommunityJobs": CommunityJobs,
+    "CommunityForums": CommunityForums,
+    "CommunityAffiliate": CommunityAffiliate,
 }
 
 export const pagesConfig = {
