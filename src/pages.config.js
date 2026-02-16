@@ -159,6 +159,7 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
+import AffiliateDashboard from './pages/AffiliateDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -275,6 +276,7 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
+    "AffiliateDashboard": AffiliateDashboard,
 }
 
 export const pagesConfig = {
