@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 
 export default function CommunityHub() {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {

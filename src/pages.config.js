@@ -158,6 +158,7 @@ import CommunityNews from './pages/CommunityNews';
 import CommunityJobs from './pages/CommunityJobs';
 import CommunityForums from './pages/CommunityForums';
 import CommunityAffiliate from './pages/CommunityAffiliate';
+import communityseArch from './pages/CommunitySe arch';
 import __Layout from './Layout.jsx';
 
 
@@ -273,6 +274,7 @@ export const PAGES = {
     "CommunityJobs": CommunityJobs,
     "CommunityForums": CommunityForums,
     "CommunityAffiliate": CommunityAffiliate,
+    "CommunitySe arch": communityseArch,
 }
 
 export const pagesConfig = {
