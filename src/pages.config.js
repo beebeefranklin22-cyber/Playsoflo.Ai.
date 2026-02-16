@@ -160,6 +160,7 @@ import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
 import AffiliateDashboard from './pages/AffiliateDashboard';
+import ForumGroups from './pages/ForumGroups';
 import __Layout from './Layout.jsx';
 
 
@@ -277,6 +278,7 @@ export const PAGES = {
     "Wellness": Wellness,
     "explore": explore,
     "AffiliateDashboard": AffiliateDashboard,
+    "ForumGroups": ForumGroups,
 }
 
 export const pagesConfig = {

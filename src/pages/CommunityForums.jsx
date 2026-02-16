@@ -21,12 +21,14 @@ export default function CommunityForums() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const groupId = searchParams.get("group");
   const [currentUser, setCurrentUser] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingThread, setEditingThread] = useState(null);
   const [selectedThread, setSelectedThread] = useState(null);
   const [replyContent, setReplyContent] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [currentGroup, setCurrentGroup] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -44,13 +46,32 @@ export default function CommunityForums() {
       const thread = threads.find(t => t.id === threadId);
       if (thread) setSelectedThread(thread);
     }
-  }, [searchParams]);
+  }, [searchParams, threads]);
+
+  useEffect(() => {
+    const fetchGroup = async () => {
+      if (groupId) {
+        const group = await base44.entities.ForumGroup.list();
+        const found = group.find(g => g.id === groupId);
+        setCurrentGroup(found);
+      } else {
+        setCurrentGroup(null);
+      }
+    };
+    fetchGroup();
+  }, [groupId]);
 
   const { data: threads = [], isLoading } = useQuery({
-    queryKey: ['forum-threads', filterCategory],
+    queryKey: ['forum-threads', filterCategory, groupId],
     queryFn: async () => {
       let all = await base44.entities.ForumThread.list('-created_date');
+      
+      if (groupId) {
+        all = all.filter(t => t.group_id === groupId);
+      }
+      
       if (filterCategory !== 'all') all = all.filter(t => t.category === filterCategory);
+      
       return all.sort((a, b) => {
         if (a.is_pinned && !b.is_pinned) return -1;
         if (!a.is_pinned && b.is_pinned) return 1;
@@ -74,15 +95,27 @@ export default function CommunityForums() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.ForumThread.create({
+      const thread = await base44.entities.ForumThread.create({
         ...data,
+        group_id: groupId || null,
+        group_name: currentGroup?.name || null,
         author_email: currentUser.email,
         author_name: currentUser.full_name,
         author_photo: currentUser.profile_picture
       });
+
+      // Update group thread count
+      if (groupId && currentGroup) {
+        await base44.entities.ForumGroup.update(groupId, {
+          thread_count: (currentGroup.thread_count || 0) + 1
+        });
+      }
+
+      return thread;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['forum-threads']);
+      queryClient.invalidateQueries(['forum-groups']);
       setShowCreateModal(false);
       setFormData({ title: "", content: "", category: "general", video_url: "" });
       toast.success('Thread created!');
@@ -239,21 +272,32 @@ export default function CommunityForums() {
             ))}
           </div>
 
-          {currentUser && (
+          {currentUser && !selectedThread.is_locked && (
             <div className="mt-6 flex gap-3">
               <Textarea
                 value={replyContent}
                 onChange={(e) => setReplyContent(e.target.value)}
                 placeholder="Write a reply..."
                 className="bg-white/10 border-white/20 text-white"
+                rows={3}
               />
               <Button
-                onClick={() => replyContent.trim() && replyMutation.mutate({ threadId: selectedThread.id, content: replyContent })}
-                disabled={!replyContent.trim()}
-                className="bg-green-600"
+                onClick={() => {
+                  if (replyContent.trim()) {
+                    replyMutation.mutate({ threadId: selectedThread.id, content: replyContent });
+                  }
+                }}
+                disabled={!replyContent.trim() || replyMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
               >
                 <Send className="w-4 h-4" />
               </Button>
+            </div>
+          )}
+          {selectedThread.is_locked && (
+            <div className="mt-6 bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
+              <Lock className="w-5 h-5 text-red-400 mx-auto mb-2" />
+              <p className="text-red-400 font-medium">This thread is locked</p>
             </div>
           )}
         </div>
@@ -267,23 +311,31 @@ export default function CommunityForums() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate(createPageUrl("CommunityHub"))} className="p-2 hover:bg-white/10 rounded-full">
+              <button onClick={() => currentGroup ? navigate(createPageUrl("ForumGroups")) : navigate(createPageUrl("CommunityHub"))} className="p-2 hover:bg-white/10 rounded-full">
                 <ChevronLeft className="w-6 h-6 text-white" />
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                   <MessageSquare className="w-6 h-6 text-green-400" />
-                  Community Forums
+                  {currentGroup ? currentGroup.name : 'Community Forums'}
                 </h1>
                 <p className="text-gray-400 text-sm">{threads.length} discussions</p>
               </div>
             </div>
-            {currentUser && (
-              <Button onClick={() => setShowCreateModal(true)} className="bg-green-600 hover:bg-green-700">
-                <Plus className="w-4 h-4 mr-2" />
-                New Thread
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {!groupId && (
+                <Button onClick={() => navigate(createPageUrl("ForumGroups"))} variant="outline" className="border-white/20 text-white">
+                  <Users className="w-4 h-4 mr-2" />
+                  Groups
+                </Button>
+              )}
+              {currentUser && (
+                <Button onClick={() => setShowCreateModal(true)} className="bg-green-600 hover:bg-green-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Thread
+                </Button>
+              )}
+            </div>
           </div>
 
           <Select value={filterCategory} onValueChange={setFilterCategory}>
