@@ -85,6 +85,38 @@ export default function NativeAppBridge() {
           });
         }
 
+        // Expose haptic feedback function globally
+        window.NativeAppBridge = {
+          triggerHaptic: async (type = 'light') => {
+            try {
+              const { Haptics } = window.Capacitor.Plugins;
+              if (!Haptics) return;
+
+              const impactMap = {
+                light: 'LIGHT',
+                medium: 'MEDIUM',
+                heavy: 'HEAVY'
+              };
+
+              const notificationMap = {
+                success: 'SUCCESS',
+                warning: 'WARNING',
+                error: 'ERROR'
+              };
+
+              if (impactMap[type]) {
+                await Haptics.impact({ style: impactMap[type] });
+              } else if (notificationMap[type]) {
+                await Haptics.notification({ type: notificationMap[type] });
+              } else {
+                await Haptics.impact({ style: 'LIGHT' });
+              }
+            } catch (error) {
+              console.log('Haptics not available:', error.message);
+            }
+          }
+        };
+
         console.log('Native app features initialized');
       } catch (error) {
         console.log('Native features not available:', error.message);
