@@ -12,10 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Newspaper, Plus, Heart, MessageCircle, Eye, Edit2, Trash2,
-  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2
+  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2, Radio
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import GoLiveNewsModal from "../components/news/GoLiveNewsModal";
+import LiveNewsBroadcast from "../components/news/LiveNewsBroadcast";
 
 export default function CommunityNews() {
   const navigate = useNavigate();
@@ -26,6 +28,10 @@ export default function CommunityNews() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [comment, setComment] = useState("");
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [showGoLiveModal, setShowGoLiveModal] = useState(false);
+  const [isLiveBroadcasting, setIsLiveBroadcasting] = useState(false);
+  const [activeLivePost, setActiveLivePost] = useState(null);
+  const [liveChannelName, setLiveChannelName] = useState(null);
   const videoInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -44,9 +50,16 @@ export default function CommunityNews() {
     queryKey: ['news-posts'],
     queryFn: async () => {
       const allPosts = await base44.entities.NewsPost.list('-created_date');
-      return allPosts.filter(p => p.status === 'published');
+      const published = allPosts.filter(p => p.status === 'published');
+      // Sort live posts first
+      return published.sort((a, b) => {
+        if (a.is_live && !b.is_live) return -1;
+        if (!a.is_live && b.is_live) return 1;
+        return 0;
+      });
     },
-    initialData: []
+    initialData: [],
+    refetchInterval: 10000 // Refetch every 10s to update live status
   });
 
   const { data: comments = [] } = useQuery({
@@ -214,10 +227,16 @@ export default function CommunityNews() {
             </div>
           </div>
           {currentUser && (
-            <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Post News
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowGoLiveModal(true)} className="bg-red-600 hover:bg-red-700">
+                <Radio className="w-4 h-4 mr-2" />
+                Go Live
+              </Button>
+              <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Post News
+              </Button>
+            </div>
           )}
         </div>
       </div>
@@ -233,7 +252,22 @@ export default function CommunityNews() {
                 transition={{ delay: idx * 0.05 }}
               >
                 <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition overflow-hidden">
-                  {post.featured_image && (
+                  {post.is_live && (
+                    <div className="relative h-64 bg-gradient-to-br from-red-900 to-black flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                          <Radio className="w-8 h-8 text-white" />
+                        </div>
+                        <p className="text-white font-bold text-xl">LIVE NOW</p>
+                        <p className="text-gray-300 text-sm">{post.live_viewers || 0} watching</p>
+                      </div>
+                      <Badge className="absolute top-4 left-4 bg-red-600 animate-pulse">
+                        🔴 LIVE
+                      </Badge>
+                      <Badge className="absolute top-4 right-4 bg-blue-600">{post.category}</Badge>
+                    </div>
+                  )}
+                  {!post.is_live && post.featured_image && (
                     <div className="relative h-64">
                       <img src={post.featured_image} alt={post.title} className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -517,6 +551,33 @@ export default function CommunityNews() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Go Live Modal */}
+      <GoLiveNewsModal
+        isOpen={showGoLiveModal}
+        onClose={() => setShowGoLiveModal(false)}
+        currentUser={currentUser}
+        onGoLive={(newsPost, channelName) => {
+          setActiveLivePost(newsPost);
+          setLiveChannelName(channelName);
+          setIsLiveBroadcasting(true);
+        }}
+      />
+
+      {/* Live Broadcasting */}
+      {isLiveBroadcasting && activeLivePost && liveChannelName && (
+        <LiveNewsBroadcast
+          newsPost={activeLivePost}
+          channelName={liveChannelName}
+          currentUser={currentUser}
+          onEnd={() => {
+            setIsLiveBroadcasting(false);
+            setActiveLivePost(null);
+            setLiveChannelName(null);
+            queryClient.invalidateQueries(['news-posts']);
+          }}
+        />
+      )}
     </div>
   );
 }
