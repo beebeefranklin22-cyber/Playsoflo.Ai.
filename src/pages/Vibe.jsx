@@ -118,11 +118,34 @@ export default function Vibe() {
       // For search, fetch from YouTube
       if (debouncedSearch?.trim() && debouncedSearch.length >= 2) {
         try {
+          console.log('🔍 Searching YouTube for:', debouncedSearch);
           const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
             query: debouncedSearch,
             maxResults: 20
           });
-          const youtubeTracks = youtubeResponse?.data?.tracks || youtubeResponse?.tracks || [];
+          
+          console.log('📦 YouTube raw response:', youtubeResponse);
+          
+          // Handle different response structures
+          let youtubeTracks = [];
+          if (youtubeResponse?.data?.data?.tracks) {
+            youtubeTracks = youtubeResponse.data.data.tracks;
+            console.log('✅ Found tracks at response.data.data.tracks');
+          } else if (youtubeResponse?.data?.tracks) {
+            youtubeTracks = youtubeResponse.data.tracks;
+            console.log('✅ Found tracks at response.data.tracks');
+          } else if (youtubeResponse?.tracks) {
+            youtubeTracks = youtubeResponse.tracks;
+            console.log('✅ Found tracks at response.tracks');
+          } else if (Array.isArray(youtubeResponse?.data)) {
+            youtubeTracks = youtubeResponse.data;
+            console.log('✅ Found tracks as array at response.data');
+          } else if (Array.isArray(youtubeResponse)) {
+            youtubeTracks = youtubeResponse;
+            console.log('✅ Found tracks as direct array');
+          }
+          
+          console.log('🎵 YouTube tracks count:', youtubeTracks?.length || 0);
           
           // Filter local tracks
           const filteredUserTracks = userTracks.filter(t => 
@@ -130,13 +153,22 @@ export default function Vibe() {
             t.artist_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
           );
           
+          console.log('📚 Local tracks count:', filteredUserTracks.length);
+          
           // Merge and prioritize user tracks first
+          const mergedTracks = [...filteredUserTracks, ...(youtubeTracks || [])];
+          console.log('✅ Total merged tracks:', mergedTracks.length);
+          
           return { 
-            tracks: [...filteredUserTracks, ...youtubeTracks], 
+            tracks: mergedTracks, 
             source: 'mixed' 
           };
         } catch (err) {
-          console.error('YouTube fetch error:', err);
+          console.error('❌ YouTube fetch error:', err);
+          console.error('Error type:', typeof err);
+          console.error('Error message:', err?.message);
+          console.error('Error stack:', err?.stack);
+          
           // Fallback to user tracks only
           return {
             tracks: userTracks.filter(t => 
