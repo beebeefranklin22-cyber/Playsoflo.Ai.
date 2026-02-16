@@ -47,9 +47,42 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
       };
       return await base44.entities.Property.create(propertyData);
     },
+    onMutate: async (newProperty) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries(['properties']);
+      
+      // Snapshot the previous value
+      const previousProperties = queryClient.getQueryData(['properties']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['properties'], (old = []) => [
+        ...old,
+        {
+          ...newProperty,
+          id: 'temp_' + Date.now(),
+          host_email: currentUser.email,
+          rating: 5.0,
+          reviews_count: 0,
+          created_date: new Date().toISOString()
+        }
+      ]);
+      
+      // Haptic feedback
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('medium');
+      }
+      
+      return { previousProperties };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['properties']);
       toast.success('Property listed successfully!');
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
+      
       onClose();
       setProperty({
         title: "",
@@ -71,8 +104,21 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
         verified_host: false
       });
     },
-    onError: (error) => {
+    onError: (error, newProperty, context) => {
+      // Rollback to previous state
+      if (context?.previousProperties) {
+        queryClient.setQueryData(['properties'], context.previousProperties);
+      }
+      
       toast.error(error.message || 'Failed to list property');
+      
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(['properties']);
     }
   });
 

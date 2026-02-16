@@ -938,7 +938,7 @@ export default function Marketplace() {
                     if (!paymentIntentId) {
                       throw new Error('Payment verification failed');
                     }
-                    
+
                     const order = await base44.entities.Order.create({
                       order_type: pendingOrder.category,
                       item_id: pendingOrder.item_id,
@@ -950,18 +950,35 @@ export default function Marketplace() {
                       provider_email: pendingOrder.provider_email,
                       payment_intent_id: paymentIntentId
                     });
-                    
+
+                    // Success haptic
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('success');
+                    }
+
                     setShowPayment(false);
                     setPendingOrder(null);
-                    alert("✅ Order placed successfully! You'll receive updates.");
+                    toast.success("✅ Order placed successfully! You'll receive updates.");
                   } catch (error) {
                     console.error('Order creation error:', error);
-                    alert('Payment succeeded but order failed. Please contact support.');
+
+                    // Error haptic
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('error');
+                    }
+
+                    toast.error('Payment succeeded but order failed. Please contact support.');
                   }
                 }}
                 onError={(error) => {
                   console.error('Payment error:', error);
-                  alert('Payment failed: ' + (error?.message || 'Unknown error'));
+
+                  // Error haptic
+                  if (window.NativeAppBridge?.triggerHaptic) {
+                    window.NativeAppBridge.triggerHaptic('error');
+                  }
+
+                  toast.error('Payment failed: ' + (error?.message || 'Unknown error'));
                 }}
                 metadata={{
                   order_type: pendingOrder.category,
