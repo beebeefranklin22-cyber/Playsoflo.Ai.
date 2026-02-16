@@ -148,6 +148,16 @@ const updatedPillars = [
     image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=1200",
     features: ["Templates", "AI Text", "Custom Upload", "Share"],
     action: "MemeCreator"
+  },
+  {
+    id: "community_hub",
+    title: "Community Hub",
+    subtitle: "News, Jobs, Forums & Affiliates",
+    icon: Users,
+    gradient: "from-green-600 via-blue-600 to-purple-600",
+    image: "https://images.unsplash.com/photo-1510519138101-570d1dca3d66?w=1200",
+    features: ["News & Updates", "Jobs & Gigs", "Forums", "Affiliate Programs"],
+    action: "CommunityHub"
   }
 ];
 

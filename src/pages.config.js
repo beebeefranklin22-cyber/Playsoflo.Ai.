@@ -60,7 +60,12 @@ import Cart from './pages/Cart';
 import Challenges from './pages/Challenges';
 import CollaborationHub from './pages/CollaborationHub';
 import CollaboratorDashboard from './pages/CollaboratorDashboard';
+import CommunityAffiliate from './pages/CommunityAffiliate';
+import CommunityForums from './pages/CommunityForums';
 import CommunityHub from './pages/CommunityHub';
+import CommunityJobs from './pages/CommunityJobs';
+import CommunityNews from './pages/CommunityNews';
+import communityseArch from './pages/CommunitySe arch';
 import ContentCreator from './pages/ContentCreator';
 import ContentHub from './pages/ContentHub';
 import CreatorDiscovery from './pages/CreatorDiscovery';
@@ -154,11 +159,6 @@ import Vibe from './pages/Vibe';
 import Wallet from './pages/Wallet';
 import Wellness from './pages/Wellness';
 import explore from './pages/explore';
-import CommunityNews from './pages/CommunityNews';
-import CommunityJobs from './pages/CommunityJobs';
-import CommunityForums from './pages/CommunityForums';
-import CommunityAffiliate from './pages/CommunityAffiliate';
-import communityseArch from './pages/CommunitySe arch';
 import __Layout from './Layout.jsx';
 
 
@@ -176,7 +176,12 @@ export const PAGES = {
     "Challenges": Challenges,
     "CollaborationHub": CollaborationHub,
     "CollaboratorDashboard": CollaboratorDashboard,
+    "CommunityAffiliate": CommunityAffiliate,
+    "CommunityForums": CommunityForums,
     "CommunityHub": CommunityHub,
+    "CommunityJobs": CommunityJobs,
+    "CommunityNews": CommunityNews,
+    "CommunitySe arch": communityseArch,
     "ContentCreator": ContentCreator,
     "ContentHub": ContentHub,
     "CreatorDiscovery": CreatorDiscovery,
@@ -270,11 +275,6 @@ export const PAGES = {
     "Wallet": Wallet,
     "Wellness": Wellness,
     "explore": explore,
-    "CommunityNews": CommunityNews,
-    "CommunityJobs": CommunityJobs,
-    "CommunityForums": CommunityForums,
-    "CommunityAffiliate": CommunityAffiliate,
-    "CommunitySe arch": communityseArch,
 }
 
 export const pagesConfig = {
