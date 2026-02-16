@@ -17,6 +17,8 @@ export default function CommunityHub() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const [contentFilter, setContentFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
