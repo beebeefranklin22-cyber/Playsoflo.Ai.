@@ -29,12 +29,23 @@ export default function DeleteAccountModal({ isOpen, onClose, currentUser }) {
     }
 
     setIsDeleting(true);
+    
+    // Trigger haptic feedback
+    if (window.NativeAppBridge?.triggerHaptic) {
+      window.NativeAppBridge.triggerHaptic('heavy');
+    }
+    
     try {
       await base44.functions.invoke('deleteUserAccount', {
         confirm: true
       });
       
       toast.success("Account deleted successfully. Redirecting...");
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
       
       // Wait a moment then logout and redirect
       setTimeout(() => {
@@ -43,6 +54,12 @@ export default function DeleteAccountModal({ isOpen, onClose, currentUser }) {
       
     } catch (error) {
       toast.error("Failed to delete account: " + error.message);
+      
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+      
       setIsDeleting(false);
     }
   };

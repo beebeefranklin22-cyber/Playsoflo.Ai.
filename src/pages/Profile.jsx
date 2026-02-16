@@ -174,9 +174,19 @@ export default function Profile() {
         await updateUserMutation.mutateAsync({ profile_photo: file_url });
         toast.success('Profile photo updated!');
       }
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error('Upload failed: ' + (error.message || 'Unknown error'));
+      
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
     } finally {
       if (type === 'cover') setUploadingCover(false);
       if (type === 'profile') setUploadingProfile(false);
@@ -201,8 +211,20 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
-    await updateUserMutation.mutateAsync(editedUser);
-    setIsEditing(false);
+    try {
+      await updateUserMutation.mutateAsync(editedUser);
+      setIsEditing(false);
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
+    } catch (error) {
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+      throw error;
+    }
   };
 
   const connectSpotify = async () => {

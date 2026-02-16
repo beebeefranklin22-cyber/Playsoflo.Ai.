@@ -20,6 +20,7 @@ import PlatformDetector from "./components/platform/PlatformDetector";
 import AppInstallPrompt from "./components/platform/AppInstallPrompt";
 import NativeAppBridge from "./components/platform/NativeAppBridge";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PullToRefresh from "./components/PullToRefresh";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -160,6 +161,11 @@ export default function Layout({ children, currentPageName }) {
     if (isNavigating) return;
     setIsNavigating(true);
     
+    // Trigger haptic feedback
+    if (window.NativeAppBridge?.triggerHaptic) {
+      window.NativeAppBridge.triggerHaptic('light');
+    }
+    
     const targetPath = createPageUrl(path);
     const targetTab = 
       path === "RonronAI" ? "ronronai" :
@@ -177,6 +183,14 @@ export default function Layout({ children, currentPageName }) {
     }
     
     setTimeout(() => setIsNavigating(false), 100);
+  };
+
+  const handleRefresh = async () => {
+    // Trigger query refetch for current page
+    queryClient.invalidateQueries();
+    if (window.NativeAppBridge?.triggerHaptic) {
+      window.NativeAppBridge.triggerHaptic('medium');
+    }
   };
 
   const navItems = [
@@ -466,47 +480,49 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"} overflow-x-hidden`}>
-        {/* Breadcrumbs */}
-        {!isFullScreen && breadcrumbs.length > 1 && (
-          <div className="glass-effect border-b border-white/10 px-4 py-3">
-            <div className="max-w-7xl mx-auto">
-              <nav className="flex items-center gap-2 text-sm">
-                {breadcrumbs.map((crumb, index) => (
-                  <React.Fragment key={index}>
-                    {index > 0 && <ChevronRight className="w-4 h-4 text-gray-500" />}
-                    <span
-                      className={`${
-                        index === breadcrumbs.length - 1
-                          ? 'text-white font-medium'
-                          : 'text-gray-400 hover:text-white cursor-pointer'
-                      }`}
-                    >
-                      {crumb}
-                    </span>
-                  </React.Fragment>
-                ))}
-              </nav>
+        <PullToRefresh onRefresh={handleRefresh}>
+          {/* Breadcrumbs */}
+          {!isFullScreen && breadcrumbs.length > 1 && (
+            <div className="glass-effect border-b border-white/10 px-4 py-3">
+              <div className="max-w-7xl mx-auto">
+                <nav className="flex items-center gap-2 text-sm">
+                  {breadcrumbs.map((crumb, index) => (
+                    <React.Fragment key={index}>
+                      {index > 0 && <ChevronRight className="w-4 h-4 text-gray-500" />}
+                      <span
+                        className={`${
+                          index === breadcrumbs.length - 1
+                            ? 'text-white font-medium'
+                            : 'text-gray-400 hover:text-white cursor-pointer'
+                        }`}
+                      >
+                        {crumb}
+                      </span>
+                    </React.Fragment>
+                  ))}
+                </nav>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentPath}
-            custom={direction}
-            initial={{ x: direction > 0 ? '100%' : direction < 0 ? '-20%' : 0, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction > 0 ? '-20%' : direction < 0 ? '100%' : 0, opacity: 0 }}
-            transition={{ 
-              type: 'spring', 
-              stiffness: 300, 
-              damping: 30,
-              opacity: { duration: 0.2 }
-            }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentPath}
+              custom={direction}
+              initial={{ x: direction > 0 ? '100%' : direction < 0 ? '-20%' : 0, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: direction > 0 ? '-20%' : direction < 0 ? '100%' : 0, opacity: 0 }}
+              transition={{ 
+                type: 'spring', 
+                stiffness: 300, 
+                damping: 30,
+                opacity: { duration: 0.2 }
+              }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </PullToRefresh>
       </main>
 
       {!isFullScreen && (
