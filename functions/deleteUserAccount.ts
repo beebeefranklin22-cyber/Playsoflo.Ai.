@@ -51,17 +51,31 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Note: User entity deletion should be handled by platform admin
-    // Mark user as deleted instead
-    await base44.asServiceRole.entities.User.update(user.id, {
+    // Clear authentication data
+    const authData = {
       account_status: 'deleted',
       email: `deleted_${Date.now()}@playsoflo.com`,
-      full_name: 'Deleted User'
-    });
+      full_name: 'Deleted User',
+      profile_photo: null,
+      cover_photo: null,
+      bio: null,
+      phone: null,
+      address: null,
+      website: null,
+      social_links: null,
+      interests: [],
+      spotify_access_token: null,
+      notification_preferences: null,
+      privacy_settings: null,
+      usd_balance: 0,
+      soflo_balance: 0
+    };
+
+    await base44.asServiceRole.entities.User.update(user.id, authData);
 
     return Response.json({ 
       success: true, 
-      message: 'Account and all associated data have been deleted' 
+      message: 'Account and all associated data have been deleted. Authentication cleaned up.' 
     });
   } catch (error) {
     console.error('Account deletion error:', error);

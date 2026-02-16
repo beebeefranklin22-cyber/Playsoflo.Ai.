@@ -300,8 +300,8 @@ export default function Layout({ children, currentPageName }) {
       </div>
 
       {!isFullScreen && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/10" style={{ paddingTop: 'var(--safe-area-top)' }}>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4" style={{ paddingLeft: 'max(1rem, var(--safe-area-left))', paddingRight: 'max(1rem, var(--safe-area-right))' }}>
             {location.pathname !== createPageUrl("Home") && 
              location.pathname !== createPageUrl("Universe") && 
              location.pathname !== createPageUrl("Wallet") && 
@@ -479,7 +479,7 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pt-16 pb-20"} overflow-x-hidden`}>
+      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))' }}>
         <PullToRefresh onRefresh={handleRefresh}>
           {/* Breadcrumbs */}
           {!isFullScreen && breadcrumbs.length > 1 && (
@@ -526,8 +526,8 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {!isFullScreen && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation' }}>
-          <div className="max-w-7xl mx-auto px-4">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation', paddingBottom: 'var(--safe-area-bottom)' }}>
+          <div className="max-w-7xl mx-auto px-4" style={{ paddingLeft: 'max(1rem, var(--safe-area-left))', paddingRight: 'max(1rem, var(--safe-area-right))' }}>
             <div className="flex items-center justify-around py-3">
               {navItems.map((item) => {
                 const isActive = location.pathname === createPageUrl(item.path);
@@ -558,7 +558,8 @@ export default function Layout({ children, currentPageName }) {
       {!isFullScreen && currentUser && (
         <button
           onClick={() => setShowSupportChat(true)}
-          className="fixed bottom-24 right-6 z-40 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform min-w-[44px] min-h-[44px]"
+          className="fixed right-6 z-40 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform min-w-[44px] min-h-[44px]"
+          style={{ bottom: 'calc(6rem + var(--safe-area-bottom))' }}
         >
           <Headphones className="w-6 h-6 text-white" />
         </button>
