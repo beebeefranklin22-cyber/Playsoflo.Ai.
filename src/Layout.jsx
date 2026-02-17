@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -494,6 +494,47 @@ export default function Layout({ children, currentPageName }) {
                     </button>
                   );
                 })}
+
+                {/* Sign Out Button */}
+                <button
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('medium');
+                    }
+                    if (confirm('Are you sure you want to sign out?')) {
+                      base44.auth.logout();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5 border-t border-white/10 mt-4 pt-4"
+                >
+                  <X className="w-5 h-5" />
+                  <span className="font-medium">Sign Out</span>
+                </button>
+
+                {/* Delete Account Button */}
+                <button
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('medium');
+                    }
+                    setSidebarOpen(false);
+                    navigate(createPageUrl("Profile"));
+                    setTimeout(() => {
+                      const deleteButton = document.querySelector('[data-delete-account]');
+                      if (deleteButton) {
+                        deleteButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        deleteButton.classList.add('ring-4', 'ring-red-500/50', 'animate-pulse');
+                        setTimeout(() => {
+                          deleteButton.classList.remove('ring-4', 'ring-red-500/50', 'animate-pulse');
+                        }, 3000);
+                      }
+                    }, 500);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                >
+                  <UserPlus className="w-5 h-5 rotate-45" />
+                  <span className="font-medium">Delete Account</span>
+                </button>
               </nav>
 
               {currentUser && (currentUser.is_restaurant_owner || currentUser.is_driver || currentUser.is_provider) && (
@@ -565,9 +606,9 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {!isFullScreen && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/40 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation', paddingBottom: 'var(--safe-area-bottom)' }}>
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation', paddingBottom: 'max(0.75rem, var(--safe-area-bottom))' }}>
           <div className="max-w-7xl mx-auto px-4" style={{ paddingLeft: 'max(1rem, var(--safe-area-left))', paddingRight: 'max(1rem, var(--safe-area-right))' }}>
-            <div className="flex items-center justify-around py-3">
+            <div className="flex items-center justify-around py-4">
               {navItems.map((item) => {
                 const isActive = location.pathname === createPageUrl(item.path);
                 return (
@@ -576,14 +617,14 @@ export default function Layout({ children, currentPageName }) {
                     onClick={() => handleNavigation(item.path)}
                     disabled={isNavigating}
                     type="button"
-                    className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all active:scale-95 min-w-[44px] min-h-[44px] ${
+                    className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-xl transition-all active:scale-95 min-w-[56px] min-h-[56px] ${
                       isActive 
                         ? 'bg-purple-500/20 text-purple-400' 
                         : 'text-gray-400 hover:text-white active:text-white'
                     } ${isNavigating ? 'opacity-50 pointer-events-none' : ''}`}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <item.icon className="w-5 h-5" />
+                    <item.icon className="w-6 h-6" />
                     <span className="text-xs font-medium">{item.label}</span>
                   </button>
                 );
