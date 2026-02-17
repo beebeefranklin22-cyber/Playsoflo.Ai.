@@ -78,10 +78,18 @@
 /* Disable rubber-banding while keeping inner scrolling */
 body {
   overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
 }
 
 .scrollable-content {
   overscroll-behavior-y: auto;
+}
+
+/* Prevent bounce effect on all non-scrollable containers */
+header, nav, footer, [role="navigation"], [role="banner"], [role="contentinfo"], 
+.fixed, .sticky, [data-no-scroll], .modal-overlay, .dialog-overlay {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
 }
 
 .platform-ios input,

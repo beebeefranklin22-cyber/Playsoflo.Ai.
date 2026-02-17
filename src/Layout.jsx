@@ -318,7 +318,7 @@ export default function Layout({ children, currentPageName }) {
               <button
                 onClick={() => {
                   if (window.NativeAppBridge?.triggerHaptic) {
-                    window.NativeAppBridge.triggerHaptic('light');
+                    window.NativeAppBridge.triggerHaptic('medium');
                   }
                   const stack = tabStacks.current[activeTab];
                   if (stack && stack.length > 1) {
