@@ -10,11 +10,16 @@ const notificationIcons = {
   booking_confirmed: CheckCircle,
   booking_cancelled: XCircle,
   booking_reminder: Calendar,
+  booking_rescheduled: Calendar,
   new_booking: Calendar,
+  booking_pending: AlertCircle,
+  booking_completed: CheckCircle,
   payment_received: DollarSign,
   payment_completed: CheckCircle,
   new_message: MessageCircle,
   booking_updated: AlertCircle,
+  order_update: Package,
+  ride_update: Car,
   default: Bell
 };
 
@@ -22,11 +27,16 @@ const notificationColors = {
   booking_confirmed: "text-green-400",
   booking_cancelled: "text-red-400",
   booking_reminder: "text-blue-400",
+  booking_rescheduled: "text-yellow-400",
+  booking_pending: "text-orange-400",
+  booking_completed: "text-green-400",
   new_booking: "text-purple-400",
   payment_received: "text-green-400",
   payment_completed: "text-green-400",
   new_message: "text-blue-400",
   booking_updated: "text-yellow-400",
+  order_update: "text-blue-400",
+  ride_update: "text-cyan-400",
   default: "text-gray-400"
 };
 
@@ -56,6 +66,21 @@ export default function RealtimeNotificationManager({ currentUser }) {
             });
           } catch (e) {
             // Ignore sound errors
+          }
+
+          // Trigger haptic feedback for important notifications
+          if (window.NativeAppBridge?.triggerHaptic) {
+            const importantTypes = ['booking_confirmed', 'booking_cancelled', 'payment_received', 'ride_update'];
+            if (importantTypes.includes(notification.type)) {
+              window.NativeAppBridge.triggerHaptic('medium');
+            } else {
+              window.NativeAppBridge.triggerHaptic('light');
+            }
+          }
+
+          // Send native push notification if available
+          if ('serviceWorker' in navigator && 'PushManager' in window) {
+            sendPushNotification(notification);
           }
         }
       }
@@ -94,13 +119,41 @@ export default function RealtimeNotificationManager({ currentUser }) {
     }
   };
 
+  const sendPushNotification = async (notification) => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const notif = new Notification(notification.title, {
+          body: notification.message,
+          icon: '/icon-192.png',
+          badge: '/icon-72.png',
+          tag: notification.id,
+          requireInteraction: ['booking_confirmed', 'booking_cancelled', 'payment_received'].includes(notification.type),
+          data: {
+            url: notification.action_url || '/notifications'
+          }
+        });
+
+        notif.onclick = () => {
+          window.focus();
+          if (notification.action_url) {
+            navigate(notification.action_url);
+          }
+          notif.close();
+        };
+      }
+    } catch (error) {
+      console.log('Push notification failed:', error);
+    }
+  };
+
   const showNotificationToast = (notification) => {
     const Icon = notificationIcons[notification.type] || notificationIcons.default;
     const color = notificationColors[notification.type] || notificationColors.default;
     const metadata = notification.metadata || {};
 
     // Determine if this notification has actions
-    const hasActions = metadata.follow_request_id || metadata.ride_id || metadata.order_id;
+    const hasActions = metadata.follow_request_id || metadata.ride_id || metadata.order_id || metadata.booking_id;
 
     toast(
       <div className="flex flex-col gap-2">
@@ -164,6 +217,19 @@ export default function RealtimeNotificationManager({ currentUser }) {
           </button>
         )}
 
+        {/* Booking View Action */}
+        {metadata.booking_id && (
+          <button
+            onClick={() => {
+              navigate(createPageUrl('CustomerBookings') + `?booking=${metadata.booking_id}`);
+              base44.entities.Notification.update(notification.id, { read: true });
+            }}
+            className="w-full px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-lg transition mt-2"
+          >
+            View Booking
+          </button>
+        )}
+
         {/* Message Reply Action */}
         {(metadata.sender_email || notification.type === 'new_message' || notification.type === 'message' || notification.type === 'direct_message') && (
           <button
@@ -202,11 +268,15 @@ export default function RealtimeNotificationManager({ currentUser }) {
     if (notification.action_url) {
       navigate(notification.action_url);
     } else if (notification.reference_type === 'booking') {
-      navigate(createPageUrl('CustomerBookings'));
-    } else if (notification.reference_type === 'message') {
-      navigate(createPageUrl('Messages'));
+      const bookingId = notification.reference_id || notification.metadata?.booking_id;
+      navigate(createPageUrl('CustomerBookings') + (bookingId ? `?booking=${bookingId}` : ''));
+    } else if (notification.reference_type === 'message' || notification.reference_type === 'direct_message') {
+      const convId = notification.reference_id || notification.metadata?.conversation_id;
+      navigate(createPageUrl('Messages') + (convId ? `?conv=${convId}` : ''));
     } else if (notification.reference_type === 'payment') {
       navigate(createPageUrl('Wallet'));
+    } else if (notification.reference_type === 'order') {
+      navigate(createPageUrl('FoodOrderTracking'));
     }
   };
 
