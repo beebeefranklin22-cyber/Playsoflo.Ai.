@@ -41,43 +41,74 @@ export default function CustomerBookings() {
     refetchInterval: 10000
   });
 
+  // Real-time booking updates
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const unsubscribe = base44.entities.ServiceBooking.subscribe((event) => {
+      if (event.data?.customer_email === currentUser.email) {
+        queryClient.invalidateQueries(['customer-bookings']);
+        
+        // Show toast for status changes
+        if (event.type === 'update' && event.data.status) {
+          const statusMessages = {
+            confirmed: '✅ Your booking has been confirmed!',
+            cancelled: '❌ Your booking has been cancelled',
+            rescheduled: '📅 Your booking has been rescheduled',
+            completed: '✨ Your booking is complete!'
+          };
+          
+          const message = statusMessages[event.data.status];
+          if (message) {
+            toast.success(message);
+            
+            if (window.NativeAppBridge?.triggerHaptic) {
+              window.NativeAppBridge.triggerHaptic('medium');
+            }
+          }
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [currentUser]);
+
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId) => {
-      const booking = await base44.entities.ServiceBooking.update(bookingId, {
-        status: 'cancelled'
-      });
+      // Get booking first
+      const booking = bookings.find(b => b.id === bookingId);
       
-      // Send cancellation notifications
-      try {
-        await base44.functions.invoke('sendBookingNotification', {
-          recipientEmail: booking.customer_email,
-          type: 'booking_cancelled',
-          bookingId: booking.id,
-          bookingTitle: booking.service_title,
-          bookingDate: booking.booking_date,
-          bookingTime: booking.booking_time,
-          providerName: booking.provider_name
-        });
+      // Use the new updateBookingStatus function
+      const response = await base44.functions.invoke('updateBookingStatus', {
+        bookingId,
+        newStatus: 'cancelled',
+        reason: 'Cancelled by customer'
+      });
 
-        await base44.functions.invoke('sendBookingNotification', {
-          recipientEmail: booking.provider_email,
-          type: 'booking_cancelled',
-          bookingId: booking.id,
-          bookingTitle: booking.service_title,
-          bookingDate: booking.booking_date,
-          bookingTime: booking.booking_time,
-          customerName: booking.customer_name
-        });
-      } catch (notifError) {
-        console.error('Failed to send cancellation notifications:', notifError);
+      if (!response.data?.success) {
+        throw new Error(response.data?.error || 'Failed to cancel booking');
       }
 
       return booking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['customer-bookings']);
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
+      
       toast.success('Booking cancelled successfully');
       setSelectedBooking(null);
+    },
+    onError: (error) => {
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+      
+      toast.error('Failed to cancel booking: ' + error.message);
     }
   });
 
@@ -148,12 +179,15 @@ export default function CustomerBookings() {
           variant="outline"
           onClick={(e) => {
             e.stopPropagation();
-            navigate(createPageUrl("Messages"));
+            if (window.NativeAppBridge?.triggerHaptic) {
+              window.NativeAppBridge.triggerHaptic('light');
+            }
+            navigate(createPageUrl("Messages") + `?user=${booking.provider_email}`);
           }}
-          className="bg-white/5 border-white/20 text-white"
+          className="bg-white/5 border-white/20 text-white min-h-[36px]"
         >
           <MessageCircle className="w-4 h-4 mr-2" />
-          Message Provider
+          Message
         </Button>
       </div>
     </motion.div>
@@ -344,23 +378,29 @@ export default function CustomerBookings() {
                   {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
                     <Button
                       onClick={() => {
+                        if (window.NativeAppBridge?.triggerHaptic) {
+                          window.NativeAppBridge.triggerHaptic('warning');
+                        }
                         if (confirm(`Are you sure you want to cancel this booking?\n\nService: ${selectedBooking.service_title}\nDate: ${new Date(selectedBooking.booking_date).toLocaleDateString()}\nTime: ${selectedBooking.booking_time}\n\nThis action cannot be undone.`)) {
                           cancelBookingMutation.mutate(selectedBooking.id);
                         }
                       }}
                       disabled={cancelBookingMutation.isPending}
                       variant="outline"
-                      className="flex-1 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+                      className="flex-1 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 min-h-[44px]"
                     >
-                      Cancel Booking
+                      {cancelBookingMutation.isPending ? 'Cancelling...' : 'Cancel Booking'}
                     </Button>
                   )}
                   <Button
                     onClick={() => {
+                      if (window.NativeAppBridge?.triggerHaptic) {
+                        window.NativeAppBridge.triggerHaptic('light');
+                      }
                       setSelectedBooking(null);
-                      navigate(createPageUrl("Messages"));
+                      navigate(createPageUrl("Messages") + `?user=${selectedBooking.provider_email}`);
                     }}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
                     Message Provider
