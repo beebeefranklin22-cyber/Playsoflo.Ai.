@@ -811,6 +811,7 @@ export default function Profile() {
                     }
                     setShowDeleteAccountModal(true);
                   }}
+                  data-delete-account
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-bold min-h-[50px] text-base"
                 >
                   <AlertTriangle className="w-5 h-5 mr-2" />
