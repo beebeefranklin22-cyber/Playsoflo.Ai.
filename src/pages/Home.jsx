@@ -285,7 +285,7 @@ export default function Home() {
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen pb-20 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
       {/* Stories Bar */}
-      <div className="sticky top-16 z-20 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
+      <div className="sticky top-16 z-10 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
           {/* Add Your Story */}
           <button 
@@ -365,7 +365,7 @@ export default function Home() {
       </div>
 
       {/* Quick Access Pills */}
-      <div className="px-4 py-4 border-b border-white/10">
+      <div className="px-4 py-4 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h3 className="text-white font-semibold">Quick Access</h3>
@@ -377,7 +377,7 @@ export default function Home() {
               <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-wrap gap-2 items-center relative z-30">
             <GoLiveButton currentUser={currentUser} />
             <button
               onClick={() => setShowFollowRequests(true)}
