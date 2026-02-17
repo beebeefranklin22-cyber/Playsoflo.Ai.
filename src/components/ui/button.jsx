@@ -34,12 +34,24 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+const Button = React.forwardRef(({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  
+  const handleClick = (e) => {
+    if (window.NativeAppBridge?.triggerHaptic) {
+      window.NativeAppBridge.triggerHaptic('light');
+    }
+    if (onClick) {
+      onClick(e);
+    }
+  };
+  
   return (
     (<Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
+      onClick={handleClick}
+      style={{ WebkitTapHighlightColor: 'transparent', ...props.style }}
       {...props} />)
   );
 })

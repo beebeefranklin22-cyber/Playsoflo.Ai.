@@ -775,29 +775,34 @@ export default function Profile() {
             </Card>
 
             {/* Account Management - Prominent Delete Account */}
-            <Card className="glass-effect border-red-500/30 bg-red-500/5">
+            <Card className="glass-effect border-red-500/40 bg-red-500/10">
               <CardHeader>
-                <CardTitle className="text-red-400 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  Account Management
+                <CardTitle className="text-red-300 flex items-center gap-2 text-lg">
+                  <AlertTriangle className="w-6 h-6" />
+                  Delete Account
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                  <p className="text-red-300 font-semibold mb-2">
-                    Delete Your Account
+                <div className="bg-red-500/20 border-2 border-red-500/40 rounded-xl p-5">
+                  <p className="text-red-200 font-bold mb-3 text-base">
+                    ⚠️ Permanent Account Deletion
                   </p>
-                  <p className="text-gray-400 text-sm mb-2">
-                    Permanently delete your account and all data:
+                  <p className="text-gray-300 text-sm mb-3">
+                    This will <strong className="text-white">immediately and permanently</strong> remove:
                   </p>
-                  <ul className="text-gray-400 text-xs space-y-1 ml-4 mb-3">
-                    <li>• Profile, posts, and messages</li>
-                    <li>• Bookings, orders, and wallet balance</li>
-                    <li>• All content and history</li>
+                  <ul className="text-gray-300 text-sm space-y-2 ml-4 mb-4">
+                    <li>✗ All posts, messages, photos & videos</li>
+                    <li>✗ Your profile and personal information</li>
+                    <li>✗ Bookings, orders, and subscriptions</li>
+                    <li>✗ Wallet balance and transaction history</li>
+                    <li>✗ Groups, followers, and social connections</li>
+                    <li>✗ Business listings and earnings data</li>
                   </ul>
-                  <p className="text-yellow-400 text-xs font-semibold mb-3">
-                    ⚠️ This cannot be undone!
-                  </p>
+                  <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-lg p-3 mb-3">
+                    <p className="text-yellow-200 text-sm font-semibold">
+                      🚨 NO RECOVERY POSSIBLE - Your data will be gone forever!
+                    </p>
+                  </div>
                 </div>
                 <Button
                   onClick={() => {
@@ -806,11 +811,14 @@ export default function Profile() {
                     }
                     setShowDeleteAccountModal(true);
                   }}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white min-h-[44px]"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold min-h-[50px] text-base"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Delete My Account
+                  <AlertTriangle className="w-5 h-5 mr-2" />
+                  Delete My Account Permanently
                 </Button>
+                <p className="text-center text-gray-500 text-xs italic">
+                  This action meets iOS App Store account deletion requirements
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

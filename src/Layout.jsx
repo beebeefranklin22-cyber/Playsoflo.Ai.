@@ -317,6 +317,9 @@ export default function Layout({ children, currentPageName }) {
              location.pathname !== createPageUrl("RonronAI") ? (
               <button
                 onClick={() => {
+                  if (window.NativeAppBridge?.triggerHaptic) {
+                    window.NativeAppBridge.triggerHaptic('light');
+                  }
                   const stack = tabStacks.current[activeTab];
                   if (stack && stack.length > 1) {
                     // Go to previous page in current tab's stack
@@ -326,7 +329,8 @@ export default function Layout({ children, currentPageName }) {
                     navigate(-1);
                   }
                 }}
-                className="flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <ChevronRight className="w-6 h-6 text-white rotate-180" />
               </button>
@@ -338,7 +342,8 @@ export default function Layout({ children, currentPageName }) {
                   }
                   setSidebarOpen(!sidebarOpen);
                 }}
-                className="flex-shrink-0"
+                className="flex-shrink-0 active:scale-95 transition-transform"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {currentUser?.profile_picture ? (
                   <img 
@@ -356,13 +361,19 @@ export default function Layout({ children, currentPageName }) {
 
             <form onSubmit={handleSearch} className="flex-1">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('light');
+                    }
+                  }}
                   placeholder="Search experiences, services, people..."
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition"
+                  className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition min-h-[44px]"
+                  style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
                 />
               </div>
             </form>
@@ -375,7 +386,8 @@ export default function Layout({ children, currentPageName }) {
                 }
                 navigate(createPageUrl("Cart"));
               }}
-              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <ShoppingCart className="w-6 h-6 text-white" />
             </button>
@@ -388,7 +400,8 @@ export default function Layout({ children, currentPageName }) {
                 }
                 navigate(createPageUrl("Notifications"));
               }}
-              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <Bell className="w-6 h-6 text-white" />
               {unreadCount > 0 && (
