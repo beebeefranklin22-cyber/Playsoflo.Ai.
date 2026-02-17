@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect } from "@/components/ui/MobileSelect";
+import { triggerHaptic } from "@/components/ui/haptic";
 import { Settings, Bell, Eye, DollarSign, Shield } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,34 +38,40 @@ export default function ContentSettings({ currentUser }) {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Default Category</label>
-              <Select value={settings.default_category} onValueChange={(v) => setSettings({...settings, default_category: v})}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sports">Sports</SelectItem>
-                  <SelectItem value="entertainment">Entertainment</SelectItem>
-                  <SelectItem value="gaming">Gaming</SelectItem>
-                  <SelectItem value="music">Music</SelectItem>
-                  <SelectItem value="news">News</SelectItem>
-                  <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect 
+                value={settings.default_category} 
+                onValueChange={(v) => {
+                  triggerHaptic('light');
+                  setSettings({...settings, default_category: v});
+                }}
+                placeholder="Select category"
+                triggerClassName="bg-white/10 border-white/20 text-white"
+              >
+                <MobileSelect.Item value="sports">Sports</MobileSelect.Item>
+                <MobileSelect.Item value="entertainment">Entertainment</MobileSelect.Item>
+                <MobileSelect.Item value="gaming">Gaming</MobileSelect.Item>
+                <MobileSelect.Item value="music">Music</MobileSelect.Item>
+                <MobileSelect.Item value="news">News</MobileSelect.Item>
+                <MobileSelect.Item value="lifestyle">Lifestyle</MobileSelect.Item>
+              </MobileSelect>
             </div>
 
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Default Visibility</label>
-              <Select value={settings.default_visibility} onValueChange={(v) => setSettings({...settings, default_visibility: v})}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="followers">Followers Only</SelectItem>
-                  <SelectItem value="members">Members Only</SelectItem>
-                  <SelectItem value="private">Private</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect 
+                value={settings.default_visibility} 
+                onValueChange={(v) => {
+                  triggerHaptic('light');
+                  setSettings({...settings, default_visibility: v});
+                }}
+                placeholder="Select visibility"
+                triggerClassName="bg-white/10 border-white/20 text-white"
+              >
+                <MobileSelect.Item value="public">Public</MobileSelect.Item>
+                <MobileSelect.Item value="followers">Followers Only</MobileSelect.Item>
+                <MobileSelect.Item value="members">Members Only</MobileSelect.Item>
+                <MobileSelect.Item value="private">Private</MobileSelect.Item>
+              </MobileSelect>
             </div>
           </div>
         </CardContent>

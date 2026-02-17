@@ -87,9 +87,15 @@ body {
 
 /* Prevent bounce effect on all non-scrollable containers */
 header, nav, footer, [role="navigation"], [role="banner"], [role="contentinfo"], 
-.fixed, .sticky, [data-no-scroll], .modal-overlay, .dialog-overlay {
+.fixed, .sticky, [data-no-scroll], .modal-overlay, .dialog-overlay,
+.glass-effect, [data-radix-dialog-overlay], [data-radix-dialog-content] {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: auto;
+}
+
+/* Ensure main app container prevents bounce */
+#root, .app-container, main {
+  overscroll-behavior: none;
 }
 
 .platform-ios input,
