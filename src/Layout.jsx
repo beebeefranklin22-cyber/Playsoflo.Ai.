@@ -21,6 +21,7 @@ import AppInstallPrompt from "./components/platform/AppInstallPrompt";
 import NativeAppBridge from "./components/platform/NativeAppBridge";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PullToRefresh from "./components/PullToRefresh";
+import ToastListener from "./components/ui/ToastListener";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -256,6 +257,7 @@ export default function Layout({ children, currentPageName }) {
       <ServiceWorkerManager />
       <NativeAppBridge />
       <AppInstallPrompt />
+      <ToastListener />
       <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {

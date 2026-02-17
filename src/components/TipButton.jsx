@@ -50,19 +50,50 @@ export default function TipButton({
       setShowTipModal(false);
       setTipAmount(5);
       setTipMessage("");
-      alert(`✨ Tip sent successfully to ${creatorName || creatorEmail}!`);
+      
+      // Success haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('success');
+      }
+      
+      const event = new CustomEvent('showToast', {
+        detail: { message: `✨ Tip sent successfully to ${creatorName || creatorEmail}!`, type: 'success' }
+      });
+      window.dispatchEvent(event);
+    },
+    onError: (error) => {
+      // Error haptic
+      if (window.NativeAppBridge?.triggerHaptic) {
+        window.NativeAppBridge.triggerHaptic('error');
+      }
+      
+      const event = new CustomEvent('showToast', {
+        detail: { message: 'Failed to send tip: ' + error.message, type: 'error' }
+      });
+      window.dispatchEvent(event);
     }
   });
 
   const handleSendTip = () => {
     if (!currentUser) {
-      alert("Please log in to send tips");
+      const event = new CustomEvent('showToast', {
+        detail: { message: 'Please log in to send tips', type: 'error' }
+      });
+      window.dispatchEvent(event);
       return;
     }
 
     if (tipAmount <= 0) {
-      alert("Please enter a valid tip amount");
+      const event = new CustomEvent('showToast', {
+        detail: { message: 'Please enter a valid tip amount', type: 'error' }
+      });
+      window.dispatchEvent(event);
       return;
+    }
+
+    // Haptic feedback
+    if (window.NativeAppBridge?.triggerHaptic) {
+      window.NativeAppBridge.triggerHaptic('medium');
     }
 
     const tipData = {
@@ -79,10 +110,15 @@ export default function TipButton({
   return (
     <>
       <Button
-        onClick={() => setShowTipModal(true)}
+        onClick={() => {
+          if (window.NativeAppBridge?.triggerHaptic) {
+            window.NativeAppBridge.triggerHaptic('light');
+          }
+          setShowTipModal(true);
+        }}
         variant={variant}
         size={size}
-        className="gap-2"
+        className="gap-2 min-h-[44px]"
       >
         <Heart className="w-4 h-4" />
         {showAmount && <span>Tip</span>}
@@ -211,7 +247,7 @@ export default function TipButton({
               <Button
                 onClick={handleSendTip}
                 disabled={tipMutation.isLoading || tipAmount <= 0}
-                className="w-full py-6 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-gray-900 font-bold text-lg rounded-xl"
+                className="w-full py-6 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-gray-900 font-bold text-lg rounded-xl min-h-[44px]"
               >
                 {tipMutation.isLoading ? "Sending..." : `Send $${tipAmount} Tip`}
               </Button>
