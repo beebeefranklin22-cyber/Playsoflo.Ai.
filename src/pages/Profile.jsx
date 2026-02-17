@@ -61,7 +61,7 @@ export default function Profile() {
   const [showVehicleInfo, setShowVehicleInfo] = useState(false);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
     full_name: "",
@@ -1070,7 +1070,7 @@ export default function Profile() {
                       if (window.NativeAppBridge?.triggerHaptic) {
                         window.NativeAppBridge.triggerHaptic('warning');
                       }
-                      setShowDeleteAccount(true);
+                      setShowDeleteAccountModal(true);
                     }}
                     variant="outline"
                     className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10 min-h-[44px]"
@@ -1247,8 +1247,8 @@ export default function Profile() {
 
       {/* Delete Account Modal */}
       <DeleteAccountModal
-        isOpen={showDeleteAccount}
-        onClose={() => setShowDeleteAccount(false)}
+        isOpen={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
         currentUser={currentUser}
       />
 

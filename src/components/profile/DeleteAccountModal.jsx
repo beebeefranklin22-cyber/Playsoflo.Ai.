@@ -30,30 +30,36 @@ export default function DeleteAccountModal({ isOpen, onClose, currentUser }) {
 
     setIsDeleting(true);
     
-    // Trigger haptic feedback
+    // Trigger warning haptic feedback
     if (window.NativeAppBridge?.triggerHaptic) {
       window.NativeAppBridge.triggerHaptic('heavy');
     }
     
     try {
-      await base44.functions.invoke('deleteUserAccount', {
+      // Call the delete account function
+      const response = await base44.functions.invoke('deleteUserAccount', {
         confirm: true
       });
       
-      toast.success("Account deleted successfully. Redirecting...");
-      
-      // Success haptic
-      if (window.NativeAppBridge?.triggerHaptic) {
-        window.NativeAppBridge.triggerHaptic('success');
+      if (response.data?.success) {
+        toast.success("Account deleted successfully. Logging out...");
+        
+        // Success haptic
+        if (window.NativeAppBridge?.triggerHaptic) {
+          window.NativeAppBridge.triggerHaptic('success');
+        }
+        
+        // Logout and redirect after brief delay
+        setTimeout(() => {
+          base44.auth.logout();
+        }, 1500);
+      } else {
+        throw new Error(response.data?.message || 'Deletion failed');
       }
       
-      // Wait a moment then logout and redirect
-      setTimeout(() => {
-        base44.auth.logout();
-      }, 2000);
-      
     } catch (error) {
-      toast.error("Failed to delete account: " + error.message);
+      console.error('Delete account error:', error);
+      toast.error("Failed to delete account: " + (error.message || 'Unknown error'));
       
       // Error haptic
       if (window.NativeAppBridge?.triggerHaptic) {

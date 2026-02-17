@@ -175,8 +175,13 @@ export default function Layout({ children, currentPageName }) {
       path === "Profile" ? "profile" :
       "home";
     
+    // If tapping the already active tab, reset to root
+    if (targetTab === activeTab && !rootPaths.includes(currentPath)) {
+      tabStacks.current[targetTab] = [targetPath];
+      navigate(targetPath);
+    }
     // If switching to a tab we've visited, go to the last page in that tab's stack
-    if (targetTab !== activeTab && tabStacks.current[targetTab]) {
+    else if (targetTab !== activeTab && tabStacks.current[targetTab]) {
       const lastPage = tabStacks.current[targetTab][tabStacks.current[targetTab].length - 1];
       navigate(lastPage);
     } else {

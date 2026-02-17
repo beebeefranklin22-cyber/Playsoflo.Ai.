@@ -167,6 +167,21 @@ a[role="button"] {
   image-rendering: crisp-edges;
 }
 
+/* Hide scrollbars globally for native app look */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Ensure scrolling still works */
+* {
+  overflow: auto;
+}
+
 @layer base {
   * {
     @apply border-border;
