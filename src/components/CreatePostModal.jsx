@@ -88,15 +88,17 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
+          initial={{ y: "100%", scale: 0.95 }}
+          animate={{ y: 0, scale: 1 }}
+          exit={{ y: "100%", scale: 0.95 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 max-h-[90vh] overflow-y-auto border border-white/20"
+          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto border border-white/20"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Create Post</h2>

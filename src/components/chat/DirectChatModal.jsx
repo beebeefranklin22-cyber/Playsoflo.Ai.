@@ -241,15 +241,17 @@ export default function DirectChatModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
+        initial={{ y: "100%", scale: 0.95 }}
+        animate={{ y: 0, scale: 1 }}
+        exit={{ y: "100%", scale: 0.95 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-gray-900 rounded-2xl overflow-hidden flex flex-col max-h-[80vh]"
+        className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
