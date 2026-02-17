@@ -773,6 +773,46 @@ export default function Profile() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Account Management - Prominent Delete Account */}
+            <Card className="glass-effect border-red-500/30 bg-red-500/5">
+              <CardHeader>
+                <CardTitle className="text-red-400 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Account Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                  <p className="text-red-300 font-semibold mb-2">
+                    Delete Your Account
+                  </p>
+                  <p className="text-gray-400 text-sm mb-2">
+                    Permanently delete your account and all data:
+                  </p>
+                  <ul className="text-gray-400 text-xs space-y-1 ml-4 mb-3">
+                    <li>• Profile, posts, and messages</li>
+                    <li>• Bookings, orders, and wallet balance</li>
+                    <li>• All content and history</li>
+                  </ul>
+                  <p className="text-yellow-400 text-xs font-semibold mb-3">
+                    ⚠️ This cannot be undone!
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('warning');
+                    }
+                    setShowDeleteAccountModal(true);
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white min-h-[44px]"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Delete My Account
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="portfolio" className="space-y-4">
