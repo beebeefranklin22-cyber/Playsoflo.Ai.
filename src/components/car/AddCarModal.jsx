@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect } from "@/components/ui/MobileSelect";
+import { triggerHaptic } from "@/components/ui/haptic";
 import { base44 } from "@/api/base44Client";
 import { Upload, X, Loader2, Car, Image } from "lucide-react";
 import { toast } from "sonner";
@@ -137,9 +139,12 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => document.getElementById('car-image-upload').click()}
+                  onClick={() => {
+                    triggerHaptic('light');
+                    document.getElementById('car-image-upload').click();
+                  }}
                   disabled={uploadingImage}
-                  className="w-full bg-white/5 border-white/20"
+                  className="w-full bg-white/5 border-white/20 min-h-[44px]"
                 >
                   {uploadingImage ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -247,17 +252,20 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
             </div>
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Seats</label>
-              <Select value={formData.seats} onValueChange={(v) => setFormData({ ...formData, seats: v })}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="2">2 Seats</SelectItem>
-                  <SelectItem value="4">4 Seats</SelectItem>
-                  <SelectItem value="5">5 Seats</SelectItem>
-                  <SelectItem value="7">7 Seats</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect 
+                value={formData.seats} 
+                onValueChange={(v) => {
+                  triggerHaptic('light');
+                  setFormData({ ...formData, seats: v });
+                }}
+                placeholder="Select seats"
+                triggerClassName="bg-white/10 border-white/20 text-white"
+              >
+                <MobileSelect.Item value="2">2 Seats</MobileSelect.Item>
+                <MobileSelect.Item value="4">4 Seats</MobileSelect.Item>
+                <MobileSelect.Item value="5">5 Seats</MobileSelect.Item>
+                <MobileSelect.Item value="7">7 Seats</MobileSelect.Item>
+              </MobileSelect>
             </div>
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Daily Mileage Limit</label>
@@ -274,29 +282,35 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Transmission</label>
-              <Select value={formData.transmission} onValueChange={(v) => setFormData({ ...formData, transmission: v })}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="automatic">Automatic</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect 
+                value={formData.transmission} 
+                onValueChange={(v) => {
+                  triggerHaptic('light');
+                  setFormData({ ...formData, transmission: v });
+                }}
+                placeholder="Select transmission"
+                triggerClassName="bg-white/10 border-white/20 text-white"
+              >
+                <MobileSelect.Item value="automatic">Automatic</MobileSelect.Item>
+                <MobileSelect.Item value="manual">Manual</MobileSelect.Item>
+              </MobileSelect>
             </div>
             <div>
               <label className="text-gray-400 text-sm mb-2 block">Fuel Type</label>
-              <Select value={formData.fuel_type} onValueChange={(v) => setFormData({ ...formData, fuel_type: v })}>
-                <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gasoline">Gasoline</SelectItem>
-                  <SelectItem value="diesel">Diesel</SelectItem>
-                  <SelectItem value="electric">Electric</SelectItem>
-                  <SelectItem value="hybrid">Hybrid</SelectItem>
-                </SelectContent>
-              </Select>
+              <MobileSelect 
+                value={formData.fuel_type} 
+                onValueChange={(v) => {
+                  triggerHaptic('light');
+                  setFormData({ ...formData, fuel_type: v });
+                }}
+                placeholder="Select fuel type"
+                triggerClassName="bg-white/10 border-white/20 text-white"
+              >
+                <MobileSelect.Item value="gasoline">Gasoline</MobileSelect.Item>
+                <MobileSelect.Item value="diesel">Diesel</MobileSelect.Item>
+                <MobileSelect.Item value="electric">Electric</MobileSelect.Item>
+                <MobileSelect.Item value="hybrid">Hybrid</MobileSelect.Item>
+              </MobileSelect>
             </div>
           </div>
 
@@ -454,15 +468,21 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
           <div className="flex gap-3 pt-4">
             <Button
               variant="outline"
-              onClick={onClose}
-              className="flex-1 bg-white/5 border-white/20"
+              onClick={() => {
+                triggerHaptic('light');
+                onClose();
+              }}
+              className="flex-1 bg-white/5 border-white/20 min-h-[44px]"
             >
               Cancel
             </Button>
             <Button
-              onClick={handleSubmit}
+              onClick={() => {
+                triggerHaptic('medium');
+                handleSubmit();
+              }}
               disabled={loading || uploadingImage}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 bg-green-600 hover:bg-green-700 min-h-[44px]"
             >
               {loading ? "Adding..." : "Add Vehicle"}
             </Button>

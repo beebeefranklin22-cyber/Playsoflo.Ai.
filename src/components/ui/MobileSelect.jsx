@@ -25,9 +25,14 @@ export function MobileSelect({ value, onValueChange, children, placeholder, trig
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (window.NativeAppBridge?.triggerHaptic) {
+            window.NativeAppBridge.triggerHaptic('light');
+          }
+          setIsOpen(true);
+        }}
         className={cn(
-          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm",
+          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm min-h-[44px]",
           triggerClassName
         )}
       >
@@ -51,8 +56,9 @@ export function MobileSelect({ value, onValueChange, children, placeholder, trig
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 rounded-t-3xl shadow-2xl max-h-[70vh] overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
               <div className="p-4 border-b border-gray-200 dark:border-gray-800">
                 <div className="w-12 h-1 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4" />
@@ -65,11 +71,14 @@ export function MobileSelect({ value, onValueChange, children, placeholder, trig
                   <button
                     key={item.value}
                     onClick={() => {
+                      if (window.NativeAppBridge?.triggerHaptic) {
+                        window.NativeAppBridge.triggerHaptic('light');
+                      }
                       onValueChange(item.value);
                       setIsOpen(false);
                     }}
                     className={cn(
-                      "w-full px-6 py-4 text-left flex items-center justify-between border-b border-gray-100 dark:border-gray-800 transition-colors",
+                      "w-full px-6 py-4 text-left flex items-center justify-between border-b border-gray-100 dark:border-gray-800 transition-colors min-h-[52px]",
                       value === item.value
                         ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
                         : "hover:bg-gray-50 dark:hover:bg-gray-800"

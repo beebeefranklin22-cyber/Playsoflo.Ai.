@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect } from "@/components/ui/MobileSelect";
+import { triggerHaptic } from "@/components/ui/haptic";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { X, Upload, Loader2, Sparkles, Plus, Calendar as CalendarIcon, Ticket, CreditCard } from "lucide-react";
@@ -213,15 +215,17 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
+          initial={{ y: "100%", scale: 0.95 }}
+          animate={{ y: 0, scale: 1 }}
+          exit={{ y: "100%", scale: 0.95 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-4xl bg-gray-900 rounded-3xl p-8 my-8"
+          className="w-full max-w-4xl bg-gray-900 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 my-0 sm:my-8"
+          style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold text-white flex items-center gap-3">
@@ -262,33 +266,36 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
                 <div>
                   <label className="text-white font-semibold mb-2 block">Category *</label>
-                  <Select value={experience.category} onValueChange={(v) => setExperience({ ...experience, category: v })}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-96 overflow-y-auto bg-gray-800 border-white/20 z-[200]">
-                      <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
-                      <SelectItem value="exotic_car">Exotic Car</SelectItem>
-                      <SelectItem value="wine_tasting">Wine Tasting</SelectItem>
-                      <SelectItem value="photography">Photography</SelectItem>
-                      <SelectItem value="event_planning">Event Planning</SelectItem>
-                      <SelectItem value="nightlife">Nightlife</SelectItem>
-                      <SelectItem value="comedy_clubs">Comedy Clubs</SelectItem>
-                      <SelectItem value="concerts">Concerts</SelectItem>
-                      <SelectItem value="theatre">Theatre</SelectItem>
-                      <SelectItem value="festivals">Festivals</SelectItem>
-                      <SelectItem value="karaoke">Karaoke</SelectItem>
-                      <SelectItem value="escape_rooms">Escape Rooms</SelectItem>
-                      <SelectItem value="arcade">Arcade</SelectItem>
-                      <SelectItem value="bowling">Bowling</SelectItem>
-                      <SelectItem value="cinema">Cinema</SelectItem>
-                      <SelectItem value="theme_parks">Theme Parks</SelectItem>
-                      <SelectItem value="water_parks">Water Parks</SelectItem>
-                      <SelectItem value="casinos">Casinos</SelectItem>
-                      <SelectItem value="paint_sip">Paint & Sip</SelectItem>
-                      <SelectItem value="axe_throwing">Axe Throwing</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <MobileSelect 
+                    value={experience.category} 
+                    onValueChange={(v) => {
+                      triggerHaptic('light');
+                      setExperience({ ...experience, category: v });
+                    }}
+                    placeholder="Select category"
+                    triggerClassName="bg-white/10 border-white/20 text-white"
+                  >
+                    <MobileSelect.Item value="yacht_charter">Yacht Charter</MobileSelect.Item>
+                    <MobileSelect.Item value="exotic_car">Exotic Car</MobileSelect.Item>
+                    <MobileSelect.Item value="wine_tasting">Wine Tasting</MobileSelect.Item>
+                    <MobileSelect.Item value="photography">Photography</MobileSelect.Item>
+                    <MobileSelect.Item value="event_planning">Event Planning</MobileSelect.Item>
+                    <MobileSelect.Item value="nightlife">Nightlife</MobileSelect.Item>
+                    <MobileSelect.Item value="comedy_clubs">Comedy Clubs</MobileSelect.Item>
+                    <MobileSelect.Item value="concerts">Concerts</MobileSelect.Item>
+                    <MobileSelect.Item value="theatre">Theatre</MobileSelect.Item>
+                    <MobileSelect.Item value="festivals">Festivals</MobileSelect.Item>
+                    <MobileSelect.Item value="karaoke">Karaoke</MobileSelect.Item>
+                    <MobileSelect.Item value="escape_rooms">Escape Rooms</MobileSelect.Item>
+                    <MobileSelect.Item value="arcade">Arcade</MobileSelect.Item>
+                    <MobileSelect.Item value="bowling">Bowling</MobileSelect.Item>
+                    <MobileSelect.Item value="cinema">Cinema</MobileSelect.Item>
+                    <MobileSelect.Item value="theme_parks">Theme Parks</MobileSelect.Item>
+                    <MobileSelect.Item value="water_parks">Water Parks</MobileSelect.Item>
+                    <MobileSelect.Item value="casinos">Casinos</MobileSelect.Item>
+                    <MobileSelect.Item value="paint_sip">Paint & Sip</MobileSelect.Item>
+                    <MobileSelect.Item value="axe_throwing">Axe Throwing</MobileSelect.Item>
+                  </MobileSelect>
                 </div>
 
                 <div>
@@ -582,16 +589,19 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
                 <div>
                   <label className="text-white font-semibold mb-2 block">Availability Type</label>
-                  <Select value={experience.availability_type} onValueChange={(v) => setExperience({ ...experience, availability_type: v })}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single_event">Single Event</SelectItem>
-                      <SelectItem value="recurring">Recurring Schedule</SelectItem>
-                      <SelectItem value="open_availability">Open Availability</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <MobileSelect 
+                    value={experience.availability_type} 
+                    onValueChange={(v) => {
+                      triggerHaptic('light');
+                      setExperience({ ...experience, availability_type: v });
+                    }}
+                    placeholder="Select availability type"
+                    triggerClassName="bg-white/10 border-white/20 text-white"
+                  >
+                    <MobileSelect.Item value="single_event">Single Event</MobileSelect.Item>
+                    <MobileSelect.Item value="recurring">Recurring Schedule</MobileSelect.Item>
+                    <MobileSelect.Item value="open_availability">Open Availability</MobileSelect.Item>
+                  </MobileSelect>
                 </div>
 
                 {experience.availability_type === 'single_event' && (
@@ -699,27 +709,28 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Pass Type</label>
-                        <Select value={newPass.pass_type} onValueChange={(v) => {
-                          const defaults = {
-                            day_pass: { validity_days: 1, visit_limit: 999 },
-                            week_pass: { validity_days: 7, visit_limit: 999 },
-                            month_pass: { validity_days: 30, visit_limit: 999 },
-                            vip_pass: { validity_days: 365, visit_limit: 999 },
-                            custom_pass: { validity_days: 1, visit_limit: 1 }
-                          };
-                          setNewPass({ ...newPass, pass_type: v, ...defaults[v] });
-                        }}>
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="day_pass">Day Pass</SelectItem>
-                            <SelectItem value="week_pass">Week Pass</SelectItem>
-                            <SelectItem value="month_pass">Month Pass</SelectItem>
-                            <SelectItem value="vip_pass">VIP Pass</SelectItem>
-                            <SelectItem value="custom_pass">Custom Pass</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <MobileSelect 
+                          value={newPass.pass_type} 
+                          onValueChange={(v) => {
+                            triggerHaptic('light');
+                            const defaults = {
+                              day_pass: { validity_days: 1, visit_limit: 999 },
+                              week_pass: { validity_days: 7, visit_limit: 999 },
+                              month_pass: { validity_days: 30, visit_limit: 999 },
+                              vip_pass: { validity_days: 365, visit_limit: 999 },
+                              custom_pass: { validity_days: 1, visit_limit: 1 }
+                            };
+                            setNewPass({ ...newPass, pass_type: v, ...defaults[v] });
+                          }}
+                          placeholder="Select pass type"
+                          triggerClassName="bg-white/10 border-white/20 text-white"
+                        >
+                          <MobileSelect.Item value="day_pass">Day Pass</MobileSelect.Item>
+                          <MobileSelect.Item value="week_pass">Week Pass</MobileSelect.Item>
+                          <MobileSelect.Item value="month_pass">Month Pass</MobileSelect.Item>
+                          <MobileSelect.Item value="vip_pass">VIP Pass</MobileSelect.Item>
+                          <MobileSelect.Item value="custom_pass">Custom Pass</MobileSelect.Item>
+                        </MobileSelect>
                       </div>
                       <div>
                         <label className="text-white text-sm mb-1 block">Price (USD)</label>
@@ -921,21 +932,21 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                             placeholder="e.g., Disruptive behavior, Intoxication"
                             className="bg-white/10 border-white/20 text-white text-sm"
                           />
-                          <Select
+                          <MobileSelect
                             value={String(newVoidPolicy.refund_percent)}
-                            onValueChange={(v) => setNewVoidPolicy({ ...newVoidPolicy, refund_percent: Number(v) })}
+                            onValueChange={(v) => {
+                              triggerHaptic('light');
+                              setNewVoidPolicy({ ...newVoidPolicy, refund_percent: Number(v) });
+                            }}
+                            placeholder="Refund percentage"
+                            triggerClassName="bg-white/10 border-white/20 text-white"
                           >
-                            <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                              <SelectValue placeholder="Refund" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0">No Refund (0%)</SelectItem>
-                              <SelectItem value="25">Partial Refund (25%)</SelectItem>
-                              <SelectItem value="50">Half Refund (50%)</SelectItem>
-                              <SelectItem value="75">Mostly Refund (75%)</SelectItem>
-                              <SelectItem value="100">Full Refund (100%)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                            <MobileSelect.Item value="0">No Refund (0%)</MobileSelect.Item>
+                            <MobileSelect.Item value="25">Partial Refund (25%)</MobileSelect.Item>
+                            <MobileSelect.Item value="50">Half Refund (50%)</MobileSelect.Item>
+                            <MobileSelect.Item value="75">Mostly Refund (75%)</MobileSelect.Item>
+                            <MobileSelect.Item value="100">Full Refund (100%)</MobileSelect.Item>
+                          </MobileSelect>
                         </div>
                         <Button
                           type="button"
@@ -1132,19 +1143,35 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
           <div className="flex gap-3 mt-6">
             {step > 1 && (
-              <Button variant="outline" onClick={() => setStep(step - 1)} className="flex-1">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setStep(step - 1);
+                }} 
+                className="flex-1 min-h-[44px]"
+              >
                 Back
               </Button>
             )}
             {step < 6 ? (
-              <Button onClick={() => setStep(step + 1)} className="flex-1 bg-purple-600 hover:bg-purple-700">
+              <Button 
+                onClick={() => {
+                  triggerHaptic('light');
+                  setStep(step + 1);
+                }} 
+                className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
+              >
                 Next Step
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={() => {
+                  triggerHaptic('medium');
+                  handleSubmit();
+                }}
                 disabled={createExperienceMutation.isPending || uploading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
               >
                 {createExperienceMutation.isPending ? (
                   <>
