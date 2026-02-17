@@ -199,6 +199,73 @@ a * {
   image-rendering: crisp-edges;
 }
 
+/* SAFE AREA DEBUGGING - Add 'debug-safe-areas' class to body to visualize safe zones */
+.debug-safe-areas {
+  /* Show safe area boundaries with colored overlays */
+  --debug-top: rgba(255, 0, 0, 0.2);
+  --debug-bottom: rgba(0, 255, 0, 0.2);
+  --debug-left: rgba(0, 0, 255, 0.2);
+  --debug-right: rgba(255, 255, 0, 0.2);
+}
+
+.debug-safe-areas::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-area-top);
+  background: var(--debug-top);
+  z-index: 9999;
+  pointer-events: none;
+  border-bottom: 2px solid red;
+}
+
+.debug-safe-areas::after {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-area-bottom);
+  background: var(--debug-bottom);
+  z-index: 9999;
+  pointer-events: none;
+  border-top: 2px solid green;
+}
+
+.debug-safe-areas nav,
+.debug-safe-areas header {
+  outline: 3px dashed red;
+  outline-offset: -3px;
+}
+
+.debug-safe-areas main {
+  outline: 3px dashed blue;
+  outline-offset: -3px;
+}
+
+.debug-safe-areas footer {
+  outline: 3px dashed green;
+  outline-offset: -3px;
+}
+
+/* Debug label overlay */
+.debug-safe-areas body::before {
+  content: 'SAFE AREA DEBUG MODE - Red: Top | Green: Bottom | Blue: Left | Yellow: Right';
+  position: fixed;
+  top: calc(var(--safe-area-top) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  z-index: 10000;
+  pointer-events: none;
+}
+
 /* Hide scrollbars globally for native app look */
 * {
   scrollbar-width: none; /* Firefox */
