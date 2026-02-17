@@ -283,10 +283,10 @@ export default function Home() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
       {/* Stories Bar */}
-      <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-4">
-        <div className="flex items-center gap-3 overflow-x-auto pb-2" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}>
+      <div className="sticky top-16 z-20 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
           {/* Add Your Story */}
           <button 
             onClick={() => setShowCreateStory(true)}
@@ -377,7 +377,7 @@ export default function Home() {
               <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
             <GoLiveButton currentUser={currentUser} />
             <button
               onClick={() => setShowFollowRequests(true)}
@@ -399,7 +399,7 @@ export default function Home() {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar scrollable-content" style={{ overscrollBehavior: 'contain' }}>
           {quickAccess.map((item) => (
             <button
               key={item.path}
