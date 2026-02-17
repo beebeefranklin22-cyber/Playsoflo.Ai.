@@ -141,6 +141,7 @@ export default function Marketplace() {
   const [pendingOrder, setPendingOrder] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
     priceRange: [0, 10000],
     minRating: null,
@@ -149,7 +150,8 @@ export default function Marketplace() {
     serviceArea: null,
     instantBooking: false,
     escrowProtected: false,
-    availabilitySlots: null
+    availabilitySlots: null,
+    amenities: []
   });
 
   const handleRefresh = async () => {
@@ -394,13 +396,48 @@ export default function Marketplace() {
       matchesSlots = item.availability !== 'booked';
     }
 
+    // Amenities filter
+    let matchesAmenities = true;
+    if (filters.amenities && filters.amenities.length > 0) {
+      const itemAmenities = item.originalData?.amenities || [];
+      matchesAmenities = filters.amenities.every(amenity => 
+        itemAmenities.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+      );
+    }
+
     return matchesCategory && matchesSearch && matchesPrice && matchesRating && 
            matchesAvailability && matchesVerification && matchesServiceArea && 
-           matchesInstantBooking && matchesEscrow && matchesSlots;
+           matchesInstantBooking && matchesEscrow && matchesSlots && matchesAmenities;
+  });
+
+  // Sort filtered items
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    switch (sortBy) {
+      case 'price_low':
+        return (a.price || 0) - (b.price || 0);
+      case 'price_high':
+        return (b.price || 0) - (a.price || 0);
+      case 'rating':
+        return (b.rating || 0) - (a.rating || 0);
+      case 'reviews':
+        return (b.reviews_count || 0) - (a.reviews_count || 0);
+      case 'relevance':
+      default:
+        // Relevance: verified + highly rated + instant booking first
+        const aScore = (a.verified_provider ? 100 : 0) + 
+                      (a.rating || 0) * 10 + 
+                      (a.instant_booking ? 50 : 0) +
+                      (a.reviews_count || 0);
+        const bScore = (b.verified_provider ? 100 : 0) + 
+                      (b.rating || 0) * 10 + 
+                      (b.instant_booking ? 50 : 0) +
+                      (b.reviews_count || 0);
+        return bScore - aScore;
+    }
   });
 
   // Group items by service/title to show multiple providers
-  const groupedByService = filteredItems.reduce((acc, item) => {
+  const groupedByService = sortedItems.reduce((acc, item) => {
     if (!acc[item.title]) {
       acc[item.title] = [];
     }
@@ -442,8 +479,13 @@ export default function Marketplace() {
               />
             </div>
             <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex-shrink-0 px-4 py-3 rounded-2xl font-medium transition flex items-center gap-2 ${
+              onClick={() => {
+                if (window.NativeAppBridge?.triggerHaptic) {
+                  window.NativeAppBridge.triggerHaptic('light');
+                }
+                setShowFilters(!showFilters);
+              }}
+              className={`flex-shrink-0 px-4 py-3 rounded-2xl font-medium transition flex items-center gap-2 min-h-[44px] ${
                 showFilters
                   ? 'bg-orange-500 text-white'
                   : 'bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20'
@@ -548,16 +590,22 @@ export default function Marketplace() {
           <AdvancedFilters
             filters={filters}
             onFiltersChange={setFilters}
-            onClear={() => setFilters({
-              priceRange: [0, 10000],
-              minRating: null,
-              availability: null,
-              verification: null,
-              serviceArea: null,
-              instantBooking: false,
-              escrowProtected: false,
-              availabilitySlots: null
-            })}
+            onClear={() => {
+              if (window.NativeAppBridge?.triggerHaptic) {
+                window.NativeAppBridge.triggerHaptic('light');
+              }
+              setFilters({
+                priceRange: [0, 10000],
+                minRating: null,
+                availability: null,
+                verification: null,
+                serviceArea: null,
+                instantBooking: false,
+                escrowProtected: false,
+                availabilitySlots: null,
+                amenities: []
+              });
+            }}
           />
         </div>
       )}
@@ -598,10 +646,41 @@ export default function Marketplace() {
       </div>
 
       <div className="px-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <p className="text-gray-300">
-            {filteredItems.length} service{filteredItems.length !== 1 ? 's' : ''} available
+            {sortedItems.length} service{sortedItems.length !== 1 ? 's' : ''} available
           </p>
+          
+          {/* Sort Options */}
+          <div className="flex items-center gap-3">
+            <span className="text-gray-400 text-sm">Sort by:</span>
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { value: 'relevance', label: 'Relevance' },
+                { value: 'price_low', label: 'Price: Low-High' },
+                { value: 'price_high', label: 'Price: High-Low' },
+                { value: 'rating', label: 'Rating' },
+                { value: 'reviews', label: 'Most Reviews' }
+              ].map((sort) => (
+                <button
+                  key={sort.value}
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('light');
+                    }
+                    setSortBy(sort.value);
+                  }}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition min-h-[36px] ${
+                    sortBy === sort.value
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20'
+                  }`}
+                >
+                  {sort.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -649,7 +728,7 @@ export default function Marketplace() {
             </motion.div>
           )}
           <AnimatePresence>
-            {filteredItems.map((item) => {
+            {sortedItems.map((item) => {
               const isFood = ["restaurant", "food_truck", "groceries"].includes(item.category);
               const trustScore = item.verified_provider ? 95 : 75;
               const providerVers = providerVerifications[item.created_by] || [];
@@ -856,7 +935,7 @@ export default function Marketplace() {
                         </div>
                         )}
 
-        {filteredItems.length === 0 && !isLoading && (
+        {sortedItems.length === 0 && !isLoading && (
           <div className="text-center py-20">
             <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="w-10 h-10 text-orange-400" />

@@ -10,10 +10,11 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
     onFiltersChange({ ...filters, [key]: value });
   };
 
-  const activeFiltersCount = Object.values(filters).filter(v => 
-    v !== null && v !== undefined && v !== 'all' && 
-    !(Array.isArray(v) && v.length === 2 && v[0] === 0 && v[1] === 10000)
-  ).length;
+  const activeFiltersCount = Object.entries(filters).filter(([key, v]) => {
+    if (key === 'priceRange' && Array.isArray(v) && v[0] === 0 && v[1] === 10000) return false;
+    if (key === 'amenities' && Array.isArray(v)) return v.length > 0;
+    return v !== null && v !== undefined && v !== 'all' && v !== false;
+  }).length;
 
   return (
     <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 mb-6">
@@ -28,8 +29,13 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
         </h3>
         {activeFiltersCount > 0 && (
           <button
-            onClick={onClear}
-            className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm font-medium hover:bg-red-500/20 transition flex items-center gap-2"
+            onClick={() => {
+              if (window.NativeAppBridge?.triggerHaptic) {
+                window.NativeAppBridge.triggerHaptic('light');
+              }
+              onClear();
+            }}
+            className="px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm font-medium hover:bg-red-500/20 transition flex items-center gap-2 min-h-[36px]"
           >
             <X className="w-4 h-4" />
             Clear All
@@ -179,6 +185,40 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
           </Select>
         </div>
 
+        {/* Amenities */}
+        <div>
+          <label className="text-gray-300 text-sm font-semibold mb-3 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-cyan-400" />
+            Amenities
+          </label>
+          <div className="space-y-2">
+            {['Wifi', 'Pool', 'Parking', 'Gym', 'Pet Friendly', 'Air Conditioning', 'Kitchen', 'Washer/Dryer'].map((amenity) => {
+              const isSelected = filters.amenities?.includes(amenity);
+              return (
+                <button
+                  key={amenity}
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('light');
+                    }
+                    const newAmenities = isSelected
+                      ? filters.amenities.filter(a => a !== amenity)
+                      : [...(filters.amenities || []), amenity];
+                    updateFilter('amenities', newAmenities);
+                  }}
+                  className={`w-full px-3 py-2 rounded-lg border transition text-left text-sm min-h-[36px] ${
+                    isSelected
+                      ? 'bg-cyan-500/20 border-cyan-500/50 text-white'
+                      : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
+                  }`}
+                >
+                  {amenity}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Special Features */}
         <div>
           <label className="text-gray-300 text-sm font-semibold mb-3 flex items-center gap-2">
@@ -187,8 +227,13 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
           </label>
           <div className="space-y-2">
             <button
-              onClick={() => updateFilter('instantBooking', !filters.instantBooking)}
-              className={`w-full px-4 py-2 rounded-lg border transition text-left text-sm ${
+              onClick={() => {
+                if (window.NativeAppBridge?.triggerHaptic) {
+                  window.NativeAppBridge.triggerHaptic('light');
+                }
+                updateFilter('instantBooking', !filters.instantBooking);
+              }}
+              className={`w-full px-4 py-2 rounded-lg border transition text-left text-sm min-h-[36px] ${
                 filters.instantBooking
                   ? 'bg-purple-500/20 border-purple-500/50 text-white'
                   : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
@@ -198,8 +243,13 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
               Instant Booking Only
             </button>
             <button
-              onClick={() => updateFilter('escrowProtected', !filters.escrowProtected)}
-              className={`w-full px-4 py-2 rounded-lg border transition text-left text-sm ${
+              onClick={() => {
+                if (window.NativeAppBridge?.triggerHaptic) {
+                  window.NativeAppBridge.triggerHaptic('light');
+                }
+                updateFilter('escrowProtected', !filters.escrowProtected);
+              }}
+              className={`w-full px-4 py-2 rounded-lg border transition text-left text-sm min-h-[36px] ${
                 filters.escrowProtected
                   ? 'bg-green-500/20 border-green-500/50 text-white'
                   : 'bg-white/5 border-white/20 text-gray-300 hover:bg-white/10'
