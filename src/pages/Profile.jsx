@@ -1041,14 +1041,15 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            <Card className="glass-effect border-white/10 mt-6">
+            {/* Sign Out */}
+            <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
-                  Account Management
+                  <Settings className="w-5 h-5" />
+                  Session Management
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent>
                 <Button
                   onClick={() => {
                     if (window.NativeAppBridge?.triggerHaptic) {
@@ -1056,29 +1057,51 @@ export default function Profile() {
                     }
                     base44.auth.logout();
                   }}
-                  className="w-full bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 min-h-[44px]"
+                  className="w-full bg-gray-700 hover:bg-gray-600 min-h-[44px]"
                 >
                   Sign Out
                 </Button>
+              </CardContent>
+            </Card>
 
-                <div className="pt-3 border-t border-white/10">
-                  <p className="text-gray-400 text-sm mb-3">
-                    Permanently delete your account and all associated data. This action cannot be undone.
+            {/* Delete Account - Prominent Section */}
+            <Card className="glass-effect border-red-500/30 bg-red-500/5">
+              <CardHeader>
+                <CardTitle className="text-red-400 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Delete Account
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                  <p className="text-red-300 font-semibold mb-2">
+                    Permanently delete your account
                   </p>
-                  <Button
-                    onClick={() => {
-                      if (window.NativeAppBridge?.triggerHaptic) {
-                        window.NativeAppBridge.triggerHaptic('warning');
-                      }
-                      setShowDeleteAccountModal(true);
-                    }}
-                    variant="outline"
-                    className="w-full border-red-500/50 text-red-500 hover:bg-red-500/10 min-h-[44px]"
-                  >
-                    <AlertTriangle className="w-4 h-4 mr-2" />
-                    Delete Account
-                  </Button>
+                  <p className="text-gray-400 text-sm mb-3">
+                    This will delete all your data including:
+                  </p>
+                  <ul className="text-gray-400 text-xs space-y-1 ml-4 mb-4">
+                    <li>• Profile, posts, and messages</li>
+                    <li>• Bookings, orders, and transactions</li>
+                    <li>• Wallet balance and payment methods</li>
+                    <li>• All content and account history</li>
+                  </ul>
+                  <p className="text-yellow-400 text-xs font-semibold">
+                    ⚠️ This action cannot be undone!
+                  </p>
                 </div>
+                <Button
+                  onClick={() => {
+                    if (window.NativeAppBridge?.triggerHaptic) {
+                      window.NativeAppBridge.triggerHaptic('warning');
+                    }
+                    setShowDeleteAccountModal(true);
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white min-h-[44px]"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Delete My Account Permanently
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
