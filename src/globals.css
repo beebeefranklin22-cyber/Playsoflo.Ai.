@@ -161,6 +161,24 @@ a[role="button"] {
   min-width: var(--touch-target);
 }
 
+/* Prevent text selection on navigation and interactive elements */
+nav,
+nav *,
+[role="navigation"],
+[role="navigation"] *,
+.tab-bar,
+.tab-bar *,
+button,
+button *,
+a,
+a * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* High DPI optimizations */
 .high-dpi img {
   image-rendering: -webkit-optimize-contrast;

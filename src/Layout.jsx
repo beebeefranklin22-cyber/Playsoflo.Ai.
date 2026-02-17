@@ -332,7 +332,12 @@ export default function Layout({ children, currentPageName }) {
               </button>
             ) : (
               <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
+                onClick={() => {
+                  if (window.NativeAppBridge?.triggerHaptic) {
+                    window.NativeAppBridge.triggerHaptic('light');
+                  }
+                  setSidebarOpen(!sidebarOpen);
+                }}
                 className="flex-shrink-0"
               >
                 {currentUser?.profile_picture ? (
@@ -364,7 +369,12 @@ export default function Layout({ children, currentPageName }) {
 
             {/* Cart Button */}
             <button
-              onClick={() => navigate(createPageUrl("Cart"))}
+              onClick={() => {
+                if (window.NativeAppBridge?.triggerHaptic) {
+                  window.NativeAppBridge.triggerHaptic('light');
+                }
+                navigate(createPageUrl("Cart"));
+              }}
               className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <ShoppingCart className="w-6 h-6 text-white" />
@@ -372,7 +382,12 @@ export default function Layout({ children, currentPageName }) {
 
             {/* Notifications Bell */}
             <button
-              onClick={() => navigate(createPageUrl("Notifications"))}
+              onClick={() => {
+                if (window.NativeAppBridge?.triggerHaptic) {
+                  window.NativeAppBridge.triggerHaptic('light');
+                }
+                navigate(createPageUrl("Notifications"));
+              }}
               className="relative flex-shrink-0 p-2 hover:bg-white/10 rounded-full transition min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <Bell className="w-6 h-6 text-white" />
@@ -448,6 +463,9 @@ export default function Layout({ children, currentPageName }) {
                     <button
                       key={`${item.path}-${idx}`}
                       onClick={() => {
+                        if (window.NativeAppBridge?.triggerHaptic) {
+                          window.NativeAppBridge.triggerHaptic('light');
+                        }
                         handleNavigation(item.path);
                         setSidebarOpen(false);
                       }}
