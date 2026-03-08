@@ -9,40 +9,37 @@ export default function AppInstallPrompt() {
   const [platform, setPlatform] = useState('unknown');
 
   useEffect(() => {
-    // Detect platform
-    const userAgent = navigator.userAgent;
-    if (/iPhone|iPad|iPod/.test(userAgent)) {
-      setPlatform('ios');
-    } else if (/Android/.test(userAgent)) {
-      setPlatform('android');
-    } else if (/AppleTV/.test(userAgent)) {
-      setPlatform('tvos');
-    } else {
-      setPlatform('desktop');
+    // Already installed as PWA — never show prompt
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      return;
     }
 
-    // Listen for beforeinstallprompt event (Android/Desktop)
+    const dismissed = localStorage.getItem('installPromptDismissed');
+    if (dismissed) return;
+
+    // Detect platform
+    const userAgent = navigator.userAgent;
+    let detectedPlatform = 'desktop';
+    if (/iPhone|iPad|iPod/.test(userAgent)) detectedPlatform = 'ios';
+    else if (/Android/.test(userAgent)) detectedPlatform = 'android';
+    else if (/AppleTV/.test(userAgent)) detectedPlatform = 'tvos';
+    setPlatform(detectedPlatform);
+
+    // iOS: show manual instructions after delay (no beforeinstallprompt on Safari)
+    if (detectedPlatform === 'ios') {
+      const timer = setTimeout(() => setShowPrompt(true), 4000);
+      return () => clearTimeout(timer);
+    }
+
+    // Android/Desktop: wait for browser install event
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      
-      // Check if user has dismissed prompt before
-      const dismissed = localStorage.getItem('installPromptDismissed');
-      if (!dismissed) {
-        setTimeout(() => setShowPrompt(true), 3000); // Show after 3 seconds
-      }
+      setTimeout(() => setShowPrompt(true), 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setShowPrompt(false);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   const handleInstallClick = async () => {
