@@ -434,6 +434,16 @@ export default function Universe() {
           />
         </div>
         
+        {/* Nearby Map Button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowMap(true); }}
+          type="button"
+          className="p-2 sm:p-3 bg-purple-600/80 backdrop-blur-md rounded-full hover:bg-purple-600 transition border border-purple-400/40 flex-shrink-0 cursor-pointer"
+          title="Nearby map"
+        >
+          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        </button>
+
         {/* Profile Icon */}
         <button 
           onClick={(e) => {
