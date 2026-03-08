@@ -472,6 +472,11 @@ export default function Universe() {
         </div>
       </div>
 
+      {/* Nearby Map Modal */}
+      <AnimatePresence>
+        {showMap && <NearbyMapView onClose={() => setShowMap(false)} />}
+      </AnimatePresence>
+
       {/* Swipe indicator */}
       <motion.div
         initial={{ opacity: 1 }}
