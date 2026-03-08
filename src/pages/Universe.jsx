@@ -5,15 +5,11 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, // Added Home icon
-  ChevronLeft, // Added ChevronLeft icon
-  Building, // Added Building icon for Real Estate
-  Car, // Added Car icon for Car Rentals
-  Music,
-  Users // Added Users icon for Community Hub
-} from "lucide-react"; // Changed import from "lucide" to "lucide-react"
-import { motion } from "framer-motion";
+  Home, ChevronLeft, Building, Car, Music, Users, MapPin
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import CardStack from "../components/CardStack";
+import NearbyMapView from "../components/universe/NearbyMapView";
 
 const pillars = [
   {
