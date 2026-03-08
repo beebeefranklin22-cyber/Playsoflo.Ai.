@@ -162,6 +162,7 @@ export default function Universe() {
   const navigate = useNavigate();
   const [showIntro, setShowIntro] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showMap, setShowMap] = useState(false);
   
   const cards = updatedPillars.map((pillar) => ({
     id: pillar.id,
