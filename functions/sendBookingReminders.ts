@@ -22,16 +22,16 @@ Deno.serve(async (req) => {
     // Send reminders for each booking
     for (const booking of bookings) {
       try {
-        await base44.asServiceRole.functions.invoke('sendBookingNotifications', {
-          booking_id: booking.id,
-          notification_type: 'booking_reminder',
-          provider_email: booking.provider_email,
-          customer_email: booking.customer_email,
-          service_title: booking.service_title,
-          booking_date: booking.booking_date,
-          booking_time: booking.booking_time,
-          total_price: booking.total_price,
-          confirmation_code: booking.confirmation_code
+        // Send reminder to customer via sendBookingNotification (includes email)
+        await base44.asServiceRole.functions.invoke('sendBookingNotification', {
+          recipientEmail: booking.customer_email,
+          type: 'booking_reminder',
+          bookingId: booking.id,
+          bookingTitle: booking.service_title,
+          bookingDate: booking.booking_date,
+          bookingTime: booking.booking_time,
+          providerName: booking.provider_name,
+          totalPrice: booking.total_price
         });
 
         // Mark reminder as sent
