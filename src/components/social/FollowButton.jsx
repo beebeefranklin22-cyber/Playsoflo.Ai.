@@ -33,15 +33,11 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
       console.log('Follow mutation:', shouldFollow, currentUser.email, targetUserEmail);
       
       if (shouldFollow) {
-        // Get target user details
-        const users = await base44.entities.User.list();
-        const targetUser = users.find(u => u.email === targetUserEmail);
-        
         const follow = await base44.entities.Follow.create({
           follower_email: currentUser.email,
           following_email: targetUserEmail,
           follower_name: currentUser.full_name || currentUser.email,
-          following_name: targetUser?.full_name || targetUserEmail
+          following_name: targetUserEmail
         });
 
         console.log('Follow created:', follow);

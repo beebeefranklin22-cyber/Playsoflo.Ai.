@@ -276,10 +276,7 @@ a * {
   display: none; /* Chrome, Safari, Opera */
 }
 
-/* Ensure scrolling still works */
-* {
-  overflow: auto;
-}
+/* Ensure scrolling still works where needed */
 
 @layer base {
   * {

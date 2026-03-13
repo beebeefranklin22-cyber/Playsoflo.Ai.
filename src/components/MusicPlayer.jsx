@@ -438,14 +438,6 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          drag="y"
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={0.2}
-          onDragEnd={(e, info) => {
-            if (info.offset.y > 100) {
-              setIsMinimized(true);
-            }
-          }}
           className="fixed bottom-20 left-0 right-0 z-40"
         >
         <Card className="mx-4 bg-gradient-to-r from-purple-900/95 to-pink-900/95 border-white/20 backdrop-blur-xl">
