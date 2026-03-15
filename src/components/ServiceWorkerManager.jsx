@@ -68,7 +68,6 @@ export default function ServiceWorkerManager() {
     // Notification polling removed - handled by RealtimeNotificationManager via subscriptions
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
