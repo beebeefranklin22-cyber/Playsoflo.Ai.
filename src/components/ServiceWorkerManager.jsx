@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { base44 } from "@/api/base44Client";
 
 export default function ServiceWorkerManager() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
