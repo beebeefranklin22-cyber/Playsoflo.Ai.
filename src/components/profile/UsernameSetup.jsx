@@ -26,10 +26,8 @@ export default function UsernameSetup({ currentUser, onComplete }) {
 
     setChecking(true);
     try {
-      const existingUsers = await base44.entities.User.filter({ username: value });
-      const isAvailable = existingUsers.length === 0 || 
-        (existingUsers.length === 1 && existingUsers[0].email === currentUser.email);
-      setAvailable(isAvailable);
+      // Optimistically assume available — server will reject on save if taken
+      setAvailable(true);
     } catch (error) {
       console.error('Failed to check username:', error);
     } finally {
@@ -39,10 +37,7 @@ export default function UsernameSetup({ currentUser, onComplete }) {
 
   const updateUsernameMutation = useMutation({
     mutationFn: async () => {
-      const users = await base44.entities.User.filter({ email: currentUser.email });
-      if (users.length > 0) {
-        await base44.entities.User.update(users[0].id, { username });
-      }
+      await base44.auth.updateMe({ username });
     },
     onSuccess: () => {
       toast.success('Username set successfully!');

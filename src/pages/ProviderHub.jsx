@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, X, Shield, CheckCircle, AlertCircle,
   Award, FileText, Calendar, TrendingUp, Plus, User, List,
-  DollarSign, Star, BarChart3, Users, CreditCard, Loader2, Inbox, Sparkles, Clock
+  DollarSign, Star, Users, CreditCard, Loader2, Sparkles, Clock
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -75,19 +75,8 @@ export default function ProviderHub() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  // Show loading state while user loads
-  if (currentUser === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-white text-lg">Loading Provider Hub...</p>
-        </div>
-      </div>
-    );
-  }
   const [availabilityForm, setAvailabilityForm] = useState({
     day_of_week: "monday",
     is_available: true,
@@ -541,22 +530,16 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
     }
   });
 
-  // Calculate dashboard metrics
-  const upcomingBookings = myBookings.filter(b => 
-    new Date(b.booking_date) >= new Date() && 
-    (b.status === 'pending' || b.status === 'confirmed')
-  ).length;
-
-  const totalEarnings = myBookings
-    .filter(b => b.status === 'completed')
-    .reduce((sum, b) => sum + (b.total_price || 0), 0);
-
-  const completedBookings = myBookings.filter(b => b.status === 'completed');
-  const avgRating = completedBookings.length > 0
-    ? completedBookings.reduce((sum, b) => sum + (b.rating || 0), 0) / completedBookings.filter(b => b.rating).length
-    : 0;
-
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+  if (!userLoaded) return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-white text-lg">Loading Provider Hub...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 pb-20">
@@ -806,141 +789,11 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             />
           </TabsContent>
 
-          {/* Old Dashboard Content for reference */}
-          <TabsContent value="dashboard-old" className="space-y-6">
-            {/* Key Metrics */}
-            <div className="grid md:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-blue-600/20 to-blue-800/20 border-blue-500/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Calendar className="w-8 h-8 text-blue-400" />
-                    <Badge className="bg-blue-500/30 text-blue-300 border-0">Total</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{myBookings.length}</div>
-                  <div className="text-blue-300 text-sm">Total Bookings</div>
-                </CardContent>
-              </Card>
 
-              <Card className="bg-gradient-to-br from-purple-600/20 to-purple-800/20 border-purple-500/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Clock className="w-8 h-8 text-purple-400" />
-                    <Badge className="bg-purple-500/30 text-purple-300 border-0">Upcoming</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">{upcomingBookings}</div>
-                  <div className="text-purple-300 text-sm">Upcoming Appointments</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-green-600/20 to-green-800/20 border-green-500/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <DollarSign className="w-8 h-8 text-green-400" />
-                    <Badge className="bg-green-500/30 text-green-300 border-0">Earnings</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">${totalEarnings.toFixed(0)}</div>
-                  <div className="text-green-300 text-sm">Total Earnings</div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 border-yellow-500/30">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <Star className="w-8 h-8 text-yellow-400" />
-                    <Badge className="bg-yellow-500/30 text-yellow-300 border-0">Rating</Badge>
-                  </div>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    {avgRating > 0 ? avgRating.toFixed(1) : 'N/A'}
-                  </div>
-                  <div className="text-yellow-300 text-sm">Average Rating</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Bookings */}
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Recent Bookings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {myBookings.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400">
-                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No bookings yet. Start promoting your services!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {myBookings.slice(0, 5).map(booking => (
-                      <div key={booking.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-white font-semibold">{booking.service_title}</h4>
-                          <p className="text-gray-400 text-sm">
-                            {new Date(booking.booking_date).toLocaleDateString()} at {booking.booking_time}
-                          </p>
-                          <p className="text-gray-500 text-xs">{booking.customer_email}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge className={
-                            booking.status === 'confirmed' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
-                            booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30' :
-                            booking.status === 'completed' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                            'bg-gray-500/20 text-gray-300 border-gray-500/30'
-                          }>
-                            {booking.status}
-                          </Badge>
-                          <div className="text-white font-bold mt-2">${booking.total_price}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Performance Chart */}
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />
-                  Booking Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-white mb-1">
-                      {myBookings.filter(b => b.status === 'completed').length}
-                    </div>
-                    <div className="text-gray-400 text-sm">Completed</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-white mb-1">
-                      {myBookings.filter(b => b.status === 'cancelled').length}
-                    </div>
-                    <div className="text-gray-400 text-sm">Cancelled</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-white mb-1">
-                      {myBookings.length > 0 ? 
-                        ((myBookings.filter(b => b.status === 'completed').length / myBookings.length) * 100).toFixed(0) 
-                        : 0}%
-                    </div>
-                    <div className="text-gray-400 text-sm">Completion Rate</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Services Tab */}
           <TabsContent value="services" className="space-y-6">
             {/* Service Package Manager */}
-            <ServicePackageManager myServices={myServices} currentUser={currentUser} />
-
-            {/* Manual Package Builder */}
             <ServicePackageManager myServices={myServices} currentUser={currentUser} />
 
             {/* Ronron AI Smart Package Generator */}
