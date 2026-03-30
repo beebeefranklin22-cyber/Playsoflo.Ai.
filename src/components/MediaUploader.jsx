@@ -58,10 +58,10 @@ export default function MediaUploader({
             exit={{ opacity: 0, scale: 0.95 }}
             className={`relative rounded-xl overflow-hidden ${previewClassName || 'h-48'}`}
           >
-            {value.includes('video') || value.endsWith('.mp4') || value.endsWith('.mov') ? (
-              <video src={value} className="w-full h-full object-cover" controls />
+            {/\.(mp4|webm|ogg|mov)(\?|$)/i.test(value) || value.includes('video/') ? (
+              <video src={value} className="w-full h-full object-cover" controls playsInline preload="metadata" />
             ) : (
-              <img src={value} alt="Preview" className="w-full h-full object-cover" />
+              <img src={value} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.target.style.display='none'; }} />
             )}
             <button
               onClick={() => onChange("")}

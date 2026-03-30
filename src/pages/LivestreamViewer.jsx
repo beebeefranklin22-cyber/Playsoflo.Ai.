@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowLeft, Users, Video, Crown, Settings, Share2, UserPlus, Bell, 
-  Maximize2, Minimize2, Volume2, VolumeX, Heart, Gift, MessageCircle,
-  BarChart3, HelpCircle, ShoppingCart, Sparkles, Send
+import {
+  ArrowLeft, Users, Video, Share2, UserPlus, Maximize2, Minimize2,
+  Heart, MessageCircle, BarChart3, HelpCircle, ShoppingCart, StopCircle,
+  Radio, Gift, Settings, Crown
 } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
-import PPVAccessGate from "../components/creator/PPVAccessGate.jsx";
 import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";
@@ -25,67 +24,43 @@ import JoinRequestsPanel from "../components/livestream/JoinRequestsPanel.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+const TABS = [
+  { id: 'chat', label: 'Chat', icon: MessageCircle, color: 'purple' },
+  { id: 'polls', label: 'Polls', icon: BarChart3, color: 'blue' },
+  { id: 'qa', label: 'Q&A', icon: HelpCircle, color: 'green' },
+  { id: 'shop', label: 'Shop', icon: ShoppingCart, color: 'amber' },
+];
+
 export default function LivestreamViewer() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [streamId, setStreamId] = useState(null);
+  const [isBroadcaster, setIsBroadcaster] = useState(false);
   const [activeTab, setActiveTab] = useState('chat');
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
-  const [isBroadcaster, setIsBroadcaster] = useState(false);
-  const queryClient = useQueryClient();
+  const [viewerCount, setViewerCount] = useState(0);
+  const [showHostPanel, setShowHostPanel] = useState(false);
 
+  // Init
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-      } catch (error) {
-        console.log("Error loading user:", error);
-      }
-    };
-    fetchUser();
-
-    // Get stream ID and broadcaster status from URL
+    base44.auth.me().then(setCurrentUser).catch(() => {});
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     const broadcaster = params.get('broadcaster') === 'true';
     setStreamId(id);
     setIsBroadcaster(broadcaster);
 
-    // Track viewer analytics
     if (id) {
-      const trackViewing = async () => {
-        try {
-          await base44.entities.ViewerAnalytics.create({
-            content_id: id,
-            is_currently_watching: true
-          });
-        } catch (err) {
-          console.log("Analytics tracking error:", err);
-        }
-      };
-      trackViewing();
-
-      // Cleanup when leaving
+      base44.entities.ViewerAnalytics.create({ content_id: id, is_currently_watching: true }).catch(() => {});
       return () => {
-        const cleanup = async () => {
-          try {
-            const user = await base44.auth.me().catch(() => null);
-            const analytics = await base44.entities.ViewerAnalytics.filter({
-              content_id: id,
-              created_by: user?.email
-            });
-            if (analytics[0]) {
-              await base44.entities.ViewerAnalytics.update(analytics[0].id, {
-                is_currently_watching: false
-              });
-            }
-          } catch (err) {
-            console.log("Cleanup error:", err);
-          }
-        };
-        cleanup();
+        base44.auth.me().then(user => {
+          base44.entities.ViewerAnalytics.filter({ content_id: id, created_by: user?.email })
+            .then(analytics => {
+              if (analytics[0]) base44.entities.ViewerAnalytics.update(analytics[0].id, { is_currently_watching: false }).catch(() => {});
+            }).catch(() => {});
+        }).catch(() => {});
       };
     }
   }, []);
@@ -94,404 +69,205 @@ export default function LivestreamViewer() {
     queryKey: ['stream', streamId],
     queryFn: async () => {
       const streams = await base44.entities.StreamingContent.filter({ id: streamId });
-      if (streams[0]) {
-        // Fetch creator username
-        try {
-          const users = await base44.entities.User.filter({ email: streams[0].created_by });
-          return {
-            ...streams[0],
-            creator_username: users[0]?.username || streams[0].created_by
-          };
-        } catch {
-          return streams[0];
-        }
-      }
-      return streams[0];
+      if (!streams[0]) return null;
+      try {
+        const users = await base44.entities.User.filter({ email: streams[0].created_by });
+        return { ...streams[0], creator_username: users[0]?.username || streams[0].created_by };
+      } catch { return streams[0]; }
     },
-    enabled: !!streamId
+    enabled: !!streamId,
+    refetchInterval: 10000
   });
 
-  // Check if stream has pricing tiers
   const { data: streamTiers = [] } = useQuery({
     queryKey: ['stream-tiers', streamId],
-    queryFn: async () => {
-      return await base44.entities.LivestreamPricingTier.filter({ stream_id: streamId });
-    },
+    queryFn: () => base44.entities.LivestreamPricingTier.filter({ stream_id: streamId }),
     enabled: !!streamId
   });
-
-  // Check user's membership status
-  const { data: myMembership } = useQuery({
-    queryKey: ['my-membership', stream?.created_by, currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser || !stream) return null;
-      const memberships = await base44.entities.MembershipSubscription.filter({
-        creator_email: stream.created_by,
-        subscriber_email: currentUser.email,
-        status: 'active'
-      });
-      return memberships[0];
-    },
-    enabled: !!currentUser && !!stream
-  });
-
-  const [viewerCount, setViewerCount] = useState(0);
-  
-  const isStreamCreator = currentUser?.email === stream?.created_by;
 
   // Real-time viewer count
   useEffect(() => {
     if (!streamId) return;
-    
     const updateCount = async () => {
-      const analytics = await base44.entities.ViewerAnalytics.filter({ 
-        content_id: streamId,
-        is_currently_watching: true
-      });
-      setViewerCount(analytics.length);
+      try {
+        const analytics = await base44.entities.ViewerAnalytics.filter({ content_id: streamId, is_currently_watching: true });
+        setViewerCount(analytics.length);
+      } catch {}
     };
     updateCount();
-
-    // Subscribe to analytics changes
-    const unsubscribe = base44.entities.ViewerAnalytics.subscribe((event) => {
-      if (event.data?.content_id === streamId) {
-        updateCount();
-      }
+    const unsub = base44.entities.ViewerAnalytics.subscribe((event) => {
+      if (event.data?.content_id === streamId) updateCount();
     });
-
-    return () => unsubscribe();
+    return () => unsub();
   }, [streamId]);
 
-  // Check if following creator
+  // Follow status
   useEffect(() => {
-    const checkFollowing = async () => {
-      if (!currentUser || !stream) return;
-      const follows = await base44.entities.Follow.filter({
-        follower_email: currentUser.email,
-        following_email: stream.created_by
-      });
-      setIsFollowing(follows.length > 0);
-    };
-    checkFollowing();
+    if (!currentUser || !stream) return;
+    base44.entities.Follow.filter({ follower_email: currentUser.email, following_email: stream.created_by })
+      .then(f => setIsFollowing(f.length > 0)).catch(() => {});
   }, [currentUser, stream]);
 
   const followMutation = useMutation({
     mutationFn: async () => {
       if (isFollowing) {
-        const follows = await base44.entities.Follow.filter({
-          follower_email: currentUser.email,
-          following_email: stream.created_by
-        });
-        if (follows[0]) await base44.entities.Follow.delete(follows[0].id);
+        const f = await base44.entities.Follow.filter({ follower_email: currentUser.email, following_email: stream.created_by });
+        if (f[0]) await base44.entities.Follow.delete(f[0].id);
       } else {
-        await base44.entities.Follow.create({
-          follower_email: currentUser.email,
-          following_email: stream.created_by
-        });
+        await base44.entities.Follow.create({ follower_email: currentUser.email, following_email: stream.created_by });
       }
     },
-    onSuccess: () => {
-      setIsFollowing(!isFollowing);
-      toast.success(isFollowing ? 'Unfollowed' : 'Following!');
-    }
+    onSuccess: () => { setIsFollowing(v => !v); toast.success(isFollowing ? 'Unfollowed' : 'Now following!'); }
+  });
+
+  const endStreamMutation = useMutation({
+    mutationFn: () => base44.entities.StreamingContent.update(streamId, { is_live: false }),
+    onSuccess: () => { toast.success('Stream ended'); navigate(-1); }
   });
 
   const handleShare = async () => {
-    const shareUrl = window.location.href;
+    const url = window.location.href;
     if (navigator.share) {
-      try {
-        await navigator.share({
-          title: stream.title,
-          text: `Watch ${stream.created_by}'s livestream!`,
-          url: shareUrl
-        });
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard.writeText(shareUrl);
-          toast.success('Link copied to clipboard!');
-        }
-      }
+      try { await navigator.share({ title: stream?.title, url }); } catch {}
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      toast.success('Link copied to clipboard!');
+      navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'));
     }
   };
 
+  const sendReaction = useCallback(() => {
+    if (!currentUser) return;
+    base44.entities.LivestreamReaction.create({ stream_id: streamId, reaction_type: 'heart', user_email: currentUser.email }).catch(() => {});
+  }, [streamId, currentUser]);
+
+  const isStreamCreator = currentUser?.email === stream?.created_by;
+
   if (!stream) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <p className="text-white">Loading stream...</p>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white text-lg">Loading stream...</p>
+        </div>
       </div>
     );
   }
 
+  const tabColorMap = { purple: 'bg-purple-500', blue: 'bg-blue-500', green: 'bg-green-500', amber: 'bg-amber-500' };
+
   const content = (
-    <div className={`min-h-screen bg-black ${isTheaterMode ? '' : 'pb-20'}`}>
-      {/* Premium Header */}
-      {!isTheaterMode && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-b border-white/10">
-          <div className="max-w-[2000px] mx-auto px-4 py-3">
-            <div className="flex items-center justify-between gap-4">
-              {/* Left - Back & Creator Info */}
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Button
-                  onClick={() => navigate(-1)}
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-white/10 flex-shrink-0"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-                
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {stream.creator_username?.[0]?.toUpperCase() || stream.created_by?.[0]?.toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="text-white font-bold text-base truncate">{stream.title}</h1>
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-400 truncate">@{stream.creator_username || stream.created_by}</span>
-                      <Badge className="bg-red-500 text-white border-0 px-2 py-0 text-xs flex-shrink-0">
-                        <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse mr-1" />
-                        LIVE
-                      </Badge>
-                    </div>
-                  </div>
+    <div className="min-h-screen bg-black">
+      {/* Top Bar */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/95 to-black/60 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-4 py-3 gap-3">
+          {/* Left */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition flex-shrink-0">
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                {(stream.creator_username || stream.created_by)?.[0]?.toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-white font-bold text-sm truncate">{stream.title}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-xs truncate">@{stream.creator_username || stream.created_by}</span>
+                  {stream.is_live && (
+                    <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-white text-xs font-bold">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      LIVE
+                    </span>
+                  )}
                 </div>
-              </div>
-
-              {/* Center - Viewer Count */}
-              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full flex-shrink-0">
-                <Users className="w-4 h-4 text-purple-400" />
-                <span className="text-white font-bold">{viewerCount.toLocaleString()}</span>
-                <span className="text-gray-400 text-sm">watching</span>
-              </div>
-
-              {/* Right - Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {!isStreamCreator && (
-                  <>
-                    <JoinRequestButton
-                      streamId={streamId}
-                      currentUser={currentUser}
-                      isCreator={isStreamCreator}
-                    />
-                    <Button
-                      onClick={() => followMutation.mutate()}
-                      size="sm"
-                      className={isFollowing 
-                        ? "bg-white/10 hover:bg-white/20 border border-white/20" 
-                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                      }
-                    >
-                      <UserPlus className="w-4 h-4 mr-1" />
-                      {isFollowing ? 'Following' : 'Follow'}
-                    </Button>
-                  </>
-                )}
-                
-                <Button
-                  onClick={handleShare}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10"
-                >
-                  <Share2 className="w-4 h-4" />
-                </Button>
-
-                <Button
-                  onClick={() => setIsTheaterMode(!isTheaterMode)}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 hidden lg:flex"
-                >
-                  {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Main Content */}
-      <div className={`${isTheaterMode ? 'pt-16' : 'pt-20 px-4 lg:px-6'} max-w-[2000px] mx-auto`}>
-        <div className={`grid ${isTheaterMode ? 'grid-cols-1' : 'lg:grid-cols-[1fr_400px]'} gap-6`}>
-          
-          {/* Left - Video Player */}
-          <div className="space-y-4">
-            {/* Video Container */}
-            <div className={`relative ${isTheaterMode ? 'h-screen' : 'aspect-video'} bg-black overflow-hidden ${isTheaterMode ? '' : 'rounded-2xl border border-white/10'} group`}>
+          {/* Center viewers */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 rounded-full flex-shrink-0">
+            <Users className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-white text-sm font-bold">{viewerCount.toLocaleString()}</span>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!isStreamCreator && currentUser && (
+              <Button
+                onClick={() => followMutation.mutate()}
+                size="sm"
+                className={isFollowing ? "bg-white/10 border border-white/20 text-white text-xs h-8" : "bg-purple-600 hover:bg-purple-700 text-xs h-8"}
+              >
+                <UserPlus className="w-3.5 h-3.5 mr-1" />
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+            )}
+            <button onClick={handleShare} className="p-2 hover:bg-white/10 rounded-full transition">
+              <Share2 className="w-4 h-4 text-white" />
+            </button>
+            {isStreamCreator && (
+              <button onClick={() => setShowHostPanel(v => !v)} className="p-2 hover:bg-white/10 rounded-full transition">
+                <Settings className="w-4 h-4 text-white" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      <div className="pt-[60px] h-screen flex flex-col lg:flex-row">
+
+        {/* Video Area */}
+        <div className={`relative bg-black ${isTheaterMode ? 'flex-1' : 'w-full lg:flex-1'} ${isTheaterMode ? '' : 'aspect-video lg:aspect-auto lg:h-full'}`}>
           {stream.is_live && stream.agora_channel_name ? (
             <>
-              <AgoraVideoPlayer 
+              <AgoraVideoPlayer
                 channelName={stream.agora_channel_name}
                 role={isBroadcaster ? "host" : "audience"}
                 onViewerJoin={() => {}}
               />
               <ReactionEffects streamId={streamId} />
 
-              {/* Floating Controls - Top Left */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-auto z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  onClick={() => setIsTheaterMode(!isTheaterMode)}
-                  size="sm"
-                  className="bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20"
-                >
-                  {isTheaterMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
-              </div>
+              {/* Theater toggle */}
+              <button
+                onClick={() => setIsTheaterMode(v => !v)}
+                className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition z-10 hidden lg:flex"
+              >
+                {isTheaterMode ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
+              </button>
 
-              {/* Quick Actions - Right Side */}
-              <div className="absolute right-4 bottom-24 flex flex-col gap-3 pointer-events-auto z-20">
-                {/* Quick Reactions */}
+              {/* Quick Action Buttons - right side */}
+              <div className="absolute right-4 bottom-6 flex flex-col gap-3 z-10 lg:hidden">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => {
-                    base44.entities.LivestreamReaction.create({
-                      stream_id: streamId,
-                      reaction_type: 'heart',
-                      user_email: currentUser?.email
-                    });
-                  }}
-                  className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition"
+                  whileTap={{ scale: 0.85 }}
+                  onClick={sendReaction}
+                  className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg"
                 >
                   <Heart className="w-6 h-6 text-white" />
                 </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
-                  className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition"
-                >
-                  <MessageCircle className="w-6 h-6 text-white" />
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setActiveTab(activeTab === 'products' ? null : 'products')}
-                  className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition"
-                >
-                  <ShoppingCart className="w-6 h-6 text-white" />
-                </motion.button>
+                {!isStreamCreator && currentUser && (
+                  <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
+                )}
               </div>
 
-              {/* Interactive Panel - Slides from bottom */}
-              <AnimatePresence>
-                {activeTab && (
-                  <motion.div
-                    initial={{ y: '100%' }}
-                    animate={{ y: 0 }}
-                    exit={{ y: '100%' }}
-                    transition={{ type: 'spring', damping: 25 }}
-                    className="absolute bottom-0 left-0 right-0 pointer-events-auto z-30"
+              {/* Host End Stream button overlay */}
+              {isStreamCreator && (
+                <div className="absolute bottom-4 left-4 z-10">
+                  <Button
+                    onClick={() => { if (confirm('End this livestream?')) endStreamMutation.mutate(); }}
+                    size="sm"
+                    className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm border border-red-500/50"
                   >
-                    <div className="bg-gradient-to-t from-black via-black/95 to-black/80 backdrop-blur-xl border-t border-white/20 max-h-[50vh] overflow-hidden flex flex-col">
-                      {/* Tab Header */}
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={() => setActiveTab('chat')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                              activeTab === 'chat' 
-                                ? 'bg-purple-500 text-white' 
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                            Chat
-                          </button>
-                          <button
-                            onClick={() => setActiveTab('polls')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                              activeTab === 'polls' 
-                                ? 'bg-blue-500 text-white' 
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                          >
-                            <BarChart3 className="w-4 h-4" />
-                            Polls
-                          </button>
-                          <button
-                            onClick={() => setActiveTab('qa')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                              activeTab === 'qa' 
-                                ? 'bg-green-500 text-white' 
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                            Q&A
-                          </button>
-                          <button
-                            onClick={() => setActiveTab('products')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                              activeTab === 'products' 
-                                ? 'bg-green-500 text-white' 
-                                : 'text-gray-400 hover:text-white'
-                            }`}
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                            Shop
-                          </button>
-                        </div>
-                        <Button
-                          onClick={() => setActiveTab(null)}
-                          size="sm"
-                          variant="ghost"
-                          className="text-gray-400 hover:text-white"
-                        >
-                          Close
-                        </Button>
-                      </div>
-
-                      {/* Tab Content */}
-                      <div className="flex-1 overflow-y-auto p-4">
-                        {activeTab === 'chat' && (
-                          <LivestreamChat 
-                            streamId={streamId} 
-                            isCreator={isStreamCreator}
-                            currentUser={currentUser}
-                          />
-                        )}
-
-                        {activeTab === 'polls' && (
-                          <LivestreamPolls
-                            streamId={streamId}
-                            isCreator={isStreamCreator}
-                            currentUser={currentUser}
-                          />
-                        )}
-
-                        {activeTab === 'qa' && (
-                          <LivestreamQA
-                            streamId={streamId}
-                            isCreator={isStreamCreator}
-                            currentUser={currentUser}
-                          />
-                        )}
-
-                        {activeTab === 'products' && (
-                          <ProductShowcase
-                            streamId={streamId}
-                            isCreator={isStreamCreator}
-                            currentUser={currentUser}
-                            creatorEmail={stream.created_by}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <StopCircle className="w-4 h-4 mr-1" />
+                    End Stream
+                  </Button>
+                </div>
+              )}
             </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+            <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-8">
-                <Video className="w-20 h-20 text-white/40 mx-auto mb-4" />
-                <p className="text-white text-2xl font-bold mb-2">Stream Ended</p>
+                <Video className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                <p className="text-white text-xl font-bold mb-2">Stream Ended</p>
                 <p className="text-gray-400 mb-6">This livestream is no longer active</p>
                 <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">
                   Back to Browse
@@ -499,172 +275,216 @@ export default function LivestreamViewer() {
               </div>
             </div>
           )}
-            </div>
 
-            {/* Stream Info - Below Video */}
-            {!isTheaterMode && (
-              <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-white font-bold text-2xl">{stream.title}</h2>
-                    </div>
-                    <p className="text-purple-400 text-sm mb-2">@{stream.creator_username || stream.created_by}</p>
-                    {stream.description && (
-                      <p className="text-gray-300 text-sm mb-4">{stream.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-                        {stream.category}
-                      </Badge>
-                      <span className="text-gray-400 text-sm">{stream.views || 0} total views</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Engagement Actions */}
-                <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-                  <LiveTippingOverlay
-                    streamId={streamId}
-                    creatorEmail={stream.created_by}
-                    currentUser={currentUser}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Join Requests Panel - Host Only */}
-            {!isTheaterMode && isStreamCreator && (
-              <JoinRequestsPanel streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
-            )}
-
-            {/* Co-Host Manager */}
-            {!isTheaterMode && isStreamCreator && (
-              <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={isStreamCreator} />
-            )}
+          {/* Mobile bottom slide panel */}
+          <div className="lg:hidden">
+            <LivestreamMobilePanel
+              streamId={streamId}
+              isStreamCreator={isStreamCreator}
+              currentUser={currentUser}
+              stream={stream}
+              streamId={streamId}
+              onSendReaction={sendReaction}
+            />
           </div>
+        </div>
 
-          {/* Right Sidebar - Desktop Only */}
-          {!isTheaterMode && (
-            <div className="hidden lg:block space-y-4">
-              {/* Live Chat Panel */}
-              <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 h-[calc(100vh-200px)] flex flex-col">
-                <div className="p-4 border-b border-white/10">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-white font-bold flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5 text-purple-400" />
-                      Live Chat
-                    </h3>
-                    <div className="flex items-center gap-1 text-xs">
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      <span className="text-green-400 font-semibold">Real-time</span>
-                    </div>
-                  </div>
+        {/* Desktop Right Sidebar */}
+        {!isTheaterMode && (
+          <div className="hidden lg:flex flex-col w-[380px] border-l border-white/10 bg-gray-950/90 backdrop-blur-xl">
+            {/* Sidebar Tabs */}
+            <div className="flex border-b border-white/10 p-2 gap-1 flex-shrink-0">
+              {TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-semibold transition ${
+                    activeTab === tab.id
+                      ? `${tabColorMap[tab.color]} text-white`
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-                  {/* Quick Tab Switcher */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setActiveTab('chat')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        activeTab === 'chat' 
-                          ? 'bg-purple-500 text-white' 
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                    >
-                      Chat
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('polls')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        activeTab === 'polls' 
-                          ? 'bg-blue-500 text-white' 
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                    >
-                      Polls
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('qa')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        activeTab === 'qa' 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                    >
-                      Q&A
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('products')}
-                      className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                        activeTab === 'products' 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
-                      }`}
-                    >
-                      Shop
-                    </button>
-                  </div>
+            {/* Sidebar Content */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {activeTab === 'chat' && (
+                <LivestreamChat streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
+              )}
+              {activeTab === 'polls' && (
+                <div className="flex-1 overflow-y-auto p-4">
+                  <LivestreamPolls streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
                 </div>
+              )}
+              {activeTab === 'qa' && (
+                <div className="flex-1 overflow-y-auto p-4">
+                  <LivestreamQA streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
+                </div>
+              )}
+              {activeTab === 'shop' && (
+                <div className="flex-1 overflow-y-auto p-4">
+                  <ProductShowcase streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} creatorEmail={stream.created_by} />
+                </div>
+              )}
+            </div>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-y-auto">
-                  {activeTab === 'chat' && (
-                    <LivestreamChat 
-                      streamId={streamId} 
-                      isCreator={isStreamCreator}
-                      currentUser={currentUser}
-                    />
-                  )}
-
-                  {activeTab === 'polls' && (
-                    <div className="p-4">
-                      <LivestreamPolls
-                        streamId={streamId}
-                        isCreator={isStreamCreator}
-                        currentUser={currentUser}
-                      />
-                    </div>
-                  )}
-
-                  {activeTab === 'qa' && (
-                    <div className="p-4">
-                      <LivestreamQA
-                        streamId={streamId}
-                        isCreator={isStreamCreator}
-                        currentUser={currentUser}
-                      />
-                    </div>
-                  )}
-
-                  {activeTab === 'products' && (
-                    <div className="p-4">
-                      <ProductShowcase
-                        streamId={streamId}
-                        isCreator={isStreamCreator}
-                        currentUser={currentUser}
-                        creatorEmail={stream.created_by}
-                      />
-                    </div>
+            {/* Stream Info + Tipping */}
+            <div className="border-t border-white/10 p-4 flex-shrink-0 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 capitalize text-xs">
+                    {stream.category}
+                  </Badge>
+                  <span className="text-gray-500 text-xs">{stream.views || 0} views</span>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button whileTap={{ scale: 0.85 }} onClick={sendReaction} className="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-full transition">
+                    <Heart className="w-4 h-4 text-red-400" />
+                  </motion.button>
+                  {!isStreamCreator && currentUser && (
+                    <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
                   )}
                 </div>
               </div>
+              {currentUser && !isStreamCreator && (
+                <LiveTippingOverlay streamId={streamId} creatorEmail={stream.created_by} currentUser={currentUser} />
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
+      {/* Host Control Panel - Slide-in */}
+      <AnimatePresence>
+        {showHostPanel && isStreamCreator && (
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="fixed right-0 top-[60px] bottom-0 w-80 bg-gray-900/95 backdrop-blur-xl border-l border-white/10 z-40 overflow-y-auto p-4 space-y-4"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <Crown className="w-4 h-4 text-yellow-400" />
+                Host Controls
+              </h3>
+              <button onClick={() => setShowHostPanel(false)} className="p-1.5 hover:bg-white/10 rounded-full">
+                <ArrowLeft className="w-4 h-4 text-white rotate-180" />
+              </button>
+            </div>
 
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-semibold text-sm">Live Status</p>
+                  <p className="text-red-300 text-xs flex items-center gap-1 mt-0.5">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    Broadcasting
+                  </p>
+                </div>
+                <Button
+                  onClick={() => { if (confirm('End this livestream?')) endStreamMutation.mutate(); }}
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <StopCircle className="w-4 h-4 mr-1" />
+                  End
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-white/5 rounded-xl">
+              <p className="text-white font-semibold text-sm mb-1">Live Stats</p>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5 text-purple-300">
+                  <Users className="w-4 h-4" />
+                  <span className="font-bold">{viewerCount}</span>
+                  <span className="text-gray-400">watching</span>
+                </div>
+              </div>
+            </div>
+
+            <JoinRequestsPanel streamId={streamId} currentUser={currentUser} isCreator={true} />
+            <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={true} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
-  // Check if stream has paid tiers and user needs access  
   if (streamTiers.length > 0 && !isStreamCreator) {
-    return (
-      <PPVTicketGate stream={stream} currentUser={currentUser}>
-        {content}
-      </PPVTicketGate>
-    );
+    return <PPVTicketGate stream={stream} currentUser={currentUser}>{content}</PPVTicketGate>;
   }
 
   return content;
+}
+
+// Mobile Panel Component
+function LivestreamMobilePanel({ streamId, isStreamCreator, currentUser, stream, onSendReaction }) {
+  const [activeTab, setActiveTab] = useState('chat');
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 z-20">
+      {/* Tab bar */}
+      <div className="flex items-center bg-black/80 backdrop-blur-xl border-t border-white/10 px-2 py-2 gap-1">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setExpanded(true); }}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition text-xs ${
+              activeTab === tab.id && expanded ? 'bg-white/15 text-white' : 'text-gray-400'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="px-3 py-1.5 text-gray-400 hover:text-white transition"
+        >
+          {expanded ? '▼' : '▲'}
+        </button>
+      </div>
+
+      {/* Expanded content */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0 }}
+            animate={{ height: 280 }}
+            exit={{ height: 0 }}
+            className="bg-black/90 backdrop-blur-xl border-t border-white/10 overflow-hidden"
+          >
+            <div className="h-full flex flex-col">
+              {activeTab === 'chat' && (
+                <LivestreamChat streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} isOverlay />
+              )}
+              {activeTab === 'polls' && (
+                <div className="p-3 overflow-y-auto flex-1">
+                  <LivestreamPolls streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
+                </div>
+              )}
+              {activeTab === 'qa' && (
+                <div className="p-3 overflow-y-auto flex-1">
+                  <LivestreamQA streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
+                </div>
+              )}
+              {activeTab === 'shop' && (
+                <div className="p-3 overflow-y-auto flex-1">
+                  <ProductShowcase streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} creatorEmail={stream?.created_by} />
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }

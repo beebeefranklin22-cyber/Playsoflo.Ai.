@@ -27,15 +27,36 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
 
   const createPostMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.SocialPost.create({
+      const post = await base44.entities.SocialPost.create({
         ...data,
         likes_count: 0,
-        comments_count: 0
+        comments_count: 0,
+        author_email: currentUser?.email,
+        author_name: currentUser?.full_name
       });
+      // Notify followers
+      if (currentUser) {
+        const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
+        await Promise.all(followers.slice(0, 50).map(f =>
+          base44.entities.Notification.create({
+            recipient_email: f.follower_email,
+            type: 'new_comment',
+            title: `${currentUser.full_name || 'Someone'} posted`,
+            message: data.caption?.substring(0, 100) || 'New post',
+            sender_email: currentUser.email,
+            sender_name: currentUser.full_name,
+            sender_photo: currentUser.profile_picture,
+            reference_id: post.id,
+            reference_type: 'post',
+            read: false
+          }).catch(() => {})
+        ));
+      }
+      return post;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
-      toast.success('Post created!');
+      toast.success('Post shared!');
       onClose();
       setFormData({
         image_url: "",

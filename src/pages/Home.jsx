@@ -148,13 +148,15 @@ export default function Home() {
         // Filter to show only real posts (not stories) from friends and self
         const friendPosts = allPosts.filter(post => {
           const isFromNetwork = post.created_by === currentUser?.email || 
-                                currentUser?.following?.includes(post.created_by);
-          const hasValidImage = post.image_url && 
+                                currentUser?.following?.includes(post.created_by) ||
+                                true; // show all posts in feed for discovery
+          const hasValidMedia = post.image_url && 
                                post.image_url !== 'text-story' && 
-                               !post.image_url.includes('example-');
+                               !post.image_url.includes('example-') &&
+                               post.image_url.startsWith('http');
           const isNotStory = !post.is_story && post.caption;
           
-          return isFromNetwork && hasValidImage && isNotStory;
+          return hasValidMedia && isNotStory;
         });
         
         // Track post views for the first few posts
@@ -178,49 +180,56 @@ export default function Home() {
   });
 
   const likeMutation = useMutation({
-    mutationFn: async ({ postId, isLiked }) => {
-      // Simulate API call - in real app, call backend
-      return new Promise(resolve => setTimeout(resolve, 500));
+    mutationFn: async ({ postId, isLiked, post }) => {
+      if (isLiked) {
+        // Unlike: decrement
+        await base44.entities.SocialPost.update(postId, { likes_count: Math.max(0, (post.likes_count || 0) - 1) });
+      } else {
+        // Like: increment + notify
+        await base44.entities.SocialPost.update(postId, { likes_count: (post.likes_count || 0) + 1 });
+        if (currentUser && post.created_by && post.created_by !== currentUser.email) {
+          await base44.entities.Notification.create({
+            recipient_email: post.created_by,
+            type: 'post_like',
+            title: `${currentUser.full_name || 'Someone'} liked your post`,
+            message: post.caption?.substring(0, 80) || 'Liked your post',
+            sender_email: currentUser.email,
+            sender_name: currentUser.full_name,
+            sender_photo: currentUser.profile_picture,
+            reference_id: postId,
+            reference_type: 'post',
+            read: false
+          }).catch(() => {});
+        }
+      }
     },
     onMutate: async ({ postId, isLiked }) => {
-      // Optimistic update
       setLikedPosts(prev => {
         const newSet = new Set(prev);
-        if (isLiked) {
-          newSet.delete(postId);
-        } else {
-          newSet.add(postId);
-        }
+        if (isLiked) newSet.delete(postId);
+        else newSet.add(postId);
         return newSet;
       });
     },
     onError: (error, { postId, isLiked }) => {
-      // Revert on error
       setLikedPosts(prev => {
         const newSet = new Set(prev);
-        if (!isLiked) {
-          newSet.delete(postId);
-        } else {
-          newSet.add(postId);
-        }
+        if (!isLiked) newSet.delete(postId);
+        else newSet.add(postId);
         return newSet;
       });
       toast.error('Failed to update like');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social-posts'] });
     }
   });
 
-  const toggleLike = (postId) => {
+  const toggleLike = (postId, post) => {
     const isLiked = likedPosts.has(postId);
-    likeMutation.mutate({ postId, isLiked });
-    
-    // Track like interaction
+    likeMutation.mutate({ postId, isLiked, post });
     if (!isLiked && currentUser?.email) {
-      trackInteractionMutation.mutate({
-        interaction_type: "like",
-        content_type: "post",
-        content_id: postId,
-        content_category: "social"
-      });
+      trackInteractionMutation.mutate({ interaction_type: "like", content_type: "post", content_id: postId, content_category: "social" });
     }
   };
 
@@ -465,13 +474,24 @@ export default function Home() {
               )}
             </div>
 
-            {/* Post Image */}
+            {/* Post Media - supports images and videos */}
             <div className="relative">
-              <img 
-                src={post.image_url} 
-                alt={post.caption}
-                className="w-full aspect-square object-cover"
-              />
+              {post.image_url?.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
+                <video
+                  src={post.image_url}
+                  className="w-full aspect-square object-cover"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <img 
+                  src={post.image_url} 
+                  alt={post.caption}
+                  className="w-full aspect-square object-cover"
+                  loading="lazy"
+                />
+              )}
               
               {/* Vibe Overlay */}
               {post.vibe && (
@@ -510,7 +530,7 @@ export default function Home() {
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-4">
                 <button 
-                  onClick={() => toggleLike(post.id)}
+                  onClick={() => toggleLike(post.id, post)}
                   className="transform active:scale-125 transition-transform"
                 >
                   <Heart 

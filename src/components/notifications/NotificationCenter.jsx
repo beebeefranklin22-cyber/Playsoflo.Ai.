@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, Check, Trash2, Settings, Car, Home, DollarSign,
-  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star, Package, UserPlus
+  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star, Package, UserPlus,
+  Radio, ShoppingBag, Users
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -19,13 +20,27 @@ const notificationIcons = {
   'ride_request': Car,
   'ride_update': Car,
   'booking_request': Home,
+  'booking_confirmed': Home,
   'booking_update': Home,
   'settlement': AlertCircle,
   'message': MessageCircle,
+  'new_message': MessageCircle,
+  'direct_message': MessageCircle,
   'social': Heart,
+  'post_like': Heart,
+  'comment_like': Heart,
+  'new_comment': MessageCircle,
+  'comment_reply': MessageCircle,
   'payment': DollarSign,
+  'payment_received': DollarSign,
+  'tip_received': DollarSign,
   'system': Bell,
+  'system_alert': Bell,
   'new_listing': Sparkles,
+  'new_follower': UserPlus,
+  'follow_request': UserPlus,
+  'livestream_started': Radio,
+  'order_update': ShoppingBag,
   'default': Bell
 };
 
@@ -145,18 +160,28 @@ export default function NotificationCenter({ currentUser, compact = false }) {
       return;
     }
     
-    if (notification.type === 'ride_request' || notification.type === 'ride_update') {
+    if (notification.action_url) {
+      navigate(notification.action_url);
+    } else if (notification.type === 'ride_request' || notification.type === 'ride_update') {
       navigate(createPageUrl('DriverHub'));
-    } else if (notification.type === 'booking_request' || notification.type === 'booking_update') {
-      navigate(createPageUrl('ProviderHub'));
+    } else if (['booking_request', 'booking_update', 'booking_confirmed'].includes(notification.type)) {
+      navigate(createPageUrl('CustomerBookings'));
     } else if (notification.type === 'settlement') {
       navigate(createPageUrl('CarRentals'));
-    } else if (notification.type === 'message') {
-      navigate(createPageUrl('Messages'));
-    } else if (notification.type === 'social') {
+    } else if (['message', 'new_message', 'direct_message'].includes(notification.type)) {
+      const chatId = notification.metadata?.conversation_id || notification.sender_email;
+      navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
+    } else if (['post_like', 'comment_like', 'new_comment', 'comment_reply'].includes(notification.type)) {
+      navigate(createPageUrl('Home'));
+    } else if (notification.type === 'new_follower' || notification.type === 'follow_request') {
       navigate(createPageUrl('Profile'));
-    } else if (notification.type === 'payment') {
+    } else if (notification.type === 'livestream_started') {
+      if (notification.reference_id) navigate(createPageUrl('LivestreamViewer') + `?id=${notification.reference_id}`);
+      else navigate(createPageUrl('Streaming'));
+    } else if (['payment_received', 'tip_received', 'payment'].includes(notification.type)) {
       navigate(createPageUrl('Wallet'));
+    } else if (notification.type === 'order_update') {
+      navigate(createPageUrl('FoodOrderTracking'));
     }
   };
 

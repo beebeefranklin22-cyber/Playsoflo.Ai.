@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Radio, Users, MessageSquare, Ban, Trash2, Calendar,
-  Eye, Plus, StopCircle, Play, Clock, X
+  Eye, Plus, StopCircle, Play, Clock, X, DollarSign, Settings
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StreamCalendarView from "../creator/StreamCalendarView.jsx";
 import CoStreamManager from "../creator/CoStreamManager.jsx";
@@ -25,236 +25,114 @@ export default function LivestreamManager({ currentUser }) {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showPPVModal, setShowPPVModal] = useState(false);
   const [scheduleForm, setScheduleForm] = useState({
-    title: "",
-    description: "",
-    scheduled_time: "",
-    duration_minutes: 60,
-    category: "entertainment",
-    thumbnail_url: "",
-    thumbnail_file: null,
-    is_recurring: false,
-    recurrence_pattern: "none",
-    recurrence_day: "",
-    recurrence_time: "",
-    recurrence_end_date: "",
-    access_type: "public",
-    ppv_price_usd: 0,
-    member_discount_percent: 0
+    title: "", description: "", scheduled_time: "", duration_minutes: 60,
+    category: "entertainment", thumbnail_file: null,
+    is_recurring: false, recurrence_pattern: "none", recurrence_end_date: "",
+    access_type: "public", ppv_price_usd: 0, member_discount_percent: 0
   });
 
-  // Fetch active livestreams
   const { data: activeStreams = [] } = useQuery({
     queryKey: ['active-streams', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      return await base44.entities.StreamingContent.filter({
-        created_by: currentUser.email,
-        is_live: true
-      });
+      return await base44.entities.StreamingContent.filter({ created_by: currentUser.email, is_live: true });
     },
     enabled: !!currentUser,
-    refetchInterval: 5000,
+    refetchInterval: 8000,
     initialData: []
   });
 
-  // Fetch scheduled streams
   const { data: scheduledStreams = [] } = useQuery({
     queryKey: ['scheduled-streams', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      return await base44.entities.LivestreamSchedule.filter({
-        creator_email: currentUser.email,
-        status: 'scheduled'
-      });
+      return await base44.entities.LivestreamSchedule.filter({ creator_email: currentUser.email, status: 'scheduled' });
     },
     enabled: !!currentUser,
     initialData: []
   });
 
-  // Real-time stats for each stream
-  const getStreamStats = (streamId) => {
-    const { data: chatMessages = [] } = useQuery({
-      queryKey: ['stream-stats-chat', streamId],
-      queryFn: () => base44.entities.LivestreamChat.filter({ 
-        stream_id: streamId,
-        is_deleted: false 
-      }),
-      refetchInterval: 3000,
-      initialData: []
-    });
-
-    const { data: reactions = [] } = useQuery({
-      queryKey: ['stream-stats-reactions', streamId],
-      queryFn: () => base44.entities.LivestreamReaction.filter({ stream_id: streamId }),
-      refetchInterval: 5000,
-      initialData: []
-    });
-
-    const { data: viewers = [] } = useQuery({
-      queryKey: ['stream-stats-viewers', streamId],
-      queryFn: () => base44.entities.ViewerAnalytics.filter({ 
-        content_id: streamId,
-        is_currently_watching: true
-      }),
-      refetchInterval: 5000,
-      initialData: []
-    });
-
-    return {
-      viewers: viewers.length,
-      messages: chatMessages.length,
-      reactions: reactions.length
-    };
-  };
-
-  // End livestream
   const endStreamMutation = useMutation({
-    mutationFn: async (streamId) => {
-      await base44.asServiceRole.entities.StreamingContent.update(streamId, { is_live: false });
-    },
+    mutationFn: (streamId) => base44.entities.StreamingContent.update(streamId, { is_live: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-streams'] });
       toast.success('Livestream ended');
     }
   });
 
-  // Delete chat message
-  const deleteMessageMutation = useMutation({
-    mutationFn: (messageId) => 
-      base44.asServiceRole.entities.LivestreamChat.update(messageId, { is_deleted: true }),
-    onSuccess: () => {
-      toast.success('Message deleted');
-    }
-  });
-
-  // Schedule livestream
   const scheduleStreamMutation = useMutation({
     mutationFn: async (data) => {
-      // Upload thumbnail if file was provided
-      let thumbnail_url = data.thumbnail_url;
+      let thumbnail_url = "";
       if (data.thumbnail_file) {
-        const uploaded = await base44.integrations.Core.UploadFile({
-          file: data.thumbnail_file
-        });
+        const uploaded = await base44.integrations.Core.UploadFile({ file: data.thumbnail_file });
         thumbnail_url = uploaded.file_url;
       }
-      
       const schedule = await base44.entities.LivestreamSchedule.create({
-        ...data,
-        thumbnail_url,
-        creator_email: currentUser.email
+        title: data.title, description: data.description, scheduled_time: data.scheduled_time,
+        duration_minutes: data.duration_minutes, category: data.category,
+        thumbnail_url, creator_email: currentUser.email, status: 'scheduled',
+        is_recurring: data.is_recurring, recurrence_pattern: data.recurrence_pattern,
+        recurrence_end_date: data.recurrence_end_date, access_type: data.access_type,
+        ppv_price_usd: data.ppv_price_usd, member_discount_percent: data.member_discount_percent
       });
-
-      // Send reminder notification to followers
-      const followers = await base44.entities.Follow.filter({
-        following_email: currentUser.email
-      });
-
-      const notificationPromises = followers.map(f => 
-        base44.asServiceRole.entities.Notification.create({
-          user_email: f.follower_email,
-          type: 'livestream_scheduled',
-          title: 'New Livestream Scheduled',
-          message: `${currentUser.full_name || currentUser.email} scheduled a livestream: "${data.title}"`,
-          related_id: schedule.id,
-          read: false
-        })
-      );
-
-      await Promise.all(notificationPromises);
-
+      // Notify followers
+      const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
+      await Promise.all(followers.map(f =>
+        base44.entities.Notification.create({
+          recipient_email: f.follower_email, type: 'message',
+          title: `${currentUser.full_name || 'Someone'} scheduled a livestream`,
+          message: `"${data.title}" — ${new Date(data.scheduled_time).toLocaleString()}`,
+          sender_email: currentUser.email, sender_name: currentUser.full_name, read: false
+        }).catch(() => {})
+      ));
       return schedule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] });
       setShowScheduleModal(false);
-      setScheduleForm({
-        title: "",
-        description: "",
-        scheduled_time: "",
-        duration_minutes: 60,
-        category: "entertainment",
-        thumbnail_url: "",
-        is_recurring: false,
-        recurrence_pattern: "none",
-        recurrence_day: "",
-        recurrence_time: "",
-        recurrence_end_date: "",
-        access_type: "public",
-        ppv_price_usd: 0,
-        member_discount_percent: 0
-      });
-      toast.success('Livestream scheduled and followers notified!');
+      setScheduleForm({ title: "", description: "", scheduled_time: "", duration_minutes: 60, category: "entertainment", thumbnail_file: null, is_recurring: false, recurrence_pattern: "none", recurrence_end_date: "", access_type: "public", ppv_price_usd: 0, member_discount_percent: 0 });
+      toast.success('Stream scheduled! Followers notified.');
     }
   });
 
-  // Start scheduled stream
   const startScheduledMutation = useMutation({
     mutationFn: async (schedule) => {
-      // Generate unique channel name
       const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
-      
       const stream = await base44.entities.StreamingContent.create({
-        title: schedule.title,
-        type: 'live_event',
-        category: schedule.category,
-        description: schedule.description,
-        thumbnail_url: schedule.thumbnail_url,
-        is_live: true,
-        rating: 0,
-        requires_subscription: false,
-        betting_available: false,
-        agora_channel_name: channelName,
-        creator_email: currentUser.email
+        title: schedule.title, type: 'live_event', category: schedule.category,
+        description: schedule.description, thumbnail_url: schedule.thumbnail_url,
+        is_live: true, status: 'live', agora_channel_name: channelName,
+        creator_email: currentUser.email, rating: 0, requires_subscription: false, betting_available: false
       });
-
-      await base44.asServiceRole.entities.LivestreamSchedule.update(schedule.id, {
-        status: 'live',
-        stream_id: stream.id
-      });
-
+      await base44.entities.LivestreamSchedule.update(schedule.id, { status: 'live', stream_id: stream.id });
       return stream;
     },
     onSuccess: (stream) => {
-      queryClient.invalidateQueries({ queryKey: ['active-streams'] });
-      queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] });
-      toast.success('Livestream started!');
+      queryClient.invalidateQueries({ queryKey: ['active-streams', 'scheduled-streams'] });
+      toast.success('Stream started!');
       navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`);
     }
   });
 
-  // Cancel scheduled stream
   const cancelScheduleMutation = useMutation({
-    mutationFn: (scheduleId) => 
-      base44.asServiceRole.entities.LivestreamSchedule.update(scheduleId, { status: 'cancelled' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] });
-      toast.success('Stream cancelled');
-    }
+    mutationFn: (id) => base44.entities.LivestreamSchedule.update(id, { status: 'cancelled' }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['scheduled-streams'] }); toast.success('Stream cancelled'); }
   });
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-3xl font-bold text-white">Livestream Management</h2>
-          <p className="text-gray-400 mt-1">Manage your active and scheduled livestreams</p>
+          <h2 className="text-2xl font-bold text-white">Livestreams</h2>
+          <p className="text-gray-400 text-sm mt-0.5">Manage your broadcasts</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={() => setShowPPVModal(true)}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-          >
-            <DollarSign className="w-4 h-4 mr-2" />
-            Create PPV Stream
+          <Button onClick={() => setShowPPVModal(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+            <DollarSign className="w-4 h-4 mr-1" /> PPV Stream
           </Button>
-          <Button
-            onClick={() => setShowScheduleModal(true)}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Schedule Stream
+          <Button onClick={() => setShowScheduleModal(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+            <Calendar className="w-4 h-4 mr-1" /> Schedule
           </Button>
         </div>
       </div>
@@ -264,171 +142,75 @@ export default function LivestreamManager({ currentUser }) {
 
       {/* Active Livestreams */}
       <Card className="bg-white/5 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Radio className="w-5 h-5 text-red-500" />
-            Active Livestreams
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white flex items-center gap-2 text-lg">
+            <Radio className="w-5 h-5 text-red-400" />
+            Active Streams
             {activeStreams.length > 0 && (
-              <Badge className="bg-red-500/20 text-red-300 ml-2">
-                {activeStreams.length} LIVE
-              </Badge>
+              <Badge className="bg-red-500/20 text-red-300 border-0">{activeStreams.length} LIVE</Badge>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {activeStreams.length === 0 ? (
-            <div className="text-center py-12">
-              <Radio className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-              <p className="text-gray-400">No active livestreams</p>
+            <div className="text-center py-10">
+              <Radio className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">No active streams</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {activeStreams.map((stream) => {
-                const stats = getStreamStats(stream.id);
-                
-                return (
-                  <motion.div
-                    key={stream.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/30 rounded-xl"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-white font-bold text-xl">{stream.title}</h3>
-                          <Badge className="bg-red-500 text-white flex items-center gap-1">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                            LIVE
-                          </Badge>
-                        </div>
-                        <p className="text-gray-300 text-sm">{stream.description}</p>
-                      </div>
-                      <Button
-                        onClick={() => endStreamMutation.mutate(stream.id)}
-                        variant="outline"
-                        className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30 text-red-300"
-                      >
-                        <StopCircle className="w-4 h-4 mr-2" />
-                        End Stream
-                      </Button>
-                    </div>
-
-                    {/* Real-time Stats */}
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                      <div className="bg-black/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                          <Users className="w-4 h-4" />
-                          Viewers
-                        </div>
-                        <div className="text-white text-2xl font-bold">{stats.viewers}</div>
-                      </div>
-                      <div className="bg-black/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                          <MessageSquare className="w-4 h-4" />
-                          Messages
-                        </div>
-                        <div className="text-white text-2xl font-bold">{stats.messages}</div>
-                      </div>
-                      <div className="bg-black/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                          <Eye className="w-4 h-4" />
-                          Reactions
-                        </div>
-                        <div className="text-white text-2xl font-bold">{stats.reactions}</div>
-                      </div>
-                    </div>
-
-                    {/* Co-Streamers */}
-                    <CoStreamManager streamId={stream.id} currentUser={currentUser} />
-
-                    {/* Actions */}
-                    <div className="flex gap-2 mt-4">
-                      <Button 
-                        onClick={() => navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`)}
-                        className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
-                      >
-                        <Radio className="w-4 h-4 mr-2" />
-                        Broadcast
-                      </Button>
-                      <Link to={`${createPageUrl("LivestreamViewer")}?id=${stream.id}`}>
-                        <Button className="bg-purple-600 hover:bg-purple-700">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View as Viewer
-                        </Button>
-                      </Link>
-                      <StreamModerationPanel streamId={stream.id} />
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {activeStreams.map((stream) => (
+                <ActiveStreamCard
+                  key={stream.id}
+                  stream={stream}
+                  currentUser={currentUser}
+                  onEnd={() => endStreamMutation.mutate(stream.id)}
+                  onBroadcast={() => navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}&broadcaster=true`)}
+                  onViewAsViewer={() => navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}`)}
+                />
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Scheduled Livestreams */}
+      {/* Scheduled */}
       <Card className="bg-white/5 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Scheduled Livestreams
+        <CardHeader className="pb-3">
+          <CardTitle className="text-white flex items-center gap-2 text-lg">
+            <Calendar className="w-5 h-5" /> Scheduled
           </CardTitle>
         </CardHeader>
         <CardContent>
           {scheduledStreams.length === 0 ? (
-            <div className="text-center py-12">
-              <Calendar className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-              <p className="text-gray-400">No scheduled livestreams</p>
+            <div className="text-center py-10">
+              <Calendar className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">No scheduled streams</p>
             </div>
           ) : (
             <div className="space-y-3">
               {scheduledStreams.map((schedule) => (
-                <div key={schedule.id} className="p-4 bg-white/5 rounded-xl">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-white font-semibold">{schedule.title}</h3>
-                        {schedule.is_recurring && (
-                          <Badge className="bg-indigo-500/20 text-indigo-300">
-                            {schedule.recurrence_pattern}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-gray-400 text-sm mb-2">{schedule.description}</p>
-                      <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <div className="flex items-center gap-1 text-purple-400">
-                          <Clock className="w-4 h-4" />
-                          {new Date(schedule.scheduled_time).toLocaleString()}
-                        </div>
-                        <Badge className="bg-blue-500/20 text-blue-300">
-                          {schedule.duration_minutes} min
-                        </Badge>
-                        {schedule.ppv_price_usd > 0 && (
-                          <Badge className="bg-green-500/20 text-green-300">
-                            ${schedule.ppv_price_usd}
-                          </Badge>
-                        )}
-                      </div>
+                <div key={schedule.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold truncate">{schedule.title}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-purple-400 text-xs flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(schedule.scheduled_time).toLocaleString()}
+                      </span>
+                      <Badge className="bg-blue-500/20 text-blue-300 text-xs border-0">{schedule.duration_minutes}min</Badge>
+                      {schedule.ppv_price_usd > 0 && (
+                        <Badge className="bg-green-500/20 text-green-300 text-xs border-0">${schedule.ppv_price_usd}</Badge>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => startScheduledMutation.mutate(schedule)}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Play className="w-4 h-4 mr-1" />
-                        Start Now
-                      </Button>
-                      <Button
-                        onClick={() => cancelScheduleMutation.mutate(schedule.id)}
-                        size="sm"
-                        variant="outline"
-                        className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button onClick={() => startScheduledMutation.mutate(schedule)} size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs">
+                      <Play className="w-3 h-3 mr-1" /> Start
+                    </Button>
+                    <Button onClick={() => cancelScheduleMutation.mutate(schedule.id)} size="sm" variant="ghost" className="text-red-400 hover:bg-red-500/10 h-8 text-xs">
+                      Cancel
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -438,149 +220,100 @@ export default function LivestreamManager({ currentUser }) {
       </Card>
 
       {/* Schedule Modal */}
+      <AnimatePresence>
         {showScheduleModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowScheduleModal(false)}
           >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 border border-white/20"
+              className="w-full max-w-lg bg-gray-900 rounded-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">Schedule Livestream</h3>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-xl font-bold text-white">Schedule Stream</h3>
                 <button onClick={() => setShowScheduleModal(false)} className="p-2 hover:bg-white/10 rounded-full">
-                  <X className="w-6 h-6 text-white" />
+                  <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
 
               <div className="space-y-4">
-                <Input
-                  placeholder="Stream Title"
-                  value={scheduleForm.title}
-                  onChange={(e) => setScheduleForm({...scheduleForm, title: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
+                <Input placeholder="Stream Title *" value={scheduleForm.title}
+                  onChange={(e) => setScheduleForm(p => ({ ...p, title: e.target.value }))}
+                  className="bg-white/10 border-white/20 text-white" />
 
-                <Textarea
-                  placeholder="Description"
-                  value={scheduleForm.description}
-                  onChange={(e) => setScheduleForm({...scheduleForm, description: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white min-h-20"
-                />
+                <Textarea placeholder="Description" value={scheduleForm.description}
+                  onChange={(e) => setScheduleForm(p => ({ ...p, description: e.target.value }))}
+                  className="bg-white/10 border-white/20 text-white min-h-20" />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Scheduled Time</label>
-                    <Input
-                      type="datetime-local"
-                      value={scheduleForm.scheduled_time}
-                      onChange={(e) => setScheduleForm({...scheduleForm, scheduled_time: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Date & Time *</label>
+                    <Input type="datetime-local" value={scheduleForm.scheduled_time}
+                      onChange={(e) => setScheduleForm(p => ({ ...p, scheduled_time: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Duration (minutes)</label>
-                    <Input
-                      type="number"
-                      value={scheduleForm.duration_minutes}
-                      onChange={(e) => setScheduleForm({...scheduleForm, duration_minutes: Number(e.target.value)})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Duration (min)</label>
+                    <Input type="number" value={scheduleForm.duration_minutes}
+                      onChange={(e) => setScheduleForm(p => ({ ...p, duration_minutes: Number(e.target.value) }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
 
-                <Select value={scheduleForm.category} onValueChange={(v) => setScheduleForm({...scheduleForm, category: v})}>
+                <Select value={scheduleForm.category} onValueChange={(v) => setScheduleForm(p => ({ ...p, category: v }))}>
                   <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sports">Sports</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                    <SelectItem value="gaming">Gaming</SelectItem>
-                    <SelectItem value="music">Music</SelectItem>
-                    <SelectItem value="news">News</SelectItem>
-                    <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                    {['entertainment', 'sports', 'gaming', 'music', 'news', 'lifestyle'].map(c => (
+                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
 
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Thumbnail (Image or Video)</label>
-                  <Input
-                    type="file"
-                    accept="image/*,video/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setScheduleForm({...scheduleForm, thumbnail_file: file});
-                      }
-                    }}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <label className="text-gray-400 text-xs mb-1.5 block">Thumbnail (optional)</label>
+                  <Input type="file" accept="image/*"
+                    onChange={(e) => setScheduleForm(p => ({ ...p, thumbnail_file: e.target.files?.[0] || null }))}
+                    className="bg-white/10 border-white/20 text-white" />
                   {scheduleForm.thumbnail_file && (
-                    <p className="text-green-400 text-xs mt-1">
-                      ✓ {scheduleForm.thumbnail_file.name} ({(scheduleForm.thumbnail_file.size / 1024 / 1024).toFixed(2)} MB)
-                    </p>
+                    <p className="text-green-400 text-xs mt-1">✓ {scheduleForm.thumbnail_file.name}</p>
                   )}
                 </div>
 
-                {/* Recurring Options */}
                 <div className="border-t border-white/10 pt-4">
-                  <label className="flex items-center gap-2 text-white cursor-pointer mb-3">
-                    <input
-                      type="checkbox"
-                      checked={scheduleForm.is_recurring}
-                      onChange={(e) => setScheduleForm({
-                        ...scheduleForm, 
-                        is_recurring: e.target.checked,
-                        recurrence_pattern: e.target.checked ? 'weekly' : 'none'
-                      })}
-                      className="w-5 h-5 rounded accent-purple-500"
-                    />
-                    Make this a recurring stream
+                  <label className="flex items-center gap-2 text-white cursor-pointer">
+                    <input type="checkbox" checked={scheduleForm.is_recurring}
+                      onChange={(e) => setScheduleForm(p => ({ ...p, is_recurring: e.target.checked, recurrence_pattern: e.target.checked ? 'weekly' : 'none' }))}
+                      className="w-4 h-4 rounded accent-purple-500" />
+                    <span className="text-sm">Recurring stream</span>
                   </label>
-
                   {scheduleForm.is_recurring && (
-                    <div className="space-y-3 pl-7">
-                      <Select 
-                        value={scheduleForm.recurrence_pattern} 
-                        onValueChange={(v) => setScheduleForm({...scheduleForm, recurrence_pattern: v})}
-                      >
-                        <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                          <SelectValue placeholder="Frequency" />
+                    <div className="mt-3 grid grid-cols-2 gap-3 pl-6">
+                      <Select value={scheduleForm.recurrence_pattern} onValueChange={(v) => setScheduleForm(p => ({ ...p, recurrence_pattern: v }))}>
+                        <SelectTrigger className="bg-white/10 border-white/20 text-white text-sm">
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="weekly">Every Week</SelectItem>
-                          <SelectItem value="bi-weekly">Every 2 Weeks</SelectItem>
-                          <SelectItem value="monthly">Every Month</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
                         </SelectContent>
                       </Select>
-
                       <div>
-                        <label className="text-gray-400 text-sm mb-2 block">End Recurrence On</label>
-                        <Input
-                          type="date"
-                          value={scheduleForm.recurrence_end_date}
-                          onChange={(e) => setScheduleForm({...scheduleForm, recurrence_end_date: e.target.value})}
-                          className="bg-white/10 border-white/20 text-white"
-                        />
+                        <label className="text-gray-400 text-xs mb-1 block">End Date</label>
+                        <Input type="date" value={scheduleForm.recurrence_end_date}
+                          onChange={(e) => setScheduleForm(p => ({ ...p, recurrence_end_date: e.target.value }))}
+                          className="bg-white/10 border-white/20 text-white text-sm" />
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Access Rules */}
                 <div className="border-t border-white/10 pt-4">
-                  <label className="text-gray-400 text-sm mb-2 block">Access Type</label>
-                  <Select 
-                    value={scheduleForm.access_type} 
-                    onValueChange={(v) => setScheduleForm({...scheduleForm, access_type: v})}
-                  >
+                  <label className="text-gray-400 text-xs mb-1.5 block">Access Type</label>
+                  <Select value={scheduleForm.access_type} onValueChange={(v) => setScheduleForm(p => ({ ...p, access_type: v }))}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -588,52 +321,31 @@ export default function LivestreamManager({ currentUser }) {
                       <SelectItem value="public">Public (Free)</SelectItem>
                       <SelectItem value="members_only">Members Only</SelectItem>
                       <SelectItem value="ppv">Pay-Per-View</SelectItem>
-                      <SelectItem value="ppv_with_member_discount">PPV with Member Discount</SelectItem>
                     </SelectContent>
                   </Select>
-
-                  {(scheduleForm.access_type === 'ppv' || scheduleForm.access_type === 'ppv_with_member_discount') && (
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div>
-                        <label className="text-gray-400 text-sm mb-2 block">PPV Price (USD)</label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={scheduleForm.ppv_price_usd}
-                          onChange={(e) => setScheduleForm({...scheduleForm, ppv_price_usd: Number(e.target.value)})}
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                      {scheduleForm.access_type === 'ppv_with_member_discount' && (
-                        <div>
-                          <label className="text-gray-400 text-sm mb-2 block">Member Discount %</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={scheduleForm.member_discount_percent}
-                            onChange={(e) => setScheduleForm({...scheduleForm, member_discount_percent: Number(e.target.value)})}
-                            className="bg-white/10 border-white/20 text-white"
-                          />
-                        </div>
-                      )}
+                  {scheduleForm.access_type === 'ppv' && (
+                    <div className="mt-3">
+                      <label className="text-gray-400 text-xs mb-1 block">PPV Price (USD)</label>
+                      <Input type="number" step="0.01" value={scheduleForm.ppv_price_usd}
+                        onChange={(e) => setScheduleForm(p => ({ ...p, ppv_price_usd: Number(e.target.value) }))}
+                        className="bg-white/10 border-white/20 text-white" />
                     </div>
                   )}
                 </div>
 
                 <Button
                   onClick={() => scheduleStreamMutation.mutate(scheduleForm)}
-                  disabled={!scheduleForm.title || !scheduleForm.scheduled_time}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  disabled={!scheduleForm.title || !scheduleForm.scheduled_time || scheduleStreamMutation.isPending}
+                  className="w-full bg-purple-600 hover:bg-purple-700 h-11"
                 >
-                  Schedule Livestream
+                  {scheduleStreamMutation.isPending ? 'Scheduling...' : 'Schedule Stream'}
                 </Button>
               </div>
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
 
-      {/* PPV Stream Modal */}
       <CreatePPVStreamModal
         isOpen={showPPVModal}
         onClose={() => setShowPPVModal(false)}
@@ -647,93 +359,139 @@ export default function LivestreamManager({ currentUser }) {
   );
 }
 
-// Moderation Panel Component
-function StreamModerationPanel({ streamId }) {
-  const [showPanel, setShowPanel] = useState(false);
+// Active stream card — avoids hooks inside loops
+function ActiveStreamCard({ stream, currentUser, onEnd, onBroadcast, onViewAsViewer }) {
+  const [showMod, setShowMod] = useState(false);
+
+  const { data: chatCount = 0 } = useQuery({
+    queryKey: ['stream-chat-count', stream.id],
+    queryFn: async () => {
+      const msgs = await base44.entities.LivestreamChat.filter({ stream_id: stream.id, is_deleted: false });
+      return msgs.length;
+    },
+    refetchInterval: 5000,
+    initialData: 0
+  });
+
+  const { data: viewerCount = 0 } = useQuery({
+    queryKey: ['stream-viewer-count', stream.id],
+    queryFn: async () => {
+      const v = await base44.entities.ViewerAnalytics.filter({ content_id: stream.id, is_currently_watching: true });
+      return v.length;
+    },
+    refetchInterval: 5000,
+    initialData: 0
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+      className="p-4 bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/20 rounded-xl"
+    >
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-white font-bold truncate">{stream.title}</h3>
+            <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-white text-xs font-bold">
+              <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+              LIVE
+            </span>
+          </div>
+          {stream.description && <p className="text-gray-400 text-sm truncate">{stream.description}</p>}
+        </div>
+        <Button onClick={onEnd} size="sm" variant="outline" className="bg-red-600/20 hover:bg-red-600/30 border-red-500/30 text-red-300 flex-shrink-0 h-8 text-xs">
+          <StopCircle className="w-3.5 h-3.5 mr-1" /> End
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-black/20 rounded-lg p-3 flex items-center gap-3">
+          <Users className="w-4 h-4 text-purple-400" />
+          <div>
+            <p className="text-white font-bold text-xl">{viewerCount}</p>
+            <p className="text-gray-400 text-xs">Watching</p>
+          </div>
+        </div>
+        <div className="bg-black/20 rounded-lg p-3 flex items-center gap-3">
+          <MessageSquare className="w-4 h-4 text-blue-400" />
+          <div>
+            <p className="text-white font-bold text-xl">{chatCount}</p>
+            <p className="text-gray-400 text-xs">Messages</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap">
+        <Button onClick={onBroadcast} className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-sm h-9">
+          <Radio className="w-4 h-4 mr-1" /> Broadcast
+        </Button>
+        <Button onClick={onViewAsViewer} className="bg-purple-600/80 hover:bg-purple-600 text-sm h-9">
+          <Eye className="w-4 h-4 mr-1" /> Preview
+        </Button>
+        <Button onClick={() => setShowMod(true)} variant="ghost" className="text-gray-300 hover:bg-white/10 text-sm h-9 border border-white/10">
+          <Ban className="w-4 h-4 mr-1" /> Moderate
+        </Button>
+      </div>
+
+      <CoStreamManager streamId={stream.id} currentUser={currentUser} />
+
+      {showMod && <ModerationModal streamId={stream.id} onClose={() => setShowMod(false)} />}
+    </motion.div>
+  );
+}
+
+function ModerationModal({ streamId, onClose }) {
   const queryClient = useQueryClient();
 
-  const { data: recentMessages = [] } = useQuery({
-    queryKey: ['stream-moderation', streamId],
-    queryFn: () => base44.entities.LivestreamChat.filter({ 
-      stream_id: streamId,
-      is_deleted: false 
-    }),
-    enabled: showPanel,
-    refetchInterval: 2000,
+  const { data: messages = [] } = useQuery({
+    queryKey: ['mod-messages', streamId],
+    queryFn: () => base44.entities.LivestreamChat.filter({ stream_id: streamId, is_deleted: false }),
+    refetchInterval: 3000,
     initialData: []
   });
 
-  const deleteMessageMutation = useMutation({
-    mutationFn: (messageId) => 
-      base44.asServiceRole.entities.LivestreamChat.update(messageId, { is_deleted: true }),
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.LivestreamChat.update(id, { is_deleted: true }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stream-moderation', streamId] });
-      toast.success('Message deleted');
+      queryClient.invalidateQueries({ queryKey: ['mod-messages', streamId] });
+      toast.success('Message removed');
     }
   });
 
-  if (!showPanel) {
-    return (
-      <Button
-        onClick={() => setShowPanel(true)}
-        variant="outline"
-        className="bg-white/5 border-white/10"
-      >
-        <Ban className="w-4 h-4 mr-2" />
-        Moderate
-      </Button>
-    );
-  }
-
   return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-        onClick={() => setShowPanel(false)}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+      onClick={onClose}
+    >
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-gray-900 rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[80vh]"
       >
-        <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 border border-white/20 max-h-[80vh] overflow-hidden flex flex-col"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold text-white">Chat Moderation</h3>
-            <button onClick={() => setShowPanel(false)} className="p-2 hover:bg-white/10 rounded-full">
-              <X className="w-6 h-6 text-white" />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto space-y-3">
-            {recentMessages.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">No messages yet</p>
-            ) : (
-              recentMessages.map((msg) => (
-                <div key={msg.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-purple-300 font-semibold text-sm">{msg.user_name}</span>
-                      <span className="text-gray-500 text-xs">
-                        {new Date(msg.created_date).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <p className="text-white text-sm">{msg.message}</p>
-                  </div>
-                  <Button
-                    onClick={() => deleteMessageMutation.mutate(msg.id)}
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        </motion.div>
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <h3 className="text-white font-bold flex items-center gap-2">
+            <Ban className="w-5 h-5 text-red-400" /> Chat Moderation
+          </h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {messages.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No messages</p>
+          ) : messages.map((msg) => (
+            <div key={msg.id} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl">
+              <div className="flex-1 min-w-0">
+                <span className="text-purple-300 font-semibold text-sm">{msg.user_name}</span>
+                <span className="text-gray-400 text-xs ml-2">{new Date(msg.created_date).toLocaleTimeString()}</span>
+                <p className="text-white text-sm mt-0.5">{msg.message}</p>
+              </div>
+              <button onClick={() => deleteMutation.mutate(msg.id)} className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 flex-shrink-0">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
       </motion.div>
+    </motion.div>
   );
 }
