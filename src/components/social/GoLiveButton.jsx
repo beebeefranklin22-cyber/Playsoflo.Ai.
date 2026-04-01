@@ -20,7 +20,7 @@ export default function GoLiveButton({ currentUser }) {
   const goLiveMutation = useMutation({
     mutationFn: async () => {
       // Generate unique channel name before creating stream
-      const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
+      const channelName = `livestream_${Date.now()}_${(currentUser.id || currentUser.email || 'user').substring(0, 8)}`;
       
       // Create livestream content
       const stream = await base44.entities.StreamingContent.create({
@@ -43,29 +43,26 @@ export default function GoLiveButton({ currentUser }) {
       await base44.auth.updateMe({
         is_live_streaming: true,
         live_stream_id: stream.id
-      });
+      }).catch(() => {});
 
-      // Notify all followers
-      const followers = await base44.entities.Follow.filter({
-        following_email: currentUser.email
-      });
-
-      await Promise.all(
-        followers.map(f => 
+      // Notify all followers (fire and forget)
+      base44.entities.Follow.filter({ following_email: currentUser.email }).then(followers =>
+        Promise.all(followers.slice(0, 100).map(f => 
           base44.entities.Notification.create({
             recipient_email: f.follower_email,
             type: "livestream_started",
-            title: `${currentUser.full_name} is live!`,
+            title: `${currentUser.full_name || 'Someone'} is live!`,
             message: title || "Join the livestream now",
             reference_type: "livestream",
             reference_id: stream.id,
             action_url: `/LivestreamViewer?id=${stream.id}`,
             sender_email: currentUser.email,
             sender_name: currentUser.full_name,
-            sender_photo: currentUser.profile_picture
-          })
-        )
-      );
+            sender_photo: currentUser.profile_picture,
+            read: false
+          }).catch(() => {})
+        ))
+      ).catch(() => {});
 
       return stream;
     },

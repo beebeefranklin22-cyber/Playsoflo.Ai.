@@ -169,7 +169,7 @@ export default function Challenges() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-6"
-            onClick={onClose}
+            onClick={() => setShowCreateModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9 }}

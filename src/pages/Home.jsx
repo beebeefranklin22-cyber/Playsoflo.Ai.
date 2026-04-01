@@ -9,7 +9,7 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -243,6 +243,7 @@ export default function Home() {
   };
 
   const quickAccess = [
+    { icon: TrendingUp, label: "Discover", color: "yellow", path: "Discover" },
     { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
     { icon: Compass, label: "Explore", color: "purple", path: "Universe" },
     { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
@@ -292,7 +293,7 @@ export default function Home() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-    <div className="min-h-screen pb-20 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
+    <div className="min-h-screen pb-32" style={{ overscrollBehavior: 'contain' }}>
       {/* Stories Bar */}
       <div className="sticky top-16 z-10 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>

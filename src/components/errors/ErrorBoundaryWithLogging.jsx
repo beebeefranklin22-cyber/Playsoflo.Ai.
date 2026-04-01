@@ -85,7 +85,7 @@ class ErrorBoundaryWithLogging extends React.Component {
               </p>
             )}
 
-            {process.env.NODE_ENV === 'development' && (
+            {import.meta.env.DEV && (
               <details className="text-left mb-6 bg-black/30 rounded-lg p-4">
                 <summary className="text-red-400 cursor-pointer mb-2">
                   Error Details (Dev Only)

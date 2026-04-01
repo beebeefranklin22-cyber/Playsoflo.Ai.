@@ -19,8 +19,9 @@ export default function BookingPaymentModal({
   const [processing, setProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const platformFee = bookingData.total_price_usd * 0.10; // 10% platform fee
-  const total = bookingData.total_price_usd;
+  const subtotal = bookingData.total_price_usd;
+  const platformFee = subtotal * 0.10; // 10% platform fee
+  const total = subtotal;
 
   const handlePayment = async () => {
     if (paymentMethod === "wallet" && currentUser.balance_usd < total) {

@@ -1,337 +1,312 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useMemo, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { 
-  Heart, MessageCircle, Share2, Bookmark, Music, 
-  Search, TrendingUp, Flame, Plus, Play, Volume2, VolumeX
+import { motion } from "framer-motion";
+import {
+  TrendingUp, Radio, Play, Heart, Eye, MessageCircle,
+  Flame, Star, Users, Zap, Music, Video, Filter
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import VideoCreationModal from "../components/video/VideoCreationModal";
-import VideoCommentsModal from "../components/video/VideoCommentsModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+
+// Engagement score algorithm: weighted formula
+function computeScore(item) {
+  const hoursSinceCreated = (Date.now() - new Date(item.created_date).getTime()) / 3600000;
+  const recencyDecay = Math.max(0, 1 - hoursSinceCreated / 72); // 72h half-life
+  const likes = item.likes_count || (item.likes?.length) || 0;
+  const views = item.views || item.live_viewers || 0;
+  const comments = item.comments_count || item.reply_count || 0;
+  const isLive = item.is_live ? 50 : 0; // Big boost for live
+  return likes * 3 + views * 1 + comments * 5 + isLive + recencyDecay * 20;
+}
+
+const FILTERS = ['All', 'Live', 'Trending', 'Posts', 'Streams', 'Music', 'News'];
 
 export default function Discover() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const [activeFilter, setActiveFilter] = useState('All');
   const [currentUser, setCurrentUser] = useState(null);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showCreationModal, setShowCreationModal] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState(null);
-  const videoRefs = useRef([]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-      } catch (error) {
-        console.log("User not authenticated");
-      }
-    };
-    fetchUser();
+  React.useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  const { data: videos = [] } = useQuery({
-    queryKey: ['discover-videos'],
-    queryFn: async () => {
-      const allVideos = await base44.entities.VideoPost.list('-engagement_score');
-      return allVideos.slice(0, 50);
-    }
+  const { data: streams = [] } = useQuery({
+    queryKey: ['discover-streams'],
+    queryFn: () => base44.entities.StreamingContent.filter({ status: 'published' }, '-created_date', 30),
+    initialData: [],
+    refetchInterval: 30000
   });
 
-  const { data: challenges = [] } = useQuery({
-    queryKey: ['trending-challenges'],
-    queryFn: async () => {
-      return await base44.entities.Challenge.filter({ is_active: true }, '-total_views', 5);
-    }
+  const { data: posts = [] } = useQuery({
+    queryKey: ['discover-posts'],
+    queryFn: () => base44.entities.SocialPost.list('-created_date', 50),
+    initialData: [],
+    refetchInterval: 60000
   });
 
-  const { data: myLikes = [] } = useQuery({
-    queryKey: ['my-video-likes', currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser) return [];
-      return await base44.entities.VideoLike.filter({ user_email: currentUser.email });
-    },
-    enabled: !!currentUser
+  const { data: newsPosts = [] } = useQuery({
+    queryKey: ['discover-news'],
+    queryFn: () => base44.entities.NewsPost.filter({ status: 'published' }, '-created_date', 20),
+    initialData: [],
+    refetchInterval: 60000
   });
 
-  const likeMutation = useMutation({
-    mutationFn: async ({ videoId, isLiked }) => {
-      if (isLiked) {
-        const like = myLikes.find(l => l.video_id === videoId);
-        if (like) await base44.entities.VideoLike.delete(like.id);
-      } else {
-        await base44.entities.VideoLike.create({
-          video_id: videoId,
-          user_email: currentUser.email
-        });
-      }
-      
-      const video = videos.find(v => v.id === videoId);
-      await base44.asServiceRole.entities.VideoPost.update(videoId, {
-        likes: (video.likes || 0) + (isLiked ? -1 : 1),
-        engagement_score: (video.engagement_score || 0) + (isLiked ? -10 : 10)
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-video-likes'] });
-      queryClient.invalidateQueries({ queryKey: ['discover-videos'] });
-    }
+  const { data: musicTracks = [] } = useQuery({
+    queryKey: ['discover-music'],
+    queryFn: () => base44.entities.MusicTrack.filter({ status: 'published' }, '-stream_count', 20),
+    initialData: [],
+    refetchInterval: 120000
   });
 
-  const shareMutation = useMutation({
-    mutationFn: async (videoId) => {
-      const video = videos.find(v => v.id === videoId);
-      await base44.asServiceRole.entities.VideoPost.update(videoId, {
-        shares_count: (video.shares_count || 0) + 1,
-        engagement_score: (video.engagement_score || 0) + 5
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discover-videos'] });
-      toast.success('Copied to clipboard!');
-    }
-  });
+  // Normalize and rank all content
+  const rankedFeed = useMemo(() => {
+    const liveStreams = streams.filter(s => s.is_live).map(s => ({
+      ...s, _type: 'livestream', _score: computeScore(s)
+    }));
+    const vodStreams = streams.filter(s => !s.is_live).map(s => ({
+      ...s, _type: 'stream', _score: computeScore(s)
+    }));
+    const socialPosts = posts
+      .filter(p => !p.is_story && p.caption && p.image_url?.startsWith('http'))
+      .map(p => ({ ...p, _type: 'post', _score: computeScore(p) }));
+    const news = newsPosts.map(n => ({ ...n, _type: 'news', _score: computeScore(n) }));
+    const music = musicTracks.map(m => ({ ...m, _type: 'music', _score: computeScore(m) }));
 
-  useEffect(() => {
-    const currentVideoRef = videoRefs.current[currentVideoIndex];
-    if (currentVideoRef) {
-      currentVideoRef.play().catch(() => {});
-      currentVideoRef.muted = isMuted;
-    }
+    let all = [...liveStreams, ...vodStreams, ...socialPosts, ...news, ...music];
 
-    return () => {
-      if (currentVideoRef) {
-        currentVideoRef.pause();
-      }
-    };
-  }, [currentVideoIndex, isMuted]);
+    if (activeFilter === 'Live') all = liveStreams;
+    else if (activeFilter === 'Trending') all = all.sort((a, b) => b._score - a._score).slice(0, 30);
+    else if (activeFilter === 'Posts') all = socialPosts;
+    else if (activeFilter === 'Streams') all = [...liveStreams, ...vodStreams];
+    else if (activeFilter === 'Music') all = music;
+    else if (activeFilter === 'News') all = news;
 
-  const handleScroll = (direction) => {
-    if (direction === 'up' && currentVideoIndex > 0) {
-      setCurrentVideoIndex(currentVideoIndex - 1);
-    } else if (direction === 'down' && currentVideoIndex < videos.length - 1) {
-      setCurrentVideoIndex(currentVideoIndex + 1);
+    return all.sort((a, b) => b._score - a._score);
+  }, [streams, posts, newsPosts, musicTracks, activeFilter]);
+
+  const liveCount = streams.filter(s => s.is_live).length;
+
+  const handleItemClick = (item) => {
+    if (item._type === 'livestream' || item._type === 'stream') {
+      navigate(createPageUrl('LivestreamViewer') + `?id=${item.id}`);
+    } else if (item._type === 'music') {
+      navigate(createPageUrl('Vibe'));
+    } else if (item._type === 'news') {
+      navigate(createPageUrl('CommunityNews'));
+    } else {
+      navigate(createPageUrl('Home'));
     }
   };
 
-  const handleLike = (video) => {
-    if (!currentUser) {
-      toast.error('Please login to like videos');
-      return;
-    }
-    const isLiked = myLikes.some(l => l.video_id === video.id);
-    likeMutation.mutate({ videoId: video.id, isLiked });
+  const typeIcon = (type) => {
+    if (type === 'livestream') return <Radio className="w-3 h-3 text-red-400" />;
+    if (type === 'stream') return <Video className="w-3 h-3 text-purple-400" />;
+    if (type === 'music') return <Music className="w-3 h-3 text-pink-400" />;
+    if (type === 'news') return <MessageCircle className="w-3 h-3 text-blue-400" />;
+    return <Heart className="w-3 h-3 text-rose-400" />;
   };
 
-  const handleShare = (video) => {
-    navigator.clipboard.writeText(`${window.location.origin}${createPageUrl("Discover")}?video=${video.id}`);
-    shareMutation.mutate(video.id);
-  };
-
-  if (videos.length === 0) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <TrendingUp className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-          <p className="text-white text-xl">No videos yet. Be the first to create!</p>
-          <Button
-            onClick={() => setShowCreationModal(true)}
-            className="mt-4 bg-purple-600 hover:bg-purple-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Video
-          </Button>
-        </div>
-      </div>
+  const typeBadge = (item) => {
+    if (item._type === 'livestream') return (
+      <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-white text-xs font-bold">
+        <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />LIVE
+      </span>
     );
-  }
-
-  const currentVideo = videos[currentVideoIndex];
-  const isLiked = myLikes.some(l => l.video_id === currentVideo?.id);
+    if (item._type === 'stream') return <Badge className="bg-purple-500/20 text-purple-300 text-xs border-0">VOD</Badge>;
+    if (item._type === 'music') return <Badge className="bg-pink-500/20 text-pink-300 text-xs border-0">Music</Badge>;
+    if (item._type === 'news') return <Badge className="bg-blue-500/20 text-blue-300 text-xs border-0">News</Badge>;
+    return null;
+  };
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden">
-      {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/60 to-transparent p-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex gap-4">
-            <button
-              onClick={() => navigate(createPageUrl("Discover"))}
-              className="text-white font-bold text-lg"
-            >
-              For You
-            </button>
-            <button
-              onClick={() => navigate(createPageUrl("Discover") + "?tab=following")}
-              className="text-gray-400 font-semibold text-lg"
-            >
-              Following
-            </button>
+    <div className="min-h-screen pb-32">
+      {/* Header */}
+      <div className="sticky top-16 z-10 bg-black/60 backdrop-blur-xl border-b border-white/10 px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-purple-400" />
+              Discover
+            </h1>
+            <p className="text-gray-400 text-sm">Trending content ranked by engagement</p>
           </div>
-          <Button
-            onClick={() => navigate(createPageUrl("Discover") + "?tab=challenges")}
-            className="bg-gradient-to-r from-purple-600 to-pink-600"
-          >
-            <Flame className="w-4 h-4 mr-2" />
-            Challenges
-          </Button>
+          {liveCount > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/30 rounded-full">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-300 text-sm font-semibold">{liveCount} Live</span>
+            </div>
+          )}
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                activeFilter === f
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Video Container */}
-      <div className="h-full relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentVideoIndex}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="h-full flex items-center justify-center"
-          >
-            <video
-              ref={(el) => (videoRefs.current[currentVideoIndex] = el)}
-              src={currentVideo?.video_url}
-              className="h-full w-auto max-w-full"
-              loop
-              playsInline
-              muted={isMuted}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Video Info Overlay */}
-        <div className="absolute bottom-20 left-0 right-0 z-20 p-6">
-          <div className="max-w-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                {currentVideo?.creator_name?.[0] || 'U'}
-              </div>
-              <span className="text-white font-bold">{currentVideo?.creator_name || currentVideo?.creator_email}</span>
-              <Button size="sm" className="bg-purple-600 hover:bg-purple-700 h-7 px-3">
-                Follow
-              </Button>
-            </div>
-            <p className="text-white text-sm mb-2">{currentVideo?.caption}</p>
-            {currentVideo?.hashtags?.length > 0 && (
-              <div className="flex gap-2 flex-wrap">
-                {currentVideo.hashtags.map((tag, idx) => (
-                  <span key={idx} className="text-blue-400 text-sm">#{tag}</span>
-                ))}
-              </div>
-            )}
-            {currentVideo?.sounds_used?.length > 0 && (
-              <div className="flex items-center gap-2 mt-2 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 w-fit">
-                <Music className="w-3 h-3 text-white" />
-                <span className="text-white text-xs">{currentVideo.sounds_used[0]}</span>
-              </div>
-            )}
+      {/* Featured Live - top of feed */}
+      {streams.filter(s => s.is_live).slice(0, 3).length > 0 && activeFilter === 'All' && (
+        <div className="px-4 pt-4">
+          <h2 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+            <Radio className="w-5 h-5 text-red-400 animate-pulse" />
+            Live Now
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            {streams.filter(s => s.is_live).slice(0, 3).map(stream => (
+              <motion.div
+                key={stream.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(createPageUrl('LivestreamViewer') + `?id=${stream.id}`)}
+                className="relative rounded-2xl overflow-hidden cursor-pointer border border-red-500/30 bg-gradient-to-br from-red-950/50 to-pink-950/50"
+              >
+                {stream.thumbnail_url ? (
+                  <img src={stream.thumbnail_url} alt={stream.title} className="w-full h-40 object-cover" />
+                ) : (
+                  <div className="w-full h-40 bg-gradient-to-br from-red-800/40 to-pink-800/40 flex items-center justify-center">
+                    <Radio className="w-12 h-12 text-red-400 animate-pulse" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                <div className="absolute top-2 left-2">
+                  <span className="flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-white text-xs font-bold">
+                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />LIVE
+                  </span>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <p className="text-white font-bold text-sm truncate">{stream.title}</p>
+                  <div className="flex items-center gap-2 text-gray-300 text-xs mt-1">
+                    <Users className="w-3 h-3" />
+                    <span>{stream.live_viewers || 0} watching</span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-
-        {/* Action Buttons (Right Side) */}
-        <div className="absolute right-4 bottom-40 z-20 flex flex-col gap-6">
-          <button
-            onClick={() => handleLike(currentVideo)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className={`w-12 h-12 rounded-full ${isLiked ? 'bg-red-500' : 'bg-white/20'} backdrop-blur-sm flex items-center justify-center`}>
-              <Heart className={`w-6 h-6 ${isLiked ? 'fill-white text-white' : 'text-white'}`} />
-            </div>
-            <span className="text-white text-xs font-bold">{currentVideo?.likes || 0}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setSelectedVideo(currentVideo);
-              setShowComments(true);
-            }}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <MessageCircle className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-white text-xs font-bold">{currentVideo?.comments_count || 0}</span>
-          </button>
-
-          <button
-            onClick={() => handleShare(currentVideo)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <Share2 className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-white text-xs font-bold">{currentVideo?.shares_count || 0}</span>
-          </button>
-
-          <button className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <Bookmark className="w-6 h-6 text-white" />
-            </div>
-          </button>
-
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="flex flex-col items-center gap-1"
-          >
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-              {isMuted ? <VolumeX className="w-6 h-6 text-white" /> : <Volume2 className="w-6 h-6 text-white" />}
-            </div>
-          </button>
-        </div>
-
-        {/* Navigation Buttons */}
-        <div className="absolute right-1/2 translate-x-1/2 bottom-6 z-20 flex gap-4">
-          <Button
-            onClick={() => handleScroll('up')}
-            disabled={currentVideoIndex === 0}
-            size="icon"
-            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 disabled:opacity-30"
-          >
-            ↑
-          </Button>
-          <Button
-            onClick={() => handleScroll('down')}
-            disabled={currentVideoIndex === videos.length - 1}
-            size="icon"
-            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 disabled:opacity-30"
-          >
-            ↓
-          </Button>
-        </div>
-      </div>
-
-      {/* Create Button */}
-      <button
-        onClick={() => setShowCreationModal(true)}
-        className="fixed bottom-24 right-1/2 translate-x-1/2 z-30 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-      >
-        <Plus className="w-7 h-7 text-white" />
-      </button>
-
-      {/* Modals */}
-      <VideoCreationModal
-        isOpen={showCreationModal}
-        onClose={() => setShowCreationModal(false)}
-        currentUser={currentUser}
-        challenges={challenges}
-      />
-
-      {showComments && selectedVideo && (
-        <VideoCommentsModal
-          video={selectedVideo}
-          currentUser={currentUser}
-          onClose={() => {
-            setShowComments(false);
-            setSelectedVideo(null);
-          }}
-        />
       )}
+
+      {/* Ranked Feed */}
+      <div className="px-4 pb-4">
+        {activeFilter !== 'All' && (
+          <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-400" />
+            {activeFilter}
+          </h2>
+        )}
+        {activeFilter === 'All' && (
+          <h2 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-400" />
+            Trending Now
+          </h2>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {rankedFeed.map((item, idx) => (
+            <motion.div
+              key={`${item._type}-${item.id}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(idx * 0.04, 0.5) }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => handleItemClick(item)}
+              className="relative rounded-2xl overflow-hidden cursor-pointer bg-white/5 border border-white/10 hover:border-purple-500/40 transition group"
+            >
+              {/* Media */}
+              <div className="relative h-44">
+                {(item.thumbnail_url || item.image_url || item.featured_image || item.cover_art_url) ? (
+                  <img
+                    src={item.thumbnail_url || item.image_url || item.featured_image || item.cover_art_url}
+                    alt={item.title || item.caption}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-900/50 to-pink-900/50 flex items-center justify-center">
+                    {typeIcon(item._type)}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+
+                {/* Badges */}
+                <div className="absolute top-2 left-2 flex gap-1">
+                  {typeBadge(item)}
+                </div>
+
+                {/* Trending rank badge for top 10 */}
+                {idx < 10 && activeFilter !== 'Live' && (
+                  <div className="absolute top-2 right-2 w-7 h-7 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                    {idx + 1}
+                  </div>
+                )}
+
+                {/* Play button overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="p-3">
+                <p className="text-white font-semibold text-sm line-clamp-2 mb-2">
+                  {item.title || item.caption || 'Untitled'}
+                </p>
+                <div className="flex items-center gap-3 text-gray-400 text-xs">
+                  {(item.likes_count || 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Heart className="w-3 h-3 text-rose-400" />
+                      {(item.likes_count || 0).toLocaleString()}
+                    </span>
+                  )}
+                  {(item.views || item.stream_count || 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3 text-blue-400" />
+                      {(item.views || item.stream_count || 0).toLocaleString()}
+                    </span>
+                  )}
+                  {(item.comments_count || 0) > 0 && (
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3 text-green-400" />
+                      {item.comments_count}
+                    </span>
+                  )}
+                  {/* Engagement score bar */}
+                  <div className="ml-auto flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-yellow-400" />
+                    <span className="text-yellow-400 font-semibold">{Math.round(item._score)}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {rankedFeed.length === 0 && (
+          <div className="text-center py-20">
+            <TrendingUp className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-white text-xl font-bold mb-2">Nothing here yet</p>
+            <p className="text-gray-400">Be the first to create trending content!</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

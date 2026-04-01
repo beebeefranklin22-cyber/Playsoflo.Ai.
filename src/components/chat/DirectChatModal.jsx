@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Send, Image, Check, CheckCheck, Circle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 

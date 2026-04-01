@@ -10,7 +10,7 @@ import {
   TrendingUp, DollarSign, Users, Heart, 
   Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
   Upload, X, Loader2, Video, Radio, Star, ShoppingBag, Briefcase,
-  Crown, Package, Home, Lock
+  Crown, Package, Home, Lock, Play
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -36,36 +36,26 @@ import DigitalProductsManager from "../components/creator/DigitalProductsManager
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
 import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
 import VODManager from "../components/creator/VODManager";
+import SubscribeButton from "../components/creator/SubscribeButton";
 
 export default function CreatorHub() {
   const qc = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [showGoLiveModal, setShowGoLiveModal] = useState(false);
-
-  // Show loading state
-  if (currentUser === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-white text-lg">Loading Creator Hub...</p>
-        </div>
-      </div>
-    );
-  }
 
   useEffect(() => {
     base44.auth.me().then(async (user) => {
       setCurrentUser(user);
-      
-      // Check URL params for tab
+      setLoading(false);
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
       if (tabParam) setActiveTab(tabParam);
     }).catch((error) => {
       console.log("Auth error:", error);
       setCurrentUser(null);
+      setLoading(false);
     });
   }, []);
 
@@ -134,7 +124,6 @@ export default function CreatorHub() {
     inventory: 100,
     is_collaboration: false,
     co_creators: [],
-    // New fields for digital products
     digital_product_type: "",
     download_url: "",
     file_size: "",
@@ -197,7 +186,7 @@ export default function CreatorHub() {
   const createSubscriptionMutation = useMutation({
     mutationFn: (data) => base44.entities.CreatorSubscription.create({
       ...data,
-      creator_email: currentUser.email
+      creator_email: currentUser?.email
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["subscription-tiers"] });
@@ -220,6 +209,17 @@ export default function CreatorHub() {
       setBenefitInput("");
     }
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-950 via-pink-950 to-purple-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading Creator Hub...</p>
+        </div>
+      </div>
+    );
+  }
 
   const addBenefit = () => {
     if (benefitInput.trim()) {
@@ -355,8 +355,8 @@ export default function CreatorHub() {
   const engagementRate = 8.5;
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen p-4 md:p-6 overflow-y-auto">
+      <div className="max-w-7xl mx-auto pb-24">
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -398,7 +398,7 @@ export default function CreatorHub() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="flex flex-wrap gap-2 bg-white/10 backdrop-blur-xl border border-white/20 p-2">
+          <TabsList className="flex flex-wrap gap-1 bg-white/10 backdrop-blur-xl border border-white/20 p-2 h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="vod">VOD Manager</TabsTrigger>
             <TabsTrigger value="video-editor">Video Editor</TabsTrigger>
@@ -418,6 +418,58 @@ export default function CreatorHub() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-white/10">
+                <CardContent className="p-4">
+                  <DollarSign className="w-6 h-6 text-green-400 mb-2" />
+                  <div className="text-2xl font-bold text-white">${totalRevenue.toFixed(0)}</div>
+                  <div className="text-gray-400 text-xs">Total Revenue</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-white/10">
+                <CardContent className="p-4">
+                  <Users className="w-6 h-6 text-purple-400 mb-2" />
+                  <div className="text-2xl font-bold text-white">{subscribers.length}</div>
+                  <div className="text-gray-400 text-xs">Subscribers</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-pink-500/20 to-red-500/20 border-white/10">
+                <CardContent className="p-4">
+                  <Heart className="w-6 h-6 text-pink-400 mb-2" />
+                  <div className="text-2xl font-bold text-white">{totalTips}</div>
+                  <div className="text-gray-400 text-xs">Tips Received</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border-white/10">
+                <CardContent className="p-4">
+                  <Eye className="w-6 h-6 text-yellow-400 mb-2" />
+                  <div className="text-2xl font-bold text-white">{recentViews.toLocaleString()}</div>
+                  <div className="text-gray-400 text-xs">Total Views</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick actions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Button onClick={() => setShowGoLiveModal(true)} className="bg-gradient-to-r from-red-600 to-pink-600 h-14 flex flex-col gap-1">
+                <Radio className="w-5 h-5 animate-pulse" />
+                <span className="text-xs">Go Live</span>
+              </Button>
+              <Button onClick={() => setActiveTab('vod')} className="bg-gradient-to-r from-purple-600 to-indigo-600 h-14 flex flex-col gap-1">
+                <Video className="w-5 h-5" />
+                <span className="text-xs">Upload Video</span>
+              </Button>
+              <Button onClick={() => setActiveTab('tiers')} className="bg-gradient-to-r from-yellow-600 to-orange-600 h-14 flex flex-col gap-1">
+                <Crown className="w-5 h-5" />
+                <span className="text-xs">Subscriptions</span>
+              </Button>
+              <Button onClick={() => setActiveTab('analytics')} className="bg-gradient-to-r from-green-600 to-teal-600 h-14 flex flex-col gap-1">
+                <BarChart3 className="w-5 h-5" />
+                <span className="text-xs">Analytics</span>
+              </Button>
+            </div>
+
             <CreatorContentSuggestions currentUser={currentUser} />
           </TabsContent>
 

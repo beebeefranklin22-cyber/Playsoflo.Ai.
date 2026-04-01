@@ -221,7 +221,7 @@ export default function AutoHealingSystem() {
     <>
       <PredictiveAnalytics />
       {/* Health status indicator (dev mode) */}
-      {process.env.NODE_ENV === 'development' && healthStatus !== 'healthy' && (
+      {import.meta.env.NODE_ENV === 'development' && healthStatus !== 'healthy' && (
         <div className="fixed top-20 right-4 z-[9999] px-3 py-2 rounded-lg glass-effect border border-white/20 text-xs text-white">
           Status: {healthStatus}
         </div>

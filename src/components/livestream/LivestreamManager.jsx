@@ -97,7 +97,7 @@ export default function LivestreamManager({ currentUser }) {
 
   const startScheduledMutation = useMutation({
     mutationFn: async (schedule) => {
-      const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
+      const channelName = `livestream_${Date.now()}_${(currentUser.id || currentUser.email || 'user').substring(0, 8)}`;
       const stream = await base44.entities.StreamingContent.create({
         title: schedule.title, type: 'live_event', category: schedule.category,
         description: schedule.description, thumbnail_url: schedule.thumbnail_url,

@@ -29,20 +29,9 @@ import DriverProfileSetup from "../components/driver/DriverProfileSetup";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("today");
   const [isOnline, setIsOnline] = useState(false);
-
-  // Show loading state
-  if (currentUser === null) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-950 via-emerald-950 to-green-950 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-white text-lg">Loading Driver Hub...</p>
-        </div>
-      </div>
-    );
-  }
   const [chatRide, setChatRide] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
   const [navRide, setNavRide] = useState(null);
@@ -55,6 +44,7 @@ export default function DriverHub() {
   useEffect(() => {
     base44.auth.me().then(user => {
       setCurrentUser(user);
+      setLoading(false);
       setIsOnline(user.driver_is_online || false);
       
       // Check if driver profile is complete
@@ -69,6 +59,7 @@ export default function DriverHub() {
     }).catch((error) => {
       console.log("Auth error:", error);
       setCurrentUser(null);
+      setLoading(false);
     });
 
     // Get driver's current location
@@ -283,6 +274,17 @@ export default function DriverHub() {
     : 5.0;
 
   const activeRide = recentRides.find(r => r.status === "accepted" || r.status === "en_route");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-950 via-emerald-950 to-green-950 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-white text-lg">Loading Driver Hub...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

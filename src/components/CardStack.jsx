@@ -5,17 +5,6 @@ export default function CardStack({ cards = [], onCardChange, currentIndex: exte
   const [currentIndex, setCurrentIndex] = useState(externalIndex || 0);
   const [direction, setDirection] = useState(null);
 
-  if (!cards || cards.length === 0) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-white text-center">
-          <p className="text-xl mb-2">No content available</p>
-          <p className="text-gray-400 text-sm">Please refresh the page</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     if (externalIndex !== undefined) {
       setCurrentIndex(externalIndex);
@@ -52,6 +41,17 @@ export default function CardStack({ cards = [], onCardChange, currentIndex: exte
   };
 
   const visibleCards = getVisibleCards();
+
+  if (!cards || cards.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-white text-center">
+          <p className="text-xl mb-2">No content available</p>
+          <p className="text-gray-400 text-sm">Please refresh the page</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full" style={{ perspective: "1500px" }}>

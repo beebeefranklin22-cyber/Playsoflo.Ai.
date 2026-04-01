@@ -17,8 +17,6 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  if (!isOpen) return null;
-
   // Fetch provider earnings
   const { data: bookings = [] } = useQuery({
     queryKey: ['provider-completed-bookings', currentUser?.email],
@@ -117,6 +115,8 @@ export default function ProviderPayoutManager({ isOpen, onClose, currentUser }) 
       setProcessing(false);
     }
   });
+
+  if (!isOpen) return null;
 
   const handlePayout = () => {
     const payoutAmount = parseFloat(amount);

@@ -266,17 +266,34 @@ a * {
   pointer-events: none;
 }
 
-/* Hide scrollbars globally for native app look */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+/* Hide scrollbars for native app look but keep scrolling functional */
+body, html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+body::-webkit-scrollbar, html::-webkit-scrollbar {
+  display: none;
 }
 
-*::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+/* Specific elements that should hide scrollbars */
+nav, header, footer, .hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar, .hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Ensure scrolling still works where needed */
+.scrollable-page {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for pages that couldn't scroll to bottom */
+main > div {
+  overflow-y: visible;
+}
 
 @layer base {
   * {

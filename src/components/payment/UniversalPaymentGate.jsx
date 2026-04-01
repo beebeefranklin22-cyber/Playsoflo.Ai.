@@ -270,7 +270,7 @@ export default function UniversalPaymentGate({
                 <Button
                   onClick={() => {
                     onClose();
-                    window.location.href = createPageUrl("Wallet");
+                    window.location.href = "/Wallet";
                   }}
                   variant="outline"
                   className="w-full mt-3 border-red-500/30 text-red-300"

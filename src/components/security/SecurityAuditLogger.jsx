@@ -13,7 +13,7 @@ export class SecurityAuditLogger {
     };
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.log('[SECURITY AUDIT]', auditEvent);
     }
 

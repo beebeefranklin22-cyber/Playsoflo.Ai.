@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Camera, X, Upload, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export default function VehiclePhotoDocumentation({ open, onClose, rental, stage, onComplete }) {

@@ -36,7 +36,7 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
       }
 
       // Generate unique channel name
-      const channelName = `livestream_${Date.now()}_${currentUser.id.substring(0, 8)}`;
+      const channelName = `livestream_${Date.now()}_${(currentUser.id || currentUser.email || 'user').substring(0, 8)}`;
       
       // Create livestream
       const stream = await base44.entities.StreamingContent.create({

@@ -103,7 +103,7 @@ export default function PerformanceMonitor() {
   }, [metrics.fps, metrics.longTasks]);
 
   // Dev mode only - show metrics overlay
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     return (
       <div className="fixed bottom-4 left-4 z-[9999] bg-black/90 text-white text-xs p-3 rounded-lg border border-white/20 font-mono">
         <div>FPS: <span className={metrics.fps < 30 ? 'text-red-400' : 'text-green-400'}>{metrics.fps}</span></div>

@@ -21,6 +21,7 @@ import LiveTippingOverlay from "../components/livestream/LiveTippingOverlay.jsx"
 import ProductShowcase from "../components/livestream/ProductShowcase.jsx";
 import JoinRequestButton from "../components/livestream/JoinRequestButton.jsx";
 import JoinRequestsPanel from "../components/livestream/JoinRequestsPanel.jsx";
+import SubscribeButton from "../components/creator/SubscribeButton.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -192,14 +193,22 @@ export default function LivestreamViewer() {
           {/* Right actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {!isStreamCreator && currentUser && (
-              <Button
-                onClick={() => followMutation.mutate()}
-                size="sm"
-                className={isFollowing ? "bg-white/10 border border-white/20 text-white text-xs h-8" : "bg-purple-600 hover:bg-purple-700 text-xs h-8"}
-              >
-                <UserPlus className="w-3.5 h-3.5 mr-1" />
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
+              <>
+                <Button
+                  onClick={() => followMutation.mutate()}
+                  size="sm"
+                  className={isFollowing ? "bg-white/10 border border-white/20 text-white text-xs h-8" : "bg-purple-600 hover:bg-purple-700 text-xs h-8"}
+                >
+                  <UserPlus className="w-3.5 h-3.5 mr-1" />
+                  {isFollowing ? 'Following' : 'Follow'}
+                </Button>
+                <SubscribeButton
+                  creatorEmail={stream?.created_by}
+                  creatorName={stream?.creator_username || stream?.created_by}
+                  currentUser={currentUser}
+                  compact
+                />
+              </>
             )}
             <button onClick={handleShare} className="p-2 hover:bg-white/10 rounded-full transition">
               <Share2 className="w-4 h-4 text-white" />
@@ -217,7 +226,7 @@ export default function LivestreamViewer() {
       <div className="pt-[60px] h-screen flex flex-col lg:flex-row">
 
         {/* Video Area */}
-        <div className={`relative bg-black ${isTheaterMode ? 'flex-1' : 'w-full lg:flex-1'} ${isTheaterMode ? '' : 'aspect-video lg:aspect-auto lg:h-full'}`}>
+        <div className={`relative bg-black ${isTheaterMode ? 'flex-1' : 'w-full lg:flex-1'} ${isTheaterMode ? '' : 'aspect-video lg:aspect-auto lg:h-full'} flex-shrink-0`}>
           {stream.is_live && stream.agora_channel_name ? (
             <>
               <AgoraVideoPlayer

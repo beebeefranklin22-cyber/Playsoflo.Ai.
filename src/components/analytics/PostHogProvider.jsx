@@ -10,7 +10,7 @@ export function PostHogProvider({ children, user }) {
       posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
         loaded: (posthog) => {
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.NODE_ENV === 'development') {
             console.log('PostHog loaded');
           }
         }

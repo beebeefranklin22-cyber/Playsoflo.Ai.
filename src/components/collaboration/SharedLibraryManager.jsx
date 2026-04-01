@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Folder, Plus, Users, Video, DollarSign, UserPlus, Trash2, Upload, Film, FileVideo, Eye, Download } from "lucide-react";
+import { Folder, Plus, Users, Video, DollarSign, UserPlus, Trash2, Upload, Film, FileVideo, Eye, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 

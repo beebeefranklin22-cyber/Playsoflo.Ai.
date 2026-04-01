@@ -41,7 +41,7 @@ class EnhancedErrorBoundary extends React.Component {
       this.setState({ errorId: errorLog.id, isLogging: false });
 
       // Log to console in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.error('Error caught by boundary:', error, errorInfo);
       }
     } catch (logError) {
@@ -117,7 +117,7 @@ ${this.state.error?.stack || 'No stack trace available'}
             )}
 
             {/* Error Details (Development) */}
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="bg-black/30 rounded-xl p-4 mb-6">
                 <summary className="text-yellow-400 text-sm font-semibold cursor-pointer mb-2">
                   Technical Details (Development Only)
