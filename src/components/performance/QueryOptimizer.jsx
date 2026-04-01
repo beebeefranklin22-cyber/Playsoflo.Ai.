@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 
 // Optimized query with automatic stale-while-revalidate
 export function useOptimizedQuery(key, queryFn, options = {}) {
@@ -58,24 +59,8 @@ export function useDebouncedQuery(key, queryFn, value, delay = 300) {
   });
 }
 
-// Batch multiple queries efficiently
-export function useBatchQueries(queries) {
-  const results = queries.map(({ key, queryFn, ...options }) =>
-    useQuery({
-      queryKey: key,
-      queryFn,
-      staleTime: 30000,
-      ...options
-    })
-  );
-
-  return {
-    data: results.map(r => r.data),
-    isLoading: results.some(r => r.isLoading),
-    isError: results.some(r => r.isError),
-    errors: results.filter(r => r.error).map(r => r.error)
-  };
-}
+// Note: useBatchQueries removed - calling hooks inside .map() violates rules of hooks.
+// Use individual useQuery calls instead.
 
 // Infinite scroll optimization
 export function useInfiniteScrollOptimized(key, queryFn, options = {}) {

@@ -22,14 +22,16 @@ import ProductShowcase from "../components/livestream/ProductShowcase.jsx";
 import JoinRequestButton from "../components/livestream/JoinRequestButton.jsx";
 import JoinRequestsPanel from "../components/livestream/JoinRequestsPanel.jsx";
 import SubscribeButton from "../components/creator/SubscribeButton.jsx";
+import LiveTipFeed from "../components/livestream/LiveTipFeed.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 const TABS = [
-  { id: 'chat', label: 'Chat', icon: MessageCircle, color: 'purple' },
-  { id: 'polls', label: 'Polls', icon: BarChart3, color: 'blue' },
-  { id: 'qa', label: 'Q&A', icon: HelpCircle, color: 'green' },
-  { id: 'shop', label: 'Shop', icon: ShoppingCart, color: 'amber' },
+  { id: 'chat',  label: 'Chat',  icon: MessageCircle, color: 'purple' },
+  { id: 'polls', label: 'Polls', icon: BarChart3,      color: 'blue' },
+  { id: 'qa',    label: 'Q&A',   icon: HelpCircle,    color: 'green' },
+  { id: 'shop',  label: 'Shop',  icon: ShoppingCart,  color: 'amber' },
+  { id: 'tips',  label: 'Tips',  icon: Gift,           color: 'yellow' },
 ];
 
 export default function LivestreamViewer() {
@@ -153,7 +155,7 @@ export default function LivestreamViewer() {
     );
   }
 
-  const tabColorMap = { purple: 'bg-purple-500', blue: 'bg-blue-500', green: 'bg-green-500', amber: 'bg-amber-500' };
+  const tabColorMap = { purple: 'bg-purple-500', blue: 'bg-blue-500', green: 'bg-green-500', amber: 'bg-amber-500', yellow: 'bg-yellow-500' };
 
   const content = (
     <div className="min-h-screen bg-black">
@@ -339,6 +341,11 @@ export default function LivestreamViewer() {
                   <ProductShowcase streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} creatorEmail={stream.created_by} />
                 </div>
               )}
+              {activeTab === 'tips' && (
+                <div className="flex-1 overflow-y-auto p-4">
+                  <LiveTipFeed streamId={streamId} isCreator={isStreamCreator} />
+                </div>
+              )}
             </div>
 
             {/* Stream Info + Tipping */}
@@ -418,6 +425,7 @@ export default function LivestreamViewer() {
               </div>
             </div>
 
+            <LiveTipFeed streamId={streamId} isCreator={true} />
             <JoinRequestsPanel streamId={streamId} currentUser={currentUser} isCreator={true} />
             <CoHostManager streamId={streamId} currentUser={currentUser} isCreator={true} />
           </motion.div>
@@ -488,6 +496,11 @@ function LivestreamMobilePanel({ streamId, isStreamCreator, currentUser, stream,
               {activeTab === 'shop' && (
                 <div className="p-3 overflow-y-auto flex-1">
                   <ProductShowcase streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} creatorEmail={stream?.created_by} />
+                </div>
+              )}
+              {activeTab === 'tips' && (
+                <div className="p-3 overflow-y-auto flex-1">
+                  <LiveTipFeed streamId={streamId} isCreator={isStreamCreator} />
                 </div>
               )}
             </div>

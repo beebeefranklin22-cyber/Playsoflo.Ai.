@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { useState } from "react";
 
 class InputSanitizer {
   // Sanitize HTML content to prevent XSS
@@ -131,8 +132,8 @@ export default InputSanitizer;
 
 // React hook for sanitized input
 export function useSanitizedInput(initialValue = '', type = 'text') {
-  const [value, setValue] = React.useState(initialValue);
-  const [sanitized, setSanitized] = React.useState(initialValue);
+  const [value, setValue] = useState(initialValue);
+  const [sanitized, setSanitized] = useState(initialValue);
 
   const handleChange = (e) => {
     const raw = e.target.value;

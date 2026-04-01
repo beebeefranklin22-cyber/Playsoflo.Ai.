@@ -64,7 +64,7 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
     // Check daily limit
     const dailyLimit = currentUser?.daily_crypto_withdrawal_limit || 10000;
     const dailyUsed = currentUser?.daily_withdrawal_used || 0;
-    const priceUSD = (cryptoPrices?.[selectedCrypto]?.usd || 1) * totalAmount;
+    const priceUSD = totalAmount; // Treat as USD equivalent; no live price feed in this modal
 
     if (dailyUsed + priceUSD > dailyLimit) {
       toast.error(`Daily withdrawal limit exceeded. Remaining: $${(dailyLimit - dailyUsed).toFixed(2)}`);
@@ -94,7 +94,7 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
       });
 
       // Update daily usage
-      const priceUSD = (cryptoPrices?.[selectedCrypto]?.usd || 1) * totalAmount;
+      const priceUSD = totalAmount; // USD equivalent fallback
       await base44.auth.updateMe({
         usd_balance: (currentUser.usd_balance || 0) - platformFee,
         daily_withdrawal_used: (currentUser.daily_withdrawal_used || 0) + priceUSD
