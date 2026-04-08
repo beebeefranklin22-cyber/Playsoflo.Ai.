@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -6,14 +6,12 @@ import { createPageUrl } from "@/utils";
 import { 
   TrendingUp, Users, Hash, Sparkles, Search, Flame,
   Heart, MessageCircle, Eye, Clock, Crown, Star,
-  Globe, MapPin, ChevronRight, Radio, Video
+  Globe, MapPin, ChevronRight
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import GoLiveButton from "../components/social/GoLiveButton";
 
 export default function Social() {
   const navigate = useNavigate();
@@ -21,7 +19,7 @@ export default function Social() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  useEffect(() => {
+  React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
@@ -50,13 +48,6 @@ export default function Social() {
     queryFn: () => base44.entities.UserInteraction.list('-created_date', 50)
   });
 
-  // Fetch live streams
-  const { data: liveStreams = [] } = useQuery({
-    queryKey: ['social-live-streams'],
-    queryFn: () => base44.entities.StreamingContent.filter({ is_live: true }),
-    refetchInterval: 15000
-  });
-
   const categories = ["all", "energetic", "chill", "luxury", "adventure", "romantic", "party"];
 
   const filteredPosts = trendingPosts.filter(post => {
@@ -79,16 +70,11 @@ export default function Social() {
       {/* Header */}
       <div className="glass-effect border-b border-white/10 px-6 py-6 sticky top-16 z-30">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                <Flame className="w-10 h-10 text-orange-400" />
-                Discover
-              </h1>
-              <p className="text-gray-400">Trending content, popular creators, and what's hot right now</p>
-            </div>
-            {currentUser && <GoLiveButton currentUser={currentUser} />}
-          </div>
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <Flame className="w-10 h-10 text-orange-400" />
+            Discover
+          </h1>
+          <p className="text-gray-400">Trending content, popular creators, and what's hot right now</p>
 
           {/* Search */}
           <div className="mt-4 relative">
@@ -104,48 +90,6 @@ export default function Social() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-6">
-        {/* Live Streams Section */}
-        {liveStreams.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-white font-bold text-xl mb-3 flex items-center gap-2">
-              <Radio className="w-5 h-5 text-red-400 animate-pulse" />
-              Live Now
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {liveStreams.map(stream => (
-                <motion.div
-                  key={stream.id}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => navigate(createPageUrl("LivestreamViewer") + `?id=${stream.id}`)}
-                  className="flex-shrink-0 w-56 cursor-pointer group"
-                >
-                  <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800 mb-2">
-                    {stream.thumbnail_url ? (
-                      <img src={stream.thumbnail_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={stream.title} />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-red-900 to-pink-900 flex items-center justify-center">
-                        <Video className="w-8 h-8 text-white/50" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-red-600 px-2 py-0.5 rounded-full">
-                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                      <span className="text-white text-xs font-bold">LIVE</span>
-                    </div>
-                    {stream.live_viewers > 0 && (
-                      <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 px-2 py-0.5 rounded-full">
-                        <Eye className="w-3 h-3 text-white" />
-                        <span className="text-white text-xs">{stream.live_viewers}</span>
-                      </div>
-                    )}
-                  </div>
-                  <p className="text-white text-sm font-semibold line-clamp-1">{stream.title}</p>
-                  <p className="text-gray-400 text-xs">{stream.creator_username || stream.created_by}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <Tabs defaultValue="trending" className="w-full">
           <TabsList className="bg-white/10 border border-white/20 mb-6">
             <TabsTrigger value="trending">

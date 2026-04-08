@@ -559,7 +559,7 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', overscrollBehavior: 'none', minHeight: '100vh', overflowY: 'auto', height: isFullScreen ? '100vh' : 'auto' }}>
+      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden overflow-y-auto`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', overscrollBehavior: 'none', minHeight: '100vh' }}>
         <PullToRefresh onRefresh={handleRefresh}>
           {/* Breadcrumbs */}
           {!isFullScreen && breadcrumbs.length > 1 && (
