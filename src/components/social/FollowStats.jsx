@@ -17,13 +17,19 @@ export default function FollowStats({ userEmail, currentUser }) {
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', userEmail],
     queryFn: () => base44.entities.Follow.filter({ following_email: userEmail }),
-    enabled: !!userEmail
+    enabled: !!userEmail,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchInterval: 30000,
   });
 
   const { data: following = [] } = useQuery({
     queryKey: ['following', userEmail],
     queryFn: () => base44.entities.Follow.filter({ follower_email: userEmail }),
-    enabled: !!userEmail
+    enabled: !!userEmail,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchInterval: 30000,
   });
 
   // Remove follower mutation (for when viewing your own profile)

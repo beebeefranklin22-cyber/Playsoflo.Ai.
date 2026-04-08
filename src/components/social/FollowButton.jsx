@@ -78,14 +78,13 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
       toast.error('Failed to update follow status: ' + error.message);
     },
     onSuccess: (data, shouldFollow) => {
-      console.log('Follow success');
+      // Invalidate all follow-related queries including FollowStats keys
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      queryClient.invalidateQueries({ queryKey: ['is-following'] });
       queryClient.invalidateQueries({ queryKey: ['follows'] });
-      queryClient.invalidateQueries({ queryKey: ['my-followers'] });
-      queryClient.invalidateQueries({ queryKey: ['user-followers'] });
-      queryClient.invalidateQueries({ queryKey: ['user-following'] });
       queryClient.invalidateQueries({ queryKey: ['followers-count'] });
       queryClient.invalidateQueries({ queryKey: ['following-count'] });
-      queryClient.invalidateQueries({ queryKey: ['is-following'] });
       queryClient.invalidateQueries({ queryKey: ['artist-followers-count'] });
       refetch();
       toast.success(shouldFollow ? 'Now following' : 'Unfollowed');
