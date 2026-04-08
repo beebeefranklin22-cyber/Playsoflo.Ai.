@@ -293,6 +293,7 @@ nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar, .h
 /* Fix for pages that couldn't scroll to bottom */
 main > div {
   overflow-y: visible;
+  min-height: 100%;
 }
 
 @layer base {

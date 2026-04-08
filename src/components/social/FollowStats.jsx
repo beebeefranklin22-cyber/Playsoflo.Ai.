@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Users, X, UserMinus } from "lucide-react";
@@ -17,14 +17,28 @@ export default function FollowStats({ userEmail, currentUser }) {
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', userEmail],
     queryFn: () => base44.entities.Follow.filter({ following_email: userEmail }),
-    enabled: !!userEmail
+    enabled: !!userEmail,
+    refetchOnMount: true,
+    staleTime: 0
   });
 
   const { data: following = [] } = useQuery({
     queryKey: ['following', userEmail],
     queryFn: () => base44.entities.Follow.filter({ follower_email: userEmail }),
-    enabled: !!userEmail
+    enabled: !!userEmail,
+    refetchOnMount: true,
+    staleTime: 0
   });
+
+  // Real-time subscription to keep counts fresh
+  useEffect(() => {
+    if (!userEmail) return;
+    const unsub = base44.entities.Follow.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['followers', userEmail] });
+      queryClient.invalidateQueries({ queryKey: ['following', userEmail] });
+    });
+    return unsub;
+  }, [userEmail, queryClient]);
 
   // Remove follower mutation (for when viewing your own profile)
   const removeFollowerMutation = useMutation({
