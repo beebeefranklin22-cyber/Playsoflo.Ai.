@@ -250,7 +250,7 @@ Return as JSON array with this structure:
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 p-6 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 p-6 pb-20" style={{ overscrollBehavior: 'auto', touchAction: 'pan-y' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -372,7 +372,7 @@ Return as JSON array with this structure:
 
         {/* Category Filters */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 overflow-x-auto pb-4">
+          <div className="flex items-center gap-3 overflow-x-auto pb-4" style={{ touchAction: 'pan-x' }}>
             {entertainmentCategories.map((cat) => {
               const Icon = cat.icon;
               const isActive = selectedCategory === cat.id;
