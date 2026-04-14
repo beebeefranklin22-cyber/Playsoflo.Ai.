@@ -64,15 +64,15 @@ export default function CarRentals() {
     queryKey: ['available-cars'],
     queryFn: async () => {
       const cars = await base44.entities.MarketplaceItem.filter({ 
-        category: "automotive",
+        is_rental: true,
         availability: "available"
       });
       return cars;
     },
     initialData: [],
-    refetchInterval: 5000,
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
-    staleTime: 2000
+    staleTime: 10000
   });
 
   const { data: myRentals = [] } = useQuery({
@@ -133,7 +133,7 @@ export default function CarRentals() {
       queryClient.invalidateQueries(['damage-settlements']);
       setShowDamageModal(false);
       setDamageForm({ description: "", photos: [], estimated_cost: 0 });
-      alert('Damage reported successfully. AI is analyzing for automated resolution.');
+      toast.success('Damage reported. AI is analyzing for automated resolution.');
     }
   });
 
@@ -150,7 +150,7 @@ export default function CarRentals() {
       queryClient.invalidateQueries(['damage-settlements']);
       queryClient.invalidateQueries(['my-rentals']);
       setShowSettlementModal(false);
-      alert('Response recorded successfully!');
+      toast.success('Response recorded successfully!');
     }
   });
 
@@ -192,7 +192,7 @@ export default function CarRentals() {
     const insurance = baseCost * 0.15;
     const deliveryFee = bookingForm.delivery_option === "delivery_both_ways" ? 100 :
                        bookingForm.delivery_option === "delivery_to_renter" ? 50 : 0;
-    const securityDeposit = selectedCar.security_deposit || selectedCar.price || 500;
+    const securityDeposit = selectedCar.rental_details?.security_deposit || selectedCar.price || 500;
     
     // Calculate add-ons cost
     const addOnsCost = bookingForm.selected_add_ons.reduce((sum, addon) => {
@@ -212,23 +212,28 @@ export default function CarRentals() {
 
   const handleBooking = async () => {
     if (!selectedCar || !bookingForm.start_date || !bookingForm.end_date) {
-      alert("Please fill in all required fields");
+      toast.error("Please select rental dates");
+      return;
+    }
+
+    if (new Date(bookingForm.end_date) <= new Date(bookingForm.start_date)) {
+      toast.error("End date must be after start date");
       return;
     }
 
     if (!bookingForm.driver_license_url || !bookingForm.id_verification_url) {
-      alert("Please upload your driver's license and ID");
+      toast.error("Please upload your driver's license and ID");
       return;
     }
 
     const costs = calculateTotalCost();
 
     createRentalMutation.mutate({
-      provider_email: selectedCar.created_by,
-      car_make: selectedCar.car_make || selectedCar.title.split(' ')[1] || "Car",
-      car_model: selectedCar.car_model || selectedCar.title,
-      car_year: selectedCar.car_year || new Date().getFullYear(),
-      license_plate: selectedCar.license_plate || "UNKNOWN",
+      provider_email: selectedCar.provider_email || selectedCar.created_by,
+      car_make: selectedCar.rental_details?.specs?.make || selectedCar.title.split(' ')[0] || "Car",
+      car_model: selectedCar.rental_details?.specs?.model || selectedCar.title,
+      car_year: selectedCar.rental_details?.specs?.year || new Date().getFullYear(),
+      license_plate: selectedCar.license_plate || "TBD",
       car_image: selectedCar.image_url,
       rental_type: "daily",
       price_per_unit: selectedCar.price,
@@ -241,12 +246,12 @@ export default function CarRentals() {
       delivery_address: bookingForm.delivery_address || "",
       delivery_fee: costs.deliveryFee,
       unlock_method: bookingForm.unlock_method,
-      security_deposit: selectedCar.security_deposit || costs.securityDeposit,
+      security_deposit: selectedCar.rental_details?.security_deposit || costs.securityDeposit,
       verification_required: true,
       driver_license_url: bookingForm.driver_license_url,
       id_verification_url: bookingForm.id_verification_url,
-      mileage_limit: selectedCar.mileage_limit || 200,
-      excess_mileage_fee: 0.50,
+      mileage_limit: selectedCar.rental_details?.mileage_limit_per_day || 200,
+      excess_mileage_fee: selectedCar.rental_details?.excess_mileage_fee || 0.50,
       fuel_policy: selectedCar.rental_details?.fuel_policy || "full_to_full",
       cancellation_policy: "moderate",
       selected_add_ons: bookingForm.selected_add_ons,
@@ -340,6 +345,17 @@ export default function CarRentals() {
               </div>
             )}
 
+            {availableCars.length === 0 && (
+              <div className="text-center py-16">
+                <Car className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No cars available right now</h3>
+                <p className="text-gray-400 mb-6">Be the first to list your car for rent!</p>
+                <Button onClick={() => setShowListCar(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <Car className="w-4 h-4 mr-2" />
+                  List Your Car
+                </Button>
+              </div>
+            )}
             <div className="grid md:grid-cols-3 gap-6">
               {availableCars.map((car) => (
                 <motion.div
@@ -347,63 +363,86 @@ export default function CarRentals() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <Card className="bg-white/5 border-white/10 overflow-hidden hover:bg-white/10 transition cursor-pointer">
+                  <Card className="bg-white/5 border-white/10 overflow-hidden hover:bg-white/10 transition cursor-pointer group">
                     <div className="relative h-48">
-                      <img 
-                        src={car.image_url} 
-                        alt={car.title}
-                        className="w-full h-full object-cover"
-                      />
+                      {car.image_url ? (
+                        <img 
+                          src={car.image_url} 
+                          alt={car.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                          <Car className="w-12 h-12 text-gray-600" />
+                        </div>
+                      )}
                       <div className="absolute top-3 right-3 flex gap-2">
                         {car.verified_provider && (
-                          <Badge className="bg-green-500/90 text-white">
+                          <Badge className="bg-green-500/90 text-white text-xs">
                             <Shield className="w-3 h-3 mr-1" />
                             Verified
                           </Badge>
                         )}
                       </div>
+                      <div className="absolute bottom-3 left-3">
+                        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-3 py-1">
+                          <span className="text-white font-bold text-lg">${car.price}</span>
+                          <span className="text-gray-300 text-xs ml-1">/day</span>
+                        </div>
+                      </div>
                     </div>
                     <CardContent className="p-4">
-                      <h3 className="text-white font-bold text-lg mb-2">{car.title}</h3>
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">{car.description}</p>
-                      
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <div className="text-white text-2xl font-bold">${car.price}</div>
-                          <div className="text-gray-400 text-xs">per day</div>
-                        </div>
-                        <div className="flex items-center gap-1 text-yellow-400">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-white font-bold text-lg leading-tight">{car.title}</h3>
+                        <div className="flex items-center gap-1 text-yellow-400 ml-2 flex-shrink-0">
                           <Star className="w-4 h-4 fill-yellow-400" />
-                          <span className="font-medium">{car.rating || 5.0}</span>
+                          <span className="font-medium text-sm">{car.rating || "5.0"}</span>
                         </div>
                       </div>
+                      
+                      {car.rental_details?.specs?.engine && (
+                        <p className="text-blue-400 text-xs mb-2 font-medium">{car.rental_details.specs.engine}</p>
+                      )}
 
-                      <div className="space-y-2 mb-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Smartphone className="w-4 h-4 text-blue-400" />
-                        App unlock available
-                      </div>
-                      {car.rental_details?.delivery_available && (
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <MapPin className="w-4 h-4 text-red-400" />
-                          Delivery available
+                      {car.rental_details?.pickup_location && (
+                        <div className="flex items-center gap-1 text-gray-400 text-sm mb-3">
+                          <MapPin className="w-3 h-3" />
+                          <span>{car.rental_details.pickup_location}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <Shield className="w-4 h-4 text-green-400" />
-                        Full insurance included
-                      </div>
-                      {car.mileage_limit && (
-                        <div className="flex items-center gap-2 text-gray-300">
-                          <Car className="w-4 h-4 text-cyan-400" />
-                          {car.mileage_limit} mi/day limit
-                        </div>
-                      )}
+
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        <span className="text-xs bg-blue-500/20 text-blue-300 rounded-full px-2 py-1">
+                          <Smartphone className="w-3 h-3 inline mr-1" />App Unlock
+                        </span>
+                        <span className="text-xs bg-green-500/20 text-green-300 rounded-full px-2 py-1">
+                          <Shield className="w-3 h-3 inline mr-1" />Insured
+                        </span>
+                        {car.rental_details?.delivery_available && (
+                          <span className="text-xs bg-purple-500/20 text-purple-300 rounded-full px-2 py-1">
+                            Delivery
+                          </span>
+                        )}
+                        {car.rental_details?.mileage_limit_per_day && (
+                          <span className="text-xs bg-white/10 text-gray-300 rounded-full px-2 py-1">
+                            {car.rental_details.mileage_limit_per_day} mi/day
+                          </span>
+                        )}
                       </div>
 
                       <Button
                         onClick={() => {
                           setSelectedCar(car);
+                          setBookingForm({
+                            start_date: "",
+                            end_date: "",
+                            delivery_option: "pickup",
+                            delivery_address: "",
+                            unlock_method: "app_unlock",
+                            driver_license_url: "",
+                            id_verification_url: "",
+                            selected_add_ons: []
+                          });
                           setShowBookingModal(true);
                         }}
                         className="w-full bg-blue-600 hover:bg-blue-700"
