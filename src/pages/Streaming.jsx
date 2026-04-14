@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { 
-  Play, ChevronLeft, Tv, Gamepad2, Music, Radio,
-  TrendingUp, Clock, Users, Sparkles, Film, Filter, SlidersHorizontal,
-  Upload, Star, Calendar, DollarSign, X
+import {
+  Play, Tv, Gamepad2, Music, Radio,
+  TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
+  Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
+  Star, Eye, Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -13,778 +14,351 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import PaymentConfirmation from "../components/payment/PaymentConfirmation";
 import StreamScheduler from "../components/livestream/StreamScheduler";
 import WatchPartyModal from "../components/livestream/WatchPartyModal";
-import StreamGoalsWidget from "../components/livestream/StreamGoalsWidget";
 import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
 import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 
-const categories = [
+const CATEGORIES = [
   { id: "all", label: "All", icon: Tv },
-  { id: "movies", label: "Movies", icon: Film },
-  { id: "sports", label: "Sports", icon: TrendingUp },
   { id: "gaming", label: "Gaming", icon: Gamepad2 },
+  { id: "sports", label: "Sports", icon: TrendingUp },
   { id: "entertainment", label: "Shows", icon: Play },
   { id: "music", label: "Music", icon: Music },
-  { id: "betting", label: "Betting", icon: TrendingUp },
+  { id: "movies", label: "Movies", icon: Film },
 ];
 
-const movieTypes = [
-  { id: "all_movies", label: "All Movies" },
-  { id: "action", label: "Action" },
-  { id: "comedy", label: "Comedy" },
-  { id: "drama", label: "Drama" },
-  { id: "sci-fi", label: "Sci-Fi" },
-  { id: "thriller", label: "Thriller" },
-  { id: "horror", label: "Horror" },
-  { id: "romance", label: "Romance" },
-  { id: "animation", label: "Animation" },
-  { id: "documentary", label: "Documentary" },
-];
-
-const showTypes = [
-  { id: "all_shows", label: "All Shows" },
-  { id: "reality", label: "Reality TV" },
-  { id: "sitcom", label: "Sitcom" },
-  { id: "drama_series", label: "Drama Series" },
-  { id: "documentary_series", label: "Documentary" },
-  { id: "talk_show", label: "Talk Show" },
-  { id: "competition", label: "Competition" },
-  { id: "news", label: "News" },
-];
-
-const sportsTypes = [
-  { id: "all_sports", label: "All Sports" },
-  { id: "football", label: "Football" },
-  { id: "basketball", label: "Basketball" },
-  { id: "soccer", label: "Soccer" },
-  { id: "baseball", label: "Baseball" },
-  { id: "tennis", label: "Tennis" },
-  { id: "mma", label: "MMA/Boxing" },
-  { id: "racing", label: "Racing" },
-];
-
-const availabilityOptions = [
-  { value: "all", label: "All" },
-  { value: "free", label: "Free" },
-  { value: "subscription", label: "Subscription" },
-  { value: "rent_buy", label: "Rent/Buy" },
-];
-
-const sortOptions = [
+const SORT_OPTIONS = [
   { value: "popularity", label: "Most Popular" },
-  { value: "release_date", label: "Release Date" },
+  { value: "release_date", label: "Newest" },
   { value: "rating", label: "Highest Rated" },
-  { value: "title", label: "Title (A-Z)" },
+  { value: "title", label: "Title A-Z" },
 ];
 
 export default function Streaming() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedMovieType, setSelectedMovieType] = useState("all_movies");
-  const [selectedShowType, setSelectedShowType] = useState("all_shows");
-  const [selectedSportType, setSelectedSportType] = useState("all_sports");
   const [showFilters, setShowFilters] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
-  
-  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
-  const [yearFilter, setYearFilter] = useState("");
   const [ratingFilter, setRatingFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("popularity");
-  const [genreFilter, setGenreFilter] = useState("");
 
-  // Upload states
-  const [uploadData, setUploadData] = useState({
-    title: "",
-    type: "movie",
-    category: "entertainment",
-    description: "",
-    thumbnail_url: "",
-    video_url: "",
-    duration: "",
-    rating: "",
-    tags: [],
-    requires_subscription: false,
-    is_monetized: false,
-    price_usd: 0,
-    rental_price_usd: 0,
-  });
-  const [tagInput, setTagInput] = useState("");
-  const [uploading, setUploading] = useState(false);
-  
-  // Purchase states
+  // Modals
+  const [showUpload, setShowUpload] = useState(false);
+  const [showGoLive, setShowGoLive] = useState(false);
+  const [showScheduler, setShowScheduler] = useState(false);
+  const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
+  const [showWatchParty, setShowWatchParty] = useState(null);
   const [selectedContent, setSelectedContent] = useState(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [purchaseType, setPurchaseType] = useState("buy");
   const [processing, setProcessing] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState(null);
-  const [showScheduler, setShowScheduler] = useState(false);
-  const [showWatchParty, setShowWatchParty] = useState(null);
-  const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
-  const [showGoLive, setShowGoLive] = useState(false);
-  const [browseByCreator, setBrowseByCreator] = useState(false);
 
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-      } catch (error) {
-        console.log("User not authenticated");
-      }
-    };
-    fetchUser();
+  // Upload state
+  const [uploadData, setUploadData] = useState({
+    title: "", type: "movie", category: "entertainment", description: "",
+    thumbnail_url: "", video_url: "", duration: "", rating: "", tags: [],
+    requires_subscription: false, is_monetized: false, price_usd: 0, rental_price_usd: 0,
+  });
+  const [tagInput, setTagInput] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
   const { data: content = [], isLoading } = useQuery({
     queryKey: ['streaming-content'],
-    queryFn: async () => {
-      const allContent = await base44.entities.StreamingContent.filter({ status: "published" });
-      return allContent;
-    },
-    initialData: []
-  });
-
-  // Only show ACTIVE livestreams (is_live=true)
-  const activeLivestreams = content.filter(item => item.is_live === true);
-
-  // Get unique active creators (currently livestreaming)
-  const { data: activeCreators = [] } = useQuery({
-    queryKey: ['active-creators'],
-    queryFn: async () => {
-      const liveStreams = await base44.entities.StreamingContent.filter({ 
-        is_live: true,
-        status: "published" 
-      });
-      const creatorEmails = [...new Set(liveStreams.map(s => s.creator_email))];
-      const creators = await Promise.all(
-        creatorEmails.map(async (email) => {
-          const users = await base44.entities.User.filter({ email });
-          return users[0] || null;
-        })
-      );
-      return creators.filter(c => c !== null);
-    },
+    queryFn: () => base44.entities.StreamingContent.filter({ status: "published" }),
+    initialData: [],
     refetchInterval: 30000,
-    initialData: []
   });
 
-  const trendingContent = [...content]
-    .filter(item => !item.is_live) // Exclude active livestreams from trending (show only VOD)
-    .sort((a, b) => (b.views || 0) - (a.views || 0))
-    .slice(0, 10);
+  const activeLivestreams = content.filter(i => i.is_live === true);
 
-  const filteredContent = (() => {
-    let filtered = [...content].filter(item => !item.is_live); // Don't show active livestreams in browse
-    
-    // Search filter (including tags and creator)
+  const filteredContent = useMemo(() => {
+    let list = content.filter(i => !i.is_live);
+
     if (searchQuery) {
-      filtered = filtered.filter(item => 
-        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        item.creator_username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.creator_email?.toLowerCase().includes(searchQuery.toLowerCase())
+      const q = searchQuery.toLowerCase();
+      list = list.filter(i =>
+        i.title?.toLowerCase().includes(q) ||
+        i.description?.toLowerCase().includes(q) ||
+        i.tags?.some(t => t.toLowerCase().includes(q)) ||
+        i.creator_username?.toLowerCase().includes(q)
       );
     }
-    
-    // Filter by main category
-    if (selectedCategory === "movies") {
-      filtered = content.filter(item => item.type === "movie");
-      
-      // Filter movies by subcategory
-      if (selectedMovieType !== "all_movies") {
-        filtered = filtered.filter(item => 
-          item.description?.toLowerCase().includes(selectedMovieType) ||
-          item.title?.toLowerCase().includes(selectedMovieType)
-        );
-      }
-    } else if (selectedCategory === "entertainment") {
-      filtered = content.filter(item => item.type === "series" || item.category === "entertainment");
-      
-      // Filter shows by subcategory
-      if (selectedShowType !== "all_shows") {
-        filtered = filtered.filter(item => 
-          item.description?.toLowerCase().includes(selectedShowType.replace('_', ' ')) ||
-          item.title?.toLowerCase().includes(selectedShowType.replace('_', ' '))
-        );
-      }
-    } else if (selectedCategory === "sports") {
-      filtered = content.filter(item => item.category === "sports");
-      
-      // Filter sports by subcategory
-      if (selectedSportType !== "all_sports") {
-        filtered = filtered.filter(item => 
-          item.description?.toLowerCase().includes(selectedSportType) ||
-          item.title?.toLowerCase().includes(selectedSportType)
-        );
-      }
-    } else if (selectedCategory !== "all") {
-      filtered = content.filter(item => item.category === selectedCategory);
+
+    if (selectedCategory !== "all") {
+      if (selectedCategory === "movies") list = list.filter(i => i.type === "movie");
+      else list = list.filter(i => i.category === selectedCategory);
     }
-    
-    // Filter by genre
-    if (genreFilter) {
-      filtered = filtered.filter(item => 
-        item.description?.toLowerCase().includes(genreFilter.toLowerCase()) ||
-        item.title?.toLowerCase().includes(genreFilter.toLowerCase())
-      );
-    }
-    
-    // Filter by year
-    if (yearFilter) {
-      filtered = filtered.filter(item => 
-        item.description?.includes(yearFilter) || item.title?.includes(yearFilter)
-      );
-    }
-    
-    // Filter by rating
-    if (ratingFilter) {
-      const minRating = parseFloat(ratingFilter);
-      filtered = filtered.filter(item => 
-        item.rating && parseFloat(item.rating) >= minRating
-      );
-    }
-    
-    // Filter by availability
-    if (availabilityFilter !== "all") {
-      if (availabilityFilter === "free") {
-        filtered = filtered.filter(item => !item.requires_subscription);
-      } else if (availabilityFilter === "subscription") {
-        filtered = filtered.filter(item => item.requires_subscription);
-      }
-    }
-    
-    // Sort content
-    filtered = [...filtered].sort((a, b) => {
-      if (sortBy === "popularity") {
-        return (b.views || 0) - (a.views || 0);
-      } else if (sortBy === "release_date") {
-        return new Date(b.created_date) - new Date(a.created_date);
-      } else if (sortBy === "rating") {
-        return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
-      } else if (sortBy === "title") {
-        return a.title.localeCompare(b.title);
-      }
+
+    if (availabilityFilter === "free") list = list.filter(i => !i.requires_subscription && !i.is_monetized);
+    else if (availabilityFilter === "subscription") list = list.filter(i => i.requires_subscription);
+
+    if (ratingFilter) list = list.filter(i => parseFloat(i.rating) >= parseFloat(ratingFilter));
+
+    return [...list].sort((a, b) => {
+      if (sortBy === "popularity") return (b.views || 0) - (a.views || 0);
+      if (sortBy === "release_date") return new Date(b.created_date) - new Date(a.created_date);
+      if (sortBy === "rating") return (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0);
+      if (sortBy === "title") return a.title?.localeCompare(b.title);
       return 0;
     });
-    
-    return filtered;
-  })();
+  }, [content, searchQuery, selectedCategory, availabilityFilter, ratingFilter, sortBy]);
+
+  const trendingContent = useMemo(() =>
+    [...content].filter(i => !i.is_live).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8),
+    [content]
+  );
 
   const handleUpload = async () => {
-    if (!currentUser) {
-      toast.error("Please log in to upload content");
-      return;
-    }
-    
-    if (!uploadData.title || !uploadData.thumbnail_url || !uploadData.video_url) {
-      toast.error("Please fill in all required fields (title, video URL, thumbnail)");
-      return;
-    }
-    
+    if (!currentUser) { toast.error("Please log in to upload"); return; }
+    if (!uploadData.title || !uploadData.video_url) { toast.error("Title and video URL required"); return; }
     setUploading(true);
     try {
       await base44.entities.StreamingContent.create({
         ...uploadData,
         creator_email: currentUser.email,
-        creator_username: currentUser.username,
+        creator_username: currentUser.username || currentUser.full_name,
         rating: parseFloat(uploadData.rating) || 0,
         price_usd: parseFloat(uploadData.price_usd) || 0,
         rental_price_usd: parseFloat(uploadData.rental_price_usd) || 0,
-        is_live: false,
-        status: "published"
+        is_live: false, status: "published"
       });
-      toast.success("Content uploaded successfully!");
+      toast.success("Content uploaded!");
       setShowUpload(false);
-      setUploadData({
-        title: "",
-        type: "movie",
-        category: "entertainment",
-        description: "",
-        thumbnail_url: "",
-        video_url: "",
-        duration: "",
-        rating: "",
-        tags: [],
-        requires_subscription: false,
-        is_monetized: false,
-        price_usd: 0,
-        rental_price_usd: 0,
-      });
-      setTagInput("");
-    } catch (error) {
-      toast.error("Upload failed: " + error.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (e) { toast.error("Upload failed: " + e.message); }
+    finally { setUploading(false); }
   };
 
   const handlePurchase = async () => {
     if (!currentUser || !selectedContent) return;
-    
     setProcessing(true);
     try {
       const price = purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd;
-      const platformFeePercent = 0.15; // 15% platform fee
-      const platformFee = price * platformFeePercent;
-      const creatorEarnings = price - platformFee;
-      
-      // Check if user has enough balance
-      if (currentUser.balance_usd < price) {
-        toast.error("Insufficient wallet balance. Please add funds to your wallet.");
-        setProcessing(false);
-        return;
-      }
-      
-      // Deduct from buyer's wallet
-      await base44.auth.updateMe({
-        balance_usd: currentUser.balance_usd - price
-      });
-      
-      // Add to creator's balance using service role
+      if ((currentUser.balance_usd || 0) < price) { toast.error("Insufficient balance"); setProcessing(false); return; }
+      await base44.auth.updateMe({ balance_usd: (currentUser.balance_usd || 0) - price });
+      const creatorEarnings = price * 0.85;
       const creators = await base44.entities.User.filter({ email: selectedContent.creator_email });
-      if (creators.length > 0) {
-        const creator = creators[0];
-        await base44.asServiceRole.entities.User.update(creator.id, {
-          balance_usd: (creator.balance_usd || 0) + creatorEarnings
-        });
-      }
-      
-      // Create purchase record
-      const expiresAt = purchaseType === "rent" 
-        ? new Date(Date.now() + (selectedContent.rental_duration_hours || 48) * 60 * 60 * 1000).toISOString()
-        : null;
-        
-      const purchase = await base44.entities.ContentPurchase.create({
-        content_id: selectedContent.id,
-        buyer_email: currentUser.email,
-        creator_email: selectedContent.creator_email,
-        amount_usd: price,
-        purchase_type: purchaseType,
-        payment_method: "wallet",
-        access_expires_at: expiresAt,
-        platform_fee: platformFee,
-        creator_earnings: creatorEarnings
+      if (creators[0]) await base44.asServiceRole.entities.User.update(creators[0].id, { balance_usd: (creators[0].balance_usd || 0) + creatorEarnings });
+      const expiresAt = purchaseType === "rent" ? new Date(Date.now() + 48 * 3600000).toISOString() : null;
+      await base44.entities.ContentPurchase.create({
+        content_id: selectedContent.id, buyer_email: currentUser.email,
+        creator_email: selectedContent.creator_email, amount_usd: price,
+        purchase_type: purchaseType, payment_method: "wallet", access_expires_at: expiresAt,
+        platform_fee: price * 0.15, creator_earnings: creatorEarnings
       });
-
-      // Create payment record
       await base44.entities.Payment.create({
-        amount_usd: price,
-        amount_rri: 0,
-        method: "wallet",
-        status: "completed",
-        reference_type: "other",
-        reference_id: purchase.id,
-        sender_email: currentUser.email,
+        amount_usd: price, amount_rri: 0, method: "wallet", status: "completed",
+        reference_type: "other", sender_email: currentUser.email,
         recipient_email: selectedContent.creator_email,
         memo: `${purchaseType === "rent" ? "Rental" : "Purchase"}: ${selectedContent.title}`
       });
-
-      // Notify creator
       await base44.entities.Notification.create({
-        recipient_email: selectedContent.creator_email,
-        type: "payment_received",
+        recipient_email: selectedContent.creator_email, type: "payment_received",
         title: "Content Purchase",
-        message: `${currentUser.full_name || currentUser.email} ${purchaseType === "rent" ? "rented" : "purchased"} your content "${selectedContent.title}" for $${price.toFixed(2)}`,
-        sender_email: currentUser.email,
-        sender_name: currentUser.full_name,
-        read: false
+        message: `${currentUser.full_name || currentUser.email} ${purchaseType === "rent" ? "rented" : "purchased"} "${selectedContent.title}" for $${price.toFixed(2)}`,
+        sender_email: currentUser.email, read: false
       });
-      
       setConfirmedPurchase({ amount: price, title: selectedContent.title });
       setShowPaymentConfirmation(true);
       setShowPurchaseModal(false);
-    } catch (error) {
-      toast.error("Purchase failed: " + error.message);
-    } finally {
-      setProcessing(false);
-    }
+    } catch (e) { toast.error("Purchase failed: " + e.message); }
+    finally { setProcessing(false); }
   };
 
-  const handleTip = async (content, amount) => {
-    if (!currentUser) {
-      toast.error("Please log in to send tips");
-      return;
+  const handleContentClick = async (item) => {
+    if (item.is_monetized) {
+      const purchases = await base44.entities.ContentPurchase.filter({ content_id: item.id, buyer_email: currentUser?.email }).catch(() => []);
+      const hasPurchase = purchases.some(p => p.purchase_type === "buy" || (p.purchase_type === "rent" && new Date(p.access_expires_at) > new Date()));
+      const isOwner = currentUser?.email === item.creator_email || currentUser?.email === item.created_by;
+      if (!hasPurchase && !isOwner) { setSelectedContent(item); setShowPurchaseModal(true); return; }
     }
-    
-    if (currentUser.balance_usd < amount) {
-      toast.error("Insufficient wallet balance. Please add funds to your wallet.");
-      return;
-    }
-    
-    try {
-      // Deduct from tipper's wallet
-      await base44.auth.updateMe({
-        balance_usd: currentUser.balance_usd - amount
-      });
-      
-      // Add to creator's wallet using service role
-      const creators = await base44.entities.User.filter({ email: content.creator_email || content.created_by });
-      if (creators.length > 0) {
-        const creator = creators[0];
-        await base44.asServiceRole.entities.User.update(creator.id, {
-          balance_usd: (creator.balance_usd || 0) + amount
-        });
-      }
-      
-      // Create tip transaction
-      await base44.entities.TipTransaction.create({
-        creator_email: content.creator_email || content.created_by,
-        tipper_email: currentUser.email,
-        amount_usd: amount,
-        content_id: String(content.id)
-      });
-
-      // Create payment record
-      await base44.entities.Payment.create({
-        amount_usd: amount,
-        amount_rri: 0,
-        method: "wallet",
-        status: "completed",
-        reference_type: "other",
-        sender_email: currentUser.email,
-        recipient_email: content.creator_email || content.created_by,
-        memo: `Tip for: ${content.title}`
-      });
-
-      // Notify creator
-      await base44.entities.Notification.create({
-        recipient_email: content.creator_email || content.created_by,
-        type: "payment_received",
-        title: "Tip Received",
-        message: `${currentUser.full_name || currentUser.email} tipped you $${amount.toFixed(2)}!`,
-        sender_email: currentUser.email,
-        sender_name: currentUser.full_name,
-        read: false
-      });
-      
-      // Update user state
-      const updatedUser = await base44.auth.me();
-      setCurrentUser(updatedUser);
-      
-      setConfirmedPurchase({ amount, title: "Tip sent" });
-      setShowPaymentConfirmation(true);
-    } catch (error) {
-      toast.error("Tip failed: " + error.message);
-    }
-  };
-
-  const checkAccess = async (content) => {
-    if (!content.is_monetized) return true;
-    if (!currentUser) return false;
-    if (content.creator_email === currentUser.email) return true;
-    
-    const purchases = await base44.entities.ContentPurchase.filter({
-      content_id: content.id,
-      buyer_email: currentUser.email
-    });
-    
-    if (purchases.length === 0) return false;
-    
-    const purchase = purchases[0];
-    if (purchase.purchase_type === "buy") return true;
-    if (purchase.purchase_type === "rent") {
-      return new Date(purchase.access_expires_at) > new Date();
-    }
-    
-    return false;
-  };
-
-  const handleContentClick = async (content) => {
-    const hasAccess = await checkAccess(content);
-    
-    if (!hasAccess && content.is_monetized) {
-      setSelectedContent(content);
-      setShowPurchaseModal(true);
-    } else {
-      // Navigate to appropriate viewer based on content type
-      if (content.is_live || content.type === "live_event" || content.type === "live_sports") {
-        navigate(createPageUrl("LivestreamViewer") + `?id=${content.id}`);
-      } else {
-        // For movies, series, and other VOD content
-        navigate(createPageUrl("LivestreamViewer") + `?id=${content.id}`);
-      }
-    }
+    navigate(createPageUrl("LivestreamViewer") + `?id=${item.id}`);
   };
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setUploadData({ ...uploadData, thumbnail_url: file_url });
-      toast.success("Thumbnail uploaded!");
-    } catch (error) {
-      toast.error("Image upload failed");
-    }
+    try { const { file_url } = await base44.integrations.Core.UploadFile({ file }); setUploadData(p => ({ ...p, thumbnail_url: file_url })); toast.success("Thumbnail uploaded!"); }
+    catch { toast.error("Upload failed"); }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-red-950 to-gray-950 pb-20">
-      <div className="relative h-64 flex items-end">
-        <div className="absolute inset-0 bg-gradient-to-b from-red-900/50 to-transparent" />
-        <div className="absolute top-6 left-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20"
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-        </div>
-        <div className="relative z-10 w-full px-6 pb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
-            Streaming
-          </h1>
-          <p className="text-gray-300 text-lg">
-            Watch live sports, shows, gaming & more
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#0e0e10] pb-24">
 
-      {/* Content Discovery Section */}
-      <div className="px-6 mb-8">
-        <div className="bg-gradient-to-r from-purple-900/40 to-pink-900/40 rounded-2xl p-6 border border-white/10">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-2">Discover Content</h2>
-              <p className="text-gray-300">Personalized recommendations based on your interests</p>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {currentUser && (
-                <>
-                  <Button
-                    onClick={() => setShowGoLive(true)}
-                    className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 animate-pulse"
-                  >
-                    <Radio className="w-4 h-4 mr-2" />
-                    Go Live
-                  </Button>
-                  <Button
-                    onClick={() => setShowUpload(true)}
-                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Video
-                  </Button>
-                  <Button
-                    onClick={() => setShowScheduler(true)}
-                    variant="outline"
-                    className="bg-white/10 border-white/20"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Schedule
-                  </Button>
-                </>
-              )}
-              <Button
-                onClick={() => navigate(createPageUrl("Gaming"))}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              >
-                <Gamepad2 className="w-4 h-4 mr-2" />
-                Play Games
-              </Button>
-              <Button
-                onClick={() => setShowTMDBBrowser(true)}
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-              >
-                <Film className="w-4 h-4 mr-2" />
-                Browse Movies
-              </Button>
-              <Button
-                onClick={() => navigate(createPageUrl("PersonalizedFeed"))}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Explore
-              </Button>
-            </div>
+      {/* Hero Header */}
+      <div className="relative bg-gradient-to-b from-[#1a0533] to-[#0e0e10] px-4 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Streaming</h1>
+            <p className="text-gray-400 text-sm mt-0.5">Watch live, stream, discover</p>
           </div>
-          <div className="grid grid-cols-3 gap-4 mt-4">
-            <div className="text-center p-4 bg-white/5 rounded-xl">
-              <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-white font-bold text-lg">2.4M</p>
-              <p className="text-gray-400 text-xs">Trending Now</p>
-            </div>
-            <div className="text-center p-4 bg-white/5 rounded-xl">
-              <Users className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-white font-bold text-lg">850K</p>
-              <p className="text-gray-400 text-xs">Creators</p>
-            </div>
-            <div className="text-center p-4 bg-white/5 rounded-xl">
-              <Play className="w-8 h-8 text-pink-400 mx-auto mb-2" />
-              <p className="text-white font-bold text-lg">15K</p>
-              <p className="text-gray-400 text-xs">Live Streams</p>
-            </div>
-          </div>
+          {currentUser && (
+            <Button
+              onClick={() => setShowGoLive(true)}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-2 px-4 h-10 rounded-xl"
+            >
+              <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              Go Live
+            </Button>
+          )}
         </div>
-      </div>
 
-      {/* Search Bar */}
-      <div className="px-6 mb-8">
-        <div className="flex gap-4">
-          <Input
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
             type="text"
-            placeholder="Search by title, creator, tags, genre..."
+            placeholder="Search streams, movies, creators..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-12 text-lg"
+            className="w-full bg-white/8 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500 transition"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
           />
-          <Button
-            onClick={() => setBrowseByCreator(!browseByCreator)}
-            variant={browseByCreator ? "default" : "outline"}
-            className={browseByCreator ? "bg-purple-600" : "bg-white/10 border-white/20"}
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Browse Creators
-          </Button>
         </div>
       </div>
 
-      {/* Active Creators Section */}
-      {browseByCreator && activeCreators.length > 0 && (
-        <div className="px-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <Radio className="w-6 h-6 text-green-500 animate-pulse" />
-            Live Creators ({activeCreators.length} online)
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {activeCreators.map(creator => (
-              <motion.div
-                key={creator.email}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="cursor-pointer group"
-                onClick={() => navigate(createPageUrl("CreatorProfile") + `?creator=${creator.email}`)}
+      {/* Quick Actions - Creator Tools */}
+      {currentUser && (
+        <div className="px-4 mb-5">
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "Upload", icon: Upload, color: "from-blue-600 to-cyan-600", action: () => setShowUpload(true) },
+              { label: "Schedule", icon: Calendar, color: "from-purple-600 to-violet-600", action: () => setShowScheduler(true) },
+              { label: "Movies", icon: Film, color: "from-orange-600 to-red-600", action: () => setShowTMDBBrowser(true) },
+              { label: "Explore", icon: Sparkles, color: "from-pink-600 to-rose-600", action: () => navigate(createPageUrl("PersonalizedFeed")) },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={item.action}
+                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-gradient-to-br ${item.color} active:scale-95 transition-transform`}
               >
-                <div className="relative">
-                  <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-900 mb-2">
-                    <img 
-                      src={creator.profile_picture || `https://ui-avatars.com/api/?name=${creator.full_name}`}
-                      alt={creator.full_name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                    <div className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
-                  </div>
-                  <h3 className="text-white font-semibold text-sm text-center line-clamp-1">
-                    {creator.full_name}
-                  </h3>
-                  {creator.username && (
-                    <p className="text-purple-400 text-xs text-center">{"@"}{creator.username}</p>
-                  )}
-                </div>
-              </motion.div>
+                <item.icon className="w-5 h-5 text-white" />
+                <span className="text-white text-xs font-semibold">{item.label}</span>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Trending Now Section */}
-      {trendingContent.length > 0 && !searchQuery && (
-        <div className="px-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-orange-500" />
-            Trending Now
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {trendingContent.map((item, idx) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="group cursor-pointer relative"
-              >
-                <div className="absolute top-2 left-2 z-10 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                  #{idx + 1}
-                </div>
-                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900">
-                  <img 
-                    src={item.thumbnail_url} 
-                    alt={item.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 bg-orange-500/90 rounded-full flex items-center justify-center">
-                      <Play className="w-6 h-6 text-white fill-white" />
-                    </div>
-                  </div>
-
-                  <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform">
-                    <h3 className="text-white font-bold text-sm line-clamp-2 mb-1">
-                      {item.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-gray-300 text-xs">
-                      <Users className="w-3 h-3" />
-                      {item.views || 0} views
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+      {/* Stats Row */}
+      <div className="px-4 mb-6">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white/5 border border-white/8 rounded-xl p-3 text-center">
+            <p className="text-green-400 font-bold text-lg">{activeLivestreams.length || "0"}</p>
+            <p className="text-gray-500 text-xs">Live Now</p>
+          </div>
+          <div className="bg-white/5 border border-white/8 rounded-xl p-3 text-center">
+            <p className="text-purple-400 font-bold text-lg">{content.length || "0"}</p>
+            <p className="text-gray-500 text-xs">Videos</p>
+          </div>
+          <div className="bg-white/5 border border-white/8 rounded-xl p-3 text-center">
+            <p className="text-blue-400 font-bold text-lg">
+              {content.reduce((acc, c) => acc + (c.views || 0), 0).toLocaleString() || "0"}
+            </p>
+            <p className="text-gray-500 text-xs">Total Views</p>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* LIVE NOW */}
       {activeLivestreams.length > 0 && (
-        <div className="px-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-            <Radio className="w-6 h-6 text-red-500 animate-pulse" />
-            Live Now - {activeLivestreams.length} Active Stream{activeLivestreams.length !== 1 ? 's' : ''}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="px-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <h2 className="text-white font-bold text-lg">Live Now</h2>
+            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">{activeLivestreams.length}</Badge>
+          </div>
+          <div className="space-y-3">
             {activeLivestreams.map((item) => (
               <motion.div
                 key={item.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative h-48 rounded-2xl overflow-hidden cursor-pointer group"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => navigate(createPageUrl("LivestreamViewer") + `?id=${item.id}`)}
+                className="relative flex gap-3 bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
               >
-                <img 
-                  src={item.thumbnail_url} 
-                  alt={item.title}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent" />
-                
-                <div className="absolute top-4 left-4 px-3 py-1 bg-red-500 rounded-full text-xs font-bold text-white flex items-center gap-1 animate-pulse">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                  LIVE
-                </div>
-
-                <div className="absolute inset-x-0 bottom-0 p-6">
-                <div className="mb-2">
-                  {item.creator_username && (
-                    <p className="text-gray-300 text-sm mb-1 cursor-pointer hover:text-purple-400 transition"
-                       onClick={(e) => {
-                         e.stopPropagation();
-                         navigate(createPageUrl("CreatorProfile") + `?creator=${item.creator_email}`);
-                       }}>
-                      {"@"}{item.creator_username}
-                    </p>
-                  )}
-                  <h3 className="text-2xl font-bold text-white">
-                    {item.title}
-                  </h3>
-                </div>
-                  <div className="flex items-center gap-4 text-gray-300 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {item.views || 0} watching
+                <div className="relative w-28 h-20 flex-shrink-0">
+                  {item.thumbnail_url ? (
+                    <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-red-900 to-purple-900 flex items-center justify-center">
+                      <Radio className="w-6 h-6 text-white/40" />
                     </div>
-                    {item.betting_available && (
-                      <span className="px-2 py-1 bg-yellow-500/20 rounded text-yellow-300 text-xs font-bold">
-                        Bet Live
-                      </span>
-                    )}
+                  )}
+                  <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-red-600 px-1.5 py-0.5 rounded text-white text-[10px] font-bold">
+                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                    LIVE
+                  </div>
+                </div>
+                <div className="flex-1 py-3 pr-3 min-w-0">
+                  <p className="text-white font-semibold text-sm line-clamp-1">{item.title}</p>
+                  <p className="text-gray-400 text-xs mt-0.5 truncate">@{item.creator_username || item.creator_email}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-1 text-gray-400 text-xs">
+                      <Eye className="w-3 h-3" />
+                      {item.views || 0}
+                    </div>
+                    <Badge className="bg-white/10 text-gray-300 text-[10px] border-0 capitalize">{item.category}</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center pr-3">
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Trending */}
+      {trendingContent.length > 0 && !searchQuery && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between px-4 mb-3">
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-orange-400" />
+              Trending
+            </h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ touchAction: 'pan-x' }}>
+            {trendingContent.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                onClick={() => handleContentClick(item)}
+                className="flex-shrink-0 w-32 cursor-pointer group"
+              >
+                <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900">
+                  {item.thumbnail_url ? (
+                    <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                      <Tv className="w-8 h-8 text-gray-600" />
+                    </div>
+                  )}
+                  <div className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                    #{idx + 1}
+                  </div>
+                  {item.is_monetized && (
+                    <div className="absolute top-1.5 right-1.5 bg-green-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <DollarSign className="w-2.5 h-2.5" />
+                      {item.rental_price_usd > 0 ? item.rental_price_usd : item.price_usd}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="text-white text-xs font-semibold line-clamp-2 leading-tight">{item.title}</p>
                   </div>
                 </div>
               </motion.div>
@@ -793,363 +367,240 @@ export default function Streaming() {
         </div>
       )}
 
-      <div className="px-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 overflow-x-auto pb-4 hide-scrollbar flex-1">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  if (cat.id !== "movies") setSelectedMovieType("all_movies");
-                  if (cat.id !== "entertainment") setSelectedShowType("all_shows");
-                  if (cat.id !== "sports") setSelectedSportType("all_sports");
-                }}
-                className={`flex-shrink-0 flex items-center gap-2 px-6 py-3 rounded-full font-medium transition ${
-                  selectedCategory === cat.id
-                    ? "bg-red-500 text-white"
-                    : "bg-white/10 text-gray-300 hover:bg-white/20"
-                }`}
-              >
-                <cat.icon className="w-4 h-4" />
-                {cat.label}
-              </button>
-            ))}
-          </div>
-          <Button
+      {/* Category Tabs */}
+      <div className="px-4 mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-1" style={{ touchAction: 'pan-x' }}>
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition ${
+                selectedCategory === cat.id
+                  ? "bg-purple-600 text-white"
+                  : "bg-white/8 text-gray-400 hover:bg-white/12"
+              }`}
+              style={{ background: selectedCategory === cat.id ? undefined : 'rgba(255,255,255,0.06)' }}
+            >
+              <cat.icon className="w-3.5 h-3.5" />
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filter Toggle Row */}
+      <div className="px-4 mb-4">
+        <div className="flex items-center justify-between">
+          <p className="text-gray-400 text-sm">
+            {filteredContent.length} {filteredContent.length === 1 ? "video" : "videos"}
+            {searchQuery && <span className="text-purple-400"> for "{searchQuery}"</span>}
+          </p>
+          <button
             onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            className="bg-white/10 border-white/20 hover:bg-white/20 flex-shrink-0 ml-4"
+            className="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm transition"
           >
-            <SlidersHorizontal className="w-4 h-4 mr-2" />
+            <SlidersHorizontal className="w-4 h-4" />
             Filters
-          </Button>
+          </button>
         </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-white/5 rounded-xl p-4 mb-4 border border-white/10"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Sort By</label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sortOptions.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Genre</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Action, Drama"
-                  value={genreFilter}
-                  onChange={(e) => setGenreFilter(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Availability</label>
-                <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availabilityOptions.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Min Rating</label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="0.1"
-                  placeholder="e.g., 7.5"
-                  value={ratingFilter}
-                  onChange={(e) => setRatingFilter(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Year</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., 2024"
-                  value={yearFilter}
-                  onChange={(e) => setYearFilter(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                onClick={() => {
-                  setSearchQuery("");
-                  setGenreFilter("");
-                  setYearFilter("");
-                  setRatingFilter("");
-                  setAvailabilityFilter("all");
-                  setSortBy("popularity");
-                }}
-                variant="outline"
-                className="bg-white/5 border-white/20"
-              >
-                Clear All Filters
-              </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Movie Subcategories */}
-        {selectedCategory === "movies" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
-            {movieTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedMovieType(type.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedMovieType === type.id
-                    ? "bg-purple-500 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10"
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Shows Subcategories */}
-        {selectedCategory === "entertainment" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
-            {showTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedShowType(type.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedShowType === type.id
-                    ? "bg-purple-500 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10"
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Sports Subcategories */}
-        {selectedCategory === "sports" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 hide-scrollbar mt-4">
-            {sportsTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedSportType(type.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${
-                  selectedSportType === type.id
-                    ? "bg-purple-500 text-white"
-                    : "bg-white/5 text-gray-400 hover:bg-white/10"
-                }`}
-              >
-                {type.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="px-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white">
-            {browseByCreator ? "Browse by Creator" : "Browse Content"}
-          </h2>
-          {searchQuery && (
-            <p className="text-gray-400 text-sm">{filteredContent.length} results found</p>
-          )}
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <AnimatePresence>
-            {filteredContent.map((item) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="group cursor-pointer"
-                onClick={() => handleContentClick(item)}
-              >
-                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900">
-                  <img 
-                    src={item.thumbnail_url} 
-                    alt={item.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-16 h-16 bg-red-500/90 rounded-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-white fill-white" />
-                    </div>
-                  </div>
-
-                  {/* Monetization badges */}
-                  {item.is_monetized && (
-                    <div className="absolute top-2 left-2 z-10 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" />
-                      {item.rental_price_usd > 0 ? `$${item.rental_price_usd}` : `$${item.price_usd}`}
-                    </div>
-                  )}
-                  
-                  {/* Action buttons */}
-                  <div className="absolute right-2 top-2 z-10 flex gap-1">
-                   <Button
-                     size="sm"
-                     className="bg-purple-500 hover:bg-purple-600"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setShowWatchParty(item);
-                     }}
-                   >
-                     <Users className="w-3 h-3" />
-                   </Button>
-                   <Button
-                     size="sm"
-                     className="bg-yellow-500 hover:bg-yellow-600 text-black"
-                     onClick={async (e) => {
-                       e.stopPropagation();
-                       const amountStr = prompt('Tip amount in USD:');
-                       if (!amountStr) return;
-                       const amount = parseFloat(amountStr);
-                       if (isNaN(amount) || amount <= 0) {
-                         toast.error("Invalid amount");
-                         return;
-                       }
-                       await handleTip(item, amount);
-                     }}
-                   >
-                     Tip
-                   </Button>
-                  </div>
-
-                  <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform">
-                    {item.creator_username && (
-                      <p className="text-purple-400 text-xs mb-1 cursor-pointer hover:text-purple-300"
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           navigate(createPageUrl("CreatorProfile") + `?creator=${item.creator_email}`);
-                         }}>
-                        {"@"}{item.creator_username}
-                      </p>
-                    )}
-                    <h3 className="text-white font-bold mb-1 line-clamp-2">
-                      {item.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-gray-300 text-xs mb-2">
-                      {item.duration && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {item.duration}
-                        </div>
-                      )}
-                      {item.rating && (
-                        <span>★ {item.rating}</span>
-                      )}
-                    </div>
-                  </div>
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 bg-white/5 border border-white/10 rounded-xl p-3 space-y-3"
+            >
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-gray-500 text-xs mb-1 block">Sort</label>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                <div>
+                  <label className="text-gray-500 text-xs mb-1 block">Access</label>
+                  <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="free">Free</SelectItem>
+                      <SelectItem value="subscription">Sub</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs mb-1 block">Min Rating</label>
+                  <Input
+                    type="number" min="0" max="10" step="0.5" placeholder="0"
+                    value={ratingFilter} onChange={(e) => setRatingFilter(e.target.value)}
+                    className="bg-white/10 border-white/20 text-white h-9 text-xs"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => { setSortBy("popularity"); setAvailabilityFilter("all"); setRatingFilter(""); setSearchQuery(""); }}
+                className="text-xs text-gray-500 hover:text-white transition"
+              >
+                Clear all filters
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-        {filteredContent.length === 0 && !isLoading && (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Tv className="w-10 h-10 text-red-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-2">No content found</h3>
-            <p className="text-gray-400">Try selecting a different category</p>
+      {/* Content Grid */}
+      <div className="px-4">
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-[2/3] rounded-xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+        ) : filteredContent.length === 0 ? (
+          <div className="text-center py-16">
+            <Tv className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+            <p className="text-gray-400 font-semibold">No content found</p>
+            <p className="text-gray-600 text-sm mt-1">Try a different category or search term</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <AnimatePresence>
+              {filteredContent.map((item) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => handleContentClick(item)}
+                  className="cursor-pointer group"
+                >
+                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900">
+                    {item.thumbnail_url ? (
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <Tv className="w-10 h-10 text-gray-700" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {item.is_monetized && (
+                        <span className="bg-green-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <DollarSign className="w-2.5 h-2.5" />
+                          {item.price_usd > 0 ? `$${item.price_usd}` : `$${item.rental_price_usd}/rent`}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Watch party button */}
+                    <button
+                      className="absolute top-2 right-2 bg-purple-600/80 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition"
+                      onClick={(e) => { e.stopPropagation(); setShowWatchParty(item); }}
+                    >
+                      <Users className="w-3 h-3 text-white" />
+                    </button>
+
+                    {/* Play overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
+                        <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-white font-semibold text-xs line-clamp-2 leading-tight mb-1">{item.title}</p>
+                      <div className="flex items-center gap-2 text-gray-400 text-[10px]">
+                        {item.rating && (
+                          <span className="flex items-center gap-0.5 text-yellow-400">
+                            <Star className="w-2.5 h-2.5 fill-yellow-400" />{item.rating}
+                          </span>
+                        )}
+                        {item.duration && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="w-2.5 h-2.5" />{item.duration}
+                          </span>
+                        )}
+                        {item.views > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <Eye className="w-2.5 h-2.5" />{item.views.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
+
+      {/* ── MODALS ── */}
+
+      {/* Go Live */}
+      {showGoLive && currentUser && (
+        <GoLiveNowModal
+          currentUser={currentUser}
+          onClose={() => setShowGoLive(false)}
+          onSuccess={() => { setShowGoLive(false); toast.success("Stream started!"); setTimeout(() => window.location.reload(), 1000); }}
+        />
+      )}
 
       {/* Upload Modal */}
       {showUpload && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-          onClick={() => setShowUpload(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowUpload(false)}>
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Upload className="w-6 h-6" />
-                Upload Content
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Upload className="w-5 h-5 text-blue-400" /> Upload Content
               </h2>
-              <button onClick={() => setShowUpload(false)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-white" />
+              <button onClick={() => setShowUpload(false)} className="p-1.5 hover:bg-white/10 rounded-full">
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Title *</label>
-                <Input
-                  value={uploadData.title}
-                  onChange={(e) => setUploadData({ ...uploadData, title: e.target.value })}
-                  placeholder="Enter content title"
-                  className="bg-white/10 border-white/20 text-white"
-                />
+                <label className="text-gray-400 text-xs mb-1.5 block">Title *</label>
+                <Input value={uploadData.title} onChange={(e) => setUploadData(p => ({ ...p, title: e.target.value }))} placeholder="Enter content title" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Type</label>
-                  <Select 
-                    value={uploadData.type} 
-                    onValueChange={(v) => setUploadData({ ...uploadData, type: v })}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <label className="text-gray-400 text-xs mb-1.5 block">Type</label>
+                  <Select value={uploadData.type} onValueChange={(v) => setUploadData(p => ({ ...p, type: v }))}>
+                    <SelectTrigger className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="movie">Movie</SelectItem>
                       <SelectItem value="series">TV Series</SelectItem>
-                      <SelectItem value="live_sports">Live Sports</SelectItem>
+                      <SelectItem value="gaming_stream">Gaming</SelectItem>
                       <SelectItem value="live_event">Live Event</SelectItem>
-                      <SelectItem value="gaming_stream">Gaming Stream</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Category</label>
-                  <Select 
-                    value={uploadData.category} 
-                    onValueChange={(v) => setUploadData({ ...uploadData, category: v })}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <label className="text-gray-400 text-xs mb-1.5 block">Category</label>
+                  <Select value={uploadData.category} onValueChange={(v) => setUploadData(p => ({ ...p, category: v }))}>
+                    <SelectTrigger className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }}><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sports">Sports</SelectItem>
                       <SelectItem value="entertainment">Entertainment</SelectItem>
@@ -1160,349 +611,132 @@ export default function Streaming() {
                   </Select>
                 </div>
               </div>
-
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Description</label>
-                <Textarea
-                  value={uploadData.description}
-                  onChange={(e) => setUploadData({ ...uploadData, description: e.target.value })}
-                  placeholder="Describe your content..."
-                  className="bg-white/10 border-white/20 text-white"
-                  rows={4}
-                />
+                <label className="text-gray-400 text-xs mb-1.5 block">Description</label>
+                <Textarea value={uploadData.description} onChange={(e) => setUploadData(p => ({ ...p, description: e.target.value }))} placeholder="Describe your content..." className="bg-white/8 border-white/15 text-white" rows={3} style={{ background: 'rgba(255,255,255,0.06)' }} />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1.5 block">Video URL *</label>
+                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="https://..." className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs mb-1.5 block">Thumbnail</label>
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e.target.files?.[0])} className="hidden" id="thumb-upload" />
+                <div className="flex items-center gap-3">
+                  <Button type="button" onClick={() => document.getElementById('thumb-upload').click()} variant="outline" size="sm" className="bg-white/8 border-white/15">Choose Image</Button>
+                  {uploadData.thumbnail_url && <img src={uploadData.thumbnail_url} className="h-10 w-16 object-cover rounded-lg" alt="thumb" />}
+                </div>
               </div>
 
+              {/* Tags */}
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Video URL *</label>
-                <Input
-                  value={uploadData.video_url}
-                  onChange={(e) => setUploadData({ ...uploadData, video_url: e.target.value })}
-                  placeholder="Enter video URL (MP4, HLS, etc.)"
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <p className="text-xs text-gray-500 mt-1">Direct link to your video file or streaming URL</p>
-              </div>
-
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Thumbnail *</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e.target.files?.[0])}
-                  className="hidden"
-                  id="thumbnail-upload"
-                />
+                <label className="text-gray-400 text-xs mb-1.5 block">Tags</label>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => document.getElementById('thumbnail-upload').click()}
-                    variant="outline"
-                    className="bg-white/10 border-white/20"
-                  >
-                    Choose Image
-                  </Button>
-                  {uploadData.thumbnail_url && (
-                    <img src={uploadData.thumbnail_url} className="h-10 w-16 object-cover rounded" />
-                  )}
+                  <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                    onKeyPress={(e) => { if (e.key === 'Enter' && tagInput.trim()) { setUploadData(p => ({ ...p, tags: [...p.tags, tagInput.trim()] })); setTagInput(""); }}}
+                    placeholder="Add tag + Enter" className="bg-white/8 border-white/15 text-white flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                  <Button type="button" size="sm" variant="outline" className="bg-white/8 border-white/15" onClick={() => { if (tagInput.trim()) { setUploadData(p => ({ ...p, tags: [...p.tags, tagInput.trim()] })); setTagInput(""); }}}>+</Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {uploadData.tags.map((tag, i) => (
+                    <span key={i} className="flex items-center gap-1 bg-purple-500/20 border border-purple-500/30 px-2 py-1 rounded-full text-purple-300 text-xs">
+                      #{tag}
+                      <button onClick={() => setUploadData(p => ({ ...p, tags: p.tags.filter((_, j) => j !== i) }))} className="text-purple-400 hover:text-white">×</button>
+                    </span>
+                  ))}
                 </div>
               </div>
 
-              <div>
-                <label className="text-gray-400 text-sm mb-2 block">Tags (for discoverability)</label>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          if (tagInput.trim()) {
-                            setUploadData({ ...uploadData, tags: [...uploadData.tags, tagInput.trim()] });
-                            setTagInput("");
-                          }
-                        }
-                      }}
-                      placeholder="Add tags (press Enter)"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        if (tagInput.trim()) {
-                          setUploadData({ ...uploadData, tags: [...uploadData.tags, tagInput.trim()] });
-                          setTagInput("");
-                        }
-                      }}
-                      variant="outline"
-                      className="bg-white/10 border-white/20"
-                    >
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {uploadData.tags.map((tag, idx) => (
-                      <div key={idx} className="bg-purple-500/20 border border-purple-500/30 px-3 py-1 rounded-full text-sm text-white flex items-center gap-2">
-                        #{tag}
-                        <button
-                          type="button"
-                          onClick={() => setUploadData({ ...uploadData, tags: uploadData.tags.filter((_, i) => i !== idx) })}
-                          className="text-white/60 hover:text-white"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Duration</label>
-                  <Input
-                    value={uploadData.duration}
-                    onChange={(e) => setUploadData({ ...uploadData, duration: e.target.value })}
-                    placeholder="e.g., 2h 30m"
-                    className="bg-white/10 border-white/20 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Rating (0-10)</label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={uploadData.rating}
-                    onChange={(e) => setUploadData({ ...uploadData, rating: e.target.value })}
-                    placeholder="e.g., 8.5"
-                    className="bg-white/10 border-white/20 text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 p-3 bg-white/5 rounded-xl">
-                <input
-                  type="checkbox"
-                  checked={uploadData.requires_subscription}
-                  onChange={(e) => setUploadData({ ...uploadData, requires_subscription: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <label className="text-white text-sm">Requires subscription</label>
-              </div>
-
+              {/* Monetization */}
               <div className="border-t border-white/10 pt-4">
-                <div className="flex items-center gap-2 p-3 bg-purple-500/10 rounded-xl mb-4">
-                  <input
-                    type="checkbox"
-                    checked={uploadData.is_monetized}
-                    onChange={(e) => setUploadData({ ...uploadData, is_monetized: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <label className="text-white text-sm font-medium">Enable monetization</label>
-                </div>
-
+                <label className="flex items-center gap-2 cursor-pointer mb-3">
+                  <input type="checkbox" checked={uploadData.is_monetized} onChange={(e) => setUploadData(p => ({ ...p, is_monetized: e.target.checked }))} className="w-4 h-4 accent-purple-500" />
+                  <span className="text-white text-sm font-medium">Enable Monetization</span>
+                </label>
                 {uploadData.is_monetized && (
-                  <div className="space-y-4 pl-4">
+                  <div className="grid grid-cols-2 gap-3 pl-6">
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Purchase Price (USD)</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={uploadData.price_usd}
-                        onChange={(e) => setUploadData({ ...uploadData, price_usd: e.target.value })}
-                        placeholder="e.g., 9.99"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Users can buy permanent access</p>
+                      <label className="text-gray-400 text-xs mb-1 block">Buy Price ($)</label>
+                      <Input type="number" min="0" step="0.01" value={uploadData.price_usd} onChange={(e) => setUploadData(p => ({ ...p, price_usd: e.target.value }))} className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
                     </div>
                     <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Rental Price (USD)</label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={uploadData.rental_price_usd}
-                        onChange={(e) => setUploadData({ ...uploadData, rental_price_usd: e.target.value })}
-                        placeholder="e.g., 3.99"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">48-hour rental access (optional)</p>
+                      <label className="text-gray-400 text-xs mb-1 block">Rent Price ($)</label>
+                      <Input type="number" min="0" step="0.01" value={uploadData.rental_price_usd} onChange={(e) => setUploadData(p => ({ ...p, rental_price_usd: e.target.value }))} className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
                     </div>
-                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                      <p className="text-blue-300 text-xs">
-                        <strong>Note:</strong> Platform takes 15% commission. You'll receive 85% of each sale.
-                      </p>
-                    </div>
+                    <div className="col-span-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-blue-300 text-xs">You earn 85% of each sale — platform takes 15%</div>
                   </div>
                 )}
               </div>
 
-              <Button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-              >
-                {uploading ? "Uploading..." : "Upload Content"}
+              <Button onClick={handleUpload} disabled={uploading} className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 h-11 font-bold">
+                {uploading ? "Uploading..." : "Publish Content"}
               </Button>
             </div>
           </motion.div>
-        </motion.div>
-      )}
-
-      {/* Payment Confirmation */}
-      {showPaymentConfirmation && confirmedPurchase && (
-        <PaymentConfirmation
-          amount={confirmedPurchase.amount}
-          currency="USD"
-          type="purchase"
-          onClose={() => {
-            setShowPaymentConfirmation(false);
-            setConfirmedPurchase(null);
-            window.location.reload();
-          }}
-        />
+        </div>
       )}
 
       {/* Purchase Modal */}
       {showPurchaseModal && selectedContent && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-          onClick={() => setShowPurchaseModal(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowPurchaseModal(false)}>
           <motion.div
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-gray-900 rounded-3xl p-6"
+            className="w-full max-w-md bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Purchase Content</h2>
-              <button onClick={() => setShowPurchaseModal(false)}>
-                <X className="w-6 h-6 text-gray-400 hover:text-white" />
-              </button>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold text-white">Get Access</h2>
+              <button onClick={() => setShowPurchaseModal(false)} className="p-1.5 hover:bg-white/10 rounded-full"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
 
-            <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4">
-                <h3 className="text-white font-bold mb-2">{selectedContent.title}</h3>
-                {selectedContent.duration && (
-                  <p className="text-gray-400 text-sm">{selectedContent.duration}</p>
-                )}
+            <div className="flex gap-3 mb-5 bg-white/5 rounded-xl p-3">
+              {selectedContent.thumbnail_url && <img src={selectedContent.thumbnail_url} className="w-16 h-24 rounded-lg object-cover flex-shrink-0" alt="" />}
+              <div>
+                <p className="text-white font-bold">{selectedContent.title}</p>
+                {selectedContent.duration && <p className="text-gray-400 text-sm mt-0.5">{selectedContent.duration}</p>}
+                {selectedContent.rating && <p className="text-yellow-400 text-sm flex items-center gap-1 mt-1"><Star className="w-3.5 h-3.5 fill-yellow-400" />{selectedContent.rating}</p>}
               </div>
-
-              <div className="space-y-2">
-                {selectedContent.price_usd > 0 && (
-                  <button
-                    onClick={() => setPurchaseType("buy")}
-                    className={`w-full p-4 rounded-xl border-2 transition ${
-                      purchaseType === "buy"
-                        ? "border-green-500 bg-green-500/20"
-                        : "border-white/20 bg-white/5"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <p className="text-white font-bold">Buy</p>
-                        <p className="text-gray-400 text-sm">Permanent access</p>
-                      </div>
-                      <p className="text-green-400 font-bold text-xl">${selectedContent.price_usd}</p>
-                    </div>
-                  </button>
-                )}
-
-                {selectedContent.rental_price_usd > 0 && (
-                  <button
-                    onClick={() => setPurchaseType("rent")}
-                    className={`w-full p-4 rounded-xl border-2 transition ${
-                      purchaseType === "rent"
-                        ? "border-blue-500 bg-blue-500/20"
-                        : "border-white/20 bg-white/5"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="text-left">
-                        <p className="text-white font-bold">Rent</p>
-                        <p className="text-gray-400 text-sm">48-hour access</p>
-                      </div>
-                      <p className="text-blue-400 font-bold text-xl">${selectedContent.rental_price_usd}</p>
-                    </div>
-                  </button>
-                )}
-              </div>
-
-              <div className="bg-white/5 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400">Your wallet balance:</span>
-                  <span className="text-white font-bold">${currentUser?.balance_usd?.toFixed(2) || "0.00"}</span>
-                </div>
-                {currentUser && currentUser.balance_usd < (purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd) && (
-                  <div className="mt-2 p-2 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
-                    Insufficient balance. Add funds to your wallet.
-                  </div>
-                )}
-              </div>
-
-              <Button
-                onClick={handlePurchase}
-                disabled={processing || !currentUser || currentUser.balance_usd < (purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd)}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-              >
-                {processing ? "Processing..." : `Confirm ${purchaseType === "rent" ? "Rental" : "Purchase"}`}
-              </Button>
-
-              <Button
-                onClick={() => navigate(createPageUrl("Wallet"))}
-                variant="outline"
-                className="w-full bg-white/5 border-white/20"
-              >
-                Add Funds to Wallet
-              </Button>
             </div>
+
+            <div className="space-y-2 mb-5">
+              {selectedContent.price_usd > 0 && (
+                <button onClick={() => setPurchaseType("buy")} className={`w-full p-4 rounded-xl border-2 transition text-left flex items-center justify-between ${purchaseType === "buy" ? "border-green-500 bg-green-500/15" : "border-white/10 bg-white/5"}`}>
+                  <div><p className="text-white font-bold">Buy</p><p className="text-gray-400 text-xs">Permanent access</p></div>
+                  <p className="text-green-400 font-bold text-xl">${selectedContent.price_usd}</p>
+                </button>
+              )}
+              {selectedContent.rental_price_usd > 0 && (
+                <button onClick={() => setPurchaseType("rent")} className={`w-full p-4 rounded-xl border-2 transition text-left flex items-center justify-between ${purchaseType === "rent" ? "border-blue-500 bg-blue-500/15" : "border-white/10 bg-white/5"}`}>
+                  <div><p className="text-white font-bold">Rent</p><p className="text-gray-400 text-xs">48-hour access</p></div>
+                  <p className="text-blue-400 font-bold text-xl">${selectedContent.rental_price_usd}</p>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-sm text-gray-400 mb-4 bg-white/5 rounded-xl p-3">
+              <span>Your balance</span>
+              <span className="text-white font-bold">${(currentUser?.balance_usd || 0).toFixed(2)}</span>
+            </div>
+
+            <Button onClick={handlePurchase} disabled={processing} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 h-12 font-bold">
+              {processing ? "Processing..." : `Confirm ${purchaseType === "rent" ? "Rental" : "Purchase"}`}
+            </Button>
+            <Button onClick={() => navigate(createPageUrl("Wallet"))} variant="ghost" className="w-full mt-2 text-gray-400 hover:text-white">
+              Add funds to wallet
+            </Button>
           </motion.div>
-        </motion.div>
+        </div>
       )}
 
-      {showScheduler && (
-        <StreamScheduler
-          currentUser={currentUser}
-          onClose={() => setShowScheduler(false)}
-        />
+      {/* Other modals */}
+      {showPaymentConfirmation && confirmedPurchase && (
+        <PaymentConfirmation amount={confirmedPurchase.amount} currency="USD" type="purchase"
+          onClose={() => { setShowPaymentConfirmation(false); setConfirmedPurchase(null); window.location.reload(); }} />
       )}
-
-      {showWatchParty && (
-        <WatchPartyModal
-          content={showWatchParty}
-          currentUser={currentUser}
-          onClose={() => setShowWatchParty(null)}
-        />
-      )}
-
-      {showTMDBBrowser && (
-        <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />
-      )}
-
-      {showGoLive && currentUser && (
-        <GoLiveNowModal
-          currentUser={currentUser}
-          onClose={() => setShowGoLive(false)}
-          onSuccess={() => {
-            setShowGoLive(false);
-            toast.success("Stream started! Redirecting...");
-            setTimeout(() => window.location.reload(), 1000);
-          }}
-        />
-      )}
-
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+      {showScheduler && <StreamScheduler currentUser={currentUser} onClose={() => setShowScheduler(false)} />}
+      {showWatchParty && <WatchPartyModal content={showWatchParty} currentUser={currentUser} onClose={() => setShowWatchParty(null)} />}
+      {showTMDBBrowser && <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />}
     </div>
   );
 }
