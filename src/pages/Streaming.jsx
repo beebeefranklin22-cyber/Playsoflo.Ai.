@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
   Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
-  Star, Eye, Zap
+  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -69,6 +69,90 @@ export default function Streaming() {
   });
   const [tagInput, setTagInput] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  // Camera recording
+  const [uploadMode, setUploadMode] = useState("file"); // "file" | "camera"
+  const [recording, setRecording] = useState(false);
+  const [recordedBlob, setRecordedBlob] = useState(null);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState(null);
+  const cameraPreviewRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  const startCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current = stream;
+      if (cameraPreviewRef.current) {
+        cameraPreviewRef.current.srcObject = stream;
+        cameraPreviewRef.current.play();
+      }
+    } catch (e) {
+      toast.error("Camera access denied. Please allow camera permissions.");
+    }
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  const startRecording = useCallback(() => {
+    if (!streamRef.current) return;
+    chunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm";
+    const recorder = new MediaRecorder(streamRef.current, { mimeType });
+    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      setRecordedBlob(blob);
+      setRecordedVideoUrl(URL.createObjectURL(blob));
+    };
+    mediaRecorderRef.current = recorder;
+    recorder.start();
+    setRecording(true);
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  }, []);
+
+  const discardRecording = useCallback(() => {
+    setRecordedBlob(null);
+    setRecordedVideoUrl(null);
+    startCamera();
+  }, [startCamera]);
+
+  const uploadRecording = useCallback(async () => {
+    if (!recordedBlob) return;
+    setUploading(true);
+    try {
+      const file = new File([recordedBlob], `recording_${Date.now()}.webm`, { type: "video/webm" });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setUploadData(p => ({ ...p, video_url: file_url }));
+      toast.success("Recording uploaded! Fill in the details and publish.");
+      stopCamera();
+      setUploadMode("file");
+    } catch (e) {
+      toast.error("Upload failed: " + e.message);
+    } finally {
+      setUploading(false);
+    }
+  }, [recordedBlob, stopCamera]);
+
+  // Manage camera stream when switching modes
+  useEffect(() => {
+    if (showUpload && uploadMode === "camera") {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [showUpload, uploadMode, startCamera, stopCamera]);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -563,21 +647,82 @@ export default function Streaming() {
 
       {/* Upload Modal */}
       {showUpload && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowUpload(false)}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => { setShowUpload(false); stopCamera(); }}>
           <motion.div
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Upload className="w-5 h-5 text-blue-400" /> Upload Content
               </h2>
-              <button onClick={() => setShowUpload(false)} className="p-1.5 hover:bg-white/10 rounded-full">
+              <button onClick={() => { setShowUpload(false); stopCamera(); }} className="p-1.5 hover:bg-white/10 rounded-full">
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
+
+            {/* Mode Toggle */}
+            <div className="flex gap-2 mb-4 p-1 bg-white/5 rounded-xl">
+              <button
+                onClick={() => setUploadMode("file")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition ${uploadMode === "file" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+              >
+                <Upload className="w-4 h-4" /> File / URL
+              </button>
+              <button
+                onClick={() => setUploadMode("camera")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition ${uploadMode === "camera" ? "bg-red-600 text-white" : "text-gray-400 hover:text-white"}`}
+              >
+                <Camera className="w-4 h-4" /> Record Camera
+              </button>
+            </div>
+
+            {/* Camera Recording UI */}
+            {uploadMode === "camera" && (
+              <div className="space-y-3 mb-4">
+                {!recordedVideoUrl ? (
+                  <>
+                    <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+                      <video ref={cameraPreviewRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+                      {recording && (
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-red-600 px-2 py-1 rounded-full text-white text-xs font-bold">
+                          <span className="w-2 h-2 bg-white rounded-full animate-pulse" /> REC
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {!recording ? (
+                        <Button onClick={startRecording} className="flex-1 bg-red-600 hover:bg-red-700 font-bold">
+                          <Camera className="w-4 h-4 mr-2" /> Start Recording
+                        </Button>
+                      ) : (
+                        <Button onClick={stopRecording} className="flex-1 bg-white text-black hover:bg-gray-200 font-bold">
+                          <StopCircle className="w-4 h-4 mr-2" /> Stop Recording
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+                      <video src={recordedVideoUrl} controls className="w-full h-full object-cover" />
+                      <div className="absolute top-3 left-3 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-full">✓ Recorded</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={discardRecording} variant="outline" className="flex-1 border-white/20 text-gray-300">
+                        <RotateCcw className="w-4 h-4 mr-2" /> Re-record
+                      </Button>
+                      <Button onClick={uploadRecording} disabled={uploading} className="flex-1 bg-blue-600 hover:bg-blue-700 font-bold">
+                        {uploading ? "Uploading..." : <><Upload className="w-4 h-4 mr-2" /> Use This Video</>}
+                      </Button>
+                    </div>
+                  </>
+                )}
+                <p className="text-gray-500 text-xs text-center">After recording, fill in the title and details below to publish</p>
+              </div>
+            )}
 
             <div className="space-y-4">
               <div>
@@ -617,7 +762,10 @@ export default function Streaming() {
               </div>
               <div>
                 <label className="text-gray-400 text-xs mb-1.5 block">Video URL *</label>
-                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="https://..." className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="https://... or record from camera above" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                {uploadData.video_url && uploadData.video_url.includes("blob") === false && uploadData.video_url.startsWith("http") && (
+                  <p className="text-green-400 text-xs mt-1">✓ Video URL set</p>
+                )}
               </div>
               <div>
                 <label className="text-gray-400 text-xs mb-1.5 block">Thumbnail</label>
