@@ -103,8 +103,9 @@ export default function Streaming() {
   const startRecording = useCallback(() => {
     if (!streamRef.current) return;
     chunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm";
-    const recorder = new MediaRecorder(streamRef.current, { mimeType });
+    const mimeTypes = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4", ""];
+    const mimeType = mimeTypes.find(m => m === "" || MediaRecorder.isTypeSupported(m)) ?? "";
+    const recorder = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : {});
     recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "video/webm" });
