@@ -94,7 +94,7 @@ header, nav, footer, [role="navigation"], [role="banner"], [role="contentinfo"],
 }
 
 /* Ensure main app container prevents bounce */
-#root, .app-container, main {
+#root, .app-container {
   overscroll-behavior: none;
 }
 
@@ -290,9 +290,10 @@ nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar, .h
   -webkit-overflow-scrolling: touch;
 }
 
-/* Fix for pages that couldn't scroll to bottom */
+/* Fix for pages that could not scroll to bottom */
 main > div {
-  overflow-y: unset;
+  overflow-y: visible;
+  min-height: 0;
 }
 
 @layer base {
