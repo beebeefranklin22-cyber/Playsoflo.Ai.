@@ -96,6 +96,7 @@ export default function EntertainmentExperiences() {
     ageRestriction: "",
     dressCode: ""
   });
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -270,64 +271,70 @@ Return as JSON array with this structure:
 
         {/* Advanced Filters */}
         <div className="mb-6">
-          <div className="bg-white/5 border border-white/20 rounded-2xl p-4">
-            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5 text-purple-400" />
-              Filters
-            </h3>
-            <div className="grid md:grid-cols-4 gap-3">
-              <div>
-                <label className="text-gray-400 text-xs mb-1 block">Min Duration (min)</label>
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.durationMin}
-                  onChange={(e) => setFilters({ ...filters, durationMin: e.target.value })}
-                  className="bg-white/10 border-white/20 text-white h-9"
-                />
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 text-white font-semibold mb-2 px-4 py-2 bg-white/5 border border-white/20 rounded-xl w-full"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-purple-400" />
+            Filters
+            <span className="ml-auto text-gray-400 text-sm">{showFilters ? '▲' : '▼'}</span>
+          </button>
+          {showFilters && (
+            <div className="bg-white/5 border border-white/20 rounded-2xl p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-gray-400 text-xs mb-1 block">Min Duration (min)</label>
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.durationMin}
+                    onChange={(e) => setFilters({ ...filters, durationMin: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-xs mb-1 block">Max Duration (min)</label>
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.durationMax}
+                    onChange={(e) => setFilters({ ...filters, durationMax: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-xs mb-1 block">Age Restriction</label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., 21+"
+                    value={filters.ageRestriction}
+                    onChange={(e) => setFilters({ ...filters, ageRestriction: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white h-9"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-xs mb-1 block">Dress Code</label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., Casual"
+                    value={filters.dressCode}
+                    onChange={(e) => setFilters({ ...filters, dressCode: e.target.value })}
+                    className="bg-white/10 border-white/20 text-white h-9"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-gray-400 text-xs mb-1 block">Max Duration (min)</label>
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.durationMax}
-                  onChange={(e) => setFilters({ ...filters, durationMax: e.target.value })}
-                  className="bg-white/10 border-white/20 text-white h-9"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-xs mb-1 block">Age Restriction</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., 21+"
-                  value={filters.ageRestriction}
-                  onChange={(e) => setFilters({ ...filters, ageRestriction: e.target.value })}
-                  className="bg-white/10 border-white/20 text-white h-9"
-                />
-              </div>
-              <div>
-                <label className="text-gray-400 text-xs mb-1 block">Dress Code</label>
-                <Input
-                  type="text"
-                  placeholder="e.g., Casual"
-                  value={filters.dressCode}
-                  onChange={(e) => setFilters({ ...filters, dressCode: e.target.value })}
-                  className="bg-white/10 border-white/20 text-white h-9"
-                />
-              </div>
+              {(filters.durationMin || filters.ageRestriction || filters.dressCode) && (
+                <Button
+                  onClick={() => setFilters({ durationMin: "", durationMax: "", ageRestriction: "", dressCode: "" })}
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 border-purple-500 text-purple-400"
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
-            {(filters.durationMin || filters.ageRestriction || filters.dressCode) && (
-              <Button
-                onClick={() => setFilters({ durationMin: "", durationMax: "", ageRestriction: "", dressCode: "" })}
-                variant="outline"
-                size="sm"
-                className="mt-3 border-purple-500 text-purple-400"
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Search Bar */}
