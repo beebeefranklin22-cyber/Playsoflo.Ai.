@@ -98,10 +98,8 @@ export default function FollowStats({ userEmail, currentUser }) {
 
                     {currentUser && email !== currentUser.email && (
                       <FollowButton
-                        targetEmail={email}
-                        targetName={name}
+                        targetUserEmail={email}
                         currentUser={currentUser}
-                        size="sm"
                       />
                     )}
                     

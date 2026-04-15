@@ -1,0 +1,80 @@
+{
+  "name": "SocialPost",
+  "type": "object",
+  "properties": {
+    "caption": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_experience": {
+      "type": "boolean",
+      "default": false
+    },
+    "experience_type": {
+      "type": "string",
+      "enum": [
+        "yacht",
+        "exotic_car",
+        "wine_tasting",
+        "nightlife",
+        "adventure",
+        "dining",
+        "wellness"
+      ]
+    },
+    "music_playing": {
+      "type": "string"
+    },
+    "vibe": {
+      "type": "string",
+      "enum": [
+        "energetic",
+        "chill",
+        "luxury",
+        "adventure",
+        "romantic",
+        "party"
+      ]
+    }
+  },
+  "required": [
+    "caption"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
