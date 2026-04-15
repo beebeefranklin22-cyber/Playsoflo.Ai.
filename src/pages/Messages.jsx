@@ -700,9 +700,18 @@ export default function Messages() {
       return bTime - aTime;
     });
 
+  const getUserDisplayName = (emailOrUser) => {
+    if (typeof emailOrUser === 'object') {
+      return emailOrUser.username || emailOrUser.full_name || emailOrUser.email;
+    }
+    const user = allUsers.find(u => u.email === emailOrUser);
+    return user?.username || user?.full_name || emailOrUser;
+  };
+
   const filteredUsers = allUsers.filter(user =>
     user.email !== currentUser?.email &&
-    (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
      user.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
@@ -793,7 +802,7 @@ export default function Messages() {
                           <Pin className="w-3 h-3 text-purple-400" />
                         )}
                         <h3 className={`font-semibold truncate ${isUnread ? 'text-white' : 'text-gray-300'}`}>
-                          {conv.is_group ? conv.name : otherParticipant}
+                          {conv.is_group ? conv.name : getUserDisplayName(otherParticipant)}
                         </h3>
                         {conv.muted_by?.includes(currentUser?.email) && (
                           <BellOff className="w-3 h-3 text-gray-500" />
@@ -889,7 +898,7 @@ export default function Messages() {
                     <h2 className="text-white font-semibold flex items-center gap-2">
                       {selectedConversation.is_group 
                         ? selectedConversation.name 
-                        : selectedConversation.participants.find(p => p !== currentUser?.email)}
+                        : getUserDisplayName(selectedConversation.participants.find(p => p !== currentUser?.email))}
                       {encryptionEnabled && !selectedConversation.is_group && (
                         <Lock className="w-4 h-4 text-green-400" title="End-to-end encrypted" />
                       )}
@@ -927,7 +936,7 @@ export default function Messages() {
                       {selectedConversation.is_group && (() => {
                         const typingUsers = selectedConversation.participants
                           .filter(p => p !== currentUser?.email && isUserTyping(p))
-                          .map(email => email.split('@')[0]);
+                          .map(email => getUserDisplayName(email));
                         
                         if (typingUsers.length > 0) {
                           return (
@@ -1040,7 +1049,7 @@ export default function Messages() {
 
                       <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col group`}>
                         {!isOwn && selectedConversation.is_group && (
-                          <p className="text-xs text-gray-500 mb-1 px-2">{message.sender_email}</p>
+                          <p className="text-xs text-gray-500 mb-1 px-2">{getUserDisplayName(message.sender_email)}</p>
                         )}
 
                         {message.reply_to_message_id && (
@@ -1348,7 +1357,7 @@ export default function Messages() {
               </div>
 
               <Input
-                placeholder="Search users..."
+                placeholder="Search by username or name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="mb-4 bg-white/10 border-white/20 text-white"
@@ -1365,11 +1374,11 @@ export default function Messages() {
                     className="w-full p-3 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-3 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {user.email[0].toUpperCase()}
+                      {(user.username || user.full_name || user.email)[0].toUpperCase()}
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="text-white font-medium">{user.full_name || user.email}</p>
-                      <p className="text-gray-400 text-sm">{user.email}</p>
+                      <p className="text-white font-medium">{user.username ? `@${user.username}` : user.full_name || user.email}</p>
+                      {user.username && <p className="text-gray-400 text-sm">{user.full_name || user.email}</p>}
                     </div>
                     {user.is_creator && (
                       <Badge className="bg-purple-500/20 text-purple-400">Creator</Badge>
@@ -1423,24 +1432,24 @@ export default function Messages() {
               </div>
 
               <div className="mb-4">
-                <label className="text-gray-400 text-sm mb-2 block">
-                  Add Participants ({selectedParticipants.length} selected)
-                </label>
-                <Input
-                  placeholder="Search users..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white"
-                />
+              <label className="text-gray-400 text-sm mb-2 block">
+                Add Participants ({selectedParticipants.length} selected)
+              </label>
+              <Input
+                placeholder="Search by username or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-white/10 border-white/20 text-white"
+              />
               </div>
 
               {selectedParticipants.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {selectedParticipants.map((email) => {
-                    const user = allUsers.find(u => u.email === email);
-                    return (
-                      <Badge key={email} className="bg-blue-600 flex items-center gap-1">
-                        {user?.full_name || email}
+              <div className="mb-4 flex flex-wrap gap-2">
+                {selectedParticipants.map((email) => {
+                  const user = allUsers.find(u => u.email === email);
+                  return (
+                    <Badge key={email} className="bg-blue-600 flex items-center gap-1">
+                      {user?.username ? `@${user.username}` : user?.full_name || email}
                         <button
                           onClick={() => setSelectedParticipants(prev => prev.filter(e => e !== email))}
                           className="ml-1 hover:bg-white/20 rounded-full p-0.5"
@@ -1474,8 +1483,8 @@ export default function Messages() {
                         {user.email[0].toUpperCase()}
                       </div>
                       <div className="flex-1 text-left">
-                        <p className="text-white font-medium">{user.full_name || user.email}</p>
-                        <p className="text-gray-400 text-sm">{user.email}</p>
+                        <p className="text-white font-medium">{user.username ? `@${user.username}` : user.full_name || user.email}</p>
+                        {user.username && <p className="text-gray-400 text-sm">{user.full_name || user.email}</p>}
                       </div>
                       {isSelected && <Check className="w-5 h-5 text-white" />}
                     </button>
