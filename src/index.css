@@ -156,15 +156,9 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
   
-  /* Allow scroll everywhere — scrollbar visibility is controlled in globals.css */
-  html {
+  /* Allow natural scroll on all pages */
+  html, body {
     height: 100%;
-    overflow-y: auto;
-  }
-
-  body {
-    min-height: 100%;
-    overflow-y: auto;
   }
   
   #root {

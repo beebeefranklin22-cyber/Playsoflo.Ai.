@@ -75,9 +75,8 @@
   overscroll-behavior: none;
 }
 
-/* Disable rubber-banding while keeping inner scrolling */
+/* Allow natural scrolling on body */
 body {
-  overscroll-behavior-y: none;
   overscroll-behavior-x: none;
 }
 
@@ -292,7 +291,6 @@ nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar, .h
 
 /* Fix for pages that could not scroll to bottom */
 main > div {
-  overflow-y: visible;
   min-height: 0;
 }
 
