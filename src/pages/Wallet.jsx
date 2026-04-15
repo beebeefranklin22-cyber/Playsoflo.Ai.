@@ -202,10 +202,14 @@ export default function Wallet() {
     queryKey: ['transactions', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      const payments = await base44.entities.Payment.filter({
-        created_by: currentUser.email
-      });
-      return payments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 20);
+      const [sent, received] = await Promise.all([
+        base44.entities.Payment.filter({ sender_email: currentUser.email }),
+        base44.entities.Payment.filter({ recipient_email: currentUser.email }),
+      ]);
+      // Merge + deduplicate by id
+      const all = [...sent];
+      received.forEach(r => { if (!all.find(p => p.id === r.id)) all.push(r); });
+      return all.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 30);
     },
     enabled: !!currentUser,
     refetchInterval: 5000,

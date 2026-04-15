@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Plus, CreditCard, Building, Wallet, Loader2 } from "lucide-react";
@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function AddMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
@@ -13,6 +14,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const [method, setMethod] = useState("card");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
+  const queryClient = useQueryClient();
 
   // Block any navigation while modal is open
   React.useEffect(() => {
@@ -48,20 +50,16 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const quickAmounts = [50, 100, 250, 500, 1000];
 
   const handleSuccess = async (paymentIntent) => {
-    try {
-      console.log('💰 Payment completed:', paymentIntent);
-      setStep(3);
-      toast.success("Money added to wallet!");
-
-      // Trigger immediate balance refresh
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (err) {
-      console.error('Success handler error:', err);
-      const errorMsg = err?.message || err?.toString() || 'Error processing payment';
-      toast.error(errorMsg);
-    }
+    setStep(3);
+    toast.success("Payment successful! Your balance will update shortly.");
+    // Poll for balance update (webhook may take a few seconds)
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      if (attempts >= 6) clearInterval(poll);
+    }, 3000);
   };
 
   const handleBankTransfer = async () => {
@@ -88,9 +86,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
       });
 
       toast.success("Bank transfer initiated! Mark it complete once transferred.");
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     } catch (error) {
       console.error("Error creating transfer:", error);
       const errorMsg = error?.message ? String(error.message) : "Failed to initiate transfer";
@@ -100,11 +97,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   };
 
   const handleClose = () => {
-    if (step !== 3) {
-      onClose();
-    } else {
-      window.location.reload();
-    }
+    onClose();
   };
 
   const handleContinue = () => {
@@ -355,7 +348,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   ${parseFloat(amount).toFixed(2)} has been added to your wallet
                 </p>
                 <Button 
-                  onClick={() => window.location.reload()} 
+                  onClick={onClose} 
                   className="w-full bg-green-600 hover:bg-green-700"
                 >
                   View Balance

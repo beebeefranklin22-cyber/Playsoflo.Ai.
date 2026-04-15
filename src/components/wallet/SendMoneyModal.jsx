@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import PaymentConfirmation from "../payment/PaymentConfirmation";
 
 export default function SendMoneyModal({ currentUser, onClose }) {
@@ -18,6 +18,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const queryClient = useQueryClient();
 
   // Search for users
   const { data: searchResults = [] } = useQuery({
@@ -60,6 +61,8 @@ export default function SendMoneyModal({ currentUser, onClose }) {
         });
 
         if (data.success) {
+          queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+          queryClient.invalidateQueries({ queryKey: ['transactions'] });
           setShowConfirmation(true);
           toast.success(`$${sendAmount.toFixed(2)} sent successfully!`);
         } else {
@@ -118,6 +121,8 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           read: false
         });
 
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        queryClient.invalidateQueries({ queryKey: ['transactions'] });
         setShowConfirmation(true);
       }
     } catch (err) {
@@ -139,7 +144,6 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           onClose={() => {
             setShowConfirmation(false);
             onClose();
-            window.location.reload();
           }}
         />
       )}
@@ -274,7 +278,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                 <p className="text-gray-300 mb-6">
                   {amount} {currency} sent to {recipient}
                 </p>
-                <Button onClick={() => { onClose(); window.location.reload(); }} className="w-full bg-purple-600">
+                <Button onClick={() => onClose()} className="w-full bg-purple-600">
                   Done
                 </Button>
               </div>

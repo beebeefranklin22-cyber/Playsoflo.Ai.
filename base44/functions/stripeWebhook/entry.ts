@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.4.0';
 
 Deno.serve(async (req) => {
@@ -56,9 +56,20 @@ Deno.serve(async (req) => {
         }
         
         if (description === 'Add money to wallet' && userEmail && baseAmount > 0) {
-          // Use the net amount (base_amount is already the net amount after fee calculation)
           const netAmount = baseAmount;
-          
+
+          // Idempotency check FIRST - before any balance update
+          const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
+            reference_type: 'deposit',
+            reference_id: session.id,
+            sender_email: userEmail
+          });
+
+          if (existingDeposits.length > 0) {
+            console.log('Deposit already processed:', session.id);
+            return Response.json({ received: true, message: 'Already processed' });
+          }
+
           // Find user and update balance
           const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });
           
@@ -72,18 +83,6 @@ Deno.serve(async (req) => {
             await base44.asServiceRole.entities.User.update(user.id, {
               usd_balance: newBalance
             });
-
-            // Prevent duplicate deposits - check if already processed
-            const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
-              reference_type: 'deposit',
-              reference_id: session.id,
-              sender_email: userEmail
-            });
-
-            if (existingDeposits.length > 0) {
-              console.log('Deposit already processed:', session.id);
-              return Response.json({ received: true, message: 'Already processed' });
-            }
 
             // Create payment record
             await base44.asServiceRole.entities.Payment.create({
@@ -160,6 +159,17 @@ Deno.serve(async (req) => {
             const users = await base44.asServiceRole.entities.User.filter({ email: payment.user_email });
 
             if (users.length > 0) {
+              // Idempotency check FIRST
+              const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
+                reference_type: 'deposit',
+                reference_id: paymentIntent.id
+              });
+
+              if (existingDeposits.length > 0) {
+                console.log('PaymentIntent deposit already processed:', paymentIntent.id);
+                break;
+              }
+
               const user = users[0];
               const currentBalance = parseFloat(user.usd_balance) || 0;
               const newBalance = currentBalance + baseAmount;
@@ -170,12 +180,7 @@ Deno.serve(async (req) => {
                 usd_balance: newBalance
               });
 
-              const existingDeposits = await base44.asServiceRole.entities.Payment.filter({
-                reference_type: 'deposit',
-                reference_id: paymentIntent.id
-              });
-
-              if (existingDeposits.length === 0) {
+              if (true) {
                 await base44.asServiceRole.entities.Payment.create({
                   amount_usd: baseAmount,
                   amount_rri: 0,

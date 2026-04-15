@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { X, Download, Building, CreditCard, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
+import { toast } from "sonner";
 
 export default function WithdrawModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
@@ -23,6 +24,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
     initialData: []
   });
 
+  const queryClient = useQueryClient();
   const availableBalance = currentUser?.usd_balance || 0;
 
   const getFeeAmount = () => {
@@ -40,18 +42,18 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
   const handleWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      alert("Please enter a valid amount");
+      toast.error("Please enter a valid amount");
       return;
     }
 
     const totalWithFees = getTotalAmount();
     if (totalWithFees > availableBalance) {
-      alert(`Insufficient balance. You need $${totalWithFees.toFixed(2)} (includes fees)`);
+      toast.error(`Insufficient balance. You need $${totalWithFees.toFixed(2)} (includes fees)`);
       return;
     }
 
     if (method === "bank" && bankAccounts.length === 0) {
-      alert("Please add a bank account first");
+      toast.error("Please add a bank account first");
       return;
     }
 
@@ -68,12 +70,11 @@ export default function WithdrawModal({ currentUser, onClose }) {
       });
 
       if (!data.success) {
-        alert(data.error || "Withdrawal failed");
+        toast.error(data.error || "Withdrawal failed");
         setLoading(false);
         return;
       }
 
-      // Create notification
       await base44.entities.Notification.create({
         recipient_email: currentUser.email,
         type: "payment_received",
@@ -83,18 +84,21 @@ export default function WithdrawModal({ currentUser, onClose }) {
         action_url: "/Wallet"
       });
 
-      alert(`Withdrawal of $${amount} initiated (Total: $${totalWithFees.toFixed(2)}). ${
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+
+      toast.success(`Withdrawal of $${amount} initiated. ${
         method === "instant" 
-          ? "Funds will arrive within minutes." 
+          ? "Funds arrive within minutes." 
           : method === "card"
-          ? "Funds will arrive within 30 minutes."
-          : "Funds will arrive in 1-3 business days."
+          ? "Funds arrive within 30 minutes."
+          : "Funds arrive in 1-3 business days."
       }`);
       
       onClose();
     } catch (err) {
       console.error("Withdrawal failed:", err);
-      alert("Failed to process withdrawal: " + (err?.response?.data?.error || err.message));
+      toast.error("Failed to process withdrawal: " + (err?.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }

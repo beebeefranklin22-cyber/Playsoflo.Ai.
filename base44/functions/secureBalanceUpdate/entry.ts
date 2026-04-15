@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         usd_balance: newRecipientBalance
       });
 
-      // Create payment records for both parties
+      // Create payment record (one record readable by both parties via RLS)
       await base44.asServiceRole.entities.Payment.create({
         amount_usd: numAmount,
         amount_rri: 0,
@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
         usd_balance: newBalance
       });
 
-      // Create payment record
       await base44.asServiceRole.entities.Payment.create({
         amount_usd: numAmount,
         amount_rri: 0,
@@ -145,6 +144,7 @@ Deno.serve(async (req) => {
         status: 'completed',
         reference_type: reference_type || 'other',
         sender_email: user.email,
+        recipient_email: user.email,
         memo: memo || `Balance ${operation}`
       });
     }
