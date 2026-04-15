@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import PullToRefresh from "../components/PullToRefresh";
 import {
   Star, Clock, ChevronLeft, Sparkles, ShoppingBag,
   Scissors, Home, Package, ChefHat, Car, Building,
@@ -447,7 +446,6 @@ export default function Marketplace() {
   }, {});
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950 to-gray-950 pb-20">
       <div className="relative h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-orange-900/50 to-transparent" />
@@ -1077,6 +1075,5 @@ export default function Marketplace() {
         }
       `}</style>
     </div>
-    </PullToRefresh>
   );
 }
