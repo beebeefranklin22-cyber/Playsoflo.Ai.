@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
@@ -164,7 +164,7 @@ export default function Universe() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
   
-  const cards = updatedPillars.map((pillar) => ({
+  const cards = useMemo(() => updatedPillars.map((pillar) => ({
     id: pillar.id,
     content: (
       <div className="relative w-full h-full overflow-hidden rounded-3xl">
@@ -283,7 +283,7 @@ export default function Universe() {
         </div>
       </div>
     )
-  }));
+  })), [navigate]);
 
   if (showIntro) {
     return (
