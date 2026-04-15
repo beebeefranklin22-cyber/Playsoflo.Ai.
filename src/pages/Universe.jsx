@@ -233,9 +233,9 @@ export default function Universe() {
             className="flex-1 flex items-center min-h-0 py-2"
           >
             <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full">
-              {pillar.features.map((feature, idx) => (
+              {(pillar.features || []).filter(Boolean).map((feature, idx) => (
                 <motion.div
-                  key={feature}
+                  key={idx}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3 + idx * 0.1 }}
