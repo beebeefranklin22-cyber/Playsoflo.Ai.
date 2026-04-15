@@ -124,8 +124,19 @@ export default function LivestreamViewer() {
   });
 
   const endStreamMutation = useMutation({
-    mutationFn: () => base44.entities.StreamingContent.update(streamId, { is_live: false }),
-    onSuccess: () => { toast.success('Stream ended'); navigate(-1); }
+    mutationFn: async () => {
+      // Mark stream as ended and save as VOD
+      await base44.entities.StreamingContent.update(streamId, {
+        is_live: false,
+        status: "published",
+        content_type: "vod_from_live",
+        stream_ended_at: new Date().toISOString(),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Stream ended and saved as VOD in your profile!');
+      navigate(-1);
+    }
   });
 
   const handleShare = async () => {

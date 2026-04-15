@@ -1,0 +1,300 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft, Eye, Calendar, MessageCircle, Send, Pin, Clock,
+  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+
+export default function VODPlayer() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [comment, setComment] = useState("");
+  const [activeTab, setActiveTab] = useState("comments"); // "comments" | "chat_replay"
+  const [videoTime, setVideoTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef(null);
+
+  const params = new URLSearchParams(window.location.search);
+  const vodId = params.get("id");
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  // Fetch VOD content
+  const { data: vod } = useQuery({
+    queryKey: ["vod", vodId],
+    queryFn: async () => {
+      const results = await base44.entities.StreamingContent.filter({ id: vodId });
+      return results[0] || null;
+    },
+    enabled: !!vodId
+  });
+
+  // Track view
+  useEffect(() => {
+    if (vod?.id) {
+      base44.entities.StreamingContent.update(vod.id, { views: (vod.views || 0) + 1 }).catch(() => {});
+    }
+  }, [vod?.id]);
+
+  // Fetch persistent comments
+  const { data: comments = [] } = useQuery({
+    queryKey: ["vod-comments", vodId],
+    queryFn: () => base44.entities.Comment.filter({ post_id: vodId }),
+    enabled: !!vodId
+  });
+
+  // Fetch chat replay (archived chat messages from the original livestream)
+  const { data: chatReplay = [] } = useQuery({
+    queryKey: ["vod-chat-replay", vodId],
+    queryFn: async () => {
+      const msgs = await base44.entities.LivestreamChat.filter({ stream_id: vodId });
+      return msgs.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    },
+    enabled: !!vodId
+  });
+
+  const sendCommentMutation = useMutation({
+    mutationFn: () => base44.entities.Comment.create({
+      post_id: vodId,
+      author_email: currentUser.email,
+      author_name: currentUser.full_name || currentUser.email.split("@")[0],
+      author_avatar: currentUser.profile_picture || "",
+      content: comment.trim()
+    }),
+    onSuccess: () => {
+      setComment("");
+      queryClient.invalidateQueries({ queryKey: ["vod-comments", vodId] });
+    }
+  });
+
+  const sortedComments = [...comments].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+
+  // Chat replay — show messages up to current video time
+  const streamStartTime = vod?.stream_started_at ? new Date(vod.stream_started_at).getTime() : null;
+  const visibleChatMessages = chatReplay.filter(msg => {
+    if (!streamStartTime) return true;
+    const msgOffset = (new Date(msg.created_date).getTime() - streamStartTime) / 1000;
+    return msgOffset <= videoTime + 5;
+  });
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) setVideoTime(videoRef.current.currentTime);
+  };
+
+  if (!vod) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0e0e10] text-white">
+      {/* Top bar */}
+      <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-sm border-b border-white/10 px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition">
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-bold truncate">{vod.title}</p>
+          <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
+            <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{(vod.views || 0).toLocaleString()} views</span>
+            <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(vod.created_date).toLocaleDateString()}</span>
+            {vod.content_type === "vod_from_live" && (
+              <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px]">
+                <Play className="w-2.5 h-2.5 mr-1" />
+                Was Live
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row">
+        {/* Video Player */}
+        <div className="flex-1 lg:max-w-[calc(100%-380px)]">
+          <div className="relative bg-black aspect-video w-full">
+            {vod.video_url ? (
+              <video
+                ref={videoRef}
+                src={vod.video_url}
+                controls
+                className="w-full h-full"
+                onTimeUpdate={handleTimeUpdate}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <Play className="w-16 h-16 text-white/20 mx-auto mb-3" />
+                  <p className="text-gray-400">Video not available</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Info + Description */}
+          <div className="p-4 border-b border-white/10">
+            <h1 className="text-xl font-bold text-white mb-2">{vod.title}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-3">
+              <span className="flex items-center gap-1"><Users className="w-4 h-4" />@{vod.creator_username || vod.creator_email}</span>
+              <Badge className="bg-white/10 text-gray-300 capitalize">{vod.category}</Badge>
+              {vod.duration && <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{vod.duration}</span>}
+            </div>
+            {vod.description && (
+              <p className="text-gray-400 text-sm leading-relaxed">{vod.description}</p>
+            )}
+            {vod.tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {vod.tags.map((tag, i) => (
+                  <span key={i} className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full">#{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel: Comments + Chat Replay */}
+        <div className="w-full lg:w-[380px] lg:border-l border-white/10 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+          {/* Tabs */}
+          <div className="flex border-b border-white/10 flex-shrink-0">
+            <button
+              onClick={() => setActiveTab("comments")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition ${
+                activeTab === "comments" ? "text-white border-b-2 border-purple-500" : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Comments ({comments.length})
+            </button>
+            {chatReplay.length > 0 && (
+              <button
+                onClick={() => setActiveTab("chat_replay")}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition ${
+                  activeTab === "chat_replay" ? "text-white border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <span className="w-2 h-2 bg-red-400 rounded-full" />
+                Chat Replay
+              </button>
+            )}
+          </div>
+
+          {/* Comments Tab */}
+          {activeTab === "comments" && (
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {sortedComments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageCircle className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-500 text-sm">No comments yet. Be the first!</p>
+                  </div>
+                ) : (
+                  sortedComments.map((c) => (
+                    <motion.div
+                      key={c.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex gap-3"
+                    >
+                      {c.author_avatar ? (
+                        <img src={c.author_avatar} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          {c.author_name?.[0]?.toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-semibold text-sm">{c.author_name}</span>
+                          <span className="text-gray-500 text-xs">{new Date(c.created_date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm mt-0.5 break-words">{c.content}</p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+
+              {/* Comment input */}
+              <div className="p-4 border-t border-white/10 flex-shrink-0">
+                {currentUser ? (
+                  <div className="flex gap-2">
+                    <Input
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && comment.trim() && sendCommentMutation.mutate()}
+                      placeholder="Add a comment..."
+                      className="bg-white/10 border-white/20 text-white placeholder-gray-400"
+                    />
+                    <Button
+                      onClick={() => sendCommentMutation.mutate()}
+                      disabled={!comment.trim() || sendCommentMutation.isPending}
+                      className="bg-purple-600 hover:bg-purple-700 flex-shrink-0"
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => base44.auth.redirectToLogin()}
+                    className="w-full py-3 text-center text-gray-400 hover:text-white text-sm transition border border-white/10 rounded-xl hover:bg-white/5"
+                  >
+                    Sign in to comment
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Chat Replay Tab */}
+          {activeTab === "chat_replay" && (
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-red-300 text-xs flex items-center gap-2 flex-shrink-0">
+                <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                {isPlaying ? "Showing live chat as it happened" : "Play the video to see chat in sync"}
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                <AnimatePresence>
+                  {visibleChatMessages.map((msg) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="flex items-start gap-2"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        {msg.user_name?.[0]?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-purple-300 font-semibold text-xs">{msg.user_name}: </span>
+                        <span className="text-gray-300 text-xs break-words">{msg.message}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+                {visibleChatMessages.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-sm">Chat replay will appear as you watch</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

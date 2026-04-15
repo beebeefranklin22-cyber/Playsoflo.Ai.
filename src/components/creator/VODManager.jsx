@@ -6,14 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Film, Edit, Trash2, Eye, DollarSign, Tag, X } from "lucide-react";
+import { Film, Edit, Trash2, Eye, DollarSign, Tag, X, Play, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import DirectUploadModal from "./DirectUploadModal";
 import { Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function VODManager({ currentUser, onEditVideo }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editingContent, setEditingContent] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -161,7 +164,15 @@ export default function VODManager({ currentUser, onEditVideo }) {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      onClick={() => navigate(createPageUrl("VODPlayer") + `?id=${content.id}`)}
+                      size="sm"
+                      className="flex-1 bg-purple-600/80 hover:bg-purple-600 text-white"
+                    >
+                      <Play className="w-4 h-4 mr-1" />
+                      Watch
+                    </Button>
                     <Button
                       onClick={() => handleEdit(content)}
                       size="sm"
@@ -169,7 +180,7 @@ export default function VODManager({ currentUser, onEditVideo }) {
                       className="flex-1 bg-white/5 border-white/20 hover:bg-white/10"
                     >
                       <Edit className="w-4 h-4 mr-1" />
-                      Settings
+                      Edit
                     </Button>
                     {content.video_url && onEditVideo && (
                       <Button
