@@ -23,11 +23,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Agora credentials not configured' }, { status: 500 });
     }
 
-    // Use user email hash as UID if not provided
-    const userUid = uid || Math.abs(user.email.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0));
+    // Always use a random UID to avoid UID_CONFLICT when rejoining
+    const userUid = Math.floor(Math.random() * 2000000) + 1;
 
     // Token expires in 24 hours
     const expirationTimeInSeconds = 86400;
