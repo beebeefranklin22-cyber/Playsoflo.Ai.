@@ -238,8 +238,64 @@ export default function LivestreamViewer() {
       {/* Main Layout */}
       <div className="pt-[60px] h-screen flex flex-col lg:flex-row">
 
-        {/* Video Area */}
-        <div className={`relative bg-black ${isTheaterMode ? 'flex-1' : 'w-full lg:flex-1'} ${isTheaterMode ? '' : 'aspect-video lg:aspect-auto lg:h-full'} flex-shrink-0`}>
+        {/* === MOBILE LAYOUT === */}
+        <div className="flex flex-col h-full lg:hidden">
+          {/* Video - fixed height, always visible */}
+          <div className="relative bg-black flex-shrink-0" style={{ height: '40vh' }}>
+            {stream.is_live && stream.agora_channel_name ? (
+              <>
+                <AgoraVideoPlayer
+                  channelName={stream.agora_channel_name}
+                  role={isBroadcaster ? "host" : "audience"}
+                  onViewerJoin={() => {}}
+                />
+                <ReactionEffects streamId={streamId} />
+                {/* Reaction + join buttons */}
+                <div className="absolute right-3 bottom-3 flex flex-col gap-2 z-10">
+                  <motion.button whileTap={{ scale: 0.85 }} onClick={sendReaction}
+                    className="w-11 h-11 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Heart className="w-5 h-5 text-white" />
+                  </motion.button>
+                  {!isStreamCreator && currentUser && (
+                    <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
+                  )}
+                </div>
+                {isStreamCreator && (
+                  <div className="absolute bottom-3 left-3 z-10">
+                    <Button
+                      onClick={() => { if (confirm('End this livestream?')) endStreamMutation.mutate(); }}
+                      size="sm"
+                      className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm border border-red-500/50 text-xs"
+                    >
+                      <StopCircle className="w-3.5 h-3.5 mr-1" />
+                      End Stream
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center p-6">
+                  <Video className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                  <p className="text-white font-bold mb-1">Stream Ended</p>
+                  <Button onClick={() => navigate(-1)} size="sm" className="bg-purple-600 hover:bg-purple-700 mt-2">Back</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Panel below video — fills remaining space */}
+          <LivestreamMobilePanel
+            streamId={streamId}
+            isStreamCreator={isStreamCreator}
+            currentUser={currentUser}
+            stream={stream}
+            onSendReaction={sendReaction}
+          />
+        </div>
+
+        {/* === DESKTOP LAYOUT === */}
+        <div className={`hidden lg:block relative bg-black ${isTheaterMode ? 'flex-1' : 'flex-1'}`}>
           {stream.is_live && stream.agora_channel_name ? (
             <>
               <AgoraVideoPlayer
@@ -248,30 +304,12 @@ export default function LivestreamViewer() {
                 onViewerJoin={() => {}}
               />
               <ReactionEffects streamId={streamId} />
-
-              {/* Theater toggle */}
               <button
                 onClick={() => setIsTheaterMode(v => !v)}
-                className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition z-10 hidden lg:flex"
+                className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition z-10"
               >
                 {isTheaterMode ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
               </button>
-
-              {/* Quick Action Buttons - right side */}
-              <div className="absolute right-4 bottom-6 flex flex-col gap-3 z-10 lg:hidden">
-                <motion.button
-                  whileTap={{ scale: 0.85 }}
-                  onClick={sendReaction}
-                  className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg"
-                >
-                  <Heart className="w-6 h-6 text-white" />
-                </motion.button>
-                {!isStreamCreator && currentUser && (
-                  <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
-                )}
-              </div>
-
-              {/* Host End Stream button overlay */}
               {isStreamCreator && (
                 <div className="absolute bottom-4 left-4 z-10">
                   <Button
@@ -290,25 +328,10 @@ export default function LivestreamViewer() {
               <div className="text-center p-8">
                 <Video className="w-16 h-16 text-white/30 mx-auto mb-4" />
                 <p className="text-white text-xl font-bold mb-2">Stream Ended</p>
-                <p className="text-gray-400 mb-6">This livestream is no longer active</p>
-                <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">
-                  Back to Browse
-                </Button>
+                <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">Back to Browse</Button>
               </div>
             </div>
           )}
-
-          {/* Mobile bottom slide panel */}
-          <div className="lg:hidden">
-            <LivestreamMobilePanel
-              streamId={streamId}
-              isStreamCreator={isStreamCreator}
-              currentUser={currentUser}
-              stream={stream}
-              streamId={streamId}
-              onSendReaction={sendReaction}
-            />
-          </div>
         </div>
 
         {/* Desktop Right Sidebar */}
@@ -452,45 +475,58 @@ export default function LivestreamViewer() {
   return content;
 }
 
-// Mobile Panel Component
+// Mobile Panel Component — sits BELOW the video, not on top of it
 function LivestreamMobilePanel({ streamId, isStreamCreator, currentUser, stream, onSendReaction }) {
   const [activeTab, setActiveTab] = useState('chat');
   const [expanded, setExpanded] = useState(false);
 
+  const handleTabClick = (tabId) => {
+    if (activeTab === tabId && expanded) {
+      // Clicking the active tab collapses the panel
+      setExpanded(false);
+    } else {
+      setActiveTab(tabId);
+      setExpanded(true);
+    }
+  };
+
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-20">
-      {/* Tab bar */}
-      <div className="flex items-center bg-black/80 backdrop-blur-xl border-t border-white/10 px-2 py-2 gap-1">
+    <div className="flex flex-col flex-1 bg-gray-950 overflow-hidden">
+      {/* Tab bar — always visible */}
+      <div className="flex items-center bg-black/90 border-t border-white/10 px-1 py-1 gap-0.5 flex-shrink-0">
         {TABS.map(tab => (
           <button
             key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setExpanded(true); }}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition text-xs ${
-              activeTab === tab.id && expanded ? 'bg-white/15 text-white' : 'text-gray-400'
+            onClick={() => handleTabClick(tab.id)}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg transition text-xs font-medium ${
+              activeTab === tab.id && expanded ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white'
             }`}
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
           </button>
         ))}
+        {/* Collapse/Expand chevron */}
         <button
           onClick={() => setExpanded(v => !v)}
-          className="px-3 py-1.5 text-gray-400 hover:text-white transition"
+          className="px-2 py-2 text-gray-400 hover:text-white transition text-sm"
         >
           {expanded ? '▼' : '▲'}
         </button>
       </div>
 
-      {/* Expanded content */}
-      <AnimatePresence>
+      {/* Panel content — grows/shrinks */}
+      <AnimatePresence initial={false}>
         {expanded && (
           <motion.div
+            key="panel"
             initial={{ height: 0 }}
-            animate={{ height: 280 }}
+            animate={{ height: 260 }}
             exit={{ height: 0 }}
-            className="bg-black/90 backdrop-blur-xl border-t border-white/10 overflow-hidden"
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden flex-shrink-0"
           >
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col bg-gray-950/95">
               {activeTab === 'chat' && (
                 <LivestreamChat streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} isOverlay />
               )}

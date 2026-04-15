@@ -243,37 +243,36 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
     try {
       const newFacing = cameraFacing === "user" ? "environment" : "user";
       
-      // Stop current video track
-      localVideoTrack.stop();
-      localVideoTrack.close();
+      // Capture the current track before state update
+      const oldTrack = localVideoTrack;
+      
+      // Unpublish old track first
+      await client.unpublish([oldTrack]);
+      oldTrack.stop();
+      oldTrack.close();
       
       // Create new track with opposite facing mode
       const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
         facingMode: newFacing,
-        encoderConfig: {
-          width: 640,
-          height: 480,
-          frameRate: 30,
-        }
+        encoderConfig: { width: 640, height: 480, frameRate: 30 }
       });
-      
-      // Update state
-      setLocalVideoTrack(newVideoTrack);
-      setCameraFacing(newFacing);
       
       // Play in container
       if (localVideoRef.current) {
-        newVideoTrack.play(localVideoRef.current, { fit: "contain" });
+        newVideoTrack.play(localVideoRef.current, { fit: "cover", mirror: newFacing === "user" });
       }
       
-      // Unpublish old and publish new
-      await client.unpublish([localVideoTrack]);
+      // Publish new track
       await client.publish([newVideoTrack]);
       
+      // Update state after everything is set up
+      setLocalVideoTrack(newVideoTrack);
+      setCameraFacing(newFacing);
+      
       toast.success(`Switched to ${newFacing === "user" ? "front" : "back"} camera`);
-    } catch (error) {
-      console.error("Camera switch error:", error);
-      toast.error("Failed to switch camera: " + error.message);
+    } catch (err) {
+      console.error("Camera switch error:", err);
+      toast.error("Failed to switch camera: " + err.message);
     }
   };
 
