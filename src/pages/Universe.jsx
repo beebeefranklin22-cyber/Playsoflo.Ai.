@@ -10,7 +10,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import CardStack from "../components/CardStack";
 import NearbyMapView from "../components/universe/NearbyMapView";
-import PillarCard from "../components/universe/PillarCard";
 
 const pillars = [
   {
@@ -165,10 +164,7 @@ export default function Universe() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
   
-  const cards = updatedPillars.map((pillar, index) => ({
-    id: pillar.id,
-    content: <PillarCard key={pillar.id} pillar={pillar} index={index} total={updatedPillars.length} />,
-  }));
+  const cards = updatedPillars;
 
   if (showIntro) {
     return (

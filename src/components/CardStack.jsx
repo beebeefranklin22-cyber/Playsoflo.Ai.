@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import SwipeableCard from "./SwipeableCard";
+import PillarCard from "./universe/PillarCard";
 
 export default function CardStack({ cards = [], onCardChange, currentIndex: externalIndex }) {
   const [currentIndex, setCurrentIndex] = useState(externalIndex || 0);
@@ -62,7 +63,11 @@ export default function CardStack({ cards = [], onCardChange, currentIndex: exte
           active={card.stackIndex === 0}
           onSwipe={card.stackIndex === 0 ? handleSwipe : undefined}
         >
-          {card.data?.content}
+          <PillarCard
+            pillar={card.data}
+            index={card.index}
+            total={cards.length}
+          />
         </SwipeableCard>
       ))}
 
