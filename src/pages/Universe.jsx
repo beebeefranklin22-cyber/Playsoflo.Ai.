@@ -168,7 +168,7 @@ export default function Universe() {
 
   if (showIntro) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 flex items-center justify-center overflow-y-auto">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-blue-900/20" />
           {[...Array(50)].map((_, i) => (
