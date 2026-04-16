@@ -11,6 +11,29 @@ Deno.serve(async (req) => {
 
     const rentalData = await req.json();
 
+    // Check for overlapping confirmed/active bookings for this specific car
+    if (rentalData.listing_id) {
+      const existingRentals = await base44.asServiceRole.entities.CarRental.filter({
+        listing_id: rentalData.listing_id
+      });
+
+      const newStart = new Date(rentalData.start_date);
+      const newEnd = new Date(rentalData.end_date);
+
+      const hasOverlap = existingRentals.some(r => {
+        if (!['confirmed', 'active'].includes(r.status)) return false;
+        const existingStart = new Date(r.start_date);
+        const existingEnd = new Date(r.end_date);
+        return newStart < existingEnd && newEnd > existingStart;
+      });
+
+      if (hasOverlap) {
+        return Response.json({
+          error: 'This car is already booked for the selected dates. Please choose different dates.'
+        }, { status: 409 });
+      }
+    }
+
     // Quick basic fraud check (no AI to avoid timeout)
     const days = Math.ceil(
       (new Date(rentalData.end_date) - new Date(rentalData.start_date)) / (1000 * 60 * 60 * 24)

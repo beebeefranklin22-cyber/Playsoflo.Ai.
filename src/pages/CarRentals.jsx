@@ -110,6 +110,7 @@ export default function CarRentals() {
   const createRentalMutation = useMutation({
     mutationFn: async (rentalData) => {
       const response = await base44.functions.invoke('createCarRental', rentalData);
+      if (response.data?.error) throw new Error(response.data.error);
       return response.data;
     },
     onSuccess: (data) => {
@@ -117,6 +118,9 @@ export default function CarRentals() {
       setShowBookingModal(false);
       setSelectedRental(data.rental);
       setShowPaymentModal(true);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create booking');
     }
   });
 
@@ -229,6 +233,7 @@ export default function CarRentals() {
     const costs = calculateTotalCost();
 
     createRentalMutation.mutate({
+      listing_id: selectedCar.id,
       provider_email: selectedCar.provider_email || selectedCar.created_by,
       car_make: selectedCar.rental_details?.specs?.make || selectedCar.title.split(' ')[0] || "Car",
       car_model: selectedCar.rental_details?.specs?.model || selectedCar.title,
