@@ -149,14 +149,23 @@ export default function ProviderOnboarding() {
   const createServiceMutation = useMutation({
     mutationFn: async (data) => {
       return await base44.entities.MarketplaceItem.create({
-        ...data,
-        item_type: "service",
-        created_by: currentUser.email
+        title: data.title,
+        description: data.description,
+        price: Number(data.price),
+        price_type: "fixed",
+        category: data.category || profileData.provider_category || "consulting",
+        provider_email: currentUser.email,
+        provider_name: profileData.provider_business_name || currentUser.full_name,
+        availability: "available",
+        rating: 5.0,
+        reviews_count: 0,
+        response_time: "within 1 hour",
+        verified_provider: false
       });
     },
     onSuccess: () => {
       setCompletedSteps(prev => [...new Set([...prev, 3])]);
-      toast.success("Service created!");
+      toast.success("Service created and live in marketplace!");
     }
   });
 

@@ -43,34 +43,6 @@ import NotificationPreferences from "../components/provider/NotificationPreferen
 import RealtimeNotifications from "../components/provider/RealtimeNotifications";
 import MultiAssetDashboard from "../components/provider/MultiAssetDashboard";
 
-const categories = [
-  "barber_beauty", "wellness", "home_services", "personal_chef", "chauffeur", "property_rental",
-  "luxury_goods", "concierge", "event_planning", "legal_services", "construction", "automotive",
-  "wedding_planning", "photography", "consulting", "accounting", "real_estate", "moving_services",
-  "pet_services", "tutoring", "fitness_training", "tech_support", "medical_health", "dj_entertainment",
-  "music_lessons", "graphic_design", "video_production", "virtual_assistant", "marketing", "translation",
-  "security_services", "landscaping", "pool_maintenance", "pest_control", "interior_design",
-  "personal_shopping", "catering", "cleaning", "childcare", "elder_care", "equipment_rental",
-  "massage_therapy", "hair_makeup", "tailoring", "jewelry_repair", "computer_repair", "plumbing",
-  "electrical", "roofing", "painting", "hvac", "window_cleaning", "pressure_washing", "junk_removal",
-  "locksmith", "notary", "financial_planning", "tax_preparation", "insurance", "travel_planning",
-  "life_coaching", "career_coaching", "art_classes", "yoga_meditation", "sports_coaching",
-  "private_investigation", "logistics", "bail_bonding", "car_insurance", "home_insurance",
-  "health_insurance", "life_insurance", "acupuncture", "chiropractic", "orthodontics", "rehab",
-  "shelter_services", "injury_care", "senior_care", "restaurant", "food_truck", "groceries",
-  "hair_extensions", "physical_therapy", "mental_health_counseling", "nutrition_counseling",
-  "substance_abuse_counseling", "hospice_care", "home_healthcare", "medical_equipment_rental",
-  "physical_rehabilitation", "occupational_therapy", "speech_therapy", "mobility_assistance",
-  "audio_engineering", "session_musician", "songwriting", "music_promotion", "event_decor",
-  "event_staffing", "private_aviation", "personal_security", "visa_services", "yacht_charter",
-  "personal_stylist", "fine_art_consulting", "luxury_shopping_experience", "exclusive_event_access",
-  "web_development", "app_development", "blockchain_consulting", "ai_development", "seo_services",
-  "content_writing", "podcast_production", "voice_acting", "animation_services", "3d_modeling",
-  "game_development", "cybersecurity", "data_analytics", "business_consulting", "hr_services",
-  "payroll_services", "bookkeeping", "private_chef_catering", "sommelier_services", "party_rental",
-  "bounce_house_rental", "photo_booth_rental", "valet_parking", "coat_check", "bartending", "waitstaff"
-];
-
 export default function ProviderHub() {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -108,7 +80,6 @@ export default function ProviderHub() {
     initialData: []
   });
 
-  // Count unread messages for badge
   const { data: unreadMessages = 0 } = useQuery({
     queryKey: ['provider-unread-messages', currentUser?.email],
     queryFn: async () => {
@@ -124,7 +95,6 @@ export default function ProviderHub() {
     staleTime: 60000
   });
 
-  // Count unread booking requests
   const { data: unreadBookingRequests = 0 } = useQuery({
     queryKey: ['provider-unread-bookings', currentUser?.email],
     queryFn: async () => {
@@ -158,13 +128,14 @@ export default function ProviderHub() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        // Mark user as provider if not already
         if (!user.is_provider) {
           await base44.auth.updateMe({ is_provider: true });
         }
       } catch (error) {
         console.log("Error loading user:", error);
         setCurrentUser(null);
+      } finally {
+        setUserLoaded(true);
       }
     };
     loadUser();
@@ -200,7 +171,7 @@ export default function ProviderHub() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-verifications"] });
-      alert("Verification request submitted! We'll review it within 24-48 hours.");
+      toast.success("Verification request submitted! We'll review it within 24-48 hours.");
       setVerificationForm({
         verification_type: "background_check",
         license_number: "",
@@ -221,7 +192,6 @@ export default function ProviderHub() {
     }));
   };
 
-  // Calculate overall trust score
   const verifiedCount = verifications.filter(v => v.status === "verified").length;
   const overallTrustScore = verifiedCount > 0
     ? Math.min(50 + (verifiedCount * 15), 100)
@@ -314,14 +284,14 @@ export default function ProviderHub() {
 
   const saveBrand = async () => {
     await base44.auth.updateMe(brand);
-    const updatedUser = await base44.auth.me(); // Fetch updated user
-    setCurrentUser(updatedUser); // Update local state
-    alert("Brand profile saved");
+    const updatedUser = await base44.auth.me();
+    setCurrentUser(updatedUser);
+    toast.success("Brand profile saved!");
   };
 
   const [form, setForm] = useState({
     title: "",
-    category: "logistics",
+    category: "consulting",
     price: 100,
     price_type: "fixed",
     image_url: "",
@@ -338,7 +308,6 @@ export default function ProviderHub() {
   const [sortBy, setSortBy] = useState("created_date");
   const [filterCategory, setFilterCategory] = useState("all");
 
-  // Rental categories
   const rentalCategories = [
     "property_rental", "equipment_rental", "yacht_charter", 
     "private_aviation", "bounce_house_rental", "party_rental",
@@ -355,26 +324,12 @@ export default function ProviderHub() {
       toast.error('Please enter a title and category first');
       return;
     }
-    
     setGeneratingDescription(true);
     try {
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert service provider copywriter. Create a compelling, professional service description for the following:
-
-Service Title: ${form.title}
-Category: ${form.category}
-
-The description should:
-- Be 2-3 sentences long
-- Highlight the key benefits to customers
-- Sound professional yet approachable
-- Include relevant details about what's included
-- End with a call to action
-
-Generate only the description text, nothing else.`,
+        prompt: `You are an expert service provider copywriter. Create a compelling, professional service description for the following:\n\nService Title: ${form.title}\nCategory: ${form.category}\n\nThe description should:\n- Be 2-3 sentences long\n- Highlight the key benefits to customers\n- Sound professional yet approachable\n- Include relevant details about what's included\n- End with a call to action\n\nGenerate only the description text, nothing else.`,
         add_context_from_internet: false
       });
-      
       setForm({ ...form, description: response });
       toast.success('Description generated!');
     } catch (error) {
@@ -389,26 +344,12 @@ Generate only the description text, nothing else.`,
       toast.error('Please enter a title and category first');
       return;
     }
-    
     setGeneratingPricing(true);
     try {
       const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a pricing expert for service marketplaces. Based on market trends and industry standards, suggest an optimal price for:
-
-Service: ${form.title}
-Category: ${form.category}
-Current Price Type: ${form.price_type}
-
-Provide a competitive price that balances profitability and market demand. Consider:
-- Industry standard rates
-- Skill level required
-- Time/effort involved
-- Local market conditions
-
-Respond with ONLY a single number (the suggested price in USD). No explanation, just the number.`,
+        prompt: `You are a pricing expert for service marketplaces. Based on market trends and industry standards, suggest an optimal price for:\n\nService: ${form.title}\nCategory: ${form.category}\nCurrent Price Type: ${form.price_type}\n\nRespond with ONLY a single number (the suggested price in USD). No explanation, just the number.`,
         add_context_from_internet: true
       });
-      
       const suggestedPrice = parseFloat(response.trim());
       if (!isNaN(suggestedPrice)) {
         setForm({ ...form, price: suggestedPrice });
@@ -436,11 +377,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
   const createMutation = useMutation({
     mutationFn: async (data) => {
       if (data.category === "logistics" && !currentUser?.business_verified) {
-        alert("Only verified businesses can offer Logistics. Please verify your business in your profile.");
+        toast.error("Only verified businesses can offer Logistics. Please verify your business in your profile.");
         return Promise.reject("Not verified for logistics");
       }
-      
-      // Add required fields for marketplace visibility
       const serviceData = {
         ...data,
         provider_email: currentUser.email,
@@ -451,14 +390,13 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
         reviews_count: 0,
         response_time: "within 1 hour"
       };
-      
       return base44.entities.MarketplaceItem.create(serviceData);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
       qc.invalidateQueries({ queryKey: ["marketplace-items"] });
       setForm({ 
-        title: "", category: "logistics", price: 100, price_type: "fixed", 
+        title: "", category: "consulting", price: 100, price_type: "fixed", 
         image_url: "", description: "", escrow_required: false, 
         portfolio_images: [], variations: [], add_ons: [],
         is_rental: false, rental_details: {}, blocked_dates: []
@@ -466,9 +404,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
       toast.success("Service published and live in marketplace!");
     },
     onError: (error) => {
-        if (error !== "Not verified for logistics") {
-            toast.error("Failed to publish service: " + error.message);
-        }
+      if (error !== "Not verified for logistics") {
+        toast.error("Failed to publish service: " + error.message);
+      }
     }
   });
 
@@ -477,12 +415,14 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
   const [generatingPackage, setGeneratingPackage] = useState(false);
   const [generatedPackages, setGeneratedPackages] = useState([]);
   const [showPackages, setShowPackages] = useState(false);
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.MarketplaceItem.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
       setEditingId(null);
       setEditData(null);
+      toast.success("Service updated!");
     }
   });
 
@@ -526,7 +466,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-availability"] });
-      alert("Availability saved successfully!");
+      toast.success("Availability saved!");
     }
   });
 
@@ -554,7 +494,6 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           </Link>
         </div>
 
-        {/* New Provider Onboarding Banner */}
         {currentUser && !currentUser.provider_onboarding_completed && (
           <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 mb-6">
             <CardContent className="p-6">
@@ -580,7 +519,6 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           </Card>
         )}
 
-        {/* Stripe Connect Onboarding Banner */}
         {!currentUser?.stripe_account_id && (
           <Card className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border-green-500/30 mb-6">
             <CardContent className="p-6">
@@ -603,15 +541,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   className="bg-green-600 hover:bg-green-700"
                 >
                   {stripeOnboarding || createStripeAccountMutation.isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Connecting...
-                    </>
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Connecting...</>
                   ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Connect Stripe
-                    </>
+                    <><CreditCard className="w-4 h-4 mr-2" />Connect Stripe</>
                   )}
                 </Button>
               </div>
@@ -619,39 +551,21 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           </Card>
         )}
 
-        {/* Quick Actions */}
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Button
-            onClick={() => navigate(createPageUrl("ProviderListings"))}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 py-8 text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200"
-          >
-            <List className="w-6 h-6 mr-2" />
-            Manage Listings
+          <Button onClick={() => navigate(createPageUrl("ProviderListings"))} className="bg-gradient-to-r from-purple-600 to-pink-600 py-8 text-lg hover:from-purple-700 hover:to-pink-700">
+            <List className="w-6 h-6 mr-2" />Manage Listings
           </Button>
-          <Button
-            onClick={() => setActiveTab("services")}
-            className="bg-gradient-to-r from-indigo-600 to-blue-600 py-8 text-lg hover:from-indigo-700 hover:to-blue-700 transition-all duration-200"
-          >
-            <Plus className="w-6 h-6 mr-2" />
-            Add New Service
+          <Button onClick={() => setActiveTab("services")} className="bg-gradient-to-r from-indigo-600 to-blue-600 py-8 text-lg hover:from-indigo-700 hover:to-blue-700">
+            <Plus className="w-6 h-6 mr-2" />Add New Service
           </Button>
-          <Button
-            onClick={() => setActiveTab("verification")}
-            className="bg-gradient-to-r from-green-600 to-teal-600 py-8 text-lg hover:from-green-700 hover:to-teal-700 transition-all duration-200"
-          >
-            <Shield className="w-6 h-6 mr-2" />
-            Get Verified
+          <Button onClick={() => setActiveTab("verification")} className="bg-gradient-to-r from-green-600 to-teal-600 py-8 text-lg hover:from-green-700 hover:to-teal-700">
+            <Shield className="w-6 h-6 mr-2" />Get Verified
           </Button>
-          <Button
-            onClick={() => setActiveTab("profile")}
-            className="bg-gradient-to-r from-yellow-600 to-orange-600 py-8 text-lg hover:from-yellow-700 hover:to-orange-700 transition-all duration-200"
-          >
-            <User className="w-6 h-6 mr-2" />
-            Update Profile
+          <Button onClick={() => setActiveTab("profile")} className="bg-gradient-to-r from-yellow-600 to-orange-600 py-8 text-lg hover:from-yellow-700 hover:to-orange-700">
+            <User className="w-6 h-6 mr-2" />Update Profile
           </Button>
         </div>
 
-        {/* Verification Status Banner */}
         <Card className={`bg-gradient-to-r ${verificationLevelColors[currentUser?.provider_verification_level || "none"]} border-0 mb-6`}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -661,22 +575,14 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 </div>
                 <div>
                   <h3 className="text-white text-2xl font-bold mb-1">
-                    {currentUser?.provider_verification_level === "none"
-                      ? "Get Verified"
-                      : `${currentUser?.provider_verification_level?.toUpperCase()} Verified Provider`}
+                    {currentUser?.provider_verification_level === "none" ? "Get Verified" : `${currentUser?.provider_verification_level?.toUpperCase()} Verified Provider`}
                   </h3>
-                  <p className="text-white/90">
-                    Trust Score: {currentUser?.provider_trust_score || overallTrustScore}/100
-                  </p>
-                  <p className="text-white/80 text-sm">
-                    {verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} completed
-                  </p>
+                  <p className="text-white/90">Trust Score: {currentUser?.provider_trust_score || overallTrustScore}/100</p>
+                  <p className="text-white/80 text-sm">{verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} completed</p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-white text-4xl font-bold mb-2">
-                  {verifiedCount}/{verifications.length}
-                </div>
+                <div className="text-white text-4xl font-bold mb-2">{verifiedCount}/{verifications.length}</div>
                 <p className="text-white/90 text-sm">Verifications</p>
               </div>
             </div>
@@ -687,9 +593,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           <div className="overflow-x-auto -mx-2 px-2">
             <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
               <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
-              <TabsTrigger value="assets" className="whitespace-nowrap px-4">
-                My Assets ({myServices.length})
-              </TabsTrigger>
+              <TabsTrigger value="assets" className="whitespace-nowrap px-4">My Assets ({myServices.length})</TabsTrigger>
               <TabsTrigger value="video-editor" className="whitespace-nowrap px-4">Video Editor</TabsTrigger>
               <TabsTrigger value="requests" className="relative whitespace-nowrap px-4">
                 Requests
@@ -718,55 +622,43 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             </TabsList>
           </div>
 
-          {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
-          <DashboardMetrics currentUser={currentUser} />
-          <RentalNotifications currentUser={currentUser} />
-          <StripeExpressDashboard currentUser={currentUser} />
-          <AdvancedAnalytics currentUser={currentUser} />
-          <BusinessReportGenerator currentUser={currentUser} />
-          <FinancialDataExport currentUser={currentUser} />
-          <PerformanceDashboard currentUser={currentUser} />
+            <DashboardMetrics currentUser={currentUser} />
+            <RentalNotifications currentUser={currentUser} />
+            <StripeExpressDashboard currentUser={currentUser} />
+            <AdvancedAnalytics currentUser={currentUser} />
+            <BusinessReportGenerator currentUser={currentUser} />
+            <FinancialDataExport currentUser={currentUser} />
+            <PerformanceDashboard currentUser={currentUser} />
           </TabsContent>
 
-          {/* Multi-Asset Management Tab */}
           <TabsContent value="assets" className="space-y-6">
             <MultiAssetDashboard currentUser={currentUser} />
           </TabsContent>
 
-          {/* Video Editor Tab */}
           <TabsContent value="video-editor" className="space-y-6">
             <AdvancedVideoEditor currentUser={currentUser} />
             <VideoEditorPro currentUser={currentUser} />
           </TabsContent>
 
-          {/* Booking Requests Tab */}
           <TabsContent value="requests" className="space-y-6">
             <BookingRequestsSection currentUser={currentUser} />
-            {/* Active Rentals requiring attention */}
             <ActiveRentalsManager currentUser={currentUser} />
           </TabsContent>
 
-          {/* Messages Tab */}
           <TabsContent value="messages" className="space-y-6">
             <ProviderChatSection currentUser={currentUser} />
           </TabsContent>
 
-          {/* Earnings Tab */}
           <TabsContent value="earnings" className="space-y-6">
             <div className="flex justify-end mb-4">
-              <Button
-                onClick={() => setShowPayoutModal(true)}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              >
-                <DollarSign className="w-4 h-4 mr-2" />
-                Request Payout
+              <Button onClick={() => setShowPayoutModal(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                <DollarSign className="w-4 h-4 mr-2" />Request Payout
               </Button>
             </div>
             <EarningsSection currentUser={currentUser} />
           </TabsContent>
 
-          {/* Portfolio Tab */}
           <TabsContent value="portfolio" className="space-y-6">
             <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30 mb-6">
               <CardContent className="p-6">
@@ -774,228 +666,26 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   <Award className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
                   <div>
                     <h3 className="text-white font-bold text-lg mb-2">Showcase Your Work</h3>
-                    <p className="text-blue-200 text-sm">
-                      Build trust and attract more customers by showcasing your best work. Upload images, videos, or detailed case studies of your completed projects.
-                    </p>
+                    <p className="text-blue-200 text-sm">Build trust and attract more customers by showcasing your best work.</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            <PortfolioSection 
-              userEmail={currentUser?.email} 
-              isOwnProfile={true} 
-              currentUser={currentUser} 
-            />
+            <PortfolioSection userEmail={currentUser?.email} isOwnProfile={true} currentUser={currentUser} />
           </TabsContent>
 
-
-
-          {/* Services Tab */}
           <TabsContent value="services" className="space-y-6">
-            {/* Service Package Manager */}
             <ServicePackageManager myServices={myServices} currentUser={currentUser} />
 
-            {/* Ronron AI Smart Package Generator */}
-            <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5" />
-                  Ronron AI - Smart Package Creator
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-purple-300 text-sm">
-                  Let AI analyze your services and create optimized bundles based on holidays, seasons, events, and demand trends
-                </p>
-
-                <div className="grid md:grid-cols-3 gap-3">
-                  {['Holiday Bundles', 'Seasonal Packages', 'Event Specials'].map((type) => (
-                    <Button
-                      key={type}
-                      onClick={async () => {
-                        setGeneratingPackage(true);
-                        try {
-                          const response = await base44.integrations.Core.InvokeLLM({
-                            prompt: `You are an expert package pricing strategist for service providers. 
-
-          Current Date: ${new Date().toLocaleDateString()}
-
-          Provider's Services:
-          ${myServices.map(s => `- ${s.title}: $${s.price} (${s.category})`).join('\n')}
-
-          Task: Create 3 smart service bundles for "${type}" considering:
-          - Current season and upcoming holidays
-          - Service compatibility and natural pairings
-          - Market demand trends
-          - Optimal pricing strategies (10-30% discount on combined value)
-          - Customer appeal and value proposition
-
-          For each bundle, provide:
-          1. Creative package name that appeals to customers
-          2. 2-4 services to include (use exact service titles from the list above)
-          3. Individual service values and total value
-          4. Suggested bundle price (with strategic discount)
-          5. Compelling description (2-3 sentences)
-          6. Best time period to promote this bundle
-          7. Target customer segment
-
-          Return as JSON array with this exact structure:
-          {
-          "packages": [
-          {
-          "name": "Package name",
-          "services": ["exact service title 1", "exact service title 2"],
-          "service_prices": [100, 200],
-          "total_value": 300,
-          "bundle_price": 240,
-          "discount_percent": 20,
-          "description": "Why customers love this",
-          "promotion_period": "December 2024 - January 2025",
-          "target_audience": "Who this is for"
-          }
-          ]
-          }`,
-                            add_context_from_internet: true,
-                            response_json_schema: {
-                              type: "object",
-                              properties: {
-                                packages: {
-                                  type: "array",
-                                  items: {
-                                    type: "object",
-                                    properties: {
-                                      name: { type: "string" },
-                                      services: { type: "array", items: { type: "string" } },
-                                      service_prices: { type: "array", items: { type: "number" } },
-                                      total_value: { type: "number" },
-                                      bundle_price: { type: "number" },
-                                      discount_percent: { type: "number" },
-                                      description: { type: "string" },
-                                      promotion_period: { type: "string" },
-                                      target_audience: { type: "string" }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          });
-
-                          setGeneratedPackages(response.packages || []);
-                          setShowPackages(true);
-                          toast.success('Smart packages generated!');
-                        } catch (error) {
-                          toast.error('Failed to generate packages');
-                        } finally {
-                          setGeneratingPackage(false);
-                        }
-                      }}
-                      disabled={generatingPackage || myServices.length < 2}
-                      className="bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/30"
-                    >
-                      {generatingPackage ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Star className="w-4 h-4 mr-2" />
-                      )}
-                      {type}
-                    </Button>
-                  ))}
-                </div>
-
-                {myServices.length < 2 && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
-                    <p className="text-yellow-300 text-sm">
-                      Add at least 2 services to generate smart packages
-                    </p>
-                  </div>
-                )}
-
-                {showPackages && generatedPackages.length > 0 && (
-                  <div className="grid md:grid-cols-3 gap-4 mt-6">
-                    {generatedPackages.map((pkg, idx) => (
-                      <div key={idx} className="bg-white/10 backdrop-blur-xl rounded-xl p-4 border border-white/20">
-                        <div className="flex items-start justify-between mb-3">
-                          <h4 className="text-white font-bold">{pkg.name}</h4>
-                          <Badge className="bg-green-500/20 text-green-300">
-                            -{pkg.discount_percent}%
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-2 mb-3">
-                          {pkg.services.map((service, i) => (
-                            <div key={i} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-300">{service}</span>
-                              <span className="text-gray-400">${pkg.service_prices[i]}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="border-t border-white/10 pt-3 mb-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-gray-400 text-sm">Total Value</span>
-                            <span className="text-gray-400 line-through">${pkg.total_value}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-white font-bold">Bundle Price</span>
-                            <span className="text-green-400 font-bold text-xl">${pkg.bundle_price}</span>
-                          </div>
-                        </div>
-
-                        <p className="text-gray-400 text-xs mb-3">{pkg.description}</p>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-xs">
-                            <Calendar className="w-3 h-3 text-purple-400" />
-                            <span className="text-purple-300">{pkg.promotion_period}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <Users className="w-3 h-3 text-blue-400" />
-                            <span className="text-blue-300">{pkg.target_audience}</span>
-                          </div>
-                        </div>
-
-                        <Button 
-                          onClick={() => {
-                            // Save package logic here
-                            toast.success('Package saved! Implement save logic to create this as a service bundle.');
-                          }}
-                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                        >
-                          Create Package
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
             <Card className="bg-white/5 border-white/10 mb-6">
               <CardHeader>
                 <CardTitle className="text-white">Brand Profile</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input
-                  placeholder="Business Name"
-                  value={brand.provider_brand_name}
-                  onChange={(e) => setBrand({...brand, provider_brand_name: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <Input
-                  placeholder="Logo URL"
-                  value={brand.provider_logo_url}
-                  onChange={(e) => setBrand({...brand, provider_logo_url: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <Input
-                  placeholder="About Your Business"
-                  value={brand.provider_description}
-                  onChange={(e) => setBrand({...brand, provider_description: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <Button onClick={saveBrand} className="bg-purple-600 hover:bg-purple-700 w-full">
-                  Save Brand Profile
-                </Button>
+                <Input placeholder="Business Name" value={brand.provider_brand_name} onChange={(e) => setBrand({...brand, provider_brand_name: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                <Input placeholder="Logo URL" value={brand.provider_logo_url} onChange={(e) => setBrand({...brand, provider_logo_url: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                <Input placeholder="About Your Business" value={brand.provider_description} onChange={(e) => setBrand({...brand, provider_description: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                <Button onClick={saveBrand} className="bg-purple-600 hover:bg-purple-700 w-full">Save Brand Profile</Button>
               </CardContent>
             </Card>
 
@@ -1004,42 +694,19 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 <CardTitle className="text-white">Add New Service/Product</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input
-                  placeholder="Service/Product Title"
-                  value={form.title}
-                  onChange={(e) => setForm({...form, title: e.target.value})}
-                  className="bg-white/10 border-white/20 text-white"
-                />
+                <Input placeholder="Service/Product Title" value={form.title} onChange={(e) => setForm({...form, title: e.target.value})} className="bg-white/10 border-white/20 text-white" />
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Service Category *</label>
-                    <Select 
-                      value={form.category} 
-                      onValueChange={(v) => {
-                        const isRental = isRentalCategory(v);
-                        setForm({...form, category: v, is_rental: isRental});
-                      }}
-                    >
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
+                    <Select value={form.category} onValueChange={(v) => { const isRental = isRentalCategory(v); setForm({...form, category: v, is_rental: isRental}); }}>
+                      <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Select a category" /></SelectTrigger>
                       <SelectContent className="max-h-96">
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">Insurance & Protection</div>
-                        <SelectItem value="health_insurance">Health Insurance</SelectItem>
-                        <SelectItem value="car_insurance">Car Insurance</SelectItem>
-                        <SelectItem value="home_insurance">Home Insurance</SelectItem>
-                        <SelectItem value="life_insurance">Life Insurance</SelectItem>
-                        <SelectItem value="bail_bonding">Bail Bonds</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Beauty & Personal Care</div>
                         <SelectItem value="barber_beauty">Barber & Beauty</SelectItem>
                         <SelectItem value="hair_extensions">Hair Extensions</SelectItem>
                         <SelectItem value="hair_makeup">Hair & Makeup</SelectItem>
                         <SelectItem value="massage_therapy">Massage Therapy</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Home Services</div>
-                        <SelectItem value="home_services">Home Services (General)</SelectItem>
+                        <SelectItem value="home_services">Home Services</SelectItem>
                         <SelectItem value="cleaning">Cleaning</SelectItem>
                         <SelectItem value="plumbing">Plumbing</SelectItem>
                         <SelectItem value="electrical">Electrical</SelectItem>
@@ -1049,77 +716,55 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                         <SelectItem value="pest_control">Pest Control</SelectItem>
                         <SelectItem value="roofing">Roofing</SelectItem>
                         <SelectItem value="painting">Painting</SelectItem>
-                        <SelectItem value="window_cleaning">Window Cleaning</SelectItem>
-                        <SelectItem value="pressure_washing">Pressure Washing</SelectItem>
                         <SelectItem value="junk_removal">Junk Removal</SelectItem>
                         <SelectItem value="locksmith">Locksmith</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Food & Hospitality</div>
                         <SelectItem value="restaurant">Restaurant</SelectItem>
                         <SelectItem value="food_truck">Food Truck</SelectItem>
-                        <SelectItem value="groceries">Groceries</SelectItem>
                         <SelectItem value="personal_chef">Personal Chef</SelectItem>
                         <SelectItem value="catering">Catering</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Transportation</div>
                         <SelectItem value="chauffeur">Chauffeur Service</SelectItem>
                         <SelectItem value="moving_services">Moving Services</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Real Estate & Property</div>
                         <SelectItem value="property_rental">Property Rental</SelectItem>
                         <SelectItem value="real_estate">Real Estate</SelectItem>
                         <SelectItem value="interior_design">Interior Design</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Professional Services</div>
                         <SelectItem value="legal_services">Legal Services</SelectItem>
                         <SelectItem value="accounting">Accounting</SelectItem>
                         <SelectItem value="consulting">Consulting</SelectItem>
                         <SelectItem value="financial_planning">Financial Planning</SelectItem>
                         <SelectItem value="tax_preparation">Tax Preparation</SelectItem>
-                        <SelectItem value="notary">Notary</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Construction & Trades</div>
                         <SelectItem value="construction">Construction</SelectItem>
                         <SelectItem value="automotive">Automotive</SelectItem>
-                        <SelectItem value="contractor_license">Contractor</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Events & Entertainment</div>
                         <SelectItem value="wedding_planning">Wedding Planning</SelectItem>
                         <SelectItem value="event_planning">Event Planning</SelectItem>
                         <SelectItem value="photography">Photography</SelectItem>
                         <SelectItem value="video_production">Video Production</SelectItem>
                         <SelectItem value="dj_entertainment">DJ & Entertainment</SelectItem>
                         <SelectItem value="equipment_rental">Equipment Rental</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Creative Services</div>
                         <SelectItem value="graphic_design">Graphic Design</SelectItem>
                         <SelectItem value="marketing">Marketing</SelectItem>
                         <SelectItem value="web_development">Web Development</SelectItem>
                         <SelectItem value="content_writing">Content Writing</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Education & Coaching</div>
                         <SelectItem value="tutoring">Tutoring</SelectItem>
                         <SelectItem value="music_lessons">Music Lessons</SelectItem>
                         <SelectItem value="fitness_training">Fitness Training</SelectItem>
                         <SelectItem value="life_coaching">Life Coaching</SelectItem>
-                        <SelectItem value="career_coaching">Career Coaching</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Care Services</div>
                         <SelectItem value="childcare">Childcare</SelectItem>
                         <SelectItem value="pet_services">Pet Services</SelectItem>
-
-                        <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 mt-2">Tech & Digital</div>
                         <SelectItem value="tech_support">Tech Support</SelectItem>
                         <SelectItem value="computer_repair">Computer Repair</SelectItem>
                         <SelectItem value="virtual_assistant">Virtual Assistant</SelectItem>
+                        <SelectItem value="health_insurance">Health Insurance</SelectItem>
+                        <SelectItem value="car_insurance">Car Insurance</SelectItem>
+                        <SelectItem value="bail_bonding">Bail Bonds</SelectItem>
+                        <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
+                        <SelectItem value="bounce_house_rental">Bounce House Rental</SelectItem>
+                        <SelectItem value="party_rental">Party Rental</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <Select value={form.price_type} onValueChange={(v) => setForm({...form, price_type: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue placeholder="Pricing Type" />
-                    </SelectTrigger>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Pricing Type" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="fixed">Fixed Price</SelectItem>
                       <SelectItem value="hourly">Hourly Rate</SelectItem>
@@ -1133,88 +778,32 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-gray-400 text-sm">Price (USD)</label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={suggestPricing}
-                      disabled={generatingPricing || !form.title}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {generatingPricing ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <TrendingUp className="w-3 h-3 mr-1" />
-                          AI Suggest
-                        </>
-                      )}
+                    <Button type="button" size="sm" onClick={suggestPricing} disabled={generatingPricing || !form.title} className="bg-green-600 hover:bg-green-700">
+                      {generatingPricing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><TrendingUp className="w-3 h-3 mr-1" />AI Suggest</>}
                     </Button>
                   </div>
-                  <Input
-                    type="number"
-                    placeholder="Price (USD)"
-                    value={form.price}
-                    onChange={(e) => setForm({...form, price: Number(e.target.value)})}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <Input type="number" placeholder="Price (USD)" value={form.price} onChange={(e) => setForm({...form, price: Number(e.target.value)})} className="bg-white/10 border-white/20 text-white" />
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-gray-400 text-sm">Description</label>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={generateDescription}
-                      disabled={generatingDescription || !form.title}
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      {generatingDescription ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Star className="w-3 h-3 mr-1" />
-                          AI Generate
-                        </>
-                      )}
+                    <Button type="button" size="sm" onClick={generateDescription} disabled={generatingDescription || !form.title} className="bg-purple-600 hover:bg-purple-700">
+                      {generatingDescription ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</> : <><Star className="w-3 h-3 mr-1" />AI Generate</>}
                     </Button>
                   </div>
-                  <Input
-                    placeholder="Service description"
-                    value={form.description}
-                    onChange={(e) => setForm({...form, description: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white"
-                  />
+                  <Input placeholder="Service description" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} className="bg-white/10 border-white/20 text-white" />
                 </div>
 
                 {form.is_rental ? (
                   <>
-                    <RentalAssetManager
-                      rentalDetails={form.rental_details}
-                      onChange={(d) => setForm({...form, rental_details: d})}
-                    />
-                    <RentalCalendar
-                      blockedDates={form.blocked_dates}
-                      onChange={(d) => setForm({...form, blocked_dates: d})}
-                    />
+                    <RentalAssetManager rentalDetails={form.rental_details} onChange={(d) => setForm({...form, rental_details: d})} />
+                    <RentalCalendar blockedDates={form.blocked_dates} onChange={(d) => setForm({...form, blocked_dates: d})} />
                   </>
                 ) : (
                   <>
-                    <ServiceVariationsManager 
-                      variations={form.variations}
-                      onChange={(v) => setForm({...form, variations: v})}
-                    />
-
-                    <ServiceAddOnsManager 
-                      addOns={form.add_ons}
-                      onChange={(a) => setForm({...form, add_ons: a})}
-                    />
+                    <ServiceVariationsManager variations={form.variations} onChange={(v) => setForm({...form, variations: v})} />
+                    <ServiceAddOnsManager addOns={form.add_ons} onChange={(a) => setForm({...form, add_ons: a})} />
                   </>
                 )}
 
@@ -1223,42 +812,18 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   {form.image_url && (
                     <div className="relative inline-block">
                       <img src={form.image_url} alt="cover" className="w-32 h-32 object-cover rounded-lg border border-white/20" />
-                      <button
-                        onClick={() => setForm({...form, image_url: ""})}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
-                      >
+                      <button onClick={() => setForm({...form, image_url: ""})} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   )}
                   <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="relative"
-                      onClick={() => document.getElementById('cover-upload').click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Image
+                    <Button type="button" variant="outline" onClick={() => document.getElementById('cover-upload').click()}>
+                      <Upload className="w-4 h-4 mr-2" />Upload Image
                     </Button>
-                    <input
-                      id="cover-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleUploadCoverImage(e.target.files?.[0])}
-                      className="hidden"
-                    />
+                    <input id="cover-upload" type="file" accept="image/*" onChange={(e) => handleUploadCoverImage(e.target.files?.[0])} className="hidden" />
                     <span className="text-gray-400 text-sm">or</span>
-                    <Input
-                      placeholder="Paste image URL"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && e.currentTarget.value) {
-                          setForm({...form, image_url: e.currentTarget.value});
-                          e.currentTarget.value = "";
-                        }
-                      }}
-                      className="bg-white/10 border-white/20 text-white flex-1"
-                    />
+                    <Input placeholder="Paste image URL" onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value) { setForm({...form, image_url: e.currentTarget.value}); e.currentTarget.value = ""; } }} className="bg-white/10 border-white/20 text-white flex-1" />
                   </div>
                 </div>
 
@@ -1268,32 +833,16 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                     {form.portfolio_images?.map((url, idx) => (
                       <div key={idx} className="relative">
                         <img src={url} alt={`portfolio-${idx}`} className="w-24 h-24 object-cover rounded-lg border border-white/20" />
-                        <button
-                          onClick={() => setForm((prev) => ({ ...prev, portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx) }))}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
-                        >
+                        <button onClick={() => setForm((prev) => ({ ...prev, portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx) }))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('portfolio-upload').click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Add Image
-                    </Button>
-                    <input
-                      id="portfolio-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleUploadPortfolioImage(e.target.files?.[0])}
-                      className="hidden"
-                    />
-                  </div>
+                  <Button type="button" variant="outline" onClick={() => document.getElementById('portfolio-upload').click()}>
+                    <Upload className="w-4 h-4 mr-2" />Add Image
+                  </Button>
+                  <input id="portfolio-upload" type="file" accept="image/*" onChange={(e) => handleUploadPortfolioImage(e.target.files?.[0])} className="hidden" />
                 </div>
 
                 <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
@@ -1315,7 +864,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   }}
                   disabled={createMutation.isLoading || !form.title || !form.description || !form.image_url}
                 >
-                  {createMutation.isLoading ? 'Publishing...' : 'Publish Service'}
+                  {createMutation.isLoading ? 'Publishing...' : 'Publish Service to Marketplace'}
                 </Button>
               </CardContent>
             </Card>
@@ -1324,9 +873,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               <h2 className="text-2xl text-white font-bold">Your Active Services</h2>
               <div className="flex gap-2">
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white"><SelectValue placeholder="All Categories" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {[...new Set(myServices.map(s => s.category))].map(cat => (
@@ -1334,14 +881,10 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                     ))}
                   </SelectContent>
                 </Select>
-                
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
-                    <SelectValue placeholder="Sort By" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white"><SelectValue placeholder="Sort By" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="created_date">Newest First</SelectItem>
-                    <SelectItem value="-created_date">Oldest First</SelectItem>
                     <SelectItem value="price">Price: Low to High</SelectItem>
                     <SelectItem value="-price">Price: High to Low</SelectItem>
                     <SelectItem value="title">Name: A-Z</SelectItem>
@@ -1357,51 +900,27 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                   if (sortBy === 'price') return (a.price || 0) - (b.price || 0);
                   if (sortBy === '-price') return (b.price || 0) - (a.price || 0);
                   if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
-                  if (sortBy === '-created_date') return new Date(a.created_date) - new Date(b.created_date);
                   return new Date(b.created_date) - new Date(a.created_date);
                 })
                 .map(s => (
                 <Card key={s.id} className="bg-white/5 border-white/10">
                   <CardContent className="p-4">
-                    <img src={s.image_url} alt={s.title} className="h-40 w-full object-cover rounded-lg mb-3" />
+                    {s.image_url && <img src={s.image_url} alt={s.title} className="h-40 w-full object-cover rounded-lg mb-3" />}
                     <div className="text-white font-semibold text-lg mb-1">{s.title}</div>
                     <div className="text-gray-400 text-sm capitalize mb-2">{s.category?.replace("_"," ")}</div>
                     <div className="text-white text-xl font-bold mb-1">${s.price?.toFixed(2)}</div>
-                    {s.is_rental && (
-                      <div className="mb-2">
-                        <Badge className="bg-purple-500/20 text-purple-300 text-xs">
-                          Rental Asset
-                        </Badge>
-                        {s.rental_details?.security_deposit && (
-                          <p className="text-gray-400 text-xs mt-1">
-                            Deposit: ${s.rental_details.security_deposit}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {!s.is_rental && s.variations?.length > 0 && (
-                      <p className="text-purple-400 text-xs mb-1">{s.variations.length} variations</p>
-                    )}
-                    {!s.is_rental && s.add_ons?.length > 0 && (
-                      <p className="text-blue-400 text-xs mb-2">{s.add_ons.length} add-ons available</p>
-                    )}
+                    {s.is_rental && <Badge className="bg-purple-500/20 text-purple-300 text-xs mb-2">Rental Asset</Badge>}
+                    {!s.is_rental && s.variations?.length > 0 && <p className="text-purple-400 text-xs mb-1">{s.variations.length} variations</p>}
+                    {!s.is_rental && s.add_ons?.length > 0 && <p className="text-blue-400 text-xs mb-2">{s.add_ons.length} add-ons available</p>}
                     <Button size="sm" variant="outline" onClick={() => startEdit(s)} className="w-full">
                       Manage {s.is_rental ? 'Rental' : 'Service'}
                     </Button>
 
                     {editingId === s.id && editData && (
                       <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                        <Input
-                          type="number"
-                          value={editData.price}
-                          onChange={(e) => setEditData({...editData, price: Number(e.target.value)})}
-                          placeholder="Price"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
+                        <Input type="number" value={editData.price} onChange={(e) => setEditData({...editData, price: Number(e.target.value)})} placeholder="Price" className="bg-white/10 border-white/20 text-white" />
                         <Select value={editData.price_type} onValueChange={(v) => setEditData({...editData, price_type: v})}>
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                            <SelectValue placeholder="Price Type" />
-                          </SelectTrigger>
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Price Type" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="fixed">Fixed</SelectItem>
                             <SelectItem value="hourly">Hourly</SelectItem>
@@ -1413,105 +932,32 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
 
                         <div className="space-y-2">
                           <label className="text-white text-sm">Cover Image</label>
-                          {editData.image_url && (
-                            <img src={editData.image_url} alt="cover" className="w-full h-32 object-cover rounded-lg" />
-                          )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => document.getElementById(`edit-cover-${s.id}`).click()}
-                            className="w-full"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Change Cover
+                          {editData.image_url && <img src={editData.image_url} alt="cover" className="w-full h-32 object-cover rounded-lg" />}
+                          <Button size="sm" variant="outline" onClick={() => document.getElementById(`edit-cover-${s.id}`).click()} className="w-full">
+                            <Upload className="w-4 h-4 mr-2" />Change Cover
                           </Button>
-                          <input
-                            id={`edit-cover-${s.id}`}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleUploadEditCoverImage(e.target.files?.[0])}
-                            className="hidden"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-white text-sm">Portfolio Images</label>
-                          <div className="flex flex-wrap gap-2">
-                            {editData.portfolio_images?.map((url, idx) => (
-                              <div key={idx} className="relative">
-                                <img src={url} alt={`p-${idx}`} className="w-16 h-16 object-cover rounded-lg" />
-                                <button
-                                  onClick={() => setEditData((prev) => ({ ...prev, portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx) }))}
-                                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => document.getElementById(`edit-portfolio-${s.id}`).click()}
-                            className="w-full"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Add Images
-                          </Button>
-                          <input
-                            id={`edit-portfolio-${s.id}`}
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleUploadEditPortfolioImage(e.target.files?.[0])}
-                            className="hidden"
-                          />
+                          <input id={`edit-cover-${s.id}`} type="file" accept="image/*" onChange={(e) => handleUploadEditCoverImage(e.target.files?.[0])} className="hidden" />
                         </div>
 
                         {editData.is_rental ? (
                           <>
-                            <RentalAssetManager
-                              rentalDetails={editData.rental_details}
-                              onChange={(d) => setEditData({...editData, rental_details: d})}
-                            />
-                            <RentalCalendar
-                              blockedDates={editData.blocked_dates}
-                              onChange={(d) => setEditData({...editData, blocked_dates: d})}
-                            />
+                            <RentalAssetManager rentalDetails={editData.rental_details} onChange={(d) => setEditData({...editData, rental_details: d})} />
+                            <RentalCalendar blockedDates={editData.blocked_dates} onChange={(d) => setEditData({...editData, blocked_dates: d})} />
                           </>
                         ) : (
                           <>
-                            <ServiceVariationsManager 
-                              variations={editData.variations}
-                              onChange={(v) => setEditData({...editData, variations: v})}
-                            />
-
-                            <ServiceAddOnsManager 
-                              addOns={editData.add_ons}
-                              onChange={(a) => setEditData({...editData, add_ons: a})}
-                            />
+                            <ServiceVariationsManager variations={editData.variations} onChange={(v) => setEditData({...editData, variations: v})} />
+                            <ServiceAddOnsManager addOns={editData.add_ons} onChange={(a) => setEditData({...editData, add_ons: a})} />
                           </>
                         )}
 
-                        <AvailabilityOverridesManager 
-                          serviceId={s.id}
-                          providerEmail={currentUser?.email}
-                        />
+                        <AvailabilityOverridesManager serviceId={s.id} providerEmail={currentUser?.email} />
 
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 flex-1"
-                            onClick={() => updateMutation.mutate({ id: s.id, data: editData })}
-                            disabled={updateMutation.isLoading}
-                          >
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700 flex-1" onClick={() => updateMutation.mutate({ id: s.id, data: editData })} disabled={updateMutation.isLoading}>
                             Save Changes
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => { setEditingId(null); setEditData(null); }}
-                            className="flex-1"
-                          >
+                          <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditData(null); }} className="flex-1">
                             Cancel
                           </Button>
                         </div>
@@ -1523,9 +969,7 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             </div>
           </TabsContent>
 
-          {/* Verification Tab */}
           <TabsContent value="verification" className="space-y-6">
-            {/* Why Get Verified */}
             <Card className="bg-blue-500/10 border-blue-500/30">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
@@ -1544,21 +988,13 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
               </CardContent>
             </Card>
 
-            {/* Request New Verification */}
             <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Request Verification</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Request Verification</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-gray-400 text-sm mb-2 block">Verification Type</label>
-                  <Select
-                    value={verificationForm.verification_type}
-                    onValueChange={(v) => setVerificationForm({...verificationForm, verification_type: v})}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
+                  <Select value={verificationForm.verification_type} onValueChange={(v) => setVerificationForm({...verificationForm, verification_type: v})}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="background_check">Background Check</SelectItem>
                       <SelectItem value="license_validation">License Validation</SelectItem>
@@ -1577,42 +1013,19 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">License/Certificate Number</label>
-                    <Input
-                      placeholder="e.g., ABC-123456"
-                      value={verificationForm.license_number}
-                      onChange={(e) => setVerificationForm({...verificationForm, license_number: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="e.g., ABC-123456" value={verificationForm.license_number} onChange={(e) => setVerificationForm({...verificationForm, license_number: e.target.value})} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Issuing Authority</label>
-                    <Input
-                      placeholder="e.g., State Board"
-                      value={verificationForm.issuing_authority}
-                      onChange={(e) => setVerificationForm({...verificationForm, issuing_authority: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="e.g., State Board" value={verificationForm.issuing_authority} onChange={(e) => setVerificationForm({...verificationForm, issuing_authority: e.target.value})} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Issue Date</label>
-                    <Input
-                      type="date"
-                      value={verificationForm.issue_date}
-                      onChange={(e) => setVerificationForm({...verificationForm, issue_date: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input type="date" value={verificationForm.issue_date} onChange={(e) => setVerificationForm({...verificationForm, issue_date: e.target.value})} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Expiration Date</label>
-                    <Input
-                      type="date"
-                      value={verificationForm.expiration_date}
-                      onChange={(e) => setVerificationForm({...verificationForm, expiration_date: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input type="date" value={verificationForm.expiration_date} onChange={(e) => setVerificationForm({...verificationForm, expiration_date: e.target.value})} className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
 
@@ -1622,47 +1035,24 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                     {verificationForm.document_urls?.map((url, idx) => (
                       <div key={idx} className="relative">
                         <img src={url} alt={`doc-${idx}`} className="w-24 h-24 object-cover rounded-lg border border-white/20" />
-                        <button
-                          onClick={() => setVerificationForm((prev) => ({
-                            ...prev,
-                            document_urls: prev.document_urls.filter((_, i) => i !== idx)
-                          }))}
-                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white"
-                        >
+                        <button onClick={() => setVerificationForm((prev) => ({ ...prev, document_urls: prev.document_urls.filter((_, i) => i !== idx) }))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('verification-upload').click()}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Document
+                  <Button type="button" variant="outline" onClick={() => document.getElementById('verification-upload').click()}>
+                    <Upload className="w-4 h-4 mr-2" />Upload Document
                   </Button>
-                  <input
-                    id="verification-upload"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => handleDocumentUpload(e.target.files?.[0])}
-                    className="hidden"
-                  />
+                  <input id="verification-upload" type="file" accept="image/*,application/pdf" onChange={(e) => handleDocumentUpload(e.target.files?.[0])} className="hidden" />
                 </div>
 
-                <Button
-                  onClick={() => submitVerificationMutation.mutate(verificationForm)}
-                  disabled={!verificationForm.license_number || submitVerificationMutation.isLoading}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Submit Verification Request
+                <Button onClick={() => submitVerificationMutation.mutate(verificationForm)} disabled={!verificationForm.license_number || submitVerificationMutation.isLoading} className="w-full bg-green-600 hover:bg-green-700">
+                  <FileText className="w-4 h-4 mr-2" />Submit Verification Request
                 </Button>
               </CardContent>
             </Card>
 
-            {/* My Verifications */}
             <div className="space-y-4">
               <h2 className="text-2xl font-bold text-white">My Verifications</h2>
               {verifications.length === 0 ? (
@@ -1675,67 +1065,31 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                 </Card>
               ) : (
                 verifications.map((verification) => {
-                  const StatusIcon = statusIcons[verification.status];
+                  const StatusIcon = statusIcons[verification.status] || CheckCircle;
                   return (
                     <Card key={verification.id} className="bg-white/5 border-white/10">
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-start gap-4">
-                            <div className={`w-12 h-12 ${
-                              verification.status === 'verified' ? 'bg-green-500/20' : 'bg-blue-500/20'
-                            } rounded-full flex items-center justify-center`}>
-                              <StatusIcon className={`w-6 h-6 ${
-                                verification.status === 'verified' ? 'text-green-400' : 'text-blue-400'
-                              }`} />
+                            <div className={`w-12 h-12 ${verification.status === 'verified' ? 'bg-green-500/20' : 'bg-blue-500/20'} rounded-full flex items-center justify-center`}>
+                              <StatusIcon className={`w-6 h-6 ${verification.status === 'verified' ? 'text-green-400' : 'text-blue-400'}`} />
                             </div>
                             <div>
-                              <h3 className="text-white font-bold text-lg capitalize mb-1">
-                                {verification.verification_type.replace(/_/g, ' ')}
-                              </h3>
-                              {verification.license_number && (
-                                <p className="text-gray-400 text-sm mb-1">
-                                  License: {verification.license_number}
-                                </p>
-                              )}
-                              {verification.issuing_authority && (
-                                <p className="text-gray-400 text-sm">
-                                  Issued by: {verification.issuing_authority}
-                                </p>
-                              )}
+                              <h3 className="text-white font-bold text-lg capitalize mb-1">{verification.verification_type.replace(/_/g, ' ')}</h3>
+                              {verification.license_number && <p className="text-gray-400 text-sm mb-1">License: {verification.license_number}</p>}
+                              {verification.issuing_authority && <p className="text-gray-400 text-sm">Issued by: {verification.issuing_authority}</p>}
                             </div>
                           </div>
-                          <Badge className={statusColors[verification.status]}>
-                            {verification.status.toUpperCase()}
-                          </Badge>
+                          <Badge className={statusColors[verification.status]}>{verification.status.toUpperCase()}</Badge>
                         </div>
-
                         {verification.expiration_date && (
                           <div className="flex items-center gap-2 text-gray-400 text-sm mb-3">
-                            <Calendar className="w-4 h-4" />
-                            Expires: {new Date(verification.expiration_date).toLocaleDateString()}
+                            <Calendar className="w-4 h-4" />Expires: {new Date(verification.expiration_date).toLocaleDateString()}
                           </div>
                         )}
-
-                        {verification.trust_score !== undefined && (
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-gray-400 text-sm">Trust Impact</span>
-                              <span className="text-green-400 font-bold">+{verification.trust_score} points</span>
-                            </div>
-                            <div className="w-full bg-white/10 rounded-full h-2">
-                              <div
-                                className="bg-green-500 h-2 rounded-full transition-all"
-                                style={{ width: `${verification.trust_score}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
                         {verification.status === 'rejected' && verification.rejection_reason && (
                           <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-red-400 text-sm">
-                              <strong>Rejection Reason:</strong> {verification.rejection_reason}
-                            </p>
+                            <p className="text-red-400 text-sm"><strong>Rejection Reason:</strong> {verification.rejection_reason}</p>
                           </div>
                         )}
                       </CardContent>
@@ -1746,183 +1100,74 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
             </div>
           </TabsContent>
 
-          {/* Contracts Tab */}
           <TabsContent value="contracts" className="space-y-6">
             <ContractTemplateManager currentUser={currentUser} />
           </TabsContent>
 
-          {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Provider Profile Information</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Provider Profile Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Business Name</label>
-                    <Input
-                      placeholder="Your Business Name"
-                      value={currentUser?.provider_business_name || ""}
-                      onChange={async (e) => {
-                        const updated = await base44.auth.updateMe({ provider_business_name: e.target.value });
-                        setCurrentUser(prev => ({...prev, ...updated}));
-                      }}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="Your Business Name" value={currentUser?.provider_business_name || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_business_name: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Phone Number</label>
-                    <Input
-                      placeholder="+1 (555) 123-4567"
-                      value={currentUser?.provider_phone || ""}
-                      onChange={async (e) => {
-                        const updated = await base44.auth.updateMe({ provider_phone: e.target.value });
-                        setCurrentUser(prev => ({...prev, ...updated}));
-                      }}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="+1 (555) 123-4567" value={currentUser?.provider_phone || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_phone: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div className="md:col-span-2">
                     <label className="text-gray-400 text-sm mb-2 block">Business Address</label>
-                    <Input
-                      placeholder="123 Main St, City, State ZIP"
-                      value={currentUser?.provider_business_address || ""}
-                      onChange={async (e) => {
-                        const updated = await base44.auth.updateMe({ provider_business_address: e.target.value });
-                        setCurrentUser(prev => ({...prev, ...updated}));
-                      }}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="123 Main St, City, State ZIP" value={currentUser?.provider_business_address || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_business_address: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Website</label>
-                    <Input
-                      placeholder="https://yourbusiness.com"
-                      value={currentUser?.provider_website || ""}
-                      onChange={async (e) => {
-                        const updated = await base44.auth.updateMe({ provider_website: e.target.value });
-                        setCurrentUser(prev => ({...prev, ...updated}));
-                      }}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input placeholder="https://yourbusiness.com" value={currentUser?.provider_website || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_website: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
                   <div>
                     <label className="text-gray-400 text-sm mb-2 block">Years of Experience</label>
-                    <Input
-                      type="number"
-                      placeholder="10"
-                      value={currentUser?.provider_years_experience || ""}
-                      onChange={async (e) => {
-                        const updated = await base44.auth.updateMe({ provider_years_experience: Number(e.target.value) });
-                        setCurrentUser(prev => ({...prev, ...updated}));
-                      }}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <Input type="number" placeholder="10" value={currentUser?.provider_years_experience || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_years_experience: Number(e.target.value) }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Availability Tab */}
           <TabsContent value="availability" className="space-y-6">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white">Set Your Availability</CardTitle>
-              </CardHeader>
+              <CardHeader><CardTitle className="text-white">Set Your Availability</CardTitle></CardHeader>
               <CardContent className="space-y-6">
                 {daysOfWeek.map(day => {
                   const existingAvail = availability.find(a => a.day_of_week === day);
                   const isAvailable = existingAvail?.is_available ?? true;
-                  
                   return (
                     <div key={day} className="bg-white/5 rounded-xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="text-white font-semibold capitalize">{day}</h3>
-                        <Switch 
-                          checked={isAvailable}
-                          onCheckedChange={async (checked) => {
-                            await saveAvailabilityMutation.mutateAsync({
-                              day_of_week: day,
-                              is_available: checked,
-                              start_time: existingAvail?.start_time || "09:00",
-                              end_time: existingAvail?.end_time || "17:00",
-                              slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                            });
-                          }}
-                        />
+                        <Switch checked={isAvailable} onCheckedChange={async (checked) => {
+                          await saveAvailabilityMutation.mutateAsync({
+                            day_of_week: day, is_available: checked,
+                            start_time: existingAvail?.start_time || "09:00",
+                            end_time: existingAvail?.end_time || "17:00",
+                            slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
+                          });
+                        }} />
                       </div>
-                      
                       {isAvailable && (
                         <div className="grid md:grid-cols-3 gap-3">
                           <div>
                             <label className="text-gray-400 text-xs mb-1 block">Start Time</label>
-                            <Input
-                              type="time"
-                              value={existingAvail?.start_time || "09:00"}
-                              onChange={(e) => {
-                                const newAvail = {
-                                  day_of_week: day,
-                                  is_available: true,
-                                  start_time: e.target.value,
-                                  end_time: existingAvail?.end_time || "17:00",
-                                  break_start: existingAvail?.break_start,
-                                  break_end: existingAvail?.break_end,
-                                  slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                                };
-                                setAvailabilityForm(newAvail);
-                              }}
-                              onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
-                              className="bg-white/10 border-white/20 text-white"
-                            />
+                            <Input type="time" value={existingAvail?.start_time || "09:00"} onChange={(e) => { setAvailabilityForm({ day_of_week: day, is_available: true, start_time: e.target.value, end_time: existingAvail?.end_time || "17:00", slot_duration_minutes: existingAvail?.slot_duration_minutes || 60 }); }} onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)} className="bg-white/10 border-white/20 text-white" />
                           </div>
-                          
                           <div>
                             <label className="text-gray-400 text-xs mb-1 block">End Time</label>
-                            <Input
-                              type="time"
-                              value={existingAvail?.end_time || "17:00"}
-                              onChange={(e) => {
-                                const newAvail = {
-                                  day_of_week: day,
-                                  is_available: true,
-                                  start_time: existingAvail?.start_time || "09:00",
-                                  end_time: e.target.value,
-                                  break_start: existingAvail?.break_start,
-                                  break_end: existingAvail?.break_end,
-                                  slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                                };
-                                setAvailabilityForm(newAvail);
-                              }}
-                              onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
-                              className="bg-white/10 border-white/20 text-white"
-                            />
+                            <Input type="time" value={existingAvail?.end_time || "17:00"} onChange={(e) => { setAvailabilityForm({ day_of_week: day, is_available: true, start_time: existingAvail?.start_time || "09:00", end_time: e.target.value, slot_duration_minutes: existingAvail?.slot_duration_minutes || 60 }); }} onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)} className="bg-white/10 border-white/20 text-white" />
                           </div>
-                          
                           <div>
                             <label className="text-gray-400 text-xs mb-1 block">Slot Duration (min)</label>
-                            <Select 
-                              value={String(existingAvail?.slot_duration_minutes || 60)}
-                              onValueChange={(value) => {
-                                saveAvailabilityMutation.mutate({
-                                  day_of_week: day,
-                                  is_available: true,
-                                  start_time: existingAvail?.start_time || "09:00",
-                                  end_time: existingAvail?.end_time || "17:00",
-                                  break_start: existingAvail?.break_start,
-                                  break_end: existingAvail?.break_end,
-                                  slot_duration_minutes: Number(value)
-                                });
-                              }}
-                            >
-                              <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                                <SelectValue />
-                              </SelectTrigger>
+                            <Select value={String(existingAvail?.slot_duration_minutes || 60)} onValueChange={(value) => { saveAvailabilityMutation.mutate({ day_of_week: day, is_available: true, start_time: existingAvail?.start_time || "09:00", end_time: existingAvail?.end_time || "17:00", slot_duration_minutes: Number(value) }); }}>
+                              <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="15">15 min</SelectItem>
                                 <SelectItem value="30">30 min</SelectItem>
@@ -1931,50 +1176,6 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
                                 <SelectItem value="120">2 hours</SelectItem>
                               </SelectContent>
                             </Select>
-                          </div>
-
-                          <div className="md:col-span-3">
-                            <label className="text-gray-400 text-xs mb-1 block">Break Time (Optional)</label>
-                            <div className="grid grid-cols-2 gap-3">
-                              <Input
-                                type="time"
-                                placeholder="Break start"
-                                value={existingAvail?.break_start || ""}
-                                onChange={(e) => {
-                                  const newAvail = {
-                                    day_of_week: day,
-                                    is_available: true,
-                                    start_time: existingAvail?.start_time || "09:00",
-                                    end_time: existingAvail?.end_time || "17:00",
-                                    break_start: e.target.value,
-                                    break_end: existingAvail?.break_end,
-                                    slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                                  };
-                                  setAvailabilityForm(newAvail);
-                                }}
-                                onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
-                                className="bg-white/10 border-white/20 text-white"
-                              />
-                              <Input
-                                type="time"
-                                placeholder="Break end"
-                                value={existingAvail?.break_end || ""}
-                                onChange={(e) => {
-                                  const newAvail = {
-                                    day_of_week: day,
-                                    is_available: true,
-                                    start_time: existingAvail?.start_time || "09:00",
-                                    end_time: existingAvail?.end_time || "17:00",
-                                    break_start: existingAvail?.break_start,
-                                    break_end: e.target.value,
-                                    slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                                  };
-                                  setAvailabilityForm(newAvail);
-                                }}
-                                onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
-                                className="bg-white/10 border-white/20 text-white"
-                              />
-                            </div>
                           </div>
                         </div>
                       )}
@@ -1986,14 +1187,9 @@ Respond with ONLY a single number (the suggested price in USD). No explanation, 
           </TabsContent>
         </Tabs>
 
-        <ProviderPayoutManager
-          isOpen={showPayoutModal}
-          onClose={() => setShowPayoutModal(false)}
-          currentUser={currentUser}
-        />
+        <ProviderPayoutManager isOpen={showPayoutModal} onClose={() => setShowPayoutModal(false)} currentUser={currentUser} />
       </div>
 
-      {/* Real-time Notifications */}
       <RealtimeNotifications currentUser={currentUser} />
     </div>
   );
