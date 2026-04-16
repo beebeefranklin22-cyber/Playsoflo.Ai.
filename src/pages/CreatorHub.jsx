@@ -367,11 +367,11 @@ export default function CreatorHub() {
               <p className="text-gray-300 text-lg">Manage your content, products, and earnings</p>
             </div>
             <Button
-              onClick={() => setShowGoLiveModal(true)}
-              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold"
+              onClick={() => setActiveTab("content")}
+              className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-bold"
             >
-              <Radio className="w-4 h-4 mr-2 animate-pulse" />
-              Go Live Now
+              <Video className="w-4 h-4 mr-2" />
+              Manage Content
             </Button>
           </div>
         </div>
@@ -452,10 +452,6 @@ export default function CreatorHub() {
 
             {/* Quick actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Button onClick={() => setShowGoLiveModal(true)} className="bg-gradient-to-r from-red-600 to-pink-600 h-14 flex flex-col gap-1">
-                <Radio className="w-5 h-5 animate-pulse" />
-                <span className="text-xs">Go Live</span>
-              </Button>
               <Button onClick={() => setActiveTab('vod')} className="bg-gradient-to-r from-purple-600 to-indigo-600 h-14 flex flex-col gap-1">
                 <Video className="w-5 h-5" />
                 <span className="text-xs">Upload Video</span>
@@ -463,6 +459,10 @@ export default function CreatorHub() {
               <Button onClick={() => setActiveTab('tiers')} className="bg-gradient-to-r from-yellow-600 to-orange-600 h-14 flex flex-col gap-1">
                 <Crown className="w-5 h-5" />
                 <span className="text-xs">Subscriptions</span>
+              </Button>
+              <Button onClick={() => setActiveTab('store')} className="bg-gradient-to-r from-pink-600 to-rose-600 h-14 flex flex-col gap-1">
+                <ShoppingBag className="w-5 h-5" />
+                <span className="text-xs">My Store</span>
               </Button>
               <Button onClick={() => setActiveTab('analytics')} className="bg-gradient-to-r from-green-600 to-teal-600 h-14 flex flex-col gap-1">
                 <BarChart3 className="w-5 h-5" />

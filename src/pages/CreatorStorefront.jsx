@@ -12,6 +12,7 @@ import {
   CheckCircle, Heart, Users, Package
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export default function CreatorStorefront() {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ export default function CreatorStorefront() {
   const subscribeMutation = useMutation({
     mutationFn: async (tier) => {
       if (!currentUser) {
-        alert("Please log in to subscribe");
+        toast.error("Please log in to subscribe");
         return;
       }
 
@@ -109,25 +110,28 @@ export default function CreatorStorefront() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-subscription"] });
       queryClient.invalidateQueries({ queryKey: ["creator-subscriptions"] });
-      alert("✨ Successfully subscribed!");
+      toast.success("✨ Successfully subscribed!");
     }
   });
 
   const purchaseProductMutation = useMutation({
     mutationFn: async (product) => {
       if (!currentUser) {
-        alert("Please log in to purchase");
+        toast.error("Please log in to purchase");
         return;
       }
 
       // Create order/payment
       const order = await base44.entities.Order.create({
-        order_type: "service",
-        item_id: product.id,
-        item_title: product.title,
+        order_type: "digital_product",
+        product_id: product.id,
+        product_name: product.title,
         quantity: 1,
-        total_usd: product.price_usd,
+        item_price: product.price_usd,
+        subtotal: product.price_usd,
+        total_amount: product.price_usd,
         provider_email: creatorEmail,
+        user_email: currentUser.email,
         status: "completed"
       });
 
@@ -149,7 +153,8 @@ export default function CreatorStorefront() {
       return order;
     },
     onSuccess: () => {
-      alert("🎉 Purchase successful! Check your email for download link.");
+      toast.success("🎉 Purchase successful! Check your email for download link.");
+      queryClient.invalidateQueries({ queryKey: ["creator-products", creatorEmail] });
     }
   });
 
