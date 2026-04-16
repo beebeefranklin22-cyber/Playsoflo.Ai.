@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MapPin, Star, MessageCircle, X, CheckCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Star, MessageCircle, X, CheckCircle, Activity } from "lucide-react";
+import BookingProgressTracker from "../components/booking/BookingProgressTracker";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -174,21 +175,16 @@ export default function CustomerBookings() {
 
       <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
         <span className="text-white font-bold text-xl">${booking.total_price}</span>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (window.NativeAppBridge?.triggerHaptic) {
-              window.NativeAppBridge.triggerHaptic('light');
-            }
-            navigate(createPageUrl("Messages") + `?user=${booking.provider_email}`);
-          }}
-          className="bg-white/5 border-white/20 text-white min-h-[36px]"
-        >
-          <MessageCircle className="w-4 h-4 mr-2" />
-          Message
-        </Button>
+        <div className="flex items-center gap-2">
+          {booking.status === 'completed' && !booking.review_submitted && (
+            <span className="px-2 py-1 bg-yellow-500/20 text-yellow-300 text-xs font-semibold rounded-full flex items-center gap-1">
+              <Star className="w-3 h-3" /> Rate
+            </span>
+          )}
+          <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs font-semibold rounded-full flex items-center gap-1">
+            <Activity className="w-3 h-3" /> Track
+          </span>
+        </div>
       </div>
     </motion.div>
   );
@@ -296,119 +292,13 @@ export default function CustomerBookings() {
         </Tabs>
       </div>
 
-      {/* Booking Details Modal */}
+      {/* Booking Progress Tracker Modal */}
       <AnimatePresence>
         {selectedBooking && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-            onClick={() => setSelectedBooking(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-gray-900 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">Booking Details</h3>
-                <button
-                  onClick={() => setSelectedBooking(null)}
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h4 className="text-white font-bold text-xl mb-2">{selectedBooking.service_title}</h4>
-                      <p className="text-gray-400">{selectedBooking.provider_name}</p>
-                    </div>
-                    <Badge className={getStatusColor(selectedBooking.status)}>
-                      {selectedBooking.status}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-gray-300">
-                      <Calendar className="w-5 h-5" />
-                      <span>
-                        {new Date(selectedBooking.booking_date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-300">
-                      <Clock className="w-5 h-5" />
-                      <span>{selectedBooking.booking_time}</span>
-                    </div>
-                    {selectedBooking.location && (
-                      <div className="flex items-center gap-3 text-gray-300">
-                        <MapPin className="w-5 h-5" />
-                        <span>{selectedBooking.location}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {selectedBooking.notes && (
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <h5 className="text-white font-semibold mb-2">Notes</h5>
-                    <p className="text-gray-300 text-sm">{selectedBooking.notes}</p>
-                  </div>
-                )}
-
-                <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Total Amount</span>
-                    <span className="text-white font-bold text-2xl">${selectedBooking.total_price}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  {(selectedBooking.status === 'pending' || selectedBooking.status === 'confirmed') && (
-                    <Button
-                      onClick={() => {
-                        if (window.NativeAppBridge?.triggerHaptic) {
-                          window.NativeAppBridge.triggerHaptic('warning');
-                        }
-                        if (confirm(`Are you sure you want to cancel this booking?\n\nService: ${selectedBooking.service_title}\nDate: ${new Date(selectedBooking.booking_date).toLocaleDateString()}\nTime: ${selectedBooking.booking_time}\n\nThis action cannot be undone.`)) {
-                          cancelBookingMutation.mutate(selectedBooking.id);
-                        }
-                      }}
-                      disabled={cancelBookingMutation.isPending}
-                      variant="outline"
-                      className="flex-1 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 min-h-[44px]"
-                    >
-                      {cancelBookingMutation.isPending ? 'Cancelling...' : 'Cancel Booking'}
-                    </Button>
-                  )}
-                  <Button
-                    onClick={() => {
-                      if (window.NativeAppBridge?.triggerHaptic) {
-                        window.NativeAppBridge.triggerHaptic('light');
-                      }
-                      setSelectedBooking(null);
-                      navigate(createPageUrl("Messages") + `?user=${selectedBooking.provider_email}`);
-                    }}
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message Provider
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+          <BookingProgressTracker
+            booking={selectedBooking}
+            onClose={() => setSelectedBooking(null)}
+          />
         )}
       </AnimatePresence>
     </div>
