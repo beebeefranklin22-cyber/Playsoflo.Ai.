@@ -55,6 +55,7 @@ export default function CarRentals() {
   const [photoDocStage, setPhotoDocStage] = useState('pre');
   const [photoDocRental, setPhotoDocRental] = useState(null);
   const [showListCar, setShowListCar] = useState(false);
+  const [dateConflictError, setDateConflictError] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -120,7 +121,14 @@ export default function CarRentals() {
       setShowPaymentModal(true);
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to create booking');
+      const isConflict = error.message?.toLowerCase().includes('unavailable') || error.message?.toLowerCase().includes('already booked') || error.message?.toLowerCase().includes('overlap');
+      if (isConflict) {
+        setDateConflictError(true);
+        setShowBookingModal(true);
+        setBookingForm(prev => ({ ...prev, start_date: "", end_date: "" }));
+      } else {
+        toast.error(error.message || 'Failed to create booking');
+      }
     }
   });
 
@@ -738,7 +746,7 @@ export default function CarRentals() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-              onClick={() => setShowBookingModal(false)}
+              onClick={() => { setShowBookingModal(false); setDateConflictError(false); }}
             >
               <motion.div
                 initial={{ scale: 0.9 }}
@@ -752,15 +760,24 @@ export default function CarRentals() {
                 </h2>
 
                 <div className="space-y-6">
+                  {dateConflictError && (
+                    <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-red-300 font-semibold">These dates are unavailable</p>
+                        <p className="text-red-400/80 text-sm mt-1">This car is already booked for the selected period. Please choose different dates.</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-gray-400 text-sm mb-2 block">Start Date</label>
                       <Input
                         type="date"
                         value={bookingForm.start_date}
-                        onChange={(e) => setBookingForm({...bookingForm, start_date: e.target.value})}
+                        onChange={(e) => { setDateConflictError(false); setBookingForm({...bookingForm, start_date: e.target.value}); }}
                         min={new Date().toISOString().split('T')[0]}
-                        className="bg-white/10 border-white/20 text-white"
+                        className={`bg-white/10 border-white/20 text-white ${dateConflictError ? 'border-red-500' : ''}`}
                       />
                     </div>
                     <div>
@@ -768,9 +785,9 @@ export default function CarRentals() {
                       <Input
                         type="date"
                         value={bookingForm.end_date}
-                        onChange={(e) => setBookingForm({...bookingForm, end_date: e.target.value})}
+                        onChange={(e) => { setDateConflictError(false); setBookingForm({...bookingForm, end_date: e.target.value}); }}
                         min={bookingForm.start_date || new Date().toISOString().split('T')[0]}
-                        className="bg-white/10 border-white/20 text-white"
+                        className={`bg-white/10 border-white/20 text-white ${dateConflictError ? 'border-red-500' : ''}`}
                       />
                     </div>
                   </div>
