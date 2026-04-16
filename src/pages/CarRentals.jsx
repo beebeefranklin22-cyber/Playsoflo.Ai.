@@ -270,7 +270,7 @@ export default function CarRentals() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 pb-20">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <button
