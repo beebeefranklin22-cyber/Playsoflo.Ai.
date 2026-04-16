@@ -258,7 +258,7 @@ export default function Layout({ children, currentPageName }) {
       <NativeAppBridge />
       <AppInstallPrompt />
       <ToastListener />
-      <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950" style={{ overscrollBehavior: 'none' }}>
+      <div className="min-h-screen bg-gradient-to-br from-cyan-950 via-fuchsia-950 to-sky-950">
       <style>{`
         :root {
           --primary: #00E0E0;
@@ -559,7 +559,7 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden overflow-y-auto`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', minHeight: '100vh', WebkitOverflowScrolling: 'touch' }}>
+      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', minHeight: '100vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <PullToRefresh onRefresh={handleRefresh}>
           {/* Breadcrumbs */}
           {!isFullScreen && breadcrumbs.length > 1 && (
