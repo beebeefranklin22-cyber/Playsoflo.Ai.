@@ -50,7 +50,9 @@ export default function FollowButton({ targetUserEmail, currentUser, isFollowing
           message: `${currentUser.full_name || currentUser.email} started following you`,
           sender_email: currentUser.email,
           sender_name: currentUser.full_name,
-          sender_photo: currentUser.profile_picture
+          sender_photo: currentUser.profile_picture,
+          read: false,
+          action_url: `/UserProfile?email=${encodeURIComponent(currentUser.email)}`
         });
 
         return follow;

@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
-import DirectChatModal from "./DirectChatModal";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { createPageUrl } from "@/utils";
 
 export default function MessageUserButton({ 
   recipientEmail, 
@@ -13,18 +14,20 @@ export default function MessageUserButton({
   className = "",
   iconOnly = false
 }) {
-  const [showChatModal, setShowChatModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (window.NativeAppBridge?.triggerHaptic) {
       window.NativeAppBridge.triggerHaptic('light');
     }
-    setShowChatModal(true);
+    // Navigate to Messages page with the recipient's email as a URL param
+    // Messages page will auto-create or open the existing conversation
+    navigate(`${createPageUrl("Messages")}?user=${encodeURIComponent(recipientEmail)}`);
   };
 
   if (!currentUser || currentUser.email === recipientEmail) {
@@ -32,26 +35,14 @@ export default function MessageUserButton({
   }
 
   return (
-    <>
-      <Button
-        onClick={handleClick}
-        variant={variant}
-        size={size}
-        className={`gap-2 min-h-[44px] ${className}`}
-      >
-        <MessageCircle className="w-4 h-4" />
-        {!iconOnly && <span>Message</span>}
-      </Button>
-
-      {showChatModal && (
-        <DirectChatModal
-          recipientEmail={recipientEmail}
-          recipientName={recipientName}
-          recipientPhoto={recipientPhoto}
-          currentUser={currentUser}
-          onClose={() => setShowChatModal(false)}
-        />
-      )}
-    </>
+    <Button
+      onClick={handleClick}
+      variant={variant}
+      size={size}
+      className={`gap-2 min-h-[44px] ${className}`}
+    >
+      <MessageCircle className="w-4 h-4" />
+      {!iconOnly && <span>Message</span>}
+    </Button>
   );
 }

@@ -83,22 +83,31 @@ export default function Messages() {
   }, [currentUser]);
 
   // Handle URL params for direct conversation
+  const handledParamRef = useRef(null);
   useEffect(() => {
     const userParam = searchParams.get("user");
     const convParam = searchParams.get("conv");
     
-    if (!currentUser || !conversations) return;
+    if (!currentUser) return;
     
-    if (convParam && conversations.length > 0) {
+    const paramKey = userParam || convParam;
+    if (!paramKey || handledParamRef.current === paramKey) return;
+    
+    if (convParam) {
       const conv = conversations.find(c => c.id === convParam);
-      if (conv) setSelectedConversation(conv);
-    } else if (userParam && conversations.length > 0) {
+      if (conv) {
+        handledParamRef.current = paramKey;
+        setSelectedConversation(conv);
+      }
+    } else if (userParam) {
       const conv = conversations.find(c => 
         !c.is_group && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
       );
       if (conv) {
+        handledParamRef.current = paramKey;
         setSelectedConversation(conv);
-      } else {
+      } else if (!createConversationMutation.isPending) {
+        handledParamRef.current = paramKey;
         createConversationMutation.mutate(userParam);
       }
     }
