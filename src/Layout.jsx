@@ -559,7 +559,7 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', minHeight: '100vh' }}>
+      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden overflow-y-auto`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', minHeight: '100vh', WebkitOverflowScrolling: 'touch' }}>
         <PullToRefresh onRefresh={handleRefresh}>
           {/* Breadcrumbs */}
           {!isFullScreen && breadcrumbs.length > 1 && (
@@ -598,7 +598,7 @@ export default function Layout({ children, currentPageName }) {
                 damping: 30,
                 opacity: { duration: 0.2 }
               }}
-              style={{ minHeight: '100%' }}
+              style={{ minHeight: 'auto' }}
             >
               {children}
             </motion.div>
