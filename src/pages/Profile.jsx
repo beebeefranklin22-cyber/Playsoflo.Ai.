@@ -232,7 +232,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       {/* Cover Photo */}
       <div className="relative h-64">
         {currentUser?.cover_photo ? (
