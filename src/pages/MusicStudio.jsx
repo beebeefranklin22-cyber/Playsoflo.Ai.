@@ -1136,7 +1136,7 @@ Make it legally sound, fair, and industry-standard.`;
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8"
+                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
               >
                 <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
                   <Sparkles className="w-8 h-8 text-purple-400" />

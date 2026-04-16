@@ -258,7 +258,7 @@ export default function ProviderOnboarding() {
   const progress = (completedSteps.length / steps.length) * 100;
 
   return (
-    <div className="min-h-screen p-6 pb-24">
+    <div className="min-h-screen p-6 pb-24 overflow-y-auto">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
