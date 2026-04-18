@@ -598,7 +598,7 @@ export default function Layout({ children, currentPageName }) {
                 damping: 30,
                 opacity: { duration: 0.2 }
               }}
-              style={{ minHeight: 'auto' }}
+              style={{ minHeight: 0, height: 'auto' }}
             >
               {children}
             </motion.div>

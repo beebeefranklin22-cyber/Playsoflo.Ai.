@@ -158,10 +158,12 @@ button:focus-visible {
   
   /* Allow natural scroll on all pages */
   html, body {
-    height: 100%;
+    height: auto !important;
+    min-height: 100%;
   }
   
   #root {
     min-height: 100%;
+    height: auto !important;
   }
 }

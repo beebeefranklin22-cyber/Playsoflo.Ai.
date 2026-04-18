@@ -166,7 +166,14 @@ export default function Streaming() {
     refetchInterval: 30000,
   });
 
-  const activeLivestreams = content.filter(i => i.is_live === true);
+  // Only show streams that are actively live AND started within the last 8 hours
+  const activeLivestreams = content.filter(i => {
+    if (!i.is_live) return false;
+    if (!i.stream_started_at) return true; // no timestamp, trust the flag
+    const startedAt = new Date(i.stream_started_at);
+    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
+    return startedAt > eightHoursAgo;
+  });
 
   const filteredContent = useMemo(() => {
     let list = content.filter(i => !i.is_live);

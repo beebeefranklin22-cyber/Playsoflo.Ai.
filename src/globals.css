@@ -80,12 +80,14 @@ html, body {
   overflow-y: auto !important;
   overflow-x: hidden;
   overscroll-behavior-x: none;
-  height: 100%;
+  height: auto !important;
+  min-height: 100%;
 }
 
 #root {
   min-height: 100%;
   overflow-x: hidden;
+  height: auto !important;
 }
 
 .scrollable-content {
@@ -103,7 +105,7 @@ header, nav, footer, [role="navigation"], [role="banner"], [role="contentinfo"] 
 [data-radix-dialog-content] {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  max-height: 90vh;
+  max-height: 85vh;
 }
 
 [data-radix-dialog-overlay] {
@@ -312,6 +314,22 @@ main {
   overflow-y: auto !important;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Critical: allow content to extend beyond viewport so bottom is reachable */
+  height: auto !important;
+  min-height: 0;
+}
+
+/* Framer Motion wrappers must not constrain height */
+main > div,
+main > div > div {
+  height: auto !important;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* Fixed-position modals should still scroll internally */
+.fixed.inset-0 {
+  overflow-y: auto;
 }
 
 @layer base {
