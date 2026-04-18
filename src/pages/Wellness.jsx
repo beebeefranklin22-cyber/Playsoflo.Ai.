@@ -4,11 +4,12 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
-  Star, Clock, ChevronLeft, Activity, Heart, Shield,
+  Star, Clock, Activity, Heart, Shield,
   Users, Home, Package, MessageSquare,
   CheckCircle, ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import PageWrapper from "@/components/PageWrapper";
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },
@@ -88,17 +89,11 @@ export default function Wellness() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-950 via-teal-950 to-green-950 pb-20">
+    <PageWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-green-950 via-teal-950 to-green-950">
       <div className="relative h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-green-900/50 to-transparent" />
-        <div className="absolute top-6 left-6">
-          <button
-            onClick={() => navigate(createPageUrl("Home"))}
-            className="p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20"
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-        </div>
+        <div className="absolute top-6 left-6 pt-10">
         <div className="relative z-10 w-full px-6 pb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 flex items-center gap-3">
             <Activity className="w-10 h-10 text-green-400" />
@@ -324,5 +319,6 @@ export default function Wellness() {
         }
       `}</style>
     </div>
+    </PageWrapper>
   );
 }

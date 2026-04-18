@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -250,7 +251,8 @@ Return as JSON array with this structure:
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 p-6 pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <PageWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 p-6 pt-16">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -722,5 +724,6 @@ Return as JSON array with this structure:
         )}
       </div>
     </div>
+    </PageWrapper>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { 
@@ -228,17 +229,11 @@ export default function RealEstate() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 pb-20 overflow-x-hidden">
+    <PageWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 overflow-x-hidden">
       <div className="relative h-48 sm:h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/50 to-transparent" />
-        <div className="absolute top-6 left-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20"
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-        </div>
+        <div className="absolute top-6 left-6 pt-10">
         <div className="relative z-10 w-full px-4 sm:px-6 pb-6 sm:pb-8">
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2">
             Real Estate & Stays
@@ -848,10 +843,8 @@ export default function RealEstate() {
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @media (max-width: 640px) {
-          body { overflow-x: hidden; }
-        }
       `}</style>
     </div>
+    </PageWrapper>
   );
 }

@@ -559,7 +559,19 @@ export default function Layout({ children, currentPageName }) {
         </>
       )}
 
-      <main className={`${isFullScreen ? "pb-0" : "pb-20"} overflow-x-hidden`} style={{ paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top))', paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom))', minHeight: '100vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <main
+        className="overflow-x-hidden"
+        style={{
+          paddingTop: isFullScreen ? 0 : 'calc(4rem + var(--safe-area-top, 0px))',
+          paddingBottom: isFullScreen ? 0 : 'calc(5rem + var(--safe-area-bottom, 0px))',
+          minHeight: '100vh',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          display: 'block',
+          position: 'relative',
+        }}
+      >
         <PullToRefresh onRefresh={handleRefresh}>
           {/* Breadcrumbs */}
           {!isFullScreen && breadcrumbs.length > 1 && (
@@ -589,16 +601,11 @@ export default function Layout({ children, currentPageName }) {
             <motion.div
               key={currentPath}
               custom={direction}
-              initial={{ x: direction > 0 ? '100%' : direction < 0 ? '-20%' : 0, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: direction > 0 ? '-20%' : direction < 0 ? '100%' : 0, opacity: 0 }}
-              transition={{ 
-                type: 'spring', 
-                stiffness: 300, 
-                damping: 30,
-                opacity: { duration: 0.2 }
-              }}
-              style={{ minHeight: 0, height: 'auto' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              style={{ width: '100%', display: 'block' }}
             >
               {children}
             </motion.div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
@@ -446,17 +447,11 @@ export default function Marketplace() {
   }, {});
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950 to-gray-950 pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <PageWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950 to-gray-950">
       <div className="relative h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-orange-900/50 to-transparent" />
-        <div className="absolute top-6 left-6">
-          <button
-            onClick={() => navigate(createPageUrl("Universe"))}
-            className="p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20"
-          >
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-        </div>
+        <div className="absolute top-6 left-6 pt-10">
         <div className="relative z-10 w-full px-6 pb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
             Marketplace
@@ -1075,5 +1070,6 @@ export default function Marketplace() {
         }
       `}</style>
     </div>
+    </PageWrapper>
   );
 }

@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
@@ -125,18 +126,11 @@ export default function Travel() {
 
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 pb-20">
+    <PageWrapper>
+      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950">
         <div className="relative h-64 flex items-end">
           <div className="absolute inset-0 bg-gradient-to-b from-blue-900/50 to-transparent" />
-          <div className="absolute top-6 left-6">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-3 bg-white/10 backdrop-blur-xl rounded-full hover:bg-white/20 transition border border-white/20"
-            >
-              <ChevronLeft className="w-6 h-6 text-white" />
-            </button>
-          </div>
+          <div className="absolute top-6 left-6 pt-10">
           <div className="relative z-10 w-full px-6 pb-8 flex items-end justify-between">
             <div className="flex-1">
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
@@ -214,6 +208,6 @@ export default function Travel() {
         </div>
       </div>
       <HailRideModal open={hailOpen} onClose={() => setHailOpen(false)} />
-    </>
+    </PageWrapper>
   );
 }

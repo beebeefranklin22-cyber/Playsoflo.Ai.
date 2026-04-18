@@ -75,41 +75,30 @@
   overscroll-behavior: none;
 }
 
-/* Allow natural scrolling on body */
-html, body {
-  overflow-y: auto !important;
+/* ── SCROLLING FOUNDATION ── */
+html {
+  height: 100%;
   overflow-x: hidden;
-  overscroll-behavior-x: none;
-  height: auto !important;
+}
+
+body {
   min-height: 100%;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 #root {
   min-height: 100%;
+  height: auto;
   overflow-x: hidden;
-  height: auto !important;
 }
 
-.scrollable-content {
-  overscroll-behavior-y: auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Prevent bounce effect only on fixed nav/header elements, NOT on scrollable content */
-header, nav, footer, [role="navigation"], [role="banner"], [role="contentinfo"] {
-  overscroll-behavior: none;
-}
-
-/* Dialog/modal scrolling - allow scroll inside modals */
+/* Dialog/modal scrolling */
 [data-radix-dialog-content] {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   max-height: 85vh;
-}
-
-[data-radix-dialog-overlay] {
-  overscroll-behavior: none;
 }
 
 .platform-ios input,
@@ -304,32 +293,24 @@ nav::-webkit-scrollbar, header::-webkit-scrollbar, footer::-webkit-scrollbar, .h
   -webkit-overflow-scrolling: touch;
 }
 
-/* Fix for pages that could not scroll to bottom */
-main > div {
-  min-height: 0;
-}
-
-/* Ensure all page content is scrollable */
+/* Main content area — always scrollable */
 main {
-  overflow-y: auto !important;
+  display: block;
+  width: 100%;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  /* Critical: allow content to extend beyond viewport so bottom is reachable */
-  height: auto !important;
-  min-height: 0;
 }
 
-/* Framer Motion wrappers must not constrain height */
-main > div,
-main > div > div {
-  height: auto !important;
-  min-height: 0;
-  overflow: visible;
+/* Framer Motion page wrappers must not trap height */
+main > div {
+  display: block;
+  width: 100%;
 }
 
-/* Fixed-position modals should still scroll internally */
-.fixed.inset-0 {
+/* Modals that fill screen should scroll internally */
+.modal-scroll {
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 90vh;
 }
 
 @layer base {

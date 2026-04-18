@@ -156,14 +156,16 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
   
-  /* Allow natural scroll on all pages */
-  html, body {
-    height: auto !important;
-    min-height: 100%;
+  /* Natural scroll on all pages */
+  html {
+    height: 100%;
   }
-  
+  body {
+    min-height: 100%;
+    height: auto;
+  }
   #root {
     min-height: 100%;
-    height: auto !important;
+    height: auto;
   }
 }
