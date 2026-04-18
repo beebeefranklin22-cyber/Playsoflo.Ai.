@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
@@ -285,7 +286,8 @@ export default function Streaming() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0e0e10] pb-24">
+    <PageWrapper showBack={false}>
+    <div className="min-h-screen bg-[#0e0e10]">
 
       {/* Hero Header */}
       <div className="relative bg-gradient-to-b from-[#1a0533] to-[#0e0e10] px-4 pt-6 pb-4">
@@ -894,5 +896,6 @@ export default function Streaming() {
       {showWatchParty && <WatchPartyModal content={showWatchParty} currentUser={currentUser} onClose={() => setShowWatchParty(null)} />}
       {showTMDBBrowser && <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />}
     </div>
+    </PageWrapper>
   );
 }

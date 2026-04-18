@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -408,7 +409,8 @@ export default function Vibe() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950 pb-20">
+    <PageWrapper showBack={false}>
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950">
       {/* Header */}
       <div className="sticky top-16 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/10 px-6 py-4">
         <div className="max-w-7xl mx-auto">
@@ -932,5 +934,6 @@ export default function Vibe() {
         }
       `}</style>
     </div>
+    </PageWrapper>
   );
 }

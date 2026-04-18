@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -283,7 +284,8 @@ export default function CarRentals() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <PageWrapper>
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <button
@@ -1285,5 +1287,6 @@ export default function CarRentals() {
         />
       </div>
     </div>
+    </PageWrapper>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Input } from "@/components/ui/input";
@@ -355,7 +356,8 @@ export default function CreatorHub() {
   const engagementRate = 8.5;
 
   return (
-    <div className="min-h-screen p-4 md:p-6 overflow-y-auto">
+    <PageWrapper showBack={false}>
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto pb-24">
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -1345,5 +1347,6 @@ export default function CreatorHub() {
         />
       </div>
     </div>
+    </PageWrapper>
   );
 }

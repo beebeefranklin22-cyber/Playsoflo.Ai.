@@ -1,5 +1,5 @@
-
 import React, { useState } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Heart, Target, TrendingUp, Users, Building, Briefcase, Home as HomeIcon, Utensils, Activity, BookOpen, AlertCircle, Leaf } from "lucide-react";
@@ -108,7 +108,8 @@ export default function GiveBack() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-emerald-950 pb-20">
+    <PageWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-teal-950 to-emerald-950">
       <div className="relative h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/50 to-transparent" />
         <div className="relative z-10 w-full px-6 pb-8">
@@ -424,5 +425,6 @@ export default function GiveBack() {
         }
       `}</style>
     </div>
+    </PageWrapper>
   );
 }

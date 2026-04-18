@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageWrapper from "@/components/PageWrapper";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -287,7 +288,7 @@ export default function DriverHub() {
   }
 
   return (
-    <>
+    <PageWrapper showBack={false}>
       <DriverLocationTracker isOnline={isOnline} rideId={activeRide?.id} />
       <div className="min-h-screen p-6 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950">
       <div className="max-w-7xl mx-auto">
@@ -942,6 +943,6 @@ export default function DriverHub() {
         </div>
       )}
       </div>
-      </>
+      </PageWrapper>
       );
       }
