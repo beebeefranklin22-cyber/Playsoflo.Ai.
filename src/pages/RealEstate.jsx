@@ -233,8 +233,7 @@ export default function RealEstate() {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 overflow-x-hidden">
       <div className="relative h-48 sm:h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-900/50 to-transparent" />
-        <div className="absolute top-6 left-6 pt-10">
-        <div className="relative z-10 w-full px-4 sm:px-6 pb-6 sm:pb-8">
+        <div className="relative z-10 w-full px-4 sm:px-6 pb-6 sm:pb-8 pt-16">
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-2">
             Real Estate & Stays
           </h1>

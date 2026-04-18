@@ -451,8 +451,7 @@ export default function Marketplace() {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950 to-gray-950">
       <div className="relative h-64 flex items-end">
         <div className="absolute inset-0 bg-gradient-to-b from-orange-900/50 to-transparent" />
-        <div className="absolute top-6 left-6 pt-10">
-        <div className="relative z-10 w-full px-6 pb-8">
+        <div className="relative z-10 w-full px-6 pb-8 pt-16">
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
             Marketplace
           </h1>
