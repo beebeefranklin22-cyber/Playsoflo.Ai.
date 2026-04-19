@@ -224,10 +224,11 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           exit={{ y: "100%", scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-4xl bg-gray-900 rounded-t-3xl sm:rounded-3xl p-6 sm:p-8 my-0 sm:my-8"
-          style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
+          className="w-full max-w-4xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col my-0 sm:my-8"
+          style={{ maxHeight: '92vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between p-6 sm:p-8 pb-0 flex-shrink-0">
+
             <h2 className="text-3xl font-bold text-white flex items-center gap-3">
               <Sparkles className="w-8 h-8 text-purple-400" />
               List Your Experience
@@ -238,7 +239,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           </div>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="flex items-center justify-center gap-2 py-4 px-6 sm:px-8 flex-shrink-0">
             {[1, 2, 3, 4, 5, 6].map((s) => (
               <div
                 key={s}
@@ -251,7 +252,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             ))}
           </div>
 
-          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+          <div className="space-y-6 overflow-y-auto flex-1 px-6 sm:px-8 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {step === 1 && (
               <>
                 <div>
@@ -1141,7 +1142,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             )}
           </div>
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex gap-3 p-6 sm:p-8 pt-4 flex-shrink-0 border-t border-white/10">
             {step > 1 && (
               <Button 
                 variant="outline" 
