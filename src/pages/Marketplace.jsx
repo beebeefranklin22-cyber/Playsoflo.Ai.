@@ -21,7 +21,6 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import BookingModal from "../components/BookingModal";
 import QuickBookingFlow from "../components/booking/QuickBookingFlow";
-import ShopifyCheckoutModal from "../components/marketplace/ShopifyCheckoutModal";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 
@@ -140,7 +139,6 @@ export default function Marketplace() {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
-  const [selectedItem, setSelectedItem] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
@@ -158,7 +156,6 @@ export default function Marketplace() {
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['marketplace-items'] }),
-      queryClient.invalidateQueries({ queryKey: ['shopify-products'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-properties'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-p2p'] })
     ]);
@@ -179,24 +176,6 @@ export default function Marketplace() {
     refetchInterval: false,
     refetchOnWindowFocus: false,
     staleTime: 120000
-  });
-
-  // Fetch Shopify affiliate products
-  const { data: shopifyProducts = [] } = useQuery({
-    queryKey: ['shopify-products'],
-    queryFn: async () => {
-      try {
-        const { data } = await base44.functions.invoke('fetchShopifyProducts');
-        return data.products || [];
-      } catch (err) {
-        console.log("Error loading Shopify products:", err);
-        return [];
-      }
-    },
-    initialData: [],
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    staleTime: 600000
   });
 
   // Also fetch properties and show in marketplace
@@ -268,27 +247,8 @@ export default function Marketplace() {
     "shelter_services", "medical_health"
   ];
 
-  // Combine all marketplace items including Shopify products
   const allItems = [
     ...items,
-    ...shopifyProducts.map(p => ({
-      id: `shopify_${p.title}`,
-      title: p.title,
-      description: p.description,
-      price: p.price,
-      price_type: 'fixed',
-      category: p.category,
-      image_url: p.image_url,
-      rating: p.rating,
-      reviews_count: p.reviews_count,
-      provider_name: 'Shopify Partner',
-      verified_provider: true,
-      availability: 'available',
-      itemType: 'shopify',
-      tracking_url: p.tracking_url,
-      referral_code: p.referral_code,
-      originalData: p
-    })),
     ...properties.map(p => ({
       id: `prop_${p.id}`,
       title: p.title,
@@ -487,39 +447,6 @@ export default function Marketplace() {
               <SlidersHorizontal className="w-5 h-5" />
               <span className="hidden sm:inline">Filters</span>
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Shopify Affiliate Banner */}
-      <div className="px-6 mb-6">
-        <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/30 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500/30 to-blue-500/30 rounded-full flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-green-400" />
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-lg">Shop & Earn Commissions</h3>
-                <p className="text-gray-300 text-sm">Buy Shopify products and earn affiliate revenue</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate(createPageUrl("AffiliateHub"))}
-              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 rounded-full text-green-400 font-semibold transition text-sm"
-            >
-              View Earnings
-            </button>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-gray-300">
-            <Check className="w-4 h-4 text-green-400" />
-            <span>Tracked affiliate links</span>
-            <span>•</span>
-            <Check className="w-4 h-4 text-green-400" />
-            <span>Commissions paid to your Stripe</span>
-            <span>•</span>
-            <Check className="w-4 h-4 text-green-400" />
-            <span>Premium products</span>
           </div>
         </div>
       </div>
@@ -757,12 +684,6 @@ export default function Marketplace() {
 
                     {/* Enhanced Verification Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                      {item.itemType === 'shopify' && (
-                        <div className="px-3 py-1 bg-gradient-to-r from-green-500/90 to-blue-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Shopify Affiliate
-                        </div>
-                      )}
                       {item.verified_provider && (
                         <div className="px-3 py-1 bg-blue-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white flex items-center gap-1">
                           <Check className="w-3 h-3" />
@@ -838,40 +759,7 @@ export default function Marketplace() {
                           )}
                         </div>
 
-                        {item.itemType === 'shopify' ? (
-                          <div className="flex gap-2">
-                            <button
-                              className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-semibold hover:from-purple-700 hover:to-pink-700 transition flex items-center justify-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItem(item);
-                              }}
-                            >
-                              <ShoppingCart className="w-4 h-4" />
-                              Buy Now
-                            </button>
-                            <button
-                              className="px-4 py-3 bg-gradient-to-r from-green-600 to-blue-600 rounded-full text-white font-semibold hover:from-green-700 hover:to-blue-700 transition flex items-center gap-2"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await base44.functions.invoke('trackAffiliateClick', {
-                                    product_title: item.title,
-                                    tracking_url: item.tracking_url,
-                                    referral_code: item.referral_code
-                                  });
-                                  window.open(item.tracking_url, '_blank');
-                                } catch (error) {
-                                  console.error('Tracking error:', error);
-                                  window.open(item.tracking_url, '_blank');
-                                }
-                              }}
-                            >
-                              <Sparkles className="w-4 h-4" />
-                              Shopify
-                            </button>
-                          </div>
-                        ) : !isFood ? (
+                        {!isFood ? (
                           groupedByService[item.title]?.length > 1 ? (
                             <button
                               className="px-6 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
@@ -997,14 +885,6 @@ export default function Marketplace() {
             />
           </div>
         </div>
-      )}
-
-      {/* Shopify Checkout Modal */}
-      {selectedItem && selectedItem.itemType === 'shopify' && (
-        <ShopifyCheckoutModal 
-          product={selectedItem.originalData} 
-          onClose={() => setSelectedItem(null)} 
-        />
       )}
 
       {/* Payment Modal for Food Orders */}
