@@ -79,8 +79,8 @@ export default function TravelProviderOnboardingModal({ category, categoryLabel,
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
-        className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col"
-        style={{ maxHeight: "92vh" }}
+        className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden"
+        style={{ height: "92vh", maxHeight: "92vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-0 flex-shrink-0">
