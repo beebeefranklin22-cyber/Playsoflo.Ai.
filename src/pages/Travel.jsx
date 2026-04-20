@@ -52,7 +52,7 @@ const defaultTravelOptions = [
     bgColor: "bg-indigo-500/20",
     iconColor: "text-indigo-400",
     image: "https://images.unsplash.com/photo-1596541624443-41584c312781?w=800",
-    action: (navigate) => navigate(createPageUrl("CarRentals"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=private_jets")
   },
   {
     id: "yachts",
@@ -62,7 +62,7 @@ const defaultTravelOptions = [
     bgColor: "bg-cyan-500/20",
     iconColor: "text-cyan-400",
     image: "https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=800",
-    action: (navigate) => navigate(createPageUrl("CarRentals"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=yachts")
   },
   {
     id: "helicopter_rides",
@@ -72,7 +72,7 @@ const defaultTravelOptions = [
     bgColor: "bg-pink-500/20",
     iconColor: "text-pink-400",
     image: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=800",
-    action: (navigate) => navigate(createPageUrl("CarRentals"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=helicopter_rides")
   },
   {
     id: "motorcycle_rides",
@@ -82,7 +82,7 @@ const defaultTravelOptions = [
     bgColor: "bg-orange-500/20",
     iconColor: "text-orange-400",
     image: "https://images.unsplash.com/photo-1558981403-c5f9899a1118?w=800",
-    action: (navigate) => navigate(createPageUrl("CarRentals"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=motorcycle_rides")
   },
   {
     id: "chauffeur_services",
@@ -92,7 +92,7 @@ const defaultTravelOptions = [
     bgColor: "bg-yellow-500/20",
     iconColor: "text-yellow-400",
     image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800",
-    action: (navigate) => navigate(createPageUrl("Marketplace"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=chauffeur_services")
   },
   {
     id: "luxury_concierge",
@@ -102,7 +102,7 @@ const defaultTravelOptions = [
     bgColor: "bg-gray-500/20",
     iconColor: "text-gray-400",
     image: "https://images.unsplash.com/photo-1517486804593-3d027d147413?w=800",
-    action: (navigate) => navigate(createPageUrl("Marketplace"))
+    action: (navigate) => navigate("/TravelCategoryHub?category=luxury_concierge")
   }
 ];
 

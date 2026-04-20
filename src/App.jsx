@@ -1,5 +1,6 @@
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
+import TravelCategoryHub from './pages/TravelCategoryHub'
 import { Toaster } from "@/components/ui/toaster"
 import Discover from './pages/Discover'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/Discover" element={<LayoutWrapper currentPageName="Discover"><Discover /></LayoutWrapper>} />
       <Route path="/VODPlayer" element={<LayoutWrapper currentPageName="VODPlayer"><VODPlayer /></LayoutWrapper>} />
+      <Route path="/TravelCategoryHub" element={<LayoutWrapper currentPageName="TravelCategoryHub"><TravelCategoryHub /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
