@@ -723,6 +723,10 @@ export default function Marketplace() {
           <AnimatePresence>
             {sortedItems.map((item) => {
               const isFood = ["restaurant", "food_truck", "groceries"].includes(item.category);
+              const isPhysicalProduct = ["clothing_retail", "fashion_boutique", "streetwear", "vintage_clothing",
+                "custom_apparel", "print_on_demand", "graphic_printing", "screen_printing",
+                "luxury_goods", "jewelry_repair", "tailoring", "personal_shopping",
+                "equipment_rental", "hair_extensions"].includes(item.category);
               const trustScore = item.verified_provider ? 95 : 75;
               const providerVers = providerVerifications[item.created_by] || [];
               const verificationCount = providerVers.length;
@@ -879,6 +883,28 @@ export default function Marketplace() {
                               <Users className="w-4 h-4" />
                               Compare
                             </button>
+                          ) : isPhysicalProduct ? (
+                            <button
+                              className="px-6 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const deliveryAddress = prompt('Enter your delivery address:');
+                                if (!deliveryAddress) return;
+                                setPendingOrder({
+                                  category: item.category,
+                                  item_id: String(item.id),
+                                  title: item.title,
+                                  price: item.price,
+                                  provider_email: item.created_by || "",
+                                  delivery_address: deliveryAddress,
+                                  isProduct: true
+                                });
+                                setShowPayment(true);
+                              }}
+                            >
+                              <Package className="w-4 h-4" />
+                              Order Now
+                            </button>
                           ) : (
                             <button
                               className="px-6 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
@@ -1007,7 +1033,7 @@ export default function Marketplace() {
                 amount={pendingOrder.price}
                 referenceType="order"
                 referenceId={pendingOrder.item_id}
-                description={`Food order: ${pendingOrder.title}`}
+                description={`${pendingOrder.isProduct ? 'Product order' : 'Food order'}: ${pendingOrder.title}`}
                 onSuccess={async (paymentIntentId) => {
                   try {
                     if (!paymentIntentId) {
@@ -1026,9 +1052,10 @@ export default function Marketplace() {
                       payment_intent_id: paymentIntentId
                     });
 
-                    // Dispatch delivery job and notify drivers + restaurant
+                    // Dispatch delivery job — food vs physical product
                     try {
-                      await base44.functions.invoke('dispatchFoodOrder', {
+                      const dispatchFn = pendingOrder.isProduct ? 'dispatchProductOrder' : 'dispatchFoodOrder';
+                      await base44.functions.invoke(dispatchFn, {
                         order_id: order.id,
                         item_title: pendingOrder.title,
                         provider_email: pendingOrder.provider_email,
@@ -1047,7 +1074,10 @@ export default function Marketplace() {
 
                     setShowPayment(false);
                     setPendingOrder(null);
-                    toast.success("✅ Order placed! Restaurant notified & driver being assigned.");
+                    const successMsg = pendingOrder.isProduct
+                      ? "✅ Order placed! Seller notified & driver being assigned for delivery."
+                      : "✅ Order placed! Restaurant notified & driver being assigned.";
+                    toast.success(successMsg);
                   } catch (error) {
                     console.error('Order creation error:', error);
 
