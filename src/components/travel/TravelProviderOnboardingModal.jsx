@@ -74,13 +74,13 @@ export default function TravelProviderOnboardingModal({ category, categoryLabel,
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4" style={{ paddingBottom: '80px' }}>
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden"
-        style={{ height: "75vh", maxHeight: "75vh" }}
+        style={{ height: "calc(100vh - 100px)", maxHeight: "calc(100vh - 100px)" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-0 flex-shrink-0">
