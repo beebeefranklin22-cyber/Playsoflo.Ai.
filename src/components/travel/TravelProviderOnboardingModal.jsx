@@ -74,13 +74,13 @@ export default function TravelProviderOnboardingModal({ category, categoryLabel,
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
       <motion.div
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
         className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden"
-        style={{ height: "92vh", maxHeight: "92vh" }}
+        style={{ height: "85vh", maxHeight: "85vh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 pb-0 flex-shrink-0">
@@ -225,7 +225,7 @@ export default function TravelProviderOnboardingModal({ category, categoryLabel,
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-6 pt-4 border-t border-white/10 flex-shrink-0">
+        <div className="flex gap-3 p-6 pt-4 border-t border-white/10 flex-shrink-0" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))' }}>
           {step > 1 && (
             <Button variant="outline" onClick={() => setStep(s => s - 1)} className="flex-1 border-white/20 text-white">Back</Button>
           )}
