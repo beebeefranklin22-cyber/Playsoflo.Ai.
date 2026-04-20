@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,12 @@ export default function HailRideModal({ open, onClose }) {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
+  const [pickupSuggestions, setPickupSuggestions] = useState([]);
+  const [dropoffSuggestions, setDropoffSuggestions] = useState([]);
+  const [loadingPickupSuggestions, setLoadingPickupSuggestions] = useState(false);
+  const [loadingDropoffSuggestions, setLoadingDropoffSuggestions] = useState(false);
+  const pickupTimerRef = React.useRef(null);
+  const dropoffTimerRef = React.useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -76,8 +82,49 @@ export default function HailRideModal({ open, onClose }) {
   };
 
   const getGoogleMapsKey = async () => {
-    // In production, this should be handled server-side
     return "YOUR_API_KEY"; // Placeholder - actual implementation uses backend
+  };
+
+  const fetchSuggestions = async (input, setSuggestions, setLoading) => {
+    if (!input || input.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await base44.functions.invoke('calculateRideRoute', {
+        autocomplete: input.trim()
+      });
+      if (response.data?.suggestions) {
+        setSuggestions(response.data.suggestions);
+      } else {
+        setSuggestions([]);
+      }
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePickupChange = (e) => {
+    const val = e.target.value;
+    setPickup(val);
+    setPickupSuggestions([]);
+    if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
+    pickupTimerRef.current = setTimeout(() => {
+      fetchSuggestions(val, setPickupSuggestions, setLoadingPickupSuggestions);
+    }, 350);
+  };
+
+  const handleDropoffChange = (e) => {
+    const val = e.target.value;
+    setDropoff(val);
+    setDropoffSuggestions([]);
+    if (dropoffTimerRef.current) clearTimeout(dropoffTimerRef.current);
+    dropoffTimerRef.current = setTimeout(() => {
+      fetchSuggestions(val, setDropoffSuggestions, setLoadingDropoffSuggestions);
+    }, 350);
   };
 
   useEffect(() => {
@@ -271,18 +318,31 @@ export default function HailRideModal({ open, onClose }) {
                   <div className="flex-1 flex gap-2">
                     <div className="flex-1 relative">
                       <Input 
-                        placeholder={gettingLocation ? "Getting your location..." : "Pickup address"} 
+                        placeholder={gettingLocation ? "Getting your location..." : "Enter pickup address"} 
                         value={pickup} 
-                        onChange={(e) => setPickup(e.target.value)}
+                        onChange={handlePickupChange}
                         className="bg-white/10 border-white/20 text-white"
                         disabled={gettingLocation}
-                        list="pickup-suggestions"
+                        autoComplete="off"
                       />
-                      <datalist id="pickup-suggestions">
-                        <option value="Home" />
-                        <option value="Work" />
-                        <option value="Airport" />
-                      </datalist>
+                      {loadingPickupSuggestions && (
+                        <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                      )}
+                      {pickupSuggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-800 border border-white/20 rounded-xl overflow-hidden shadow-xl">
+                          {pickupSuggestions.map((s, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => { setPickup(s); setPickupSuggestions([]); }}
+                              className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
+                            >
+                              <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="button"
@@ -300,19 +360,30 @@ export default function HailRideModal({ open, onClose }) {
                   <Navigation className="w-5 h-5 text-red-400 flex-shrink-0" />
                   <div className="flex-1 relative">
                     <Input 
-                      placeholder="Dropoff address" 
+                      placeholder="Enter dropoff address" 
                       value={dropoff} 
-                      onChange={(e) => setDropoff(e.target.value)}
+                      onChange={handleDropoffChange}
                       className="bg-white/10 border-white/20 text-white"
-                      list="dropoff-suggestions"
+                      autoComplete="off"
                     />
-                    <datalist id="dropoff-suggestions">
-                      <option value="Home" />
-                      <option value="Work" />
-                      <option value="Airport" />
-                      <option value="Beach" />
-                      <option value="Mall" />
-                    </datalist>
+                    {loadingDropoffSuggestions && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                    )}
+                    {dropoffSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-800 border border-white/20 rounded-xl overflow-hidden shadow-xl">
+                        {dropoffSuggestions.map((s, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setDropoff(s); setDropoffSuggestions([]); }}
+                            className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
+                          >
+                            <Navigation className="w-4 h-4 text-red-400 flex-shrink-0" />
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

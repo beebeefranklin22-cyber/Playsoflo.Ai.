@@ -9,7 +9,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { pickup, dropoff } = await req.json();
+    const body = await req.json();
+    const { pickup, dropoff, autocomplete } = body;
+
+    // Handle autocomplete requests
+    if (autocomplete) {
+      const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+      const acRes = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=geocode&key=${apiKey}`
+      );
+      const acData = await acRes.json();
+      const suggestions = (acData.predictions || []).map(p => p.description);
+      return Response.json({ suggestions });
+    }
 
     if (!pickup || !dropoff) {
       return Response.json({ error: 'Pickup and dropoff addresses required' }, { status: 400 });
