@@ -897,12 +897,15 @@ export default function Marketplace() {
                             className="px-6 py-3 bg-green-600 rounded-full text-white font-semibold hover:bg-green-700 transition"
                             onClick={(e) => {
                               e.stopPropagation();
+                              const deliveryAddress = prompt('Enter your delivery address:');
+                              if (!deliveryAddress) return;
                               setPendingOrder({
                                 category: item.category,
                                 item_id: String(item.id),
                                 title: item.title,
                                 price: item.price,
-                                provider_email: item.created_by || ""
+                                provider_email: item.created_by || "",
+                                delivery_address: deliveryAddress
                               });
                               setShowPayment(true);
                             }}
@@ -1023,6 +1026,20 @@ export default function Marketplace() {
                       payment_intent_id: paymentIntentId
                     });
 
+                    // Dispatch delivery job and notify drivers + restaurant
+                    try {
+                      await base44.functions.invoke('dispatchFoodOrder', {
+                        order_id: order.id,
+                        item_title: pendingOrder.title,
+                        provider_email: pendingOrder.provider_email,
+                        delivery_address: pendingOrder.delivery_address || 'Customer address on file',
+                        price: pendingOrder.price,
+                        payment_intent_id: paymentIntentId
+                      });
+                    } catch (dispatchErr) {
+                      console.error('Dispatch error (non-fatal):', dispatchErr);
+                    }
+
                     // Success haptic
                     if (window.NativeAppBridge?.triggerHaptic) {
                       window.NativeAppBridge.triggerHaptic('success');
@@ -1030,7 +1047,7 @@ export default function Marketplace() {
 
                     setShowPayment(false);
                     setPendingOrder(null);
-                    toast.success("✅ Order placed successfully! You'll receive updates.");
+                    toast.success("✅ Order placed! Restaurant notified & driver being assigned.");
                   } catch (error) {
                     console.error('Order creation error:', error);
 
