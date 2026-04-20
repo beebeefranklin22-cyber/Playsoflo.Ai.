@@ -85,6 +85,7 @@ export default function TravelCategoryHub() {
   });
 
   return (
+    <>
     <PageWrapper>
       <div className={`min-h-screen bg-gradient-to-br ${meta.color}`}>
         {/* Hero */}
@@ -184,25 +185,27 @@ export default function TravelCategoryHub() {
         </div>
       </div>
 
-      {showOnboarding && (
-        <TravelProviderOnboardingModal
-          category={category}
-          categoryLabel={meta.label}
-          onClose={() => setShowOnboarding(false)}
-          onSuccess={() => {
-            setShowOnboarding(false);
-            queryClient.invalidateQueries(["travel-listings", category]);
-            toast.success("Your listing is live!");
-          }}
-        />
-      )}
-
-      {showBooking && selectedListing && (
-        <TravelBookingModal
-          listing={selectedListing}
-          onClose={() => { setShowBooking(false); setSelectedListing(null); }}
-        />
-      )}
     </PageWrapper>
+
+    {showOnboarding && (
+      <TravelProviderOnboardingModal
+        category={category}
+        categoryLabel={meta.label}
+        onClose={() => setShowOnboarding(false)}
+        onSuccess={() => {
+          setShowOnboarding(false);
+          queryClient.invalidateQueries(["travel-listings", category]);
+          toast.success("Your listing is live!");
+        }}
+      />
+    )}
+
+    {showBooking && selectedListing && (
+      <TravelBookingModal
+        listing={selectedListing}
+        onClose={() => { setShowBooking(false); setSelectedListing(null); }}
+      />
+    )}
+    </>
   );
 }
