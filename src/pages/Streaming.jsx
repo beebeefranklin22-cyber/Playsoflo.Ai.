@@ -22,6 +22,7 @@ import StreamScheduler from "../components/livestream/StreamScheduler";
 import WatchPartyModal from "../components/livestream/WatchPartyModal";
 import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
 import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
+import ContentUploadModal from "../components/streaming/ContentUploadModal";
 
 const CATEGORIES = [
   { id: "all", label: "All", icon: Tv },
@@ -51,6 +52,7 @@ export default function Streaming() {
 
   // Modals
   const [showUpload, setShowUpload] = useState(false);
+  const [showContentUpload, setShowContentUpload] = useState(false);
   const [showGoLive, setShowGoLive] = useState(false);
   const [showScheduler, setShowScheduler] = useState(false);
   const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
@@ -169,7 +171,15 @@ export default function Streaming() {
 
   const { data: activeLivestreams = [], refetch: refetchLive } = useQuery({
     queryKey: ['active-livestreams'],
-    queryFn: () => base44.entities.StreamingContent.filter({ is_live: true, status: "live" }),
+    queryFn: async () => {
+      const streams = await base44.entities.StreamingContent.filter({ is_live: true, status: "live" });
+      // Only show streams that started within the last 8 hours (stale guard)
+      const cutoff = Date.now() - 8 * 60 * 60 * 1000;
+      return streams.filter(s => {
+        if (!s.stream_started_at) return true;
+        return new Date(s.stream_started_at).getTime() > cutoff;
+      });
+    },
     initialData: [],
     refetchInterval: 15000,
   });
@@ -342,8 +352,8 @@ export default function Streaming() {
           <div className="grid grid-cols-4 gap-2">
             {[
               { label: "Upload", icon: Upload, color: "from-blue-600 to-cyan-600", action: () => setShowUpload(true) },
+              { label: "TV & Films", icon: Film, color: "from-orange-600 to-red-600", action: () => setShowContentUpload(true) },
               { label: "Schedule", icon: Calendar, color: "from-purple-600 to-violet-600", action: () => setShowScheduler(true) },
-              { label: "Movies", icon: Film, color: "from-orange-600 to-red-600", action: () => setShowTMDBBrowser(true) },
               { label: "Explore", icon: Sparkles, color: "from-pink-600 to-rose-600", action: () => navigate(createPageUrl("PersonalizedFeed")) },
             ].map((item) => (
               <button
@@ -943,6 +953,11 @@ export default function Streaming() {
       {showScheduler && <StreamScheduler currentUser={currentUser} onClose={() => setShowScheduler(false)} />}
       {showWatchParty && <WatchPartyModal content={showWatchParty} currentUser={currentUser} onClose={() => setShowWatchParty(null)} />}
       {showTMDBBrowser && <TMDBMovieBrowser onClose={() => setShowTMDBBrowser(false)} />}
+
+      {/* TV & Movies Upload Modal */}
+      {showContentUpload && (
+        <ContentUploadModal currentUser={currentUser} onClose={() => setShowContentUpload(false)} />
+      )}
     </div>
     </PageWrapper>
   );
