@@ -1,0 +1,101 @@
+{
+  "name": "AmazonOrder",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "number"
+    },
+    "product_title": {
+      "type": "string"
+    },
+    "product_image": {
+      "type": "string"
+    },
+    "product_category": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "affiliate_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ordered",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+        "returned"
+      ],
+      "default": "ordered"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "carrier": {
+      "type": "string",
+      "enum": [
+        "UPS",
+        "FedEx",
+        "USPS",
+        "Amazon",
+        "DHL",
+        "Other"
+      ],
+      "default": "Amazon"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "product_title",
+    "price"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

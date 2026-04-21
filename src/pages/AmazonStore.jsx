@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Search, ShoppingCart, Star, Truck, Package, ExternalLink, Filter, ChevronDown, X, Tag } from "lucide-react";
+import { Search, ShoppingCart, Star, Truck, Package, ExternalLink, Filter, X, Tag } from "lucide-react";
 import { AMAZON_PRODUCTS } from "@/data/amazonProducts";
 import AmazonProductModal from "@/components/amazon/AmazonProductModal";
-import PageWrapper from "@/components/PageWrapper";
+import { Link } from "react-router-dom";
 
 const CATEGORIES = [
   "All", "Electronics", "Home & Kitchen", "Health & Beauty", "Books",
@@ -38,10 +38,9 @@ export default function AmazonStore() {
   }, [search, selectedCategory, sortBy, priceRange]);
 
   return (
-    <PageWrapper hideBack={false} backLabel="Back">
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950/20 to-gray-950 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-orange-950/20 to-gray-950 pb-24">
         {/* Header */}
-        <div className="sticky top-16 z-40 bg-black/80 backdrop-blur-xl border-b border-white/10">
+        <div className="bg-black/80 backdrop-blur-xl border-b border-white/10">
           <div className="max-w-7xl mx-auto px-4 py-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex items-center gap-2">
@@ -54,7 +53,8 @@ export default function AmazonStore() {
                 </div>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <span className="text-gray-400 text-sm">{filtered.length} products</span>
+                <Link to="/AmazonOrders" className="text-orange-400 text-xs font-medium hover:text-orange-300 transition border border-orange-500/30 px-2.5 py-1 rounded-full">My Orders</Link>
+                <span className="text-gray-400 text-sm hidden sm:inline">{filtered.length} products</span>
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-white text-sm hover:bg-white/20 transition"
@@ -156,12 +156,10 @@ export default function AmazonStore() {
             * As an Amazon Associate, we earn from qualifying purchases. Prices and availability subject to change.
           </p>
         </div>
-      </div>
-
       {selectedProduct && (
         <AmazonProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
-    </PageWrapper>
+      </div>
   );
 }
 
