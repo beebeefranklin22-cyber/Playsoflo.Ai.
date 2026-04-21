@@ -156,9 +156,9 @@ export default function AmazonStore() {
             * As an Amazon Associate, we earn from qualifying purchases. Prices and availability subject to change.
           </p>
         </div>
-      {selectedProduct && (
-        <AmazonProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
-      )}
+        {selectedProduct && (
+          <AmazonProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+        )}
       </div>
   );
 }
