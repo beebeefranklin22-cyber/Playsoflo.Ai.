@@ -829,10 +829,39 @@ export default function Streaming() {
                 <Textarea value={uploadData.description} onChange={(e) => setUploadData(p => ({ ...p, description: e.target.value }))} placeholder="Describe your content..." className="bg-white/8 border-white/15 text-white" rows={3} style={{ background: 'rgba(255,255,255,0.06)' }} />
               </div>
               <div>
-                <label className="text-gray-400 text-xs mb-1.5 block">Video URL *</label>
-                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="https://... or record from camera above" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
-                {uploadData.video_url && uploadData.video_url.includes("blob") === false && uploadData.video_url.startsWith("http") && (
-                  <p className="text-green-400 text-xs mt-1">✓ Video URL set</p>
+                <label className="text-gray-400 text-xs mb-1.5 block">Video *</label>
+                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="Paste URL or upload from device below" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    id="video-file-upload"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      toast.info("Uploading video from device...");
+                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                      setUploadData(p => ({ ...p, video_url: file_url }));
+                      setUploading(false);
+                      toast.success("Video uploaded!");
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/8 border-white/15 text-blue-400"
+                    onClick={() => document.getElementById('video-file-upload').click()}
+                    disabled={uploading}
+                  >
+                    <Upload className="w-3.5 h-3.5 mr-1" />
+                    {uploading ? "Uploading..." : "Upload from Device"}
+                  </Button>
+                </div>
+                {uploadData.video_url && !uploadData.video_url.includes("blob") && uploadData.video_url.startsWith("http") && (
+                  <p className="text-green-400 text-xs mt-1">✓ Video ready</p>
                 )}
               </div>
               <div>
