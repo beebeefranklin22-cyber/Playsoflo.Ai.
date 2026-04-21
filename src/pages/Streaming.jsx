@@ -167,17 +167,32 @@ export default function Streaming() {
     refetchInterval: 30000,
   });
 
-  // Only show streams that are actively live AND started within the last 8 hours
-  const activeLivestreams = content.filter(i => {
-    if (!i.is_live) return false;
-    if (!i.stream_started_at) return true; // no timestamp, trust the flag
-    const startedAt = new Date(i.stream_started_at);
-    const eightHoursAgo = new Date(Date.now() - 8 * 60 * 60 * 1000);
-    return startedAt > eightHoursAgo;
+  const { data: activeLivestreams = [], refetch: refetchLive } = useQuery({
+    queryKey: ['active-livestreams'],
+    queryFn: () => base44.entities.StreamingContent.filter({ is_live: true, status: "live" }),
+    initialData: [],
+    refetchInterval: 15000,
   });
 
+  const { data: endedStreams = [], refetch: refetchEnded } = useQuery({
+    queryKey: ['ended-streams'],
+    queryFn: () => base44.entities.StreamingContent.filter({ is_live: false, type: "live_event", status: "ended" }),
+    enabled: !!currentUser,
+    initialData: [],
+  });
+
+  const saveToChannelMutation = async (streamId) => {
+    await base44.entities.StreamingContent.update(streamId, {
+      content_type: "vod_from_live",
+      status: "published",
+      visibility: "public",
+    });
+    toast.success("Saved to channel!");
+    refetchEnded();
+  };
+
   const filteredContent = useMemo(() => {
-    let list = content.filter(i => !i.is_live);
+    let list = content.filter(i => !i.is_live && i.status !== "ended");
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -410,6 +425,39 @@ export default function Streaming() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ended Streams - Save to Channel */}
+      {endedStreams.filter(s => s.created_by === currentUser?.email || s.creator_email === currentUser?.email).length > 0 && (
+        <div className="px-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Video className="w-4 h-4 text-yellow-400" />
+            <h2 className="text-white font-bold text-lg">Save to Channel</h2>
+            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">Ended</Badge>
+          </div>
+          <div className="space-y-2">
+            {endedStreams
+              .filter(s => s.created_by === currentUser?.email || s.creator_email === currentUser?.email)
+              .map(s => (
+                <div key={s.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="w-14 h-10 rounded-lg bg-gray-800 flex-shrink-0 overflow-hidden">
+                    {s.thumbnail_url ? <img src={s.thumbnail_url} alt={s.title} className="w-full h-full object-cover" /> : <Video className="w-5 h-5 text-gray-600 m-auto mt-2.5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium line-clamp-1">{s.title}</p>
+                    <p className="text-gray-500 text-xs">Stream ended — save as VOD?</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold flex-shrink-0"
+                    onClick={() => saveToChannelMutation(s.id)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              ))}
           </div>
         </div>
       )}

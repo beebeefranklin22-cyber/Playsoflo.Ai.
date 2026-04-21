@@ -52,7 +52,8 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
         agora_channel_name: channelName,
         creator_email: currentUser.email,
         creator_username: currentUser.username || currentUser.full_name,
-        status: "published"
+        status: "live",
+        stream_started_at: new Date().toISOString()
       });
 
       return stream;
