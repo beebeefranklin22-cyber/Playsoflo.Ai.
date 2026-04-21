@@ -351,10 +351,10 @@ export default function Streaming() {
         <div className="px-4 mb-5">
           <div className="grid grid-cols-4 gap-2">
             {[
+              { label: "My Channel", icon: Users, color: "from-violet-600 to-purple-700", action: () => navigate(createPageUrl("CreatorDashboard")) },
               { label: "Upload", icon: Upload, color: "from-blue-600 to-cyan-600", action: () => setShowUpload(true) },
               { label: "TV & Films", icon: Film, color: "from-orange-600 to-red-600", action: () => setShowContentUpload(true) },
               { label: "Schedule", icon: Calendar, color: "from-purple-600 to-violet-600", action: () => setShowScheduler(true) },
-              { label: "Explore", icon: Sparkles, color: "from-pink-600 to-rose-600", action: () => navigate(createPageUrl("PersonalizedFeed")) },
             ].map((item) => (
               <button
                 key={item.label}

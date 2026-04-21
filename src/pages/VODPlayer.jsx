@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Eye, Calendar, MessageCircle, Send, Pin, Clock,
-  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart
+  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart, User
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import VideoComments from "../components/streaming/VideoComments";
+import { createPageUrl } from "@/utils";
 
 export default function VODPlayer() {
   const navigate = useNavigate();
@@ -109,6 +111,12 @@ export default function VODPlayer() {
         <div className="flex-1 min-w-0">
           <p className="text-white font-bold truncate">{vod.title}</p>
           <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
+            <button
+              onClick={() => navigate(createPageUrl("CreatorChannel") + `?email=${vod.creator_email}`)}
+              className="flex items-center gap-1 hover:text-purple-400 transition"
+            >
+              <User className="w-3 h-3" />@{vod.creator_username || vod.creator_email}
+            </button>
             <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{(vod.views || 0).toLocaleString()} views</span>
             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(vod.created_date).toLocaleDateString()}</span>
             {vod.content_type === "vod_from_live" && (
@@ -166,7 +174,7 @@ export default function VODPlayer() {
           </div>
         </div>
 
-        {/* Right Panel: Comments + Chat Replay */}
+        {/* Right Panel: Live Comments + Chat Replay */}
         <div className="w-full lg:w-[380px] lg:border-l border-white/10 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
           {/* Tabs */}
           <div className="flex border-b border-white/10 flex-shrink-0">
@@ -177,7 +185,7 @@ export default function VODPlayer() {
               }`}
             >
               <MessageCircle className="w-4 h-4" />
-              Comments ({comments.length})
+              Comments
             </button>
             {chatReplay.length > 0 && (
               <button
@@ -190,72 +198,22 @@ export default function VODPlayer() {
                 Chat Replay
               </button>
             )}
+            {/* Creator channel link */}
+            {vod?.creator_email && (
+              <button
+                onClick={() => navigate(createPageUrl("CreatorChannel") + `?email=${vod.creator_email}`)}
+                className="px-3 py-3 text-gray-500 hover:text-white transition"
+                title="View Creator Channel"
+              >
+                <User className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Comments Tab */}
+          {/* Live Comments Tab */}
           {activeTab === "comments" && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {sortedComments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <MessageCircle className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">No comments yet. Be the first!</p>
-                  </div>
-                ) : (
-                  sortedComments.map((c) => (
-                    <motion.div
-                      key={c.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex gap-3"
-                    >
-                      {c.author_avatar ? (
-                        <img src={c.author_avatar} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt="" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {c.author_name?.[0]?.toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-white font-semibold text-sm">{c.author_name}</span>
-                          <span className="text-gray-500 text-xs">{new Date(c.created_date).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-gray-300 text-sm mt-0.5 break-words">{c.content}</p>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-
-              {/* Comment input */}
-              <div className="p-4 border-t border-white/10 flex-shrink-0">
-                {currentUser ? (
-                  <div className="flex gap-2">
-                    <Input
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && comment.trim() && sendCommentMutation.mutate()}
-                      placeholder="Add a comment..."
-                      className="bg-white/10 border-white/20 text-white placeholder-gray-400"
-                    />
-                    <Button
-                      onClick={() => sendCommentMutation.mutate()}
-                      disabled={!comment.trim() || sendCommentMutation.isPending}
-                      className="bg-purple-600 hover:bg-purple-700 flex-shrink-0"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => base44.auth.redirectToLogin()}
-                    className="w-full py-3 text-center text-gray-400 hover:text-white text-sm transition border border-white/10 rounded-xl hover:bg-white/5"
-                  >
-                    Sign in to comment
-                  </button>
-                )}
-              </div>
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <VideoComments contentId={vodId} />
             </div>
           )}
 

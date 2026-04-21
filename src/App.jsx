@@ -1,5 +1,7 @@
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
+import CreatorChannel from './pages/CreatorChannel'
+import CreatorDashboard from './pages/CreatorDashboard'
 import TravelCategoryHub from './pages/TravelCategoryHub'
 import AmazonStore from './pages/AmazonStore'
 import AmazonOrders from './pages/AmazonOrders'
@@ -67,6 +69,8 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/Discover" element={<LayoutWrapper currentPageName="Discover"><Discover /></LayoutWrapper>} />
       <Route path="/VODPlayer" element={<LayoutWrapper currentPageName="VODPlayer"><VODPlayer /></LayoutWrapper>} />
+      <Route path="/CreatorChannel" element={<LayoutWrapper currentPageName="CreatorChannel"><CreatorChannel /></LayoutWrapper>} />
+      <Route path="/CreatorDashboard" element={<LayoutWrapper currentPageName="CreatorDashboard"><CreatorDashboard /></LayoutWrapper>} />
       <Route path="/TravelCategoryHub" element={<LayoutWrapper currentPageName="TravelCategoryHub"><TravelCategoryHub /></LayoutWrapper>} />
       <Route path="/AmazonStore" element={<LayoutWrapper currentPageName="AmazonStore"><AmazonStore /></LayoutWrapper>} />
       <Route path="/AmazonOrders" element={<LayoutWrapper currentPageName="AmazonOrders"><AmazonOrders /></LayoutWrapper>} />
