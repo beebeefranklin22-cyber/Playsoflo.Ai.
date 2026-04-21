@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Eye, Calendar, MessageCircle, Send, Pin, Clock,
-  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart, User
+  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart, User, BookOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import VideoComments from "../components/streaming/VideoComments";
+import ChapterList from "../components/streaming/ChapterList";
 import { createPageUrl } from "@/utils";
 
 export default function VODPlayer() {
@@ -22,6 +23,7 @@ export default function VODPlayer() {
   const [activeTab, setActiveTab] = useState("comments"); // "comments" | "chat_replay"
   const [videoTime, setVideoTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
   const videoRef = useRef(null);
 
   const params = new URLSearchParams(window.location.search);
@@ -41,10 +43,11 @@ export default function VODPlayer() {
     enabled: !!vodId
   });
 
-  // Track view
+  // Track view + auto-switch to chapters tab if available
   useEffect(() => {
     if (vod?.id) {
       base44.entities.StreamingContent.update(vod.id, { views: (vod.views || 0) + 1 }).catch(() => {});
+      if (vod.chapters?.length > 0) setActiveTab("chapters");
     }
   }, [vod?.id]);
 
@@ -91,6 +94,13 @@ export default function VODPlayer() {
 
   const handleTimeUpdate = () => {
     if (videoRef.current) setVideoTime(videoRef.current.currentTime);
+  };
+
+  const handleSeekToChapter = (seconds) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = seconds;
+      videoRef.current.play().catch(() => {});
+    }
   };
 
   if (!vod) {
@@ -140,6 +150,7 @@ export default function VODPlayer() {
                 controls
                 className="w-full h-full"
                 onTimeUpdate={handleTimeUpdate}
+                onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
               />
@@ -177,7 +188,18 @@ export default function VODPlayer() {
         {/* Right Panel: Live Comments + Chat Replay */}
         <div className="w-full lg:w-[380px] lg:border-l border-white/10 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
           {/* Tabs */}
-          <div className="flex border-b border-white/10 flex-shrink-0">
+          <div className="flex border-b border-white/10 flex-shrink-0 overflow-x-auto">
+            {vod?.chapters?.length > 0 && (
+              <button
+                onClick={() => setActiveTab("chapters")}
+                className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-semibold transition ${
+                  activeTab === "chapters" ? "text-white border-b-2 border-purple-500" : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Chapters
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("comments")}
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition ${
@@ -190,25 +212,36 @@ export default function VODPlayer() {
             {chatReplay.length > 0 && (
               <button
                 onClick={() => setActiveTab("chat_replay")}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold transition ${
+                className={`flex-shrink-0 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-semibold transition ${
                   activeTab === "chat_replay" ? "text-white border-b-2 border-red-500" : "text-gray-400 hover:text-white"
                 }`}
               >
                 <span className="w-2 h-2 bg-red-400 rounded-full" />
-                Chat Replay
+                Replay
               </button>
             )}
-            {/* Creator channel link */}
             {vod?.creator_email && (
               <button
                 onClick={() => navigate(createPageUrl("CreatorChannel") + `?email=${vod.creator_email}`)}
-                className="px-3 py-3 text-gray-500 hover:text-white transition"
+                className="px-3 py-3 text-gray-500 hover:text-white transition flex-shrink-0"
                 title="View Creator Channel"
               >
                 <User className="w-4 h-4" />
               </button>
             )}
           </div>
+
+          {/* Chapters Tab */}
+          {activeTab === "chapters" && (
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <ChapterList
+                chapters={vod.chapters || []}
+                currentTime={videoTime}
+                duration={videoDuration}
+                onSeek={handleSeekToChapter}
+              />
+            </div>
+          )}
 
           {/* Live Comments Tab */}
           {activeTab === "comments" && (

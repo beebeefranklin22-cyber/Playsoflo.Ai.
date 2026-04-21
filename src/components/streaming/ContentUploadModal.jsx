@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Film, Tv, Upload, DollarSign, Star, Loader2, CheckCircle, Link, CloudUpload, Play } from "lucide-react";
+import { X, Film, Tv, Upload, DollarSign, Star, Loader2, CheckCircle, Link, CloudUpload, Play, BookOpen } from "lucide-react";
+import ChapterEditor from "./ChapterEditor";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -24,6 +25,7 @@ const DEFAULT_DATA = {
   season: "", episodes: "",
   is_monetized: false, price_usd: "", rental_price_usd: "",
   requires_subscription: false,
+  chapters: [],
 };
 
 export default function ContentUploadModal({ currentUser, onClose }) {
@@ -116,6 +118,7 @@ export default function ContentUploadModal({ currentUser, onClose }) {
         duration: data.duration,
         rating: parseFloat(data.rating) || 0,
         tags,
+        chapters: data.chapters || [],
         is_live: false,
         status: "published",
         is_monetized: data.is_monetized,
@@ -339,6 +342,11 @@ export default function ContentUploadModal({ currentUser, onClose }) {
           <div>
             <label className="text-gray-400 text-xs mb-1.5 block">Synopsis</label>
             <Textarea value={data.description} onChange={e => set("description", e.target.value)} placeholder="Tell viewers what this is about..." className={inputCls} rows={2} style={inputStyle} />
+          </div>
+
+          {/* Chapters */}
+          <div className="border border-white/10 rounded-xl p-3 bg-white/3">
+            <ChapterEditor chapters={data.chapters} onChange={chs => set("chapters", chs)} />
           </div>
 
           {/* Thumbnail */}

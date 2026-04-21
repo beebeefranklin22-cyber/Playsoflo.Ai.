@@ -1,0 +1,170 @@
+{
+  "name": "StreamingContent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "creator_username": {
+      "type": "string",
+      "description": "Username of the content creator"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "movie",
+        "series",
+        "live_sports",
+        "live_event",
+        "gaming_stream",
+        "music_concert",
+        "podcast"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "sports",
+        "entertainment",
+        "gaming",
+        "music",
+        "news",
+        "lifestyle",
+        "betting"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "Direct video URL for VOD content"
+    },
+    "duration": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Tags for search and discovery"
+    },
+    "chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "start": {
+            "type": "number",
+            "description": "Start time in seconds"
+          }
+        }
+      },
+      "default": [],
+      "description": "Timestamped chapters for navigation"
+    },
+    "is_live": {
+      "type": "boolean",
+      "default": false
+    },
+    "requires_subscription": {
+      "type": "boolean",
+      "default": false
+    },
+    "betting_available": {
+      "type": "boolean",
+      "default": false
+    },
+    "agora_channel_name": {
+      "type": "string"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "content_type": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "visibility": {
+      "type": "string"
+    },
+    "stream_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "views": {
+      "type": "number",
+      "default": 0
+    },
+    "is_monetized": {
+      "type": "boolean",
+      "default": false
+    },
+    "price_usd": {
+      "type": "number",
+      "default": 0,
+      "description": "Price to buy/access content permanently"
+    },
+    "rental_price_usd": {
+      "type": "number",
+      "default": 0,
+      "description": "Rental price if applicable"
+    },
+    "rental_duration_hours": {
+      "type": "number",
+      "default": 48,
+      "description": "How long rental access lasts"
+    }
+  },
+  "required": [
+    "title",
+    "type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
