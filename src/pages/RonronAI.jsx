@@ -388,10 +388,13 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
             origin = `${originCoords.lat},${originCoords.lng}`;
             setLocationPermissionGranted(true);
           } catch (geoError) {
+            // Location denied or unavailable — use a general search instead of blocking
             setMessages(prev => [...prev, {
               role: "assistant",
-              content: "⚠️ I need access to your location to provide turn-by-turn navigation. Please allow location access when prompted by your browser."
+              content: `📍 I couldn't get your current location (location access may be blocked). I'll search for "${destination}" on Google Maps so you can navigate manually.`
             }]);
+            // Open Google Maps search as fallback
+            window.open(`https://www.google.com/maps/search/${encodeURIComponent(destination)}`, '_blank');
             setIsLoading(false);
             setLocationPermissionGranted(false);
             return;
