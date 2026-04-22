@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Briefcase, Plus, MapPin, DollarSign, Clock, Edit2, Trash2,
-  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle, Image as ImageIcon, Loader2, X, Upload
+  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle, Image as ImageIcon, Loader2, X, Upload,
+  Bookmark, BookmarkCheck, ClipboardList, CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -28,6 +29,8 @@ export default function CommunityJobs() {
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [savingJob, setSavingJob] = useState(null);
+  const [applyingJob, setApplyingJob] = useState(null);
   const imageInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
@@ -50,6 +53,26 @@ export default function CommunityJobs() {
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  const { data: savedJobIds = [] } = useQuery({
+    queryKey: ['saved-job-ids', currentUser?.email],
+    queryFn: async () => {
+      const saved = await base44.entities.SavedJob.filter({ user_email: currentUser.email });
+      return saved.map(s => s.job_id);
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+
+  const { data: appliedJobIds = [] } = useQuery({
+    queryKey: ['applied-job-ids', currentUser?.email],
+    queryFn: async () => {
+      const apps = await base44.entities.JobApplication.filter({ user_email: currentUser.email });
+      return apps.map(a => a.job_id);
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['job-listings', filterType, filterCategory],
@@ -172,6 +195,53 @@ export default function CommunityJobs() {
     }
   };
 
+  const handleSaveJob = async (job) => {
+    if (!currentUser) return toast.error('Sign in to save jobs');
+    if (savedJobIds.includes(job.id)) return toast.info('Already saved');
+    setSavingJob(job.id);
+    await base44.entities.SavedJob.create({
+      user_email: currentUser.email,
+      job_id: job.id,
+      job_title: job.title,
+      company_name: job.company_name || "",
+      job_type: job.type,
+      job_category: job.category,
+      job_location: job.location || "",
+      pay_rate: job.pay_rate || "",
+      pay_type: job.pay_type || "",
+      poster_photo: job.poster_photo || "",
+      application_url: job.application_url || ""
+    });
+    queryClient.invalidateQueries(['saved-job-ids']);
+    setSavingJob(null);
+    toast.success('Job saved!');
+  };
+
+  const handleMarkApplied = async (job) => {
+    if (!currentUser) return toast.error('Sign in to track applications');
+    if (appliedJobIds.includes(job.id)) {
+      navigate(createPageUrl("ApplicationTracker"));
+      return;
+    }
+    setApplyingJob(job.id);
+    await base44.entities.JobApplication.create({
+      user_email: currentUser.email,
+      job_id: job.id,
+      job_title: job.title,
+      company_name: job.company_name || "",
+      job_type: job.type,
+      job_category: job.category,
+      job_location: job.location || "",
+      pay_rate: job.pay_rate || "",
+      status: "applied",
+      applied_date: new Date().toISOString().split('T')[0],
+      poster_photo: job.poster_photo || ""
+    });
+    queryClient.invalidateQueries(['applied-job-ids']);
+    setApplyingJob(null);
+    toast.success('Added to your Application Tracker!');
+  };
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -212,10 +282,20 @@ export default function CommunityJobs() {
               </div>
             </div>
             {currentUser && (
-              <Button onClick={() => setShowCreateModal(true)} className="bg-purple-600 hover:bg-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Post Job
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => navigate(createPageUrl("SavedJobs"))} className="border-white/20 text-white hidden sm:flex">
+                  <Bookmark className="w-4 h-4 mr-2" />
+                  Saved
+                </Button>
+                <Button variant="outline" onClick={() => navigate(createPageUrl("ApplicationTracker"))} className="border-white/20 text-white hidden sm:flex">
+                  <ClipboardList className="w-4 h-4 mr-2" />
+                  Applications
+                </Button>
+                <Button onClick={() => setShowCreateModal(true)} className="bg-purple-600 hover:bg-purple-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Post Job
+                </Button>
+              </div>
             )}
           </div>
 
@@ -332,20 +412,43 @@ export default function CommunityJobs() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-                      <button onClick={() => setSelectedJob(job)} className="text-gray-400 hover:text-white transition">
+                    <div className="flex items-center gap-2 pt-4 border-t border-white/10 flex-wrap">
+                      <button onClick={() => setSelectedJob(job)} className="text-gray-400 hover:text-white transition p-1">
                         <MessageCircle className="w-5 h-5" />
                       </button>
+                      {currentUser && (
+                        <button
+                          onClick={() => handleSaveJob(job)}
+                          disabled={savingJob === job.id}
+                          className="p-1 transition"
+                          title={savedJobIds.includes(job.id) ? "Saved" : "Save job"}
+                        >
+                          {savedJobIds.includes(job.id)
+                            ? <BookmarkCheck className="w-5 h-5 text-yellow-400" />
+                            : <Bookmark className="w-5 h-5 text-gray-400 hover:text-yellow-400" />}
+                        </button>
+                      )}
                       {currentUser && currentUser.email !== job.poster_email && (
-                        <Button onClick={() => handleMessage(job.poster_email)} variant="outline" size="sm" className="ml-auto">
-                          <Send className="w-4 h-4 mr-2" />
+                        <Button
+                          onClick={() => handleMarkApplied(job)}
+                          disabled={applyingJob === job.id}
+                          variant="outline" size="sm"
+                          className={`ml-auto border-white/20 ${appliedJobIds.includes(job.id) ? "text-green-400 border-green-500/40" : "text-white"}`}
+                        >
+                          <CheckCircle2 className="w-4 h-4 mr-1" />
+                          {appliedJobIds.includes(job.id) ? "Applied ✓" : "Mark Applied"}
+                        </Button>
+                      )}
+                      {currentUser && currentUser.email !== job.poster_email && (
+                        <Button onClick={() => handleMessage(job.poster_email)} variant="outline" size="sm" className="border-white/20 text-white">
+                          <Send className="w-4 h-4 mr-1" />
                           Contact
                         </Button>
                       )}
                       {job.application_url && (
                         <Button asChild variant="default" size="sm" className="bg-purple-600">
                           <a href={job.application_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-2" />
+                            <ExternalLink className="w-4 h-4 mr-1" />
                             Apply
                           </a>
                         </Button>
