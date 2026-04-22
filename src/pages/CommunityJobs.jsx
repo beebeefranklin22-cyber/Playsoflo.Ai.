@@ -97,7 +97,7 @@ export default function CommunityJobs() {
         title: "", description: "", type: "gig", category: "other",
         company_name: "", location: "", remote_ok: false, pay_rate: "",
         pay_type: "negotiable", contact_email: "", contact_phone: "",
-        application_url: "", requirements: "", benefits: ""
+        application_url: "", requirements: "", benefits: "", images: []
       });
       toast.success('Job posted!');
     }
@@ -170,6 +170,19 @@ export default function CommunityJobs() {
     } else {
       navigate(createPageUrl("Messages") + `?user=${posterEmail}`);
     }
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setUploadingImages(true);
+    const urls = [];
+    for (const file of files) {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      urls.push(file_url);
+    }
+    setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...urls] }));
+    setUploadingImages(false);
   };
 
   const handleSubmit = (e) => {
@@ -271,7 +284,8 @@ export default function CommunityJobs() {
                                 contact_phone: job.contact_phone || "",
                                 application_url: job.application_url || "",
                                 requirements: job.requirements?.join('\n') || "",
-                                benefits: job.benefits?.join('\n') || ""
+                                benefits: job.benefits?.join('\n') || "",
+                                images: job.images || []
                               });
                               setShowCreateModal(true);
                             }}
@@ -307,6 +321,15 @@ export default function CommunityJobs() {
                         <DollarSign className="w-4 h-4" />
                         {job.pay_rate} ({job.pay_type})
                       </p>
+                    )}
+
+                    {job.images?.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mb-4">
+                        {job.images.slice(0, 3).map((url, i) => (
+                          <img key={i} src={url} className="w-20 h-20 object-cover rounded-lg border border-white/10" />
+                        ))}
+                        {job.images.length > 3 && <div className="w-20 h-20 rounded-lg bg-white/10 flex items-center justify-center text-gray-400 text-sm">+{job.images.length - 3}</div>}
+                      </div>
                     )}
 
                     <div className="flex items-center gap-3 pt-4 border-t border-white/10">
@@ -397,6 +420,26 @@ export default function CommunityJobs() {
             <Input value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} placeholder="Contact Email" type="email" className="bg-white/10 border-white/20" />
             <Input value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} placeholder="Contact Phone" className="bg-white/10 border-white/20" />
             <Input value={formData.application_url} onChange={(e) => setFormData({ ...formData, application_url: e.target.value })} placeholder="Application URL" className="bg-white/10 border-white/20" />
+
+            {/* Image Upload */}
+            <div>
+              <label className="text-gray-400 text-sm mb-2 block">Photos (optional)</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(formData.images || []).map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} className="w-20 h-20 object-cover rounded-lg border border-white/20" />
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={() => imageInputRef.current?.click()} className="w-20 h-20 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center hover:border-purple-400 transition">
+                  {uploadingImages ? <Loader2 className="w-5 h-5 text-gray-400 animate-spin" /> : <><Upload className="w-5 h-5 text-gray-400" /><span className="text-gray-500 text-xs mt-1">Add</span></>}
+                </button>
+              </div>
+              <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+            </div>
+
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1">Cancel</Button>
               <Button type="submit" className="flex-1 bg-purple-600">{editingJob ? 'Update' : 'Post'}</Button>
