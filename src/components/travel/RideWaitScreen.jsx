@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Car, Clock, MapPin, User, Phone, MessageCircle, Navigation, X } from "lucide-react";
+import { Car, Clock, MapPin, Navigation, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import CancelRideModal from "./CancelRideModal";
 import RideChatModal from "../chat/RideChatModal";
+import DriverMatchedCard from "./DriverMatchedCard";
 
 export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -92,42 +93,12 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
           </div>
         </div>
 
-        {/* Driver Info (shown when accepted) */}
-        {currentStatus === 'accepted' && ride.driver_name && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 rounded-2xl p-6 backdrop-blur-xl border border-white/20"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                {ride.driver_name?.[0]}
-              </div>
-              <div className="flex-1">
-                <h3 className="text-white font-bold text-lg">{ride.driver_name}</h3>
-                <p className="text-gray-400 text-sm">Your driver</p>
-              </div>
-            </div>
-
-            {ride.driver_vehicle_info && (
-              <div className="bg-white/5 rounded-lg p-3 mb-4">
-                <p className="text-white font-semibold">
-                  {ride.driver_vehicle_info.color} {ride.driver_vehicle_info.make} {ride.driver_vehicle_info.model}
-                </p>
-                <p className="text-gray-400 text-sm">{ride.driver_vehicle_info.license_plate}</p>
-              </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowChat(true)}
-                className="flex-1 bg-purple-600 hover:bg-purple-700"
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Message
-              </Button>
-            </div>
-          </motion.div>
+        {/* Driver Profile Card (shown when matched) */}
+        {(currentStatus === 'accepted' || currentStatus === 'en_route' || currentStatus === 'arrived') && (
+          <DriverMatchedCard
+            ride={ride}
+            onMessageDriver={ride.driver_email ? () => setShowChat(true) : null}
+          />
         )}
 
         {/* View on Map Button */}
