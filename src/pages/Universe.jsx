@@ -120,7 +120,8 @@ const pillars = [
     gradient: "from-indigo-600 via-purple-600 to-indigo-600",
     image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200",
     features: ["IoT", "Satellites", "VR/AR", "Smart Energy"],
-    action: "AIStudio"
+    action: "AIStudio",
+    comingSoon: true
   }
 ];
 

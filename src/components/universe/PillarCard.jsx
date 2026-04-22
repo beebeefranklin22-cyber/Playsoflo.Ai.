@@ -1,10 +1,12 @@
-import React, { useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import InnovationWaitlistModal from "./InnovationWaitlistModal";
 
 export default function PillarCard({ pillar, index, total }) {
   const navigate = useNavigate();
+  const [showWaitlist, setShowWaitlist] = useState(false);
 
   // Pre-compute random positions so they don't change on re-render
   const particles = useMemo(() =>
@@ -101,18 +103,36 @@ export default function PillarCard({ pillar, index, total }) {
             {pillar.subtitle}
           </p>
 
+          {pillar.comingSoon && (
+            <div className="mb-3">
+              <span className="px-4 py-1.5 rounded-full bg-yellow-500/30 border border-yellow-400/50 text-yellow-300 text-xs sm:text-sm font-bold">
+                🚀 Coming Soon
+              </span>
+            </div>
+          )}
+
           <button
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              navigate(createPageUrl(pillar.action));
+              if (pillar.comingSoon) {
+                setShowWaitlist(true);
+              } else {
+                navigate(createPageUrl(pillar.action));
+              }
             }}
             type="button"
             className="w-full py-3 sm:py-4 md:py-5 bg-white/30 backdrop-blur-xl rounded-xl sm:rounded-2xl text-white text-sm sm:text-base md:text-lg font-bold hover:bg-white/40 active:scale-[0.98] transition border-2 border-white/50 shadow-2xl flex items-center justify-center gap-2 sm:gap-3 cursor-pointer touch-manipulation"
           >
-            Enter {pillar.title}
-            <span className="inline-block">→</span>
+            {pillar.comingSoon ? "Join Waitlist" : `Enter ${pillar.title}`}
+            <span className="inline-block">{pillar.comingSoon ? "→" : "→"}</span>
           </button>
+
+          <AnimatePresence>
+            {showWaitlist && (
+              <InnovationWaitlistModal onClose={() => setShowWaitlist(false)} />
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
 
