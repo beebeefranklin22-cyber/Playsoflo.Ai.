@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Car, Crown, Users, Leaf, Gauge } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
+// Multipliers relative to the "standard" tier (1.0 = same as base pricing from route calculation)
 const vehicleTypes = [
   {
     id: "standard",
@@ -10,9 +11,7 @@ const vehicleTypes = [
     description: "Affordable rides for everyday travel",
     icon: Car,
     capacity: "1-4 riders",
-    basePrice: 3.0,
-    pricePerMile: 1.2,
-    pricePerMinute: 0.25,
+    multiplier: 1.0,
     color: "from-blue-500 to-cyan-500",
     eta: "2-5 min"
   },
@@ -22,9 +21,7 @@ const vehicleTypes = [
     description: "High-end vehicles for premium comfort",
     icon: Crown,
     capacity: "1-4 riders",
-    basePrice: 8.0,
-    pricePerMile: 2.5,
-    pricePerMinute: 0.50,
+    multiplier: 2.2,
     color: "from-purple-500 to-pink-500",
     eta: "5-10 min"
   },
@@ -34,9 +31,7 @@ const vehicleTypes = [
     description: "Extra space for groups and luggage",
     icon: Gauge,
     capacity: "1-6 riders",
-    basePrice: 6.0,
-    pricePerMile: 1.8,
-    pricePerMinute: 0.40,
+    multiplier: 1.6,
     color: "from-orange-500 to-red-500",
     eta: "5-8 min"
   },
@@ -46,12 +41,10 @@ const vehicleTypes = [
     description: "Save money by sharing with others",
     icon: Users,
     capacity: "1-2 riders",
-    basePrice: 2.0,
-    pricePerMile: 0.8,
-    pricePerMinute: 0.15,
+    multiplier: 0.65,
     color: "from-green-500 to-emerald-500",
     eta: "5-10 min",
-    discount: "Up to 50% off"
+    discount: "Up to 35% off"
   },
   {
     id: "green",
@@ -59,21 +52,29 @@ const vehicleTypes = [
     description: "Eco-friendly electric & hybrid vehicles",
     icon: Leaf,
     capacity: "1-4 riders",
-    basePrice: 3.5,
-    pricePerMile: 1.3,
-    pricePerMinute: 0.28,
+    multiplier: 1.1,
     color: "from-teal-500 to-green-500",
     eta: "3-7 min"
   }
 ];
 
-export default function VehicleTypeSelector({ selectedType, onSelect, estimatedDistance, estimatedDuration }) {
+// Default fallback base rates (used when no route calculated yet)
+const DEFAULT_BASE = { basePrice: 2.50, pricePerMile: 1.49, pricePerMinute: 0.30 };
+
+export default function VehicleTypeSelector({ selectedType, onSelect, estimatedDistance, estimatedDuration, routePricing }) {
+  const getVehicleRates = (vehicle) => {
+    const base = routePricing || DEFAULT_BASE;
+    return {
+      basePrice: base.basePrice * vehicle.multiplier,
+      pricePerMile: base.pricePerMile * vehicle.multiplier,
+      pricePerMinute: base.pricePerMinute * vehicle.multiplier,
+    };
+  };
+
   const calculateEstimate = (vehicle) => {
     if (!estimatedDistance || !estimatedDuration) return null;
-    const baseFare = vehicle.basePrice;
-    const distanceFare = vehicle.pricePerMile * estimatedDistance;
-    const timeFare = vehicle.pricePerMinute * estimatedDuration;
-    return (baseFare + distanceFare + timeFare).toFixed(2);
+    const rates = getVehicleRates(vehicle);
+    return (rates.basePrice + rates.pricePerMile * estimatedDistance + rates.pricePerMinute * estimatedDuration).toFixed(2);
   };
 
   return (
@@ -82,6 +83,7 @@ export default function VehicleTypeSelector({ selectedType, onSelect, estimatedD
       {vehicleTypes.map((vehicle) => {
         const isSelected = selectedType === vehicle.id;
         const estimate = calculateEstimate(vehicle);
+        const rates = getVehicleRates(vehicle);
         
         return (
           <motion.div
@@ -90,7 +92,7 @@ export default function VehicleTypeSelector({ selectedType, onSelect, estimatedD
             whileTap={{ scale: 0.98 }}
           >
             <Card
-              onClick={() => onSelect(vehicle)}
+              onClick={() => onSelect({ ...vehicle, ...rates })}
               className={`cursor-pointer transition-all ${
                 isSelected
                   ? 'bg-white/20 border-white/40 shadow-lg'
@@ -133,15 +135,15 @@ export default function VehicleTypeSelector({ selectedType, onSelect, estimatedD
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
                       <span className="text-gray-400">Base</span>
-                      <div className="text-white font-semibold">${vehicle.basePrice}</div>
+                      <div className="text-white font-semibold">${rates.basePrice.toFixed(2)}</div>
                     </div>
                     <div>
                       <span className="text-gray-400">Per mile</span>
-                      <div className="text-white font-semibold">${vehicle.pricePerMile}</div>
+                      <div className="text-white font-semibold">${rates.pricePerMile.toFixed(2)}</div>
                     </div>
                     <div>
                       <span className="text-gray-400">Per min</span>
-                      <div className="text-white font-semibold">${vehicle.pricePerMinute}</div>
+                      <div className="text-white font-semibold">${rates.pricePerMinute.toFixed(2)}</div>
                     </div>
                   </div>
                 </div>

@@ -35,6 +35,7 @@ export default function HailRideModal({ open, onClose }) {
     music_genre: "none"
   });
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [routePricing, setRoutePricing] = useState(null);
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
   const [pickupSuggestions, setPickupSuggestions] = useState([]);
@@ -154,13 +155,12 @@ export default function HailRideModal({ open, onClose }) {
           setPickupCoords(response.data.pickup_coords);
           setDropoffCoords(response.data.dropoff_coords);
 
-          // Update vehicle pricing with dynamic 15% discount
-          if (response.data.pricing && selectedVehicle) {
-            setSelectedVehicle({
-              ...selectedVehicle,
+          // Store route pricing so VehicleTypeSelector can compute per-vehicle fares
+          if (response.data.pricing) {
+            setRoutePricing({
               basePrice: response.data.pricing.our_base_price,
               pricePerMile: response.data.pricing.our_price_per_mile,
-              pricePerMinute: response.data.pricing.our_price_per_minute
+              pricePerMinute: response.data.pricing.our_price_per_minute,
             });
           }
 
@@ -310,6 +310,7 @@ export default function HailRideModal({ open, onClose }) {
                 onSelect={(vehicle) => setSelectedVehicle(vehicle)}
                 estimatedDistance={estimatedDistance}
                 estimatedDuration={estimatedDuration}
+                routePricing={routePricing}
               />
 
               <div className="space-y-3">
