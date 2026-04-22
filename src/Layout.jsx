@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus } from "lucide-react";
+import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,8 @@ export default function Layout({ children, currentPageName }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const searchRef = useRef(null);
   const [direction, setDirection] = useState(0);
   const prevPathRef = useRef(location.pathname);
   const queryClient = useQueryClient();
@@ -359,22 +362,31 @@ export default function Layout({ children, currentPageName }) {
               </button>
             )}
 
-            <form onSubmit={handleSearch} className="flex-1">
+            <form onSubmit={handleSearch} className="flex-1" ref={searchRef}>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowSearchSuggestions(true); }}
                   onFocus={() => {
                     if (window.NativeAppBridge?.triggerHaptic) {
                       window.NativeAppBridge.triggerHaptic('light');
                     }
+                    setShowSearchSuggestions(true);
                   }}
+                  onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 150)}
                   placeholder="Search experiences, services, people..."
                   className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-purple-500 transition min-h-[44px]"
                   style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
                 />
+                {showSearchSuggestions && (
+                  <NavSearchSuggestions
+                    query={searchQuery}
+                    onClose={() => { setShowSearchSuggestions(false); setSearchQuery(''); }}
+                    onSelect={() => setShowSearchSuggestions(false)}
+                  />
+                )}
               </div>
             </form>
 
