@@ -1,0 +1,71 @@
+{
+  "name": "Playlist",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "video_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Ordered list of StreamingContent IDs"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "title",
+    "owner_email"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "is_public": true
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

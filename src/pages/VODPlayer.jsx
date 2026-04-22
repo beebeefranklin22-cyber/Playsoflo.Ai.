@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, Eye, Calendar, MessageCircle, Send, Pin, Clock,
-  Play, Pause, Volume2, VolumeX, Maximize, Users, Heart, User, BookOpen
+  ArrowLeft, Eye, Calendar, MessageCircle, Clock,
+  Play, Users, User, BookOpen, ListVideo, SkipForward
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import VideoComments from "../components/streaming/VideoComments";
 import ChapterList from "../components/streaming/ChapterList";
+import PlaylistManager from "../components/streaming/PlaylistManager";
 import { createPageUrl } from "@/utils";
 
 export default function VODPlayer() {
@@ -24,10 +25,15 @@ export default function VODPlayer() {
   const [videoTime, setVideoTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
+  const [showPlaylistManager, setShowPlaylistManager] = useState(false);
+  const [playNextCountdown, setPlayNextCountdown] = useState(null);
   const videoRef = useRef(null);
+  const countdownRef = useRef(null);
 
   const params = new URLSearchParams(window.location.search);
   const vodId = params.get("id");
+  const playlistId = params.get("playlist");
+  const playlistIndex = parseInt(params.get("idx") || "0");
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -50,6 +56,44 @@ export default function VODPlayer() {
       if (vod.chapters?.length > 0) setActiveTab("chapters");
     }
   }, [vod?.id]);
+
+  // Fetch playlist context for Play Next
+  const { data: playlist } = useQuery({
+    queryKey: ["playlist", playlistId],
+    queryFn: () => base44.entities.Playlist.filter({ id: playlistId }).then(r => r[0] || null),
+    enabled: !!playlistId
+  });
+
+  const nextVideoId = playlist?.video_ids?.[playlistIndex + 1] || null;
+
+  const { data: nextVod } = useQuery({
+    queryKey: ["vod", nextVideoId],
+    queryFn: () => base44.entities.StreamingContent.filter({ id: nextVideoId }).then(r => r[0] || null),
+    enabled: !!nextVideoId
+  });
+
+  const goToNextVideo = () => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setPlayNextCountdown(null);
+    navigate(createPageUrl("VODPlayer") + `?id=${nextVideoId}&playlist=${playlistId}&idx=${playlistIndex + 1}`);
+  };
+
+  const handleVideoEnded = () => {
+    if (!nextVideoId) return;
+    let count = 10;
+    setPlayNextCountdown(count);
+    countdownRef.current = setInterval(() => {
+      count--;
+      if (count <= 0) {
+        clearInterval(countdownRef.current);
+        goToNextVideo();
+      } else {
+        setPlayNextCountdown(count);
+      }
+    }, 1000);
+  };
+
+  useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
   // Fetch persistent comments
   const { data: comments = [] } = useQuery({
@@ -113,6 +157,16 @@ export default function VODPlayer() {
 
   return (
     <div className="min-h-screen bg-[#0e0e10] text-white">
+      <AnimatePresence>
+        {showPlaylistManager && currentUser && (
+          <PlaylistManager
+            vodId={vodId}
+            userEmail={currentUser.email}
+            onClose={() => setShowPlaylistManager(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Top bar */}
       <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-sm border-b border-white/10 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full transition">
@@ -137,6 +191,15 @@ export default function VODPlayer() {
             )}
           </div>
         </div>
+        {currentUser && (
+          <button
+            onClick={() => setShowPlaylistManager(true)}
+            className="p-2 hover:bg-white/10 rounded-full transition flex-shrink-0"
+            title="Save to Playlist"
+          >
+            <ListVideo className="w-5 h-5 text-gray-300" />
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col lg:flex-row">
@@ -145,20 +208,43 @@ export default function VODPlayer() {
           <div className="relative bg-black aspect-video w-full">
             {vod.video_url ? (
               <video
-                ref={videoRef}
-                src={vod.video_url}
-                controls
-                className="w-full h-full"
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
+              ref={videoRef}
+              src={vod.video_url}
+              controls
+              className="w-full h-full"
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={handleVideoEnded}
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <Play className="w-16 h-16 text-white/20 mx-auto mb-3" />
                   <p className="text-gray-400">Video not available</p>
+                </div>
+              </div>
+            )}
+            {/* Play Next overlay */}
+            {playNextCountdown !== null && nextVod && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                <div className="text-center p-6 max-w-sm">
+                  <SkipForward className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm mb-1">Up next</p>
+                  <p className="text-white font-bold text-lg mb-4 line-clamp-2">{nextVod.title}</p>
+                  <button
+                    onClick={goToNextVideo}
+                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition mb-2"
+                  >
+                    Play Now ({playNextCountdown}s)
+                  </button>
+                  <button
+                    onClick={() => { clearInterval(countdownRef.current); setPlayNextCountdown(null); }}
+                    className="text-gray-400 hover:text-white text-sm transition"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
@@ -187,6 +273,20 @@ export default function VODPlayer() {
 
         {/* Right Panel: Live Comments + Chat Replay */}
         <div className="w-full lg:w-[380px] lg:border-l border-white/10 flex flex-col" style={{ height: 'calc(100vh - 60px)' }}>
+          {/* Next in playlist banner */}
+          {nextVod && playNextCountdown === null && (
+            <div className="flex items-center gap-3 px-4 py-2 bg-purple-500/10 border-b border-purple-500/20 flex-shrink-0">
+              <SkipForward className="w-4 h-4 text-purple-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-400">Up next</p>
+                <p className="text-white text-xs font-medium truncate">{nextVod.title}</p>
+              </div>
+              <button onClick={goToNextVideo} className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex-shrink-0">
+                Play
+              </button>
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex border-b border-white/10 flex-shrink-0 overflow-x-auto">
             {vod?.chapters?.length > 0 && (
