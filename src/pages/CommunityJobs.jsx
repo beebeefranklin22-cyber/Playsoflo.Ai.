@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Briefcase, Plus, MapPin, DollarSign, Clock, Edit2, Trash2,
-  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle
+  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle, Image as ImageIcon, Loader2, X, Upload
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -27,6 +27,8 @@ export default function CommunityJobs() {
   const [comment, setComment] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const imageInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -41,7 +43,8 @@ export default function CommunityJobs() {
     contact_phone: "",
     application_url: "",
     requirements: "",
-    benefits: ""
+    benefits: "",
+    images: []
   });
 
   useEffect(() => {

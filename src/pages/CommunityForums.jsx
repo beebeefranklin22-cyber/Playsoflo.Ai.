@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageSquare, Plus, Pin, Eye, Edit2, Trash2, ChevronLeft,
-  Send, Lock, ThumbsUp, User, Clock, Users
+  Send, Lock, ThumbsUp, User, Clock, Users, Heart, Bell, BellOff, Upload, Image as ImageIcon, Loader2, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -29,10 +29,13 @@ export default function CommunityForums() {
   const [replyContent, setReplyContent] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [currentGroup, setCurrentGroup] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     category: "general",
+    images: [],
     video_url: ""
   });
 
@@ -117,7 +120,7 @@ export default function CommunityForums() {
       queryClient.invalidateQueries(['forum-threads']);
       queryClient.invalidateQueries(['forum-groups']);
       setShowCreateModal(false);
-      setFormData({ title: "", content: "", category: "general", video_url: "" });
+      setFormData({ title: "", content: "", category: "general", images: [], video_url: "" });
       toast.success('Thread created!');
     }
   });
@@ -188,17 +191,51 @@ export default function CommunityForums() {
       const reply = replies.find(r => r.id === replyId);
       const likes = reply.likes || [];
       const hasLiked = likes.includes(currentUser.email);
-      
       return await base44.entities.ForumReply.update(replyId, {
-        likes: hasLiked 
-          ? likes.filter(email => email !== currentUser.email)
-          : [...likes, currentUser.email]
+        likes: hasLiked ? likes.filter(e => e !== currentUser.email) : [...likes, currentUser.email]
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['forum-replies']);
-    }
+    onSuccess: () => queryClient.invalidateQueries(['forum-replies'])
   });
+
+  const likeThreadMutation = useMutation({
+    mutationFn: async (threadId) => {
+      const thread = threads.find(t => t.id === threadId);
+      const likes = thread.likes || [];
+      const hasLiked = likes.includes(currentUser.email);
+      return await base44.entities.ForumThread.update(threadId, {
+        likes: hasLiked ? likes.filter(e => e !== currentUser.email) : [...likes, currentUser.email]
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries(['forum-threads'])
+  });
+
+  const followThreadMutation = useMutation({
+    mutationFn: async (threadId) => {
+      const thread = threads.find(t => t.id === threadId);
+      const followers = thread.followers || [];
+      const isFollowing = followers.includes(currentUser.email);
+      return await base44.entities.ForumThread.update(threadId, {
+        followers: isFollowing ? followers.filter(e => e !== currentUser.email) : [...followers, currentUser.email]
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries(['forum-threads'])
+  });
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingImage(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        urls.push(file_url);
+      }
+      setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...urls] }));
+      toast.success('Images uploaded!');
+    } finally { setUploadingImage(false); }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -241,9 +278,36 @@ export default function CommunityForums() {
                 {selectedThread.is_pinned && <Pin className="w-5 h-5 text-yellow-400 ml-auto" />}
               </div>
               <p className="text-gray-300 whitespace-pre-wrap">{selectedThread.content}</p>
+              {selectedThread.images?.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-4">
+                  {selectedThread.images.map((img, i) => (
+                    <img key={i} src={img} alt="" className="w-32 h-32 object-cover rounded-lg cursor-pointer hover:opacity-80" onClick={() => window.open(img, '_blank')} />
+                  ))}
+                </div>
+              )}
               {selectedThread.video_url && (
                 <video src={selectedThread.video_url} controls className="w-full rounded-lg mt-4" />
               )}
+              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/10">
+                {currentUser && (
+                  <button
+                    onClick={() => likeThreadMutation.mutate(selectedThread.id)}
+                    className={`flex items-center gap-1.5 transition ${selectedThread.likes?.includes(currentUser.email) ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}`}
+                  >
+                    <Heart className={`w-5 h-5 ${selectedThread.likes?.includes(currentUser.email) ? 'fill-current' : ''}`} />
+                    {selectedThread.likes?.length || 0} Likes
+                  </button>
+                )}
+                {currentUser && (
+                  <button
+                    onClick={() => followThreadMutation.mutate(selectedThread.id)}
+                    className={`flex items-center gap-1.5 transition ${selectedThread.followers?.includes(currentUser.email) ? 'text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
+                  >
+                    {selectedThread.followers?.includes(currentUser.email) ? <BellOff className="w-5 h-5" /> : <Bell className="w-5 h-5" />}
+                    {selectedThread.followers?.includes(currentUser.email) ? 'Unfollow' : 'Follow Thread'}
+                  </button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
@@ -385,6 +449,7 @@ export default function CommunityForums() {
                                 title: thread.title,
                                 content: thread.content,
                                 category: thread.category,
+                                images: thread.images || [],
                                 video_url: thread.video_url || ""
                               });
                               setShowCreateModal(true);
@@ -402,7 +467,7 @@ export default function CommunityForums() {
 
                     <p className="text-gray-300 mb-4 line-clamp-2">{thread.content}</p>
 
-                    <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-3 text-sm flex-wrap">
                       <Badge className="bg-green-500/20 text-green-400">{thread.category}</Badge>
                       <div className="flex items-center gap-1 text-gray-400">
                         <MessageSquare className="w-4 h-4" />
@@ -412,6 +477,24 @@ export default function CommunityForums() {
                         <Eye className="w-4 h-4" />
                         {thread.views || 0}
                       </div>
+                      {currentUser && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); likeThreadMutation.mutate(thread.id); }}
+                          className={`flex items-center gap-1 transition ${thread.likes?.includes(currentUser.email) ? 'text-red-400' : 'text-gray-400 hover:text-red-400'}`}
+                        >
+                          <Heart className={`w-4 h-4 ${thread.likes?.includes(currentUser.email) ? 'fill-current' : ''}`} />
+                          {thread.likes?.length || 0}
+                        </button>
+                      )}
+                      {currentUser && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); followThreadMutation.mutate(thread.id); }}
+                          className={`flex items-center gap-1 transition ${thread.followers?.includes(currentUser.email) ? 'text-purple-400' : 'text-gray-400 hover:text-purple-400'}`}
+                          title={thread.followers?.includes(currentUser.email) ? 'Unfollow' : 'Follow thread'}
+                        >
+                          {thread.followers?.includes(currentUser.email) ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                        </button>
+                      )}
                       {thread.last_reply_at && (
                         <div className="flex items-center gap-1 text-gray-400 ml-auto">
                           <Clock className="w-4 h-4" />
@@ -458,6 +541,25 @@ export default function CommunityForums() {
             </Select>
             <Textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="Content *" required rows={6} className="bg-white/10 border-white/20" />
             <Input value={formData.video_url} onChange={(e) => setFormData({ ...formData, video_url: e.target.value })} placeholder="Video URL (optional)" className="bg-white/10 border-white/20" />
+            <div>
+              <label className="text-sm text-gray-400 mb-2 block">Upload Photos / Evidence</label>
+              <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+              <Button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImage} className="w-full bg-blue-700 hover:bg-blue-800">
+                {uploadingImage ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><ImageIcon className="w-4 h-4 mr-2" />Upload Images</>}
+              </Button>
+              {formData.images?.length > 0 && (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {formData.images.map((img, i) => (
+                    <div key={i} className="relative">
+                      <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex gap-3">
               <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)} className="flex-1">Cancel</Button>
               <Button type="submit" className="flex-1 bg-green-600">{editingThread ? 'Update' : 'Post'}</Button>

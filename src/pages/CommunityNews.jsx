@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Newspaper, Plus, Heart, MessageCircle, Eye, Edit2, Trash2,
-  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2, Radio, Search, TrendingUp
+  ChevronLeft, Image as ImageIcon, Video, ExternalLink, Send, Upload, Loader2, Radio, Search, TrendingUp, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -34,12 +34,19 @@ export default function CommunityNews() {
   const [liveChannelName, setLiveChannelName] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [subcategoryFilter, setSubcategoryFilter] = useState("all");
   const videoInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const docInputRef = useRef(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     content: "",
     category: "other",
     featured_image: "",
+    images: [],
+    documents: [],
     video_url: "",
     source_url: ""
   });
@@ -74,9 +81,10 @@ export default function CommunityNews() {
   });
 
   const filteredPosts = posts.filter(post => {
+    if (subcategoryFilter !== 'all' && post.category !== subcategoryFilter) return false;
     if (!searchQuery) return true;
-    return post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           post.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
            post.author_name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -105,7 +113,7 @@ export default function CommunityNews() {
     onSuccess: () => {
       queryClient.invalidateQueries(['news-posts']);
       setShowCreateModal(false);
-      setFormData({ title: "", content: "", category: "other", featured_image: "", video_url: "", source_url: "" });
+      setFormData({ title: "", content: "", category: "other", featured_image: "", images: [], documents: [], video_url: "", source_url: "" });
       toast.success('News post created!');
     }
   });
@@ -183,23 +191,43 @@ export default function CommunityNews() {
   const handleVideoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith('video/')) {
-      alert('Please select a video file');
-      return;
-    }
-
+    if (!file.type.startsWith('video/')) { alert('Please select a video file'); return; }
     setUploadingVideo(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({ ...formData, video_url: file_url });
+      setFormData(prev => ({ ...prev, video_url: file_url }));
       toast.success('Video uploaded!');
-    } catch (error) {
-      console.error('Video upload error:', error);
-      alert('Failed to upload video');
-    } finally {
-      setUploadingVideo(false);
-    }
+    } finally { setUploadingVideo(false); }
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingImage(true);
+    try {
+      const urls = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        urls.push(file_url);
+      }
+      setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...urls] }));
+      toast.success('Images uploaded!');
+    } finally { setUploadingImage(false); }
+  };
+
+  const handleDocUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setUploadingDocs(true);
+    try {
+      const docs = [];
+      for (const file of files) {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        docs.push({ name: file.name, url: file_url });
+      }
+      setFormData(prev => ({ ...prev, documents: [...(prev.documents || []), ...docs] }));
+      toast.success('Documents uploaded!');
+    } finally { setUploadingDocs(false); }
   };
 
   const handleSubmit = (e) => {
@@ -265,27 +293,41 @@ export default function CommunityNews() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Search and Filters */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex-1 min-w-[200px] relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search news by title, content, or author..."
+              placeholder="Search news..."
               className="w-full pl-11 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
             />
           </div>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40 bg-white/10 border-white/20">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-36 bg-white/10 border-white/20"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="recent">Recent</SelectItem>
               <SelectItem value="popular">Most Viewed</SelectItem>
               <SelectItem value="trending">Trending</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        {/* Subcategory chips */}
+        <div className="flex gap-2 flex-wrap mb-6">
+          {["all","breaking","local","international","finance","sports","politics","entertainment","technology","lifestyle"].map(sub => (
+            <button
+              key={sub}
+              onClick={() => setSubcategoryFilter(sub)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium capitalize transition ${
+                subcategoryFilter === sub
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              {sub === "all" ? "All News" : sub}
+            </button>
+          ))}
         </div>
 
         <div className="grid gap-6">
@@ -349,6 +391,8 @@ export default function CommunityNews() {
                                 content: post.content,
                                 category: post.category,
                                 featured_image: post.featured_image || "",
+                                images: post.images || [],
+                                documents: post.documents || [],
                                 video_url: post.video_url || "",
                                 source_url: post.source_url || ""
                               });
@@ -371,9 +415,28 @@ export default function CommunityNews() {
                     <h2 className="text-2xl font-bold text-white mb-3">{post.title}</h2>
                     <p className="text-gray-300 mb-4 whitespace-pre-wrap">{post.content.substring(0, 300)}...</p>
 
+                    {post.images?.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mb-4">
+                        {post.images.map((img, i) => (
+                          <img key={i} src={img} alt="" className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80" onClick={() => window.open(img, '_blank')} />
+                        ))}
+                      </div>
+                    )}
+
                     {post.video_url && (
                       <div className="mb-4">
                         <video src={post.video_url} controls className="w-full rounded-lg" />
+                      </div>
+                    )}
+
+                    {post.documents?.length > 0 && (
+                      <div className="mb-4 space-y-1">
+                        <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">Documents & Evidence</p>
+                        {post.documents.map((doc, i) => (
+                          <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm">
+                            <Upload className="w-4 h-4" />{doc.name}
+                          </a>
+                        ))}
                       </div>
                     )}
 
@@ -467,13 +530,15 @@ export default function CommunityNews() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="local">Local</SelectItem>
-                  <SelectItem value="entertainment">Entertainment</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="technology">Technology</SelectItem>
+                  <SelectItem value="breaking">Breaking News</SelectItem>
+                  <SelectItem value="local">Local News</SelectItem>
+                  <SelectItem value="international">International News</SelectItem>
+                  <SelectItem value="finance">Finance News</SelectItem>
                   <SelectItem value="sports">Sports</SelectItem>
-                  <SelectItem value="lifestyle">Lifestyle</SelectItem>
                   <SelectItem value="politics">Politics</SelectItem>
+                  <SelectItem value="entertainment">Entertainment</SelectItem>
+                  <SelectItem value="technology">Technology</SelectItem>
+                  <SelectItem value="lifestyle">Lifestyle</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -496,6 +561,44 @@ export default function CommunityNews() {
                 placeholder="https://..."
                 className="bg-white/10 border-white/20"
               />
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-2 block">Upload Photos / Evidence</label>
+              <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+              <Button type="button" onClick={() => imageInputRef.current?.click()} disabled={uploadingImage} className="w-full bg-blue-700 hover:bg-blue-800">
+                {uploadingImage ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><ImageIcon className="w-4 h-4 mr-2" />Upload Photos</>}
+              </Button>
+              {formData.images?.length > 0 && (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {formData.images.map((img, i) => (
+                    <div key={i} className="relative">
+                      <img src={img} alt="" className="w-16 h-16 object-cover rounded" />
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, images: prev.images.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5">
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-2 block">Supporting Documents / Evidence</label>
+              <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" multiple onChange={handleDocUpload} className="hidden" />
+              <Button type="button" onClick={() => docInputRef.current?.click()} disabled={uploadingDocs} className="w-full bg-gray-700 hover:bg-gray-600">
+                {uploadingDocs ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</> : <><Upload className="w-4 h-4 mr-2" />Upload Documents</>}
+              </Button>
+              {formData.documents?.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {formData.documents.map((doc, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/5 rounded px-3 py-1.5">
+                      <span className="text-sm text-gray-300 truncate">{doc.name}</span>
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, documents: prev.documents.filter((_, j) => j !== i) }))}>
+                        <X className="w-4 h-4 text-red-400" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm text-gray-400 mb-2 block">Video</label>
