@@ -131,6 +131,9 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setService(prev => ({ ...prev, image_url: file_url }));
+      toast.success("Image uploaded!");
+    } catch (e) {
+      toast.error("Image upload failed: " + (e.message || "Network error"));
     } finally {
       setUploadingImage(false);
     }
@@ -138,8 +141,12 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
 
   const handleUploadPortfolio = async (file) => {
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setService(prev => ({ ...prev, portfolio_images: [...prev.portfolio_images, file_url] }));
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setService(prev => ({ ...prev, portfolio_images: [...prev.portfolio_images, file_url] }));
+    } catch (e) {
+      toast.error("Portfolio upload failed: " + (e.message || "Network error"));
+    }
   };
 
   const generateDescription = async () => {
@@ -488,7 +495,8 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
             <Button
               onClick={() => {
                 if (step === 0 && !profile.provider_business_name) { toast.error("Enter your business name"); return; }
-                if (step === 1 && (!service.title || !service.description)) { toast.error("Please fill in title and description"); return; }
+                if (step === 1 && !service.title) { toast.error("Please enter a service title"); return; }
+                if (step === 1 && !service.description) { toast.error("Please enter a service description"); return; }
                 setStep(s => s + 1);
               }}
               className="flex-1 bg-green-600 hover:bg-green-700"
