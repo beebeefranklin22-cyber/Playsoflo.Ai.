@@ -92,18 +92,32 @@ Deno.serve(async (req) => {
     // Insurance (1% of declared value, min $1)
     const insuranceFee = package_value > 0 ? Math.max(1, package_value * 0.01) : 0;
 
+    // Surge pricing based on time of day (UTC hours)
+    const hour = new Date().getUTCHours();
+    let surgeMultiplier = 1.0;
+    if (hour >= 7 && hour <= 9) surgeMultiplier = 1.25;   // Morning rush
+    else if (hour >= 11 && hour <= 13) surgeMultiplier = 1.15; // Lunch rush
+    else if (hour >= 17 && hour <= 19) surgeMultiplier = 1.30; // Evening rush
+    else if (hour >= 22 || hour <= 5) surgeMultiplier = 1.20;  // Late night
+
+    const surgeFee = surgeMultiplier > 1.0
+      ? parseFloat(((basePrice * surgeMultiplier) - basePrice).toFixed(2))
+      : 0;
+
     // Calculate totals
-    const subtotal = basePrice + packageSurcharge + weightSurcharge + 
-                     deliveryTypeSurcharge + urgencySurcharge + insuranceFee;
-    
+    const subtotal = basePrice + packageSurcharge + weightSurcharge +
+                     deliveryTypeSurcharge + urgencySurcharge + insuranceFee + surgeFee;
+
     const platformFee = subtotal * 0.15; // 15% platform fee
     const totalPrice = subtotal + platformFee;
-    
-    // Driver gets 85% of base delivery fee
-    const driverEarnings = basePrice * 0.85;
 
-    // Estimated time (40 mph average + 5 min pickup + 5 min dropoff)
-    const estimatedMinutes = Math.ceil((distance / 40) * 60) + 10;
+    // Driver gets 85% of the subtotal (excluding insurance & platform fee)
+    const driverBase = basePrice + packageSurcharge + weightSurcharge +
+                       deliveryTypeSurcharge + urgencySurcharge + surgeFee;
+    const driverEarnings = parseFloat((driverBase * 0.85).toFixed(2));
+
+    // Estimated time (35 mph average + 5 min pickup + 5 min dropoff)
+    const estimatedMinutes = Math.ceil((distance / 35) * 60) + 10;
 
     // Compare with Uber pricing (simulated - Uber is typically 30-50% more expensive)
     const uberEstimate = totalPrice * 1.4;
@@ -121,9 +135,11 @@ Deno.serve(async (req) => {
         delivery_type_surcharge: parseFloat(deliveryTypeSurcharge.toFixed(2)),
         urgency_surcharge: parseFloat(urgencySurcharge.toFixed(2)),
         insurance_fee: parseFloat(insuranceFee.toFixed(2)),
+        surge_fee: surgeFee,
+        surge_multiplier: surgeMultiplier,
         platform_fee: parseFloat(platformFee.toFixed(2)),
         total_price: parseFloat(totalPrice.toFixed(2)),
-        driver_earnings: parseFloat(driverEarnings.toFixed(2)),
+        driver_earnings: driverEarnings,
         uber_comparison: {
           uber_estimate: parseFloat(uberEstimate.toFixed(2)),
           your_savings: parseFloat(savings.toFixed(2)),

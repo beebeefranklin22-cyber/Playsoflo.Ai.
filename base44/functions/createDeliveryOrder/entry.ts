@@ -76,6 +76,8 @@ Deno.serve(async (req) => {
       urgency_surcharge: pricing.urgency_surcharge || 0,
       weight_surcharge: pricing.weight_surcharge || 0,
       insurance_fee: pricing.insurance_fee || 0,
+      surge_fee: pricing.surge_fee || 0,
+      surge_multiplier: pricing.surge_multiplier || 1.0,
       platform_fee: pricing.platform_fee,
       total_price: totalPrice,
       driver_earnings: pricing.driver_earnings,

@@ -363,6 +363,12 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
                       <span>${pricing.insurance_fee}</span>
                     </div>
                   )}
+                  {pricing.surge_fee > 0 && (
+                    <div className="flex justify-between text-yellow-400">
+                      <span>⚡ Surge Pricing ({pricing.surge_multiplier}x)</span>
+                      <span>+${pricing.surge_fee}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-gray-300">
                     <span>Platform Fee (15%)</span>
                     <span>${pricing.platform_fee}</span>
@@ -375,10 +381,13 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30 space-y-1">
                   <p className="text-blue-300 text-sm">
                     <MapPin className="w-4 h-4 inline mr-1" />
                     Estimated delivery: {pricing.estimated_duration_minutes} minutes
+                  </p>
+                  <p className="text-green-300 text-sm">
+                    🚗 Driver earns: <strong>${pricing.driver_earnings}</strong> for this delivery
                   </p>
                 </div>
               </div>
