@@ -26,7 +26,7 @@ const emptyForm = {
   variants: [], store_type: "general"
 };
 
-export default function ProductFormModal({ product, currentUser, onClose, onSaved }) {
+export default function ProductFormModal({ product, preFillSku, currentUser, onClose, onSaved }) {
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,8 +46,10 @@ export default function ProductFormModal({ product, currentUser, onClose, onSave
         reorder_quantity: product.reorder_quantity?.toString() || "20",
         variants: product.variants || [],
       });
+    } else if (preFillSku) {
+      setForm({ ...emptyForm, sku: preFillSku });
     }
-  }, [product]);
+  }, [product, preFillSku]);
 
   const handleImage = async (e) => {
     const file = e.target.files?.[0];

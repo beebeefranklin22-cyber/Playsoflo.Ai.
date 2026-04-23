@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit2, Trash2, Package, AlertTriangle,
-  CheckCircle, Filter, ChevronDown, RefreshCw, Tag
+  CheckCircle, Filter, ChevronDown, RefreshCw, Tag, ScanLine
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductFormModal from "./ProductFormModal";
 import InventoryStatsBar from "./InventoryStatsBar";
+import BarcodeScanner from "./BarcodeScanner";
 
 const STATUS_BADGE = {
   active: "bg-green-500/20 text-green-400 border-green-500/30",
@@ -29,6 +30,8 @@ export default function InventoryProductList({ currentUser }) {
   const [editProduct, setEditProduct] = useState(null);
   const [quickStockId, setQuickStockId] = useState(null);
   const [quickStockVal, setQuickStockVal] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [preFillSku, setPreFillSku] = useState(null);
 
   const { data: products = [], isLoading, refetch } = useQuery({
     queryKey: ["inventory-products", currentUser?.email],
@@ -48,6 +51,24 @@ export default function InventoryProductList({ currentUser }) {
     if (search) return p.name?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()) || (p.tags || []).some(t => t.toLowerCase().includes(search.toLowerCase()));
     return true;
   }).filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()));
+
+  const handleScan = (decodedText) => {
+    setShowScanner(false);
+    // Try to match by SKU first
+    const found = products.find(p =>
+      p.sku && p.sku.toLowerCase() === decodedText.toLowerCase()
+    );
+    if (found) {
+      toast.success(`Found: ${found.name}`);
+      setEditProduct(found);
+      setShowForm(true);
+    } else {
+      toast.info(`No product found for "${decodedText}". Opening new product form with SKU pre-filled.`);
+      setPreFillSku(decodedText);
+      setEditProduct(null);
+      setShowForm(true);
+    }
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this product?")) return;
@@ -120,7 +141,13 @@ export default function InventoryProductList({ currentUser }) {
           </select>
         )}
 
-        <Button onClick={() => { setEditProduct(null); setShowForm(true); }}
+        <Button onClick={() => setShowScanner(true)}
+          variant="outline"
+          className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10 whitespace-nowrap">
+          <ScanLine className="w-4 h-4 mr-2" /> Scan
+        </Button>
+
+        <Button onClick={() => { setEditProduct(null); setPreFillSku(null); setShowForm(true); }}
           className="bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold whitespace-nowrap">
           <Plus className="w-4 h-4 mr-2" /> Add Product
         </Button>
@@ -250,14 +277,23 @@ export default function InventoryProductList({ currentUser }) {
         </div>
       )}
 
+      {/* Barcode Scanner */}
+      {showScanner && (
+        <BarcodeScanner
+          onScan={handleScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
       {/* Form Modal */}
       <AnimatePresence>
         {showForm && (
           <ProductFormModal
             product={editProduct}
+            preFillSku={preFillSku}
             currentUser={currentUser}
-            onClose={() => { setShowForm(false); setEditProduct(null); }}
-            onSaved={() => { setShowForm(false); setEditProduct(null); queryClient.invalidateQueries(["inventory-products"]); }}
+            onClose={() => { setShowForm(false); setEditProduct(null); setPreFillSku(null); }}
+            onSaved={() => { setShowForm(false); setEditProduct(null); setPreFillSku(null); queryClient.invalidateQueries(["inventory-products"]); }}
           />
         )}
       </AnimatePresence>
