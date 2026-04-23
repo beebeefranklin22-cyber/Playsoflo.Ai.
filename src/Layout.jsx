@@ -221,6 +221,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Package, label: "Food Orders", path: "FoodOrderTracking" },
     { icon: TrendingUp, label: "Food Menu", path: "FoodDelivery" },
     { icon: MapPin, label: "Live Tracking", path: "LiveTracking" },
+    { icon: Package, label: "Inventory", path: "InventoryManager" },
     { icon: MessageCircle, label: "Messages", path: "Messages" },
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },

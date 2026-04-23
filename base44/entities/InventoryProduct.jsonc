@@ -1,0 +1,158 @@
+{
+  "name": "InventoryProduct",
+  "type": "object",
+  "properties": {
+    "owner_email": {
+      "type": "string"
+    },
+    "store_type": {
+      "type": "string",
+      "enum": [
+        "restaurant",
+        "retail",
+        "clothing",
+        "grocery",
+        "convenience",
+        "electronics",
+        "beauty",
+        "general"
+      ],
+      "default": "general"
+    },
+    "name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "subcategory": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "base_price": {
+      "type": "number"
+    },
+    "cost_price": {
+      "type": "number"
+    },
+    "sale_price": {
+      "type": "number"
+    },
+    "is_on_sale": {
+      "type": "boolean",
+      "default": false
+    },
+    "variants": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "price_modifier": {
+            "type": "number",
+            "default": 0
+          },
+          "stock": {
+            "type": "number",
+            "default": 0
+          },
+          "low_stock_threshold": {
+            "type": "number",
+            "default": 5
+          }
+        }
+      }
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0
+    },
+    "low_stock_threshold": {
+      "type": "number",
+      "default": 5
+    },
+    "reorder_quantity": {
+      "type": "number",
+      "default": 20
+    },
+    "supplier_name": {
+      "type": "string"
+    },
+    "supplier_contact": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "track_inventory": {
+      "type": "boolean",
+      "default": true
+    },
+    "allow_backorder": {
+      "type": "boolean",
+      "default": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "notes": {
+      "type": "string"
+    },
+    "total_sold": {
+      "type": "number",
+      "default": 0
+    },
+    "last_restocked_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "owner_email",
+    "name",
+    "base_price"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "owner_email": "{{user.email}}"
+    },
+    "update": {
+      "owner_email": "{{user.email}}"
+    },
+    "delete": {
+      "owner_email": "{{user.email}}"
+    }
+  }
+}
