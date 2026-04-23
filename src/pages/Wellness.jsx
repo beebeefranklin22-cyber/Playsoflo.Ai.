@@ -6,10 +6,11 @@ import { createPageUrl } from "@/utils";
 import {
   Star, Clock, Activity, Heart, Shield,
   Users, Home, Package, MessageSquare,
-  CheckCircle, ShieldCheck
+  CheckCircle, ShieldCheck, Plus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageWrapper from "@/components/PageWrapper";
+import WellnessProviderOnboardingModal from "@/components/wellness/WellnessProviderOnboardingModal";
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },
@@ -41,6 +42,7 @@ export default function Wellness() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['wellness-services'],
@@ -113,6 +115,23 @@ export default function Wellness() {
               className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:border-green-500 transition backdrop-blur-xl"
             />
           </div>
+        </div>
+      </div>
+
+      {/* List Your Service CTA */}
+      <div className="px-6 mb-4">
+        <div className="bg-gradient-to-r from-green-600/20 to-teal-600/20 border border-green-500/30 rounded-2xl p-5 flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-white font-bold text-lg mb-1">Are you a Health & Wellness Provider?</h3>
+            <p className="text-gray-300 text-sm">List your services, set your prices, and start receiving bookings today.</p>
+          </div>
+          <button
+            onClick={() => setShowOnboarding(true)}
+            className="flex-shrink-0 flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-full text-white font-semibold transition"
+          >
+            <Plus className="w-5 h-5" />
+            List My Service
+          </button>
         </div>
       </div>
 
@@ -306,11 +325,25 @@ export default function Wellness() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">No services found</h3>
             <p className="text-gray-400 mb-6">
-              {searchQuery ? `No results for "${searchQuery}"` : "Try selecting a different category"}
+              {searchQuery ? `No results for "${searchQuery}"` : "Be the first to list a wellness service!"}
             </p>
+            {!searchQuery && (
+              <button
+                onClick={() => setShowOnboarding(true)}
+                className="px-8 py-3 bg-green-600 hover:bg-green-700 rounded-full text-white font-semibold transition"
+              >
+                List My Service
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {showOnboarding && (
+          <WellnessProviderOnboardingModal onClose={() => setShowOnboarding(false)} />
+        )}
+      </AnimatePresence>
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {

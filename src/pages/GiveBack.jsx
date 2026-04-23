@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageWrapper from "@/components/PageWrapper";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Heart, Target, TrendingUp, Users, Building, Briefcase, Home as HomeIcon, Utensils, Activity, BookOpen, AlertCircle, Leaf } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Heart, Target, TrendingUp, Users, Building, Briefcase, Home as HomeIcon, Utensils, Activity, BookOpen, AlertCircle, Leaf, Plus, Pencil } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import CreateCauseModal from "@/components/giveback/CreateCauseModal";
+import CauseDetailModal from "@/components/giveback/CauseDetailModal";
 
 const causeCategories = [
   { id: "all", label: "All Causes", icon: Heart },
@@ -47,65 +48,25 @@ const causeCategories = [
 export default function GiveBack() {
   const qc = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [donationAmount, setDonationAmount] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedCause, setSelectedCause] = useState(null);
+  const [editingCause, setEditingCause] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const { data: causes = [], error } = useQuery({
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
+
+  const { data: causes = [] } = useQuery({
     queryKey: ["donations"],
-    queryFn: async () => {
-      try {
-        return await base44.entities.Donation.list();
-      } catch (err) {
-        console.error("Error loading causes:", err); // Changed to console.error for better visibility
-        return [];
-      }
-    },
+    queryFn: () => base44.entities.Donation.list().catch(() => []),
     initialData: [],
     retry: 1
-  });
-
-  const donateMutation = useMutation({
-    mutationFn: async ({ causeId, amount }) => {
-      const cause = causes.find(c => c.id === causeId);
-      if (!cause) return;
-      
-      // Update the raised amount
-      await base44.entities.Donation.update(causeId, {
-        raised_usd: (cause.raised_usd || 0) + amount
-      });
-
-      // Create a payment record
-      await base44.entities.Payment.create({
-        amount_usd: amount,
-        method: "rri",
-        status: "completed",
-        reference_type: "other",
-        reference_id: String(causeId),
-        memo: `Donation to ${cause.title}`
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["donations"] });
-      setDonationAmount("");
-      setSelectedCause(null);
-      alert("Thank you for your donation! 🙏");
-    },
-    onError: (error) => {
-      console.error("Error processing donation:", error);
-      alert("Could not process donation. Please try again.");
-    }
   });
 
   const filteredCauses = selectedCategory === "all"
     ? causes
     : causes.filter(c => c.cause_type === selectedCategory);
-
-  const handleDonate = () => {
-    const amount = parseFloat(donationAmount);
-    if (!amount || amount <= 0 || !selectedCause) return;
-    
-    donateMutation.mutate({ causeId: selectedCause.id, amount });
-  };
 
   return (
     <PageWrapper>
@@ -116,9 +77,16 @@ export default function GiveBack() {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
             Give Back
           </h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-300 text-lg mb-4">
             Support causes that matter. Every contribution makes a difference.
           </p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-full text-white font-semibold transition"
+          >
+            <Plus className="w-5 h-5" />
+            Create a Cause
+          </button>
         </div>
       </div>
 
@@ -242,7 +210,7 @@ export default function GiveBack() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition cursor-pointer h-full">
+                  <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition cursor-pointer h-full" onClick={() => setSelectedCause(cause)}>
                     <CardContent className="p-6">
                       {cause.image_url && (
                         <img
@@ -254,7 +222,7 @@ export default function GiveBack() {
                       
                       <div className="mb-3 flex flex-wrap items-center gap-2">
                         <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-xs font-semibold capitalize">
-                          {cause.cause_type.replace(/_/g, " ")}
+                          {cause.cause_type?.replace(/_/g, " ")}
                         </span>
                         {cause.community_owned && (
                           <span className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-semibold flex items-center gap-1">
@@ -269,9 +237,19 @@ export default function GiveBack() {
                         )}
                       </div>
 
-                      <h3 className="text-xl font-bold text-white mb-2">
-                        {cause.title}
-                      </h3>
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-xl font-bold text-white flex-1">
+                          {cause.title}
+                        </h3>
+                        {currentUser && (currentUser.email === cause.creator_email || currentUser.role === "admin") && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingCause(cause); }}
+                            className="ml-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition flex-shrink-0"
+                          >
+                            <Pencil className="w-4 h-4 text-gray-300" />
+                          </button>
+                        )}
+                      </div>
 
                       <p className="text-gray-300 text-sm mb-4 line-clamp-3">
                         {cause.description}
@@ -307,10 +285,7 @@ export default function GiveBack() {
                         </div>
                       )}
 
-                      <Button
-                        onClick={() => setSelectedCause(cause)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700"
-                      >
+                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={e => { e.stopPropagation(); setSelectedCause(cause); }}>
                         <Heart className="w-4 h-4 mr-2" />
                         Support This Cause
                       </Button>
@@ -328,94 +303,32 @@ export default function GiveBack() {
               <Heart className="w-10 h-10 text-emerald-400" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">No causes found</h3>
-            <p className="text-gray-400">Try selecting a different category</p>
+            <p className="text-gray-400 mb-6">
+              {selectedCategory === "all" ? "Be the first to create a cause!" : "No causes in this category yet."}
+            </p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 rounded-full text-white font-semibold transition"
+            >
+              Create a Cause
+            </button>
           </div>
         )}
       </div>
 
-      {/* Donation Modal */}
       <AnimatePresence>
+        {showCreateModal && (
+          <CreateCauseModal onClose={() => setShowCreateModal(false)} />
+        )}
+        {editingCause && (
+          <CreateCauseModal editCause={editingCause} onClose={() => setEditingCause(null)} />
+        )}
         {selectedCause && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-            onClick={() => setSelectedCause(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md"
-            >
-              <Card className="bg-gray-900 border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Heart className="w-6 h-6 text-emerald-400" />
-                    Donate to {selectedCause.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-gray-300 text-sm">
-                    {selectedCause.description}
-                  </p>
-
-                  {selectedCause.goal_usd && (
-                    <div className="p-4 bg-white/5 rounded-xl">
-                      <div className="text-gray-400 text-sm mb-1">Progress</div>
-                      <div className="text-white text-lg font-semibold">
-                        ${selectedCause.raised_usd?.toLocaleString() || 0} of ${selectedCause.goal_usd.toLocaleString()}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-gray-400 text-sm block mb-2">
-                      Donation Amount (USD)
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      value={donationAmount}
-                      onChange={(e) => setDonationAmount(e.target.value)}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2">
-                    {[10, 25, 50, 100].map((amount) => (
-                      <button
-                        key={amount}
-                        onClick={() => setDonationAmount(String(amount))}
-                        className="px-4 py-2 bg-white/10 hover:bg-emerald-500/20 border border-white/20 hover:border-emerald-500 rounded-lg text-white font-semibold transition"
-                      >
-                        ${amount}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedCause(null)}
-                      className="flex-1"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleDonate}
-                      disabled={!donationAmount || parseFloat(donationAmount) <= 0 || donateMutation.isLoading}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                    >
-                      {donateMutation.isLoading ? "Processing..." : `Donate $${donationAmount || "0"}`}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
+          <CauseDetailModal
+            cause={selectedCause}
+            onClose={() => setSelectedCause(null)}
+            onEdit={() => { setEditingCause(selectedCause); setSelectedCause(null); }}
+          />
         )}
       </AnimatePresence>
 
