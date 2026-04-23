@@ -493,9 +493,13 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
           )}
           {step < steps.length - 1 ? (
             <Button
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (step === 0 && !profile.provider_business_name) { toast.error("Enter your business name"); return; }
                 if (step === 1 && !service.title) { toast.error("Please enter a service title"); return; }
+                setUploadingImage(false);
                 setStep(s => s + 1);
               }}
               className="flex-1 bg-green-600 hover:bg-green-700"
