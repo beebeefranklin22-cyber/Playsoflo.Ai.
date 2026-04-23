@@ -488,7 +488,7 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
             <Button
               onClick={() => {
                 if (step === 0 && !profile.provider_business_name) { toast.error("Enter your business name"); return; }
-                if (step === 1 && (!service.title || !service.description || !service.image_url)) { toast.error("Please fill in title, description, and cover image"); return; }
+                if (step === 1 && (!service.title || !service.description)) { toast.error("Please fill in title and description"); return; }
                 setStep(s => s + 1);
               }}
               className="flex-1 bg-green-600 hover:bg-green-700"
@@ -498,10 +498,10 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
           ) : (
             <Button
               onClick={() => publishMutation.mutate()}
-              disabled={publishMutation.isLoading}
+              disabled={publishMutation.isPending}
               className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
             >
-              {publishMutation.isLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Publishing...</> : "🚀 Go Live in Marketplace"}
+              {publishMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Publishing...</> : "🚀 Go Live in Marketplace"}
             </Button>
           )}
         </div>

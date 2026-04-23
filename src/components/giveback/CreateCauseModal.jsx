@@ -228,10 +228,10 @@ export default function CreateCauseModal({ onClose, editCause = null }) {
           <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
           <Button
             onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isLoading || !form.title || !form.description}
+            disabled={saveMutation.isPending || !form.title || !form.description}
             className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
           >
-            {saveMutation.isLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : <><Heart className="w-4 h-4 mr-2" />{editCause ? "Save Changes" : "Launch Cause"}</>}
+            {saveMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : <><Heart className="w-4 h-4 mr-2" />{editCause ? "Save Changes" : "Launch Cause"}</>}
           </Button>
         </div>
       </motion.div>
