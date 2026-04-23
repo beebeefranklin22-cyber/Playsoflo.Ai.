@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin } from "lucide-react";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -220,6 +220,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
     { icon: Package, label: "Food Orders", path: "FoodOrderTracking" },
     { icon: TrendingUp, label: "Food Menu", path: "FoodDelivery" },
+    { icon: MapPin, label: "Live Tracking", path: "LiveTracking" },
     { icon: MessageCircle, label: "Messages", path: "Messages" },
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },

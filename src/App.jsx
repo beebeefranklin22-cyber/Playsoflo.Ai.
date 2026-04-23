@@ -1,5 +1,6 @@
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
+import LiveTracking from './pages/LiveTracking'
 import CreatorChannel from './pages/CreatorChannel'
 import CreatorDashboard from './pages/CreatorDashboard'
 import TravelCategoryHub from './pages/TravelCategoryHub'
@@ -78,6 +79,7 @@ const AuthenticatedApp = () => {
       <Route path="/AmazonOrders" element={<LayoutWrapper currentPageName="AmazonOrders"><AmazonOrders /></LayoutWrapper>} />
       <Route path="/SavedJobs" element={<LayoutWrapper currentPageName="SavedJobs"><SavedJobs /></LayoutWrapper>} />
       <Route path="/ApplicationTracker" element={<LayoutWrapper currentPageName="ApplicationTracker"><ApplicationTracker /></LayoutWrapper>} />
+      <Route path="/LiveTracking" element={<LayoutWrapper currentPageName="LiveTracking"><LiveTracking /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
