@@ -1,109 +1,49 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+/**
+ * processBookingPayment
+ * Handles upfront payment collection for experience, service, car_rental, and property bookings.
+ * Delegates settlement to the universal settlePayment engine.
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
+
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { bookingId, bookingType } = await req.json();
-
     if (!bookingId || !bookingType) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch the booking
-    let booking;
-    if (bookingType === 'service') {
-      booking = await base44.entities.ServiceBooking.filter({ id: bookingId });
-    } else if (bookingType === 'experience') {
-      booking = await base44.entities.Booking.filter({ id: bookingId });
-    } else if (bookingType === 'car_rental') {
-      booking = await base44.entities.CarRental.filter({ id: bookingId });
-    } else if (bookingType === 'property') {
-      booking = await base44.entities.Booking.filter({ id: bookingId });
-    }
+    // Map bookingType to vertical for settlement engine
+    const verticalMap = {
+      service: 'service_booking',
+      experience: 'experience',
+      car_rental: 'car_rental',
+      property: 'property'
+    };
+    const vertical = verticalMap[bookingType] || bookingType;
 
-    if (!booking || booking.length === 0) {
-      return Response.json({ error: 'Booking not found' }, { status: 404 });
-    }
-
-    const bookingData = booking[0];
-    const totalAmount = bookingData.total_price_usd || bookingData.total_amount || 0;
-    const providerEmail = bookingData.provider_email || bookingData.created_by;
-
-    if (!providerEmail || totalAmount <= 0) {
-      return Response.json({ error: 'Invalid booking data' }, { status: 400 });
-    }
-
-    // Calculate platform commission (typically 19%)
-    const platformRate = bookingData.platform_commission_rate || 0.19;
-    const platformFee = totalAmount * platformRate;
-    const providerEarnings = totalAmount - platformFee;
-
-    // Get provider user
-    const providers = await base44.asServiceRole.entities.User.filter({ 
-      email: providerEmail 
-    });
-
-    if (providers.length === 0) {
-      return Response.json({ error: 'Provider not found' }, { status: 404 });
-    }
-
-    const provider = providers[0];
-    const currentBalance = provider.usd_balance || 0;
-    const newBalance = currentBalance + providerEarnings;
-
-    // Update provider balance instantly
-    await base44.asServiceRole.entities.User.update(provider.id, {
-      usd_balance: newBalance,
-      total_service_earnings: (provider.total_service_earnings || 0) + providerEarnings
-    });
-
-    // Create payment records
-    await base44.asServiceRole.entities.Payment.create({
-      amount_usd: providerEarnings,
-      amount_rri: 0,
-      method: 'internal_transfer',
-      status: 'completed',
-      reference_type: bookingType,
+    // Settle provider earnings via universal settlement engine
+    const result = await base44.functions.invoke('settlePayment', {
+      vertical,
       reference_id: bookingId,
-      sender_email: user.email,
-      recipient_email: providerEmail,
-      memo: `Booking payment - Platform fee: $${platformFee.toFixed(2)} (${(platformRate * 100).toFixed(0)}%)`
+      provider_email: undefined // will be resolved from the record inside settlePayment
     });
 
-    // Record platform fee earnings
-    await base44.asServiceRole.entities.Payment.create({
-      amount_usd: platformFee,
-      amount_rri: 0,
-      method: 'internal_transfer',
-      status: 'completed',
-      reference_type: 'platform_fee',
-      reference_id: bookingId,
-      sender_email: user.email,
-      recipient_email: 'platform@playsoflo.com',
-      memo: `Platform commission (${(platformRate * 100).toFixed(0)}%) from ${bookingType} booking`
-    });
-
-    // Notify provider instantly
-    await base44.asServiceRole.entities.Notification.create({
-      recipient_email: providerEmail,
-      type: 'payment_received',
-      title: '💰 Payment Received Instantly',
-      message: `$${providerEarnings.toFixed(2)} added to your wallet! (Platform fee: $${platformFee.toFixed(2)}). New balance: $${newBalance.toFixed(2)}`,
-      reference_type: bookingType,
-      reference_id: bookingId
-    });
+    if (!result.data?.success) {
+      return Response.json({ error: result.data?.error || 'Settlement failed' }, { status: 500 });
+    }
 
     return Response.json({
       success: true,
-      providerEarnings,
-      platformFee,
-      newBalance,
+      providerEarnings: result.data.earnings,
+      platformFee: result.data.platform_fee,
+      newBalance: result.data.new_wallet_balance,
       message: 'Payment distributed successfully'
     });
 
