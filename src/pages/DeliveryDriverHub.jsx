@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import VehicleManagementModal from "../components/delivery/VehicleManagementModal";
 import ProofOfDeliveryModal from "../components/delivery/ProofOfDeliveryModal";
+import DriverEarningsSummary from "../components/delivery/DriverEarningsSummary";
 
 export default function DeliveryDriverHub() {
   const navigate = useNavigate();
@@ -209,6 +210,13 @@ export default function DeliveryDriverHub() {
             <p className="text-white text-3xl font-bold">{availableOrders.length}</p>
           </div>
         </div>
+
+        {/* Earnings Summary */}
+        {currentUser && (
+          <div className="mb-8">
+            <DriverEarningsSummary driverEmail={currentUser.email} />
+          </div>
+        )}
 
         {/* Active Deliveries */}
         {myActiveDeliveries.length > 0 && (

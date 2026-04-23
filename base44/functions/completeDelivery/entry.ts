@@ -47,61 +47,12 @@ Deno.serve(async (req) => {
       updates.pickup_time = new Date().toISOString();
     } else if (new_status === 'delivered') {
       updates.delivery_time = new Date().toISOString();
-      updates.payment_status = 'paid';
 
-      // Verify payment hasn't already been made (prevent double-payment)
-      const existingPayments = await base44.asServiceRole.entities.Payment.filter({
-        reference_type: 'other',
-        reference_id: order.id,
-        recipient_email: user.email,
-        memo: 'Delivery driver earnings'
+      // Delegate all payment settlement logic to the dedicated settlement function
+      const settlementRes = await base44.asServiceRole.functions.invoke('settleDeliveryPayment', {
+        order_id: order.id
       });
-
-      if (existingPayments.length > 0) {
-        console.log('Driver already paid for this delivery');
-      } else {
-        // Pay driver instantly via service role
-        const driverPayout = parseFloat(order.driver_earnings) || 0;
-        
-        if (driverPayout > 0) {
-          const driver = await base44.asServiceRole.entities.User.filter({ email: user.email });
-          
-          if (driver.length > 0) {
-            const currentBalance = parseFloat(driver[0].usd_balance) || 0;
-            const newBalance = currentBalance + driverPayout;
-            
-            // Update driver balance and stats instantly
-            await base44.asServiceRole.entities.User.update(driver[0].id, {
-              usd_balance: newBalance,
-              total_deliveries_completed: (driver[0].total_deliveries_completed || 0) + 1,
-              total_delivery_earnings: (driver[0].total_delivery_earnings || 0) + driverPayout
-            });
-
-            // Record payment
-            await base44.asServiceRole.entities.Payment.create({
-              amount_usd: driverPayout,
-              amount_rri: 0,
-              method: 'internal_transfer',
-              status: 'completed',
-              reference_type: 'other',
-              reference_id: order.id,
-              recipient_email: user.email,
-              sender_email: 'platform@playsoflo.com',
-              memo: 'Delivery driver earnings'
-            });
-
-            // Notify driver instantly
-            await base44.asServiceRole.entities.Notification.create({
-              recipient_email: user.email,
-              type: 'payment_received',
-              title: '💰 Delivery Payment Received',
-              message: `$${driverPayout.toFixed(2)} instantly added to your wallet! New balance: $${newBalance.toFixed(2)}`,
-              reference_type: 'delivery',
-              reference_id: order.id
-            });
-          }
-        }
-      }
+      console.log('Settlement result:', JSON.stringify(settlementRes));
 
       // Notify recipient
       await base44.asServiceRole.entities.Notification.create({
