@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import PageWrapper from "@/components/PageWrapper";
 import WellnessProviderOnboardingModal from "@/components/wellness/WellnessProviderOnboardingModal";
+import WellnessChatModal from "@/components/wellness/WellnessChatModal";
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },
@@ -43,6 +44,7 @@ export default function Wellness() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [chatService, setChatService] = useState(null);
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['wellness-services'],
@@ -292,23 +294,32 @@ export default function Wellness() {
                           )}
                         </div>
 
-                        <button
-                          className="px-6 py-3 bg-green-500 rounded-full text-white font-semibold hover:bg-green-600 transition"
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await base44.entities.Booking.create({
-                              experience_id: service.id,
-                              experience_title: service.title,
-                              booking_date: new Date().toISOString().split('T')[0],
-                              number_of_guests: 1,
-                              total_price_usd: service.price,
-                              provider_email: service.created_by
-                            });
-                            alert("✅ Service booked successfully!");
-                          }}
-                        >
-                          Book Now
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition"
+                            title="Message Provider"
+                            onClick={e => { e.stopPropagation(); setChatService(service); }}
+                          >
+                            <MessageSquare className="w-5 h-5" />
+                          </button>
+                          <button
+                            className="px-6 py-3 bg-green-500 rounded-full text-white font-semibold hover:bg-green-600 transition"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await base44.entities.Booking.create({
+                                experience_id: service.id,
+                                experience_title: service.title,
+                                booking_date: new Date().toISOString().split('T')[0],
+                                number_of_guests: 1,
+                                total_price_usd: service.price,
+                                provider_email: service.created_by
+                              });
+                              alert("✅ Service booked successfully!");
+                            }}
+                          >
+                            Book Now
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -342,6 +353,9 @@ export default function Wellness() {
       <AnimatePresence>
         {showOnboarding && (
           <WellnessProviderOnboardingModal onClose={() => setShowOnboarding(false)} />
+        )}
+        {chatService && (
+          <WellnessChatModal service={chatService} onClose={() => setChatService(null)} />
         )}
       </AnimatePresence>
 
