@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
     // Delivery type pricing (flat fees, reasonable)
     const deliveryPricing = {
       standard: 0,
-      express: 3.00,
-      same_day: 5.00,
+      express: 2.00,
+      same_day: 0,
       scheduled: -1.00 // $1 discount for flexible scheduling
     };
     const deliveryTypeSurcharge = deliveryPricing[delivery_type] ?? 0;
