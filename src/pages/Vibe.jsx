@@ -276,13 +276,15 @@ export default function Vibe() {
   ];
 
   const filteredTracks = allTracks.filter(track => {
-    const matchesSearch = !searchQuery || 
-      track.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.artist_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.artist?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      track.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    const q = debouncedSearch.toLowerCase();
+    const matchesSearch = !q ||
+      track.title?.toLowerCase().includes(q) ||
+      track.name?.toLowerCase().includes(q) ||
+      track.artist_name?.toLowerCase().includes(q) ||
+      track.artist?.toLowerCase().includes(q) ||
+      track.description?.toLowerCase().includes(q);
+    const matchesGenre = selectedGenre === 'all' || track.genre === selectedGenre;
+    return matchesSearch && matchesGenre;
   });
 
   const handleTrackClick = async (track) => {
@@ -394,7 +396,11 @@ export default function Vibe() {
             )}
           </div>
           <p className="text-gray-400 text-xs mt-2">
-            {searchQuery.length >= 2 ? `Searching across ${allTracks.length} tracks...` : 'Type at least 2 characters to search'}
+            {debouncedSearch.length >= 2
+              ? isLoading
+                ? `Searching for "${debouncedSearch}"...`
+                : `Found ${filteredTracks.length} results for "${debouncedSearch}"`
+              : 'Type to search songs, artists, or music videos'}
           </p>
         </div>
       </div>
