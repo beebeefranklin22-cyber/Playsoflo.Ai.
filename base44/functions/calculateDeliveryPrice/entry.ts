@@ -42,78 +42,59 @@ Deno.serve(async (req) => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     const distance = R * c;
 
-    // Dynamic pricing algorithm (better than Uber)
-    let basePrice = 5.00; // Base fee
-    
-    // Distance-based pricing (lower per-mile than Uber)
+    // Pricing algorithm
+    let basePrice = 3.50; // Base fee
+
+    // Distance-based pricing
     if (distance <= 5) {
-      basePrice += distance * 2.50; // $2.50/mile for short trips
+      basePrice += distance * 1.25; // $1.25/mile for short trips
     } else if (distance <= 15) {
-      basePrice += 12.50 + ((distance - 5) * 2.00); // $2.00/mile mid-range
+      basePrice += 6.25 + ((distance - 5) * 1.05); // $1.05/mile mid-range
     } else {
-      basePrice += 32.50 + ((distance - 15) * 1.50); // $1.50/mile long distance
+      basePrice += 16.75 + ((distance - 15) * 0.95); // $0.95/mile long distance
     }
 
-    // Package type surcharge
-    const packagePricing = {
-      envelope: 0,
-      small_box: 2,
-      medium_box: 5,
-      large_box: 10,
-      fragile: 8,
-      food: 3,
-      documents: 0,
-      custom: 5
-    };
-    const packageSurcharge = packagePricing[package_type] || 0;
+    // No package type surcharge
+    const packageSurcharge = 0;
 
-    // Weight surcharge (over 10 lbs)
+    // Weight surcharge (over 50 lbs)
     let weightSurcharge = 0;
-    if (package_weight > 10) {
-      weightSurcharge = (package_weight - 10) * 0.50;
+    if (package_weight > 50) {
+      weightSurcharge = (package_weight - 50) * 0.35;
     }
 
-    // Delivery type pricing
+    // Delivery type pricing (flat fees, reasonable)
     const deliveryPricing = {
       standard: 0,
-      express: basePrice * 0.5, // 50% surcharge
-      same_day: basePrice * 0.75, // 75% surcharge
-      scheduled: -2 // $2 discount for flexible scheduling
+      express: 3.00,
+      same_day: 5.00,
+      scheduled: -1.00 // $1 discount for flexible scheduling
     };
-    const deliveryTypeSurcharge = deliveryPricing[delivery_type] || 0;
+    const deliveryTypeSurcharge = deliveryPricing[delivery_type] ?? 0;
 
     // Urgency surcharge
     const urgencySurcharge = {
       normal: 0,
-      urgent: 5,
-      critical: 15
+      urgent: 2,
+      critical: 5
     }[urgency_level] || 0;
 
     // Insurance (1% of declared value, min $1)
     const insuranceFee = package_value > 0 ? Math.max(1, package_value * 0.01) : 0;
 
-    // Surge pricing based on time of day (UTC hours)
-    const hour = new Date().getUTCHours();
-    let surgeMultiplier = 1.0;
-    if (hour >= 7 && hour <= 9) surgeMultiplier = 1.25;   // Morning rush
-    else if (hour >= 11 && hour <= 13) surgeMultiplier = 1.15; // Lunch rush
-    else if (hour >= 17 && hour <= 19) surgeMultiplier = 1.30; // Evening rush
-    else if (hour >= 22 || hour <= 5) surgeMultiplier = 1.20;  // Late night
-
-    const surgeFee = surgeMultiplier > 1.0
-      ? parseFloat(((basePrice * surgeMultiplier) - basePrice).toFixed(2))
-      : 0;
+    // No surge pricing
+    const surgeFee = 0;
+    const surgeMultiplier = 1.0;
 
     // Calculate totals
-    const subtotal = basePrice + packageSurcharge + weightSurcharge +
-                     deliveryTypeSurcharge + urgencySurcharge + insuranceFee + surgeFee;
+    const subtotal = basePrice + weightSurcharge +
+                     deliveryTypeSurcharge + urgencySurcharge + insuranceFee;
 
     const platformFee = subtotal * 0.15; // 15% platform fee
     const totalPrice = subtotal + platformFee;
 
     // Driver gets 85% of the subtotal (excluding insurance & platform fee)
-    const driverBase = basePrice + packageSurcharge + weightSurcharge +
-                       deliveryTypeSurcharge + urgencySurcharge + surgeFee;
+    const driverBase = basePrice + weightSurcharge + deliveryTypeSurcharge + urgencySurcharge;
     const driverEarnings = parseFloat((driverBase * 0.85).toFixed(2));
 
     // Estimated time (35 mph average + 5 min pickup + 5 min dropoff)
