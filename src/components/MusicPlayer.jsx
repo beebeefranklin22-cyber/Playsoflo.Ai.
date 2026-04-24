@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import RelatedTracksSidebar from "./music/RelatedTracksSidebar";
 
-export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomingTracks = [] }) {
+export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomingTracks = [], onPlayTrack }) {
   const audioRef = useRef(null);
   const playerRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -397,36 +398,12 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
                 </div>
               )}
 
-              {/* Up Next */}
-              {upcomingTracks.length > 0 && (
-                <div className="bg-white/5 rounded-xl p-4 backdrop-blur-xl">
-                  <h4 className="text-white font-bold mb-4">Up Next</h4>
-                  <div className="space-y-2">
-                    {upcomingTracks.slice(0, 5).map((upcomingTrack, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => onNext && onNext()}
-                        className="flex items-center gap-3 p-2 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer transition"
-                      >
-                        <img
-                          src={upcomingTrack.cover_art_url || upcomingTrack.image}
-                          alt={upcomingTrack.title || upcomingTrack.name}
-                          className="w-12 h-12 rounded object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">
-                            {upcomingTrack.title || upcomingTrack.name}
-                          </p>
-                          <p className="text-gray-400 text-xs truncate">
-                            {upcomingTrack.artist_name || upcomingTrack.artist}
-                          </p>
-                        </div>
-                        <Play className="w-5 h-5 text-gray-400" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Related Tracks */}
+              <RelatedTracksSidebar
+                currentTrack={track}
+                onPlayTrack={onPlayTrack || (() => {})}
+                playingTrack={track}
+              />
             </div>
           </div>
         </motion.div>

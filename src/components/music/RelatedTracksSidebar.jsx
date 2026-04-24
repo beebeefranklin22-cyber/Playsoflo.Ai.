@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Play, Pause, Music } from "lucide-react";
 
-export default function RelatedTracksSidebar({ currentTrack, onPlayTrack, playingTrack }) {
+export default function RelatedTracksSidebar({ currentTrack, onPlayTrack, playingTrack, className = "" }) {
   const { data: allTracks = [] } = useQuery({
     queryKey: ['related-tracks-sidebar'],
     queryFn: () => base44.entities.MusicTrack.filter({ status: "published" }),
@@ -20,7 +20,7 @@ export default function RelatedTracksSidebar({ currentTrack, onPlayTrack, playin
   if (!currentTrack) return null;
 
   return (
-    <div className="w-80 flex-shrink-0 bg-white/5 rounded-2xl p-4 border border-white/10 overflow-y-auto max-h-[600px]">
+    <div className={`bg-white/5 rounded-2xl p-4 border border-white/10 overflow-y-auto max-h-[600px] ${className}`}>
       <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
         <Music className="w-5 h-5 text-purple-400" />
         Up Next

@@ -17,7 +17,6 @@ import { motion } from "framer-motion";
 import MusicPlayer from "../components/MusicPlayer";
 import Top25Charts from "../components/music/Top25Charts";
 import MusicSearchBar from "../components/music/MusicSearchBar";
-import RelatedTracksSidebar from "../components/music/RelatedTracksSidebar";
 
 export default function Vibe() {
   const navigate = useNavigate();
@@ -441,9 +440,7 @@ export default function Vibe() {
               </div>
             )}
 
-            {/* Music Grid + Sidebar */}
-            <div className="flex gap-6">
-            <div className="flex-1 min-w-0">
+            {/* Music Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredTracks.map((track, idx) => (
                 <motion.div
@@ -549,15 +546,7 @@ export default function Vibe() {
                 <p className="text-gray-400">Loading music...</p>
               </div>
             )}
-            </div>{/* end flex-1 */}
-            {playingTrack && (
-              <RelatedTracksSidebar
-                currentTrack={playingTrack}
-                onPlayTrack={handleTrackClick}
-                playingTrack={playingTrack}
-              />
-            )}
-            </div>{/* end flex gap-6 */}
+
           </TabsContent>
 
           <TabsContent value="fan-pools">
@@ -729,18 +718,7 @@ export default function Vibe() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-6">
-              <div className="flex-1 min-w-0">
-                <Top25Charts onPlayTrack={handleTrackClick} playingTrack={playingTrack} genreFilter={selectedGenre} />
-              </div>
-              {playingTrack && (
-                <RelatedTracksSidebar
-                  currentTrack={playingTrack}
-                  onPlayTrack={handleTrackClick}
-                  playingTrack={playingTrack}
-                />
-              )}
-            </div>
+            <Top25Charts onPlayTrack={handleTrackClick} playingTrack={playingTrack} genreFilter={selectedGenre} />
           </TabsContent>
 
           <TabsContent value="my-music">
@@ -822,6 +800,7 @@ export default function Vibe() {
           onNext={handleNext}
           onPrevious={handlePrevious}
           onClose={() => setPlayingTrack(null)}
+          onPlayTrack={handleTrackClick}
           upcomingTracks={
             recommendations.length > 0 
               ? recommendations 
