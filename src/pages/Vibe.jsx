@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MusicPlayer from "../components/MusicPlayer";
+import Top25Charts from "../components/music/Top25Charts";
 
 export default function Vibe() {
   const navigate = useNavigate();
@@ -33,69 +34,7 @@ export default function Vibe() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  // Sample tracks for fallback
-  const sampleTracks = [
-    {
-      id: 'sample_1',
-      title: 'Summer Vibes',
-      name: 'Summer Vibes',
-      artist_name: 'Demo Artist',
-      artist: 'Demo Artist',
-      genre: 'pop',
-      cover_art_url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400',
-      image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400',
-      popularity: 95,
-      source: 'demo'
-    },
-    {
-      id: 'sample_2',
-      title: 'City Nights',
-      name: 'City Nights',
-      artist_name: 'Urban Sound',
-      artist: 'Urban Sound',
-      genre: 'electronic',
-      cover_art_url: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
-      image: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
-      popularity: 88,
-      source: 'demo'
-    },
-    {
-      id: 'sample_3',
-      title: 'Midnight Drive',
-      name: 'Midnight Drive',
-      artist_name: 'Night Rider',
-      artist: 'Night Rider',
-      genre: 'r_n_b',
-      cover_art_url: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
-      image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
-      popularity: 82,
-      source: 'demo'
-    },
-    {
-      id: 'sample_4',
-      title: 'Tropical Sunset',
-      name: 'Tropical Sunset',
-      artist_name: 'Island Beats',
-      artist: 'Island Beats',
-      genre: 'reggae',
-      cover_art_url: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
-      image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
-      popularity: 79,
-      source: 'demo'
-    },
-    {
-      id: 'sample_5',
-      title: 'Rock Anthem',
-      name: 'Rock Anthem',
-      artist_name: 'Electric Storm',
-      artist: 'Electric Storm',
-      genre: 'rock',
-      cover_art_url: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400',
-      image: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400',
-      popularity: 91,
-      source: 'demo'
-    }
-  ];
+  // No demo/sample tracks
 
   // Debounced search query
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -187,11 +126,11 @@ export default function Vibe() {
         : userTracks;
       
       return { 
-        tracks: filtered.length > 0 ? filtered : sampleTracks, 
-        source: filtered.length > 0 ? 'app' : 'demo' 
+        tracks: filtered, 
+        source: 'app' 
       };
     },
-    initialData: { tracks: sampleTracks, source: 'demo' },
+    initialData: { tracks: [], source: 'app' },
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     enabled: true
@@ -791,52 +730,7 @@ export default function Vibe() {
           </TabsContent>
 
           <TabsContent value="charts">
-            <div className="space-y-6">
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                    <Flame className="w-6 h-6 text-orange-400" />
-                    Top Trending Now
-                  </h2>
-                  <div className="space-y-3">
-                    {allTracks
-                      .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-                      .slice(0, 50)
-                      .map((track, idx) => (
-                      <div key={idx} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition cursor-pointer">
-                        <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                          {idx + 1}
-                        </div>
-                        <img
-                          src={track.cover_art_url || track.album?.images?.[0]?.url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=100"}
-                          alt={track.title}
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                        <div className="flex-1">
-                          <p className="text-white font-semibold">{track.title || track.name}</p>
-                          <p className="text-gray-400 text-sm">{track.artist_name || track.artists?.[0]?.name}</p>
-                        </div>
-                        {track.popularity && (
-                          <Badge className="bg-green-500/20 text-green-400">
-                            {track.popularity}
-                          </Badge>
-                        )}
-                        <button
-                          onClick={() => handleTrackClick(track)}
-                          className="p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition"
-                        >
-                          {playingTrack?.id === track.id ? (
-                            <Pause className="w-4 h-4 text-white" />
-                          ) : (
-                            <Play className="w-4 h-4 text-white ml-0.5" />
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Top25Charts onPlayTrack={handleTrackClick} playingTrack={playingTrack} />
           </TabsContent>
 
           <TabsContent value="my-music">
