@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, BarChart3, AlertTriangle, Upload } from "lucide-react";
+import { Package, BarChart3, AlertTriangle, Upload, ShoppingBag, Settings } from "lucide-react";
 import InventoryProductList from "@/components/inventory/InventoryProductList";
 import InventoryAlerts from "@/components/inventory/InventoryAlerts";
 import InventoryBulkImport from "@/components/inventory/InventoryBulkImport";
 import InventoryAnalytics from "@/components/inventory/InventoryAnalytics";
+import StoreOrdersManager from "@/components/inventory/StoreOrdersManager";
+import StoreFulfillmentSettings from "@/components/inventory/StoreFulfillmentSettings";
 import { useQuery } from "@tanstack/react-query";
 
 export default function InventoryManager() {
@@ -88,6 +90,12 @@ export default function InventoryManager() {
             <TabsTrigger value="import" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-400 rounded-lg">
               <Upload className="w-4 h-4 mr-2" /> Bulk Import
             </TabsTrigger>
+            <TabsTrigger value="orders" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-400 rounded-lg">
+              <ShoppingBag className="w-4 h-4 mr-2" /> Orders
+            </TabsTrigger>
+            <TabsTrigger value="fulfillment" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-gray-400 rounded-lg">
+              <Settings className="w-4 h-4 mr-2" /> Fulfillment
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="products">
@@ -101,6 +109,12 @@ export default function InventoryManager() {
           </TabsContent>
           <TabsContent value="import">
             <InventoryBulkImport currentUser={currentUser} />
+          </TabsContent>
+          <TabsContent value="orders">
+            <StoreOrdersManager currentUser={currentUser} />
+          </TabsContent>
+          <TabsContent value="fulfillment">
+            <StoreFulfillmentSettings currentUser={currentUser} />
           </TabsContent>
         </Tabs>
       </div>
