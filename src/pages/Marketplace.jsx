@@ -26,6 +26,10 @@ import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
+
+  // Shop Products
+  { id: "clothing_retail", label: "Clothing & Apparel", icon: ShoppingBag },
+  { id: "luxury_goods", label: "Shop Products", icon: Package },
   
   // Food & Delivery (Featured at top)
   { id: "restaurant", label: "Restaurants & Delivery", icon: Utensils },
@@ -195,6 +199,23 @@ export default function Marketplace() {
     staleTime: 120000
   });
 
+  // Fetch inventory products from all stores
+  const { data: inventoryProducts = [] } = useQuery({
+    queryKey: ['marketplace-inventory'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.InventoryProduct.filter({ status: 'active' });
+      } catch (err) {
+        console.log("Error loading inventory products:", err);
+        return [];
+      }
+    },
+    initialData: [],
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 120000
+  });
+
   // Also fetch P2P orders
   const { data: p2pOrders = [] } = useQuery({
     queryKey: ['marketplace-p2p'],
@@ -247,8 +268,41 @@ export default function Marketplace() {
     "shelter_services", "medical_health"
   ];
 
+  // Map store_type to marketplace category
+  const storeTypeToCategory = {
+    restaurant: 'restaurant',
+    grocery: 'groceries',
+    retail: 'luxury_goods',
+    clothing: 'clothing_retail',
+    convenience: 'groceries',
+    electronics: 'tech_support',
+    beauty: 'barber_beauty',
+    general: 'luxury_goods',
+  };
+
   const allItems = [
     ...items,
+    ...inventoryProducts
+      .filter(p => p.stock_quantity > 0 || !p.track_inventory)
+      .map(p => ({
+        id: `inv_${p.id}`,
+        title: p.name,
+        description: p.description || '',
+        price: p.is_on_sale && p.sale_price ? p.sale_price : p.base_price,
+        price_type: 'each',
+        category: storeTypeToCategory[p.store_type] || 'luxury_goods',
+        image_url: p.image_url,
+        rating: 5,
+        reviews_count: p.total_sold || 0,
+        provider_name: p.supplier_name || 'Store',
+        provider_email: p.owner_email,
+        created_by: p.owner_email,
+        verified_provider: false,
+        availability: 'available',
+        instant_booking: false,
+        itemType: 'inventory_product',
+        originalData: p
+      })),
     ...properties.map(p => ({
       id: `prop_${p.id}`,
       title: p.title,
@@ -649,8 +703,9 @@ export default function Marketplace() {
           )}
           <AnimatePresence>
             {sortedItems.map((item) => {
+              const isInventoryProduct = item.itemType === 'inventory_product';
               const isFood = ["restaurant", "food_truck", "groceries"].includes(item.category);
-              const isPhysicalProduct = ["clothing_retail", "fashion_boutique", "streetwear", "vintage_clothing",
+                              const isPhysicalProduct = ["clothing_retail", "fashion_boutique", "streetwear", "vintage_clothing",
                 "custom_apparel", "print_on_demand", "graphic_printing", "screen_printing",
                 "luxury_goods", "jewelry_repair", "tailoring", "personal_shopping",
                 "equipment_rental", "hair_extensions"].includes(item.category);
@@ -666,9 +721,10 @@ export default function Marketplace() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   className="group cursor-pointer"
                   onClick={() => {
-                    // Navigate to service details page
                     if (item.itemType === 'property') {
                       navigate(createPageUrl("RealEstate"));
+                    } else if (item.itemType === 'inventory_product') {
+                      // handled by button
                     } else if (!item.itemType || item.itemType === 'service') {
                       navigate(createPageUrl("ServiceProviders") + `?service=${encodeURIComponent(item.title)}`);
                     }
@@ -698,7 +754,18 @@ export default function Marketplace() {
                       )}
                     </div>
 
-                    {item.instant_booking && (
+                    {isInventoryProduct && item.originalData?.stock_quantity > 0 && (
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-blue-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white">
+                        {item.originalData.stock_quantity} in stock
+                      </div>
+                    )}
+                    {isInventoryProduct && item.originalData?.is_on_sale && (
+                      <div className="absolute top-4 left-4 px-3 py-1 bg-red-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white">
+                        SALE
+                      </div>
+                    )}
+
+                    {!isInventoryProduct && item.instant_booking && (
                       <div className="absolute top-4 right-4 px-3 py-1 bg-green-500/90 backdrop-blur-sm rounded-full text-xs font-bold text-white">
                         Instant Booking
                       </div>
@@ -759,7 +826,26 @@ export default function Marketplace() {
                           )}
                         </div>
 
-                        {!isFood ? (
+                        {isInventoryProduct ? (
+                          <button
+                            className="px-6 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPendingOrder({
+                                category: item.category,
+                                item_id: item.originalData.id,
+                                title: item.title,
+                                price: item.price,
+                                provider_email: item.provider_email,
+                                isProduct: true
+                              });
+                              setShowPayment(true);
+                            }}
+                          >
+                            <ShoppingCart className="w-4 h-4" />
+                            Buy Now
+                          </button>
+                        ) : !isFood ? (
                           groupedByService[item.title]?.length > 1 ? (
                             <button
                               className="px-6 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
