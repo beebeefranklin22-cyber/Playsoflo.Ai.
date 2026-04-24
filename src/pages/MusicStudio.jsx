@@ -39,7 +39,7 @@ export default function MusicStudio() {
     career_goals: "",
     additional_info: ""
   });
-  const [showPoolModal, setShowPoolModal] = useState(false);
+  const [showPoolModal, setShowPoolModal] = useState(false); // kept for compat but unused
   const [showContractModal, setShowContractModal] = useState(false);
   const [selectedTrackForSplit, setSelectedTrackForSplit] = useState(null);
 
@@ -56,16 +56,7 @@ export default function MusicStudio() {
     allow_downloads: false
   });
 
-  const [poolForm, setPoolForm] = useState({
-    pool_type: "concert_show",
-    title: "",
-    description: "",
-    goal_amount: 0,
-    deadline: "",
-    event_date: "",
-    location: "",
-    tier_rewards: []
-  });
+
 
   const [contractForm, setContractForm] = useState({
     contract_type: "collaboration_agreement",
@@ -143,34 +134,6 @@ export default function MusicStudio() {
         cover_art_url: "",
         explicit: false,
         allow_downloads: false
-      });
-    }
-  });
-
-  const createPoolMutation = useMutation({
-    mutationFn: async (poolData) => {
-      if (!currentUser) throw new Error('User not authenticated');
-      return await base44.entities.FanPool.create({
-        ...poolData,
-        artist_email: currentUser.email,
-        artist_name: currentUser.full_name || currentUser.email,
-        raised_amount: 0,
-        status: "active"
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['my-fan-pools']);
-      setShowPoolModal(false);
-      alert('✅ Fan pool created! Fans can now contribute.');
-      setPoolForm({
-        pool_type: "concert_show",
-        title: "",
-        description: "",
-        goal_amount: 0,
-        deadline: "",
-        event_date: "",
-        location: "",
-        tier_rewards: []
       });
     }
   });
@@ -396,7 +359,7 @@ Make it legally sound, fair, and industry-standard.`;
             Upload Music
           </Button>
           <Button 
-            onClick={() => setShowPoolModal(true)} 
+            onClick={() => setActiveTab("pools")} 
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 py-8 text-lg font-bold shadow-lg hover:shadow-blue-500/50 transition-all"
           >
             <Users className="w-6 h-6 mr-3" />
@@ -893,129 +856,6 @@ Make it legally sound, fair, and industry-standard.`;
                       className="flex-1 bg-purple-600"
                     >
                       Publish
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Create Fan Pool Modal */}
-        <AnimatePresence>
-          {showPoolModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-              onClick={() => setShowPoolModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.9 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-3xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
-              >
-                <h2 className="text-3xl font-bold text-white mb-6">Create Fan Pool</h2>
-                <div className="space-y-4">
-                  <Input
-                    value={poolForm.title}
-                    onChange={(e) => setPoolForm({...poolForm, title: e.target.value})}
-                    placeholder="e.g., Live Concert in Miami"
-                    className="bg-white/10 border-white/20 text-white"
-                  />
-
-                  <textarea
-                    value={poolForm.description}
-                    onChange={(e) => setPoolForm({...poolForm, description: e.target.value})}
-                    rows={4}
-                    placeholder="Describe what fans are funding..."
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500"
-                  />
-
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Pool Type</label>
-                    <select
-                      value={poolForm.pool_type}
-                      onChange={(e) => setPoolForm({...poolForm, pool_type: e.target.value})}
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:border-blue-500 transition"
-                    >
-                      <option value="concert_show">Concert/Show</option>
-                      <option value="music_video">Music Video</option>
-                      <option value="album_release">Album Release</option>
-                      <option value="tour">Tour</option>
-                      <option value="merchandise">Merchandise</option>
-                    </select>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <Input
-                      type="number"
-                      value={poolForm.goal_amount}
-                      onChange={(e) => setPoolForm({...poolForm, goal_amount: Number(e.target.value)})}
-                      placeholder="Goal amount (USD)"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                    <Input
-                      type="date"
-                      value={poolForm.deadline}
-                      onChange={(e) => setPoolForm({...poolForm, deadline: e.target.value})}
-                      placeholder="Campaign deadline"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <Input
-                      type="date"
-                      value={poolForm.event_date}
-                      onChange={(e) => setPoolForm({...poolForm, event_date: e.target.value})}
-                      placeholder="Event date"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                    <Input
-                      value={poolForm.location}
-                      onChange={(e) => setPoolForm({...poolForm, location: e.target.value})}
-                      placeholder="Event location"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-
-                  {/* Tier Setup */}
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <h3 className="text-white font-bold mb-3">Reward Tiers</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => {
-                        const newTier = {
-                          tier_name: "VIP",
-                          minimum_contribution: 100,
-                          access_type: "vip",
-                          rewards: ["VIP Pass", "Meet & Greet"],
-                          limited_slots: 50
-                        };
-                        setPoolForm({...poolForm, tier_rewards: [...(poolForm.tier_rewards || []), newTier]});
-                      }}
-                      className="bg-purple-600"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Tier
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setShowPoolModal(false)} className="flex-1">
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => createPoolMutation.mutate(poolForm)}
-                      disabled={!currentUser || !poolForm.title || !poolForm.goal_amount}
-                      className="flex-1 bg-blue-600"
-                    >
-                      Create Pool
                     </Button>
                   </div>
                 </div>
