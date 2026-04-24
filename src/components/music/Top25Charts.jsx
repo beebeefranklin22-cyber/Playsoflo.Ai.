@@ -15,10 +15,13 @@ export default function Top25Charts({ onPlayTrack, playingTrack }) {
     staleTime: 60000,
   });
 
-  // Fetch StreamingContent sorted by views
+  // Fetch only music-related StreamingContent (music concerts + music category)
   const { data: streamingContent = [], isLoading: loadingStreaming } = useQuery({
-    queryKey: ['top25-streaming'],
-    queryFn: () => base44.entities.StreamingContent.filter({ status: "published" }),
+    queryKey: ['top25-streaming-music'],
+    queryFn: async () => {
+      const all = await base44.entities.StreamingContent.filter({ status: "published" });
+      return all.filter(c => c.type === "music_concert" || c.category === "music");
+    },
     initialData: [],
     staleTime: 60000,
   });
@@ -44,7 +47,7 @@ export default function Top25Charts({ onPlayTrack, playingTrack }) {
       image: c.thumbnail_url || "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400",
       views: c.views || 0,
       genre: c.category,
-      type: c.type,
+      type: "music_video",
       raw: c,
     }))
   ]
@@ -124,8 +127,8 @@ export default function Top25Charts({ onPlayTrack, playingTrack }) {
                       {item.genre.replace(/_/g, ' ')}
                     </Badge>
                   )}
-                  <Badge className={`text-xs ${item.type === 'music' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {item.type === 'music' ? '🎵 Music' : '🎬 Video'}
+                  <Badge className={`text-xs ${item.type === 'music' ? 'bg-blue-500/20 text-blue-400' : 'bg-pink-500/20 text-pink-400'}`}>
+                    {item.type === 'music' ? '🎵 Song' : '🎬 Music Video'}
                   </Badge>
                 </div>
               </div>
@@ -136,7 +139,7 @@ export default function Top25Charts({ onPlayTrack, playingTrack }) {
                 <span className="font-semibold">{formatViews(item.views)}</span>
               </div>
 
-              {/* Play button (music only) */}
+              {/* Play button (music tracks only) */}
               {item.type === "music" && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onPlayTrack(item.raw); }}
