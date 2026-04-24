@@ -7,17 +7,17 @@ import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Music, Play, Pause, Heart, TrendingUp, Flame,
-  Radio, Mic2, Users, DollarSign, ChevronLeft,
-  Search, Clock, BarChart3, Upload, Briefcase,
-  Sparkles, RefreshCw
+  Mic2, Users, ChevronLeft,
+  Clock, Upload, RefreshCw
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import MusicPlayer from "../components/MusicPlayer";
 import Top25Charts from "../components/music/Top25Charts";
+import MusicSearchBar from "../components/music/MusicSearchBar";
+import RelatedTracksSidebar from "../components/music/RelatedTracksSidebar";
 
 export default function Vibe() {
   const navigate = useNavigate();
@@ -26,9 +26,11 @@ export default function Vibe() {
   const [activeTab, setActiveTab] = useState("charts");
   const [playingTrack, setPlayingTrack] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [loadingMore, setLoadingMore] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -36,19 +38,9 @@ export default function Vibe() {
 
   // No demo/sample tracks
 
-  // Debounced search query
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
   // Fetch trending tracks from the app
   const { data: musicData, isLoading, refetch, error: queryError } = useQuery({
-    queryKey: ['music-discovery', selectedGenre, debouncedSearch],
+    queryKey: ['music-discovery', selectedGenre, activeSearch],
     queryFn: async () => {
       // Load user-uploaded tracks (fast, local DB)
       const userTracks = await base44.entities.MusicTrack.filter({
@@ -56,64 +48,42 @@ export default function Vibe() {
       });
 
       // For search, fetch from YouTube
-      if (debouncedSearch?.trim() && debouncedSearch.length >= 2) {
+      if (activeSearch?.trim() && activeSearch.length >= 2) {
         try {
-          console.log('🔍 Searching YouTube for:', debouncedSearch);
           const youtubeResponse = await base44.functions.invoke('fetchYouTubeMusic', { 
-            query: debouncedSearch,
+            query: activeSearch,
             maxResults: 20
           });
-          
-          console.log('📦 YouTube raw response:', youtubeResponse);
           
           // Handle different response structures
           let youtubeTracks = [];
           if (youtubeResponse?.data?.data?.tracks) {
             youtubeTracks = youtubeResponse.data.data.tracks;
-            console.log('✅ Found tracks at response.data.data.tracks');
           } else if (youtubeResponse?.data?.tracks) {
             youtubeTracks = youtubeResponse.data.tracks;
-            console.log('✅ Found tracks at response.data.tracks');
           } else if (youtubeResponse?.tracks) {
             youtubeTracks = youtubeResponse.tracks;
-            console.log('✅ Found tracks at response.tracks');
           } else if (Array.isArray(youtubeResponse?.data)) {
             youtubeTracks = youtubeResponse.data;
-            console.log('✅ Found tracks as array at response.data');
           } else if (Array.isArray(youtubeResponse)) {
             youtubeTracks = youtubeResponse;
-            console.log('✅ Found tracks as direct array');
           }
-          
-          console.log('🎵 YouTube tracks count:', youtubeTracks?.length || 0);
-          
-          // Filter local tracks
+
           const filteredUserTracks = userTracks.filter(t => 
-            t.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-            t.artist_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+            t.title?.toLowerCase().includes(activeSearch.toLowerCase()) ||
+            t.artist_name?.toLowerCase().includes(activeSearch.toLowerCase())
           );
-          
-          console.log('📚 Local tracks count:', filteredUserTracks.length);
-          
-          // Merge and prioritize user tracks first
           const mergedTracks = [...filteredUserTracks, ...(youtubeTracks || [])];
-          console.log('✅ Total merged tracks:', mergedTracks.length);
           
           return { 
             tracks: mergedTracks, 
             source: 'mixed' 
           };
         } catch (err) {
-          console.error('❌ YouTube fetch error:', err);
-          console.error('Error type:', typeof err);
-          console.error('Error message:', err?.message);
-          console.error('Error stack:', err?.stack);
-          
-          // Fallback to user tracks only
           return {
             tracks: userTracks.filter(t => 
-              t.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-              t.artist_name?.toLowerCase().includes(debouncedSearch.toLowerCase())
+              t.title?.toLowerCase().includes(activeSearch.toLowerCase()) ||
+              t.artist_name?.toLowerCase().includes(activeSearch.toLowerCase())
             ),
             source: 'app'
           };
@@ -276,7 +246,7 @@ export default function Vibe() {
   ];
 
   const filteredTracks = allTracks.filter(track => {
-    const q = debouncedSearch.toLowerCase();
+    const q = activeSearch.toLowerCase();
     const matchesSearch = !q ||
       track.title?.toLowerCase().includes(q) ||
       track.name?.toLowerCase().includes(q) ||
@@ -286,6 +256,16 @@ export default function Vibe() {
     const matchesGenre = selectedGenre === 'all' || track.genre === selectedGenre;
     return matchesSearch && matchesGenre;
   });
+
+  const handleSearch = async (query) => {
+    setActiveSearch(query);
+    if (query.trim()) {
+      setActiveTab("discover");
+      setSearchLoading(true);
+      await refetch();
+      setSearchLoading(false);
+    }
+  };
 
   const handleTrackClick = async (track) => {
     setPlayingTrack(track);
@@ -380,28 +360,13 @@ export default function Vibe() {
             )}
           </div>
 
-          {/* Search - Auto-search with debounce */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search songs, artists, music videos..."
-              className="pl-12 pr-4 bg-white/10 border-white/20 text-white placeholder-gray-400 h-12"
-            />
-            {isLoading && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                <RefreshCw className="w-4 h-4 animate-spin text-purple-400" />
-              </div>
-            )}
-          </div>
-          <p className="text-gray-400 text-xs mt-2">
-            {debouncedSearch.length >= 2
-              ? isLoading
-                ? `Searching for "${debouncedSearch}"...`
-                : `Found ${filteredTracks.length} results for "${debouncedSearch}"`
-              : 'Type to search songs, artists, or music videos'}
-          </p>
+          {/* Search Bar */}
+          <MusicSearchBar onSearch={handleSearch} isLoading={searchLoading || isLoading} />
+          {activeSearch && (
+            <p className="text-gray-400 text-xs mt-2">
+              Found <span className="text-white font-semibold">{filteredTracks.length}</span> results for "{activeSearch}"
+            </p>
+          )}
         </div>
       </div>
 
@@ -476,8 +441,10 @@ export default function Vibe() {
               </div>
             )}
 
-            {/* Music Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {/* Music Grid + Sidebar */}
+            <div className="flex gap-6">
+            <div className="flex-1 min-w-0">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredTracks.map((track, idx) => (
                 <motion.div
                   key={track.id || track.video_id || idx}
@@ -582,6 +549,15 @@ export default function Vibe() {
                 <p className="text-gray-400">Loading music...</p>
               </div>
             )}
+            </div>{/* end flex-1 */}
+            {playingTrack && (
+              <RelatedTracksSidebar
+                currentTrack={playingTrack}
+                onPlayTrack={handleTrackClick}
+                playingTrack={playingTrack}
+              />
+            )}
+            </div>{/* end flex gap-6 */}
           </TabsContent>
 
           <TabsContent value="fan-pools">
@@ -736,7 +712,35 @@ export default function Vibe() {
           </TabsContent>
 
           <TabsContent value="charts">
-            <Top25Charts onPlayTrack={handleTrackClick} playingTrack={playingTrack} />
+            {/* Genre Filter Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-6 hide-scrollbar">
+              {genres.map((genre) => (
+                <button
+                  key={genre.id}
+                  onClick={() => setSelectedGenre(genre.id)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full font-medium transition ${
+                    selectedGenre === genre.id
+                      ? "bg-purple-600 text-white"
+                      : "bg-white/10 text-gray-300 hover:bg-white/20"
+                  }`}
+                >
+                  <span className="mr-2">{genre.emoji}</span>
+                  {genre.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-6">
+              <div className="flex-1 min-w-0">
+                <Top25Charts onPlayTrack={handleTrackClick} playingTrack={playingTrack} genreFilter={selectedGenre} />
+              </div>
+              {playingTrack && (
+                <RelatedTracksSidebar
+                  currentTrack={playingTrack}
+                  onPlayTrack={handleTrackClick}
+                  playingTrack={playingTrack}
+                />
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="my-music">
