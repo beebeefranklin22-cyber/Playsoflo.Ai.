@@ -45,6 +45,7 @@ export default function MusicStudio() {
 
   const [trackForm, setTrackForm] = useState({
     title: "",
+    artist_name: "",
     genre: "hip_hop",
     pricing_model: "free",
     price_usd: 0,
@@ -122,7 +123,8 @@ export default function MusicStudio() {
       return await base44.entities.MusicTrack.create({
         ...trackData,
         artist_email: currentUser.email,
-        artist: currentUser.full_name || currentUser.email,
+        artist_name: trackData.artist_name || currentUser.full_name || currentUser.email,
+        artist: trackData.artist_name || currentUser.full_name || currentUser.email,
         status: "published"
       });
     },
@@ -132,6 +134,7 @@ export default function MusicStudio() {
       alert('🎵 Track published successfully!');
       setTrackForm({
         title: "",
+        artist_name: "",
         genre: "hip_hop",
         pricing_model: "free",
         price_usd: 0,
@@ -727,6 +730,13 @@ Make it legally sound, fair, and industry-standard.`;
                     value={trackForm.title}
                     onChange={(e) => setTrackForm({...trackForm, title: e.target.value})}
                     placeholder="Track title"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+
+                  <Input
+                    value={trackForm.artist_name}
+                    onChange={(e) => setTrackForm({...trackForm, artist_name: e.target.value})}
+                    placeholder={`Artist name (default: ${currentUser?.full_name || 'your name'})`}
                     className="bg-white/10 border-white/20 text-white"
                   />
 
