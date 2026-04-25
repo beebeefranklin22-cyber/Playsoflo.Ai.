@@ -22,7 +22,7 @@ import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
 import EditPostModal from "../components/social/EditPostModal";
 import AdDisplay from "../components/ads/AdDisplay";
-import DiscoverySection from "../components/discovery/DiscoverySection";
+import HomeBannerAd from "../components/ads/HomeBannerAd";
 import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 
@@ -243,13 +243,13 @@ export default function Home() {
 
   const quickAccess = [
     { icon: TrendingUp, label: "Discover", color: "yellow", path: "Discover" },
-    { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
+    { icon: Music, label: "Music", color: "pink", path: "Vibe" },
     { icon: Compass, label: "Explore", color: "purple", path: "Universe" },
     { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
     { icon: ShoppingBag, label: "Shop", color: "orange", path: "Marketplace" },
+    { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
+    { icon: Wand2, label: "AI", color: "violet", path: "RonronAI" },
     { icon: Tv, label: "Stream", color: "red", path: "Universe" },
-    { icon: Wand2, label: "AI Studio", color: "violet", path: "RonronAI" },
-    { icon: Music, label: "Music", color: "pink", path: "Vibe" },
   ];
 
   // Fetch followers list
@@ -373,62 +373,53 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Quick Access Pills */}
-      <div className="px-4 py-4 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <h3 className="text-white font-semibold">Quick Access</h3>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-1.5 hover:bg-white/10 rounded-full transition"
-            >
-              <RefreshCw className={`w-4 h-4 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
+      {/* Quick Access */}
+      <div className="px-4 pt-3 pb-2 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-white text-sm font-semibold">Quick Access</h3>
+            <button onClick={handleRefresh} disabled={refreshing} className="p-1 hover:bg-white/10 rounded-full transition">
+              <RefreshCw className={`w-3.5 h-3.5 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2 items-center relative z-30">
+          <div className="flex items-center gap-1.5 relative z-30">
             <GoLiveButton currentUser={currentUser} />
             <button
               onClick={() => setShowFollowRequests(true)}
-              className="relative flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-full text-white text-sm font-medium hover:bg-white/20 transition"
+              className="relative flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-full text-white text-xs font-medium hover:bg-white/20 transition"
             >
               Requests
               {pendingRequestsCount > 0 && (
-                <span className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold">
+                <span className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">
                   {pendingRequestsCount}
                 </span>
               )}
             </button>
             <button
               onClick={() => setShowFriendFinder(true)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 rounded-full text-white text-sm font-medium hover:bg-purple-700 transition"
+              className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 rounded-full text-white text-xs font-medium hover:bg-purple-700 transition"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-3 h-3" />
               Find Friends
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar scrollable-content" style={{ overscrollBehavior: 'contain' }}>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar scrollable-content" style={{ overscrollBehavior: 'contain' }}>
           {quickAccess.map((item) => (
             <button
-              key={item.path}
+              key={item.path + item.label}
               onClick={() => navigate(createPageUrl(item.path))}
-              className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 glass-effect rounded-full hover:bg-white/10 transition border border-white/20`}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 glass-effect rounded-full hover:bg-white/10 transition border border-white/20"
             >
-              <item.icon className={`w-4 h-4 text-${item.color}-400`} />
-              <span className="text-white text-sm font-medium">{item.label}</span>
+              <item.icon className={`w-3.5 h-3.5 text-${item.color}-400`} />
+              <span className="text-white text-xs font-medium">{item.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Discovery Section - Trending & Popular */}
-      <DiscoverySection currentUser={currentUser} />
-
-      {/* People Suggestions */}
-      <div className="px-4 py-4">
-        <PeopleSuggestions currentUser={currentUser} />
-      </div>
+      {/* Platform Ad Banner */}
+      <HomeBannerAd currentUser={currentUser} />
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
