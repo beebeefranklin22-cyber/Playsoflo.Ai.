@@ -58,7 +58,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   // Content state
   const [caption, setCaption] = useState("");
-  const [textContent, setTextContent] = useState(""); // for story text-only overlay
+  const [textContent, setTextContent] = useState("");
   const [location, setLocation] = useState("");
   const [music, setMusic] = useState("");
   const [audioName, setAudioName] = useState("");
@@ -118,7 +118,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     setTextBg("sunset"); setSelectedFilter("none");
     setEmojiOverlays([]); setDrawMode(false);
     setActiveTool("media"); setMusicQuery(""); setGifQuery("");
-    // Clear canvas
     setTimeout(() => {
       const ctx = canvasRef.current?.getContext("2d");
       ctx?.clearRect(0, 0, 9999, 9999);
@@ -242,7 +241,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const createStoryMutation = useMutation({
     mutationFn: async () => {
       const expiresAt = new Date(); expiresAt.setHours(expiresAt.getHours() + 24);
-      // For text-only stories, use a placeholder value; otherwise use the real URL
       const url = mediaUrl || (textContent ? "__text__" : "");
       return await base44.entities.Story.create({
         media_url: url,
@@ -298,13 +296,10 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const hasMedia = !!mediaUrl;
   const isTextOnlyStory = !mediaUrl && contentType === "story" && textContent;
 
-  // Tool tabs — vary by content type
   const toolTabs = [
     { id: "media",  icon: ImageIcon, label: "Media" },
-    // Text tool: only for story and post (not reel)
     { id: "text",   icon: Type,      label: "Text",   show: contentType !== "reel" },
     { id: "music",  icon: Music,     label: "Music" },
-    // Emoji, Draw, Filter — only meaningful when there's media (but still show for story text)
     { id: "emoji",  icon: Smile,     label: "Emoji",  show: hasMedia || isTextOnlyStory },
     { id: "draw",   icon: Pen,       label: "Draw",   show: hasMedia && contentType !== "reel" },
     { id: "filter", icon: Filter,    label: "Filter", show: hasMedia },
@@ -312,7 +307,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     { id: "gif",    icon: Sparkles,  label: "GIF",    show: contentType !== "reel" },
   ].filter(t => t.show !== false);
 
-  // ─── RENDER ────────────────────────────────────────────────────────────────
   return (
     <AnimatePresence>
       <motion.div
@@ -331,7 +325,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col"
           style={{ maxHeight: "92vh" }}
         >
-
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -393,17 +386,13 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           {/* ── STEP 2 — Creator ─────────────────────────────────────────────── */}
           {step === "create" && (
             <>
-              {/* ── Preview Area ──────────────────────────────────────────── */}
               {hasMedia ? (
-                // Media preview with overlay tools
                 <div className="relative flex-shrink-0 bg-black" style={{ height: 220 }}>
                   {mediaFileType === "video" ? (
                     <video src={mediaUrl} className="w-full h-full object-contain" style={filterStyle} controls={false} />
                   ) : (
                     <img src={mediaUrl} alt="preview" className="w-full h-full object-contain" style={filterStyle} />
                   )}
-
-                  {/* Draw canvas overlay — always mounted so ref works */}
                   <canvas
                     ref={canvasRef}
                     width={460} height={220}
@@ -412,14 +401,9 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw}
                     onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
                   />
-
-                  {/* Emoji overlays on media */}
                   {emojiOverlays.map((e) => (
-                    <div
-                      key={e.id}
-                      className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}
-                    >
+                    <div key={e.id} className="absolute group"
+                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}>
                       <span>{e.emoji}</span>
                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-black/80 rounded-full px-1.5 py-0.5">
                         <button onClick={() => adjustEmojiSize(e.id, -4)} className="text-white text-[10px]"><Minus className="w-3 h-3" /></button>
@@ -428,38 +412,26 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       </div>
                     </div>
                   ))}
-
-                  {/* Caption overlay on media */}
                   {caption && (
                     <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
                       <p className="text-white text-xs font-medium line-clamp-2">{caption}</p>
                     </div>
                   )}
-
-                  {/* Text overlay on media (if text tool active) */}
                   {textContent && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <p className="text-white text-xl font-bold text-center px-6 leading-relaxed drop-shadow-lg">{textContent}</p>
                     </div>
                   )}
-
-                  {/* Music badge */}
                   {music && (
                     <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
                       <Music className="w-3 h-3 text-pink-400 animate-pulse" />
                       <span className="text-white text-[10px] max-w-[100px] truncate">{music}</span>
                     </div>
                   )}
-
-                  {/* Remove media button */}
-                  <button
-                    onClick={() => setMediaUrl("")}
-                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition"
-                  >
+                  <button onClick={() => setMediaUrl("")}
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition">
                     <X className="w-4 h-4 text-white" />
                   </button>
-
-                  {/* Draw mode indicator */}
                   {drawMode && (
                     <div className="absolute top-2 left-2 bg-purple-600/90 rounded-full px-2 py-1 text-white text-xs font-semibold">
                       ✏️ Drawing
@@ -467,16 +439,11 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   )}
                 </div>
               ) : isTextOnlyStory ? (
-                // Text-only story preview
                 <div className={`relative flex-shrink-0 bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center`} style={{ height: 220 }}>
                   <p className="text-white text-xl font-bold text-center px-6 leading-relaxed">{textContent}</p>
-                  {/* Emoji overlays on text story */}
                   {emojiOverlays.map((e) => (
-                    <div
-                      key={e.id}
-                      className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}
-                    >
+                    <div key={e.id} className="absolute group"
+                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}>
                       <span>{e.emoji}</span>
                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-black/80 rounded-full px-1.5 py-0.5">
                         <button onClick={() => adjustEmojiSize(e.id, -4)} className="text-white"><Minus className="w-3 h-3" /></button>
@@ -487,7 +454,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   ))}
                 </div>
               ) : (
-                // No media yet — upload prompt
                 <div className="flex-shrink-0 bg-black/40 flex items-center justify-center" style={{ height: 100 }}>
                   <p className="text-gray-600 text-sm">
                     {contentType === "reel" ? "Upload a video to preview" : "Upload media or add text to preview"}
@@ -499,15 +465,10 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
               <div className="flex-shrink-0 border-t border-b border-white/10 bg-black/40">
                 <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
                   {toolTabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTool(tab.id)}
+                    <button key={tab.id} onClick={() => setActiveTool(tab.id)}
                       className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-2.5 text-xs font-medium transition border-b-2 ${
-                        activeTool === tab.id
-                          ? "border-purple-500 text-white"
-                          : "border-transparent text-gray-500 hover:text-gray-300"
-                      }`}
-                    >
+                        activeTool === tab.id ? "border-purple-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"
+                      }`}>
                       <tab.icon className="w-4 h-4" />
                       {tab.label}
                     </button>
@@ -519,17 +480,13 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
               <div className="flex-1 overflow-y-auto">
                 <div className="p-4 space-y-4">
 
-                  {/* MEDIA */}
                   {activeTool === "media" && (
                     <div className="space-y-3">
                       {!hasMedia ? (
                         <label className="block cursor-pointer">
-                          <input
-                            type="file"
-                            className="hidden"
+                          <input type="file" className="hidden"
                             accept={contentType === "reel" ? "video/*" : "image/*,video/*"}
-                            onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                          />
+                            onChange={(e) => handleFileUpload(e.target.files?.[0])} />
                           <div className="border-2 border-dashed border-white/20 rounded-2xl p-10 text-center hover:border-purple-500/50 hover:bg-purple-500/5 transition">
                             {uploading ? (
                               <><Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-2" /><p className="text-gray-400">Uploading...</p></>
@@ -563,42 +520,29 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                         </div>
                       )}
 
-                      {/* Caption */}
                       <div>
                         <label className="text-gray-400 text-xs mb-1.5 block">Caption</label>
-                        <textarea
-                          value={caption}
-                          onChange={(e) => setCaption(e.target.value)}
+                        <textarea value={caption} onChange={(e) => setCaption(e.target.value)}
                           placeholder={contentType === "reel" ? "Describe your reel..." : "Write a caption..."}
                           className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
-                          rows={3}
-                          maxLength={300}
-                        />
+                          rows={3} maxLength={300} />
                         <p className="text-gray-600 text-xs mt-1">{caption.length}/300</p>
                       </div>
 
-                      {/* Location (post/story only) */}
                       {contentType !== "reel" && (
                         <div className="relative">
                           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Add location"
-                            className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500 h-10"
-                          />
+                          <Input value={location} onChange={(e) => setLocation(e.target.value)}
+                            placeholder="Add location" className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500 h-10" />
                         </div>
                       )}
 
-                      {/* Vibe (post only) */}
                       {contentType === "post" && (
                         <div>
                           <label className="text-gray-400 text-xs mb-2 block">Vibe</label>
                           <div className="flex flex-wrap gap-2">
                             {VIBES.map(v => (
-                              <button
-                                key={v} type="button"
-                                onClick={() => setVibe(prev => prev === v ? "" : v)}
+                              <button key={v} type="button" onClick={() => setVibe(prev => prev === v ? "" : v)}
                                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${vibe === v ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
                               >{v}</button>
                             ))}
@@ -606,7 +550,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                         </div>
                       )}
 
-                      {/* Experience (post only) */}
                       {contentType === "post" && (
                         <>
                           <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
@@ -631,7 +574,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* TEXT — for story: text-only overlay; for post: text overlay on media */}
                   {activeTool === "text" && (
                     <div className="space-y-4">
                       {contentType === "story" && !hasMedia && (
@@ -640,7 +582,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       {contentType === "post" && !hasMedia && (
                         <p className="text-yellow-500 text-xs">⚠️ Upload media in the Media tab first to add a text overlay.</p>
                       )}
-
                       <div>
                         <label className="text-gray-400 text-xs mb-1.5 block">
                           {hasMedia ? "Text overlay on media" : contentType === "story" ? "Story text (text-only story)" : "Text"}
@@ -654,17 +595,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                           }}
                           placeholder="What's on your mind?"
                           className="w-full bg-white/5 border border-white/10 text-white text-lg rounded-xl p-4 placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
-                          rows={4} maxLength={200}
-                        />
-                        <p className="text-gray-500 text-xs">{(hasMedia ? textContent : textContent).length}/200</p>
+                          rows={4} maxLength={200} />
+                        <p className="text-gray-500 text-xs">{textContent.length}/200</p>
                       </div>
-
-                      {/* Background picker — only for story text-only */}
                       {contentType === "story" && !hasMedia && (
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block flex items-center gap-1.5">
-                            <Palette className="w-3.5 h-3.5" /> Background Color
-                          </label>
+                          <label className="text-gray-400 text-xs mb-2 block">Background Color</label>
                           <div className="grid grid-cols-6 gap-2">
                             {BG_GRADIENTS.map(bg => (
                               <button key={bg.id} type="button" onClick={() => setTextBg(bg.id)}
@@ -677,7 +613,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* MUSIC */}
                   {activeTool === "music" && (
                     <div className="space-y-3">
                       {music ? (
@@ -730,7 +665,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* EMOJI — works with media or text-only story */}
                   {activeTool === "emoji" && (
                     <div className="space-y-3">
                       <p className="text-gray-400 text-xs">Tap an emoji to overlay it on your preview.</p>
@@ -761,7 +695,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* DRAW — only available when media is uploaded */}
                   {activeTool === "draw" && (
                     <div className="space-y-3">
                       {!hasMedia ? (
@@ -769,16 +702,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       ) : (
                         <>
                           <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => setDrawMode(!drawMode)}
-                              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${drawMode ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
-                            >
+                            <button onClick={() => setDrawMode(!drawMode)}
+                              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${drawMode ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}>
                               {drawMode ? "✏️ Drawing ON — draw on preview above" : "Start Drawing"}
                             </button>
-                            <button
-                              onClick={clearCanvas}
-                              className="px-4 py-2.5 rounded-xl bg-white/10 text-gray-300 text-sm hover:bg-white/20 transition"
-                            >
+                            <button onClick={clearCanvas}
+                              className="px-4 py-2.5 rounded-xl bg-white/10 text-gray-300 text-sm hover:bg-white/20 transition">
                               Clear
                             </button>
                           </div>
@@ -797,7 +726,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* FILTER — only available when media is uploaded */}
                   {activeTool === "filter" && (
                     <div className="space-y-3">
                       {!hasMedia ? (
@@ -806,8 +734,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                         <div className="grid grid-cols-4 gap-2">
                           {FILTERS.map(f => (
                             <button key={f.id} onClick={() => setSelectedFilter(f.id)}
-                              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition ${selectedFilter === f.id ? "bg-purple-600/30 border border-purple-500" : "bg-white/5 border border-white/10 hover:bg-white/10"}`}
-                            >
+                              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition ${selectedFilter === f.id ? "bg-purple-600/30 border border-purple-500" : "bg-white/5 border border-white/10 hover:bg-white/10"}`}>
                               <div className="w-full aspect-square rounded-lg overflow-hidden">
                                 <img src={mediaUrl} className="w-full h-full object-cover" style={f.style} alt={f.label} />
                               </div>
@@ -820,7 +747,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* TAG */}
                   {activeTool === "tag" && (
                     <div className="space-y-3">
                       <div className="flex gap-2">
@@ -836,10 +762,8 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                             placeholder="@username, press Enter"
                             className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
                         </div>
-                        <button
-                          onClick={() => { if (tagInput.trim()) { setTaggedUsers(prev => [...prev, tagInput.trim()]); setTagInput(""); }}}
-                          className="px-4 py-2 bg-purple-600 rounded-xl text-white text-sm font-semibold hover:bg-purple-700 transition"
-                        >Add</button>
+                        <button onClick={() => { if (tagInput.trim()) { setTaggedUsers(prev => [...prev, tagInput.trim()]); setTagInput(""); }}}
+                          className="px-4 py-2 bg-purple-600 rounded-xl text-white text-sm font-semibold hover:bg-purple-700 transition">Add</button>
                       </div>
                       {taggedUsers.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -856,7 +780,6 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     </div>
                   )}
 
-                  {/* GIF */}
                   {activeTool === "gif" && (
                     <div className="space-y-3">
                       <div className="relative">
@@ -867,8 +790,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       {gifQuery ? (
                         <div className="grid grid-cols-3 gap-2">
                           {[1,2,3,4,5,6].map(i => (
-                            <button key={i}
-                              onClick={() => { toast.info("GIF integration coming soon!"); }}
+                            <button key={i} onClick={() => { toast.info("GIF integration coming soon!"); }}
                               className="aspect-square bg-white/5 rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center">
                               <Sparkles className="w-6 h-6 text-gray-500" />
                             </button>
@@ -888,15 +810,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
               {/* ── Publish Button ──────────────────────────────────────────── */}
               <div className="flex-shrink-0 p-4 border-t border-white/10">
-                <Button
-                  onClick={handlePublish}
-                  disabled={isPending || uploading}
+                <Button onClick={handlePublish} disabled={isPending || uploading}
                   className={`w-full h-12 font-bold text-white bg-gradient-to-r ${
                     contentType === "story" ? "from-orange-500 to-pink-500" :
                     contentType === "reel"  ? "from-cyan-500 to-blue-600" :
                     "from-purple-600 to-pink-600"
-                  } hover:opacity-90 rounded-xl`}
-                >
+                  } hover:opacity-90 rounded-xl`}>
                   {isPending
                     ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Sharing...</>
                     : `Share ${contentType === "story" ? "Story" : contentType === "reel" ? "Reel" : "Post"}`
