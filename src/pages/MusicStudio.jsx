@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Music, Upload, Play, DollarSign, TrendingUp, Users, Download,
   ChevronLeft, Sparkles, Briefcase, FileText, BarChart3, Award,
-  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle, X
+  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle, X, Trash2, CheckSquare, Square
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdvancedAnalytics from "../components/music/AdvancedAnalytics";
@@ -42,6 +42,8 @@ export default function MusicStudio() {
   const [showPoolModal, setShowPoolModal] = useState(false); // kept for compat but unused
   const [showContractModal, setShowContractModal] = useState(false);
   const [selectedTrackForSplit, setSelectedTrackForSplit] = useState(null);
+  const [selectedTracks, setSelectedTracks] = useState([]);
+  const [selectMode, setSelectMode] = useState(false);
 
   const [trackForm, setTrackForm] = useState({
     title: "",
@@ -135,6 +137,17 @@ export default function MusicStudio() {
         explicit: false,
         allow_downloads: false
       });
+    }
+  });
+
+  const deleteTracksMutation = useMutation({
+    mutationFn: async (trackIds) => {
+      await Promise.all(trackIds.map(id => base44.entities.MusicTrack.delete(id)));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-music-tracks']);
+      setSelectedTracks([]);
+      setSelectMode(false);
     }
   });
 
@@ -471,9 +484,67 @@ Make it legally sound, fair, and industry-standard.`;
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Toolbar */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setSelectMode(!selectMode); setSelectedTracks([]); }}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      {selectMode ? 'Cancel' : 'Select'}
+                    </Button>
+                    {selectMode && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedTracks(selectedTracks.length === myTracks.length ? [] : myTracks.map(t => t.id))}
+                          className="border-white/20 text-white hover:bg-white/10"
+                        >
+                          {selectedTracks.length === myTracks.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        {selectedTracks.length > 0 && (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(`Delete ${selectedTracks.length} track(s)? This cannot be undone.`)) {
+                                deleteTracksMutation.mutate(selectedTracks);
+                              }
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={deleteTracksMutation.isLoading}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete {selectedTracks.length} Track{selectedTracks.length > 1 ? 's' : ''}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-sm">{myTracks.length} track{myTracks.length !== 1 ? 's' : ''}</p>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {myTracks.map((track) => (
-                  <Card key={track.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
+                  {myTracks.map((track) => {
+                    const isSelected = selectedTracks.includes(track.id);
+                    return (
+                  <Card
+                    key={track.id}
+                    className={`bg-white/5 border-white/10 hover:bg-white/10 transition relative ${isSelected ? 'ring-2 ring-red-500 border-red-500/50' : ''}`}
+                    onClick={() => {
+                      if (selectMode) {
+                        setSelectedTracks(prev => isSelected ? prev.filter(id => id !== track.id) : [...prev, track.id]);
+                      }
+                    }}
+                  >
+                    {selectMode && (
+                      <div className="absolute top-3 left-3 z-10">
+                        {isSelected ? <CheckSquare className="w-6 h-6 text-red-400" /> : <Square className="w-6 h-6 text-gray-400" />}
+                      </div>
+                    )}
                     <CardContent className="p-4">
                       {track.cover_art_url && (
                         <img 
@@ -498,17 +569,33 @@ Make it legally sound, fair, and industry-standard.`;
                           <p className="text-gray-400">Revenue</p>
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedTrackForSplit(track)}
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Manage Splits
-                      </Button>
+                      {!selectMode && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => setSelectedTrackForSplit(track)}
+                            className="flex-1 bg-purple-600 hover:bg-purple-700"
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Splits
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(`Delete "${track.title}"? This cannot be undone.`)) {
+                                deleteTracksMutation.mutate([track.id]);
+                              }
+                            }}
+                            className="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
                 </div>
 
                 {selectedTrackForSplit && (
