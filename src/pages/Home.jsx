@@ -298,7 +298,7 @@ export default function Home() {
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
           {/* Add Your Story */}
           <button 
-            onClick={() => { setCreateModalDefaultType("story"); setShowCreateModal(true); }}
+            onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
             className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-80 transition"
             style={{ scrollSnapAlign: 'start' }}
           >

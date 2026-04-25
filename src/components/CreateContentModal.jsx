@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
   Type, Image as ImageIcon, Palette, Video, Smile, Pen, Filter,
-  Clock, ChevronRight, ChevronLeft, Check, Minus, Plus
+  Clock, ChevronRight, ChevronLeft, Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -79,9 +79,11 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const [uploading, setUploading] = useState(false);
   const [musicQuery, setMusicQuery] = useState("");
   const [gifQuery, setGifQuery] = useState("");
+  const [draggingEmoji, setDraggingEmoji] = useState(null); // { id, startX, startY, origX, origY }
 
   const canvasRef = useRef(null);
   const lastPos = useRef(null);
+  const previewRef = useRef(null);
 
   // Music search
   const { data: musicResults = [] } = useQuery({
@@ -197,14 +199,31 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   // ── Emoji overlay ───────────────────────────────────────────────────────────
 
   const addEmoji = (emoji) => {
-    setEmojiOverlays(prev => [...prev, { id: Date.now(), emoji, x: 40, y: 40, size: 36 }]);
-  };
-
-  const adjustEmojiSize = (id, delta) => {
-    setEmojiOverlays(prev => prev.map(e => e.id === id ? { ...e, size: Math.max(16, Math.min(96, e.size + delta)) } : e));
+    setEmojiOverlays(prev => [...prev, { id: Date.now(), emoji, x: 80, y: 80, size: 40 }]);
   };
 
   const removeEmoji = (id) => setEmojiOverlays(prev => prev.filter(e => e.id !== id));
+
+  const startEmojiDrag = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const touch = e.touches ? e.touches[0] : e;
+    const overlay = emojiOverlays.find(o => o.id === id);
+    setDraggingEmoji({ id, startX: touch.clientX, startY: touch.clientY, origX: overlay.x, origY: overlay.y });
+  };
+
+  const onEmojiDragMove = (e) => {
+    if (!draggingEmoji) return;
+    e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - draggingEmoji.startX;
+    const dy = touch.clientY - draggingEmoji.startY;
+    setEmojiOverlays(prev => prev.map(o =>
+      o.id === draggingEmoji.id ? { ...o, x: draggingEmoji.origX + dx, y: draggingEmoji.origY + dy } : o
+    ));
+  };
+
+  const onEmojiDragEnd = () => setDraggingEmoji(null);
 
   // ── Mutations ───────────────────────────────────────────────────────────────
 
@@ -387,7 +406,15 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           {step === "create" && (
             <>
               {hasMedia ? (
-                <div className="relative flex-shrink-0 bg-black" style={{ height: 220 }}>
+                <div
+                  ref={previewRef}
+                  className="relative flex-shrink-0 bg-black select-none"
+                  style={{ height: 220 }}
+                  onMouseMove={draggingEmoji ? onEmojiDragMove : undefined}
+                  onMouseUp={draggingEmoji ? onEmojiDragEnd : undefined}
+                  onTouchMove={draggingEmoji ? onEmojiDragMove : undefined}
+                  onTouchEnd={draggingEmoji ? onEmojiDragEnd : undefined}
+                >
                   {mediaFileType === "video" ? (
                     <video src={mediaUrl} className="w-full h-full object-contain" style={filterStyle} controls={false} />
                   ) : (
@@ -403,13 +430,15 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   />
                   {emojiOverlays.map((e) => (
                     <div key={e.id} className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}>
+                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "grab", userSelect: "none", touchAction: "none" }}
+                      onMouseDown={(ev) => startEmojiDrag(ev, e.id)}
+                      onTouchStart={(ev) => startEmojiDrag(ev, e.id)}
+                    >
                       <span>{e.emoji}</span>
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-black/80 rounded-full px-1.5 py-0.5">
-                        <button onClick={() => adjustEmojiSize(e.id, -4)} className="text-white text-[10px]"><Minus className="w-3 h-3" /></button>
-                        <button onClick={() => removeEmoji(e.id)} className="text-red-400"><X className="w-3 h-3" /></button>
-                        <button onClick={() => adjustEmojiSize(e.id, 4)} className="text-white text-[10px]"><Plus className="w-3 h-3" /></button>
-                      </div>
+                      <button
+                        onClick={(ev) => { ev.stopPropagation(); removeEmoji(e.id); }}
+                        className="absolute -top-3 -right-3 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >×</button>
                     </div>
                   ))}
                   {caption && (
@@ -439,17 +468,26 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   )}
                 </div>
               ) : isTextOnlyStory ? (
-                <div className={`relative flex-shrink-0 bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center`} style={{ height: 220 }}>
+                <div
+                  className={`relative flex-shrink-0 bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center select-none`}
+                  style={{ height: 220 }}
+                  onMouseMove={draggingEmoji ? onEmojiDragMove : undefined}
+                  onMouseUp={draggingEmoji ? onEmojiDragEnd : undefined}
+                  onTouchMove={draggingEmoji ? onEmojiDragMove : undefined}
+                  onTouchEnd={draggingEmoji ? onEmojiDragEnd : undefined}
+                >
                   <p className="text-white text-xl font-bold text-center px-6 leading-relaxed">{textContent}</p>
                   {emojiOverlays.map((e) => (
                     <div key={e.id} className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "move", userSelect: "none" }}>
+                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "grab", userSelect: "none", touchAction: "none" }}
+                      onMouseDown={(ev) => startEmojiDrag(ev, e.id)}
+                      onTouchStart={(ev) => startEmojiDrag(ev, e.id)}
+                    >
                       <span>{e.emoji}</span>
-                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1 bg-black/80 rounded-full px-1.5 py-0.5">
-                        <button onClick={() => adjustEmojiSize(e.id, -4)} className="text-white"><Minus className="w-3 h-3" /></button>
-                        <button onClick={() => removeEmoji(e.id)} className="text-red-400"><X className="w-3 h-3" /></button>
-                        <button onClick={() => adjustEmojiSize(e.id, 4)} className="text-white"><Plus className="w-3 h-3" /></button>
-                      </div>
+                      <button
+                        onClick={(ev) => { ev.stopPropagation(); removeEmoji(e.id); }}
+                        className="absolute -top-3 -right-3 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >×</button>
                     </div>
                   ))}
                 </div>
@@ -667,7 +705,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
                   {activeTool === "emoji" && (
                     <div className="space-y-3">
-                      <p className="text-gray-400 text-xs">Tap an emoji to overlay it on your preview.</p>
+                      <p className="text-gray-400 text-xs">Tap to add · Drag to move · Tap × to remove</p>
                       <div className="grid grid-cols-5 gap-2">
                         {POPULAR_EMOJIS.map((emoji) => (
                           <button key={emoji} onClick={() => addEmoji(emoji)}
@@ -678,15 +716,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       </div>
                       {emojiOverlays.length > 0 && (
                         <div className="pt-2 border-t border-white/10">
-                          <p className="text-gray-500 text-xs mb-2">Added emojis ({emojiOverlays.length})</p>
+                          <p className="text-gray-500 text-xs mb-2">Active overlays — hover to remove</p>
                           <div className="flex flex-wrap gap-2">
                             {emojiOverlays.map((e) => (
-                              <div key={e.id} className="flex items-center gap-1 bg-white/10 rounded-full px-2 py-1">
+                              <div key={e.id} className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
                                 <span className="text-lg">{e.emoji}</span>
-                                <span className="text-gray-400 text-xs">{e.size}px</span>
-                                <button onClick={() => adjustEmojiSize(e.id, -4)} className="text-gray-400 hover:text-white"><Minus className="w-3 h-3" /></button>
-                                <button onClick={() => adjustEmojiSize(e.id, 4)} className="text-gray-400 hover:text-white"><Plus className="w-3 h-3" /></button>
-                                <button onClick={() => removeEmoji(e.id)} className="text-red-400"><X className="w-3 h-3" /></button>
+                                <button onClick={() => removeEmoji(e.id)} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
                               </div>
                             ))}
                           </div>
