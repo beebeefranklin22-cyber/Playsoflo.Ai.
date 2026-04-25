@@ -115,21 +115,19 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     staleTime: 30000,
   });
 
-  // Reset when closed
+  // Reset when opened/closed
   useEffect(() => {
-    if (!isOpen) {
-      setStep("type");
-      setContentType(defaultType || null);
+    if (isOpen) {
       resetForm();
+      if (defaultType) {
+        setContentType(defaultType);
+        setStep("create");
+      } else {
+        setContentType(null);
+        setStep("type");
+      }
     }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (defaultType) {
-      setContentType(defaultType);
-      setStep("create");
-    }
-  }, [defaultType]);
+  }, [isOpen, defaultType]);
 
   const resetForm = () => {
     setMediaUrl(""); setMediaFileType("image"); setCaption(""); setLocation("");
