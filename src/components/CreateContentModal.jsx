@@ -341,8 +341,8 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col"
-          style={{ maxHeight: "92vh" }}
+          className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden"
+          style={{ maxHeight: "95vh", height: "95vh" }}
         >
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
