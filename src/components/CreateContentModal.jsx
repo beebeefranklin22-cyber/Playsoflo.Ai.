@@ -332,7 +332,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-xl"
+        className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]"
         onClick={onClose}
       >
         <motion.div
@@ -342,7 +342,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden"
-          style={{ maxHeight: "95vh", height: "95vh" }}
+          style={{ maxHeight: "calc(100vh - 80px)", height: "calc(100vh - 80px)" }}
         >
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
