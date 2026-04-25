@@ -15,8 +15,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import PullToRefresh from "../components/PullToRefresh";
 import { formatLocalTime } from "../components/utils/dateUtils";
-import CreatePostModal from "../components/CreatePostModal";
-import CreateStoryModal from "../components/CreateStoryModal";
+import CreateContentModal from "../components/CreateContentModal";
 import StoryViewer from "../components/story/StoryViewer";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
@@ -46,7 +45,7 @@ export default function Home() {
   });
   const [likedPosts, setLikedPosts] = useState(new Set());
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCreateStory, setShowCreateStory] = useState(false);
+  const [createModalDefaultType, setCreateModalDefaultType] = useState(null);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewingStories, setViewingStories] = useState(null);
@@ -299,7 +298,7 @@ export default function Home() {
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
           {/* Add Your Story */}
           <button 
-            onClick={() => setShowCreateStory(true)}
+            onClick={() => { setCreateModalDefaultType("story"); setShowCreateModal(true); }}
             className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-80 transition"
             style={{ scrollSnapAlign: 'start' }}
           >
@@ -592,7 +591,7 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-white mb-2">Welcome to PlaySoFlo</h3>
             <p className="text-gray-400 mb-6">Share your lifestyle experiences with the community</p>
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
               className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform"
             >
               Create Your First Post
@@ -603,24 +602,18 @@ export default function Home() {
 
       {/* Floating Create Button */}
       <button 
-        onClick={() => setShowCreateModal(true)}
+        onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
         className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform glow-effect z-40"
       >
         <Plus className="w-8 h-8 text-white" />
       </button>
 
-      {/* Create Post Modal */}
-      <CreatePostModal 
+      {/* Unified Create Content Modal */}
+      <CreateContentModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => { setShowCreateModal(false); setCreateModalDefaultType(null); }}
         currentUser={currentUser}
-      />
-
-      {/* Create Story Modal */}
-      <CreateStoryModal 
-        isOpen={showCreateStory}
-        onClose={() => setShowCreateStory(false)}
-        currentUser={currentUser}
+        defaultType={createModalDefaultType}
       />
 
       {/* Friend Finder Modal */}
