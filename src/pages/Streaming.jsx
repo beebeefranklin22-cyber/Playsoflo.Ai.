@@ -6,7 +6,7 @@ import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
   Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
-  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video
+  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -830,22 +830,31 @@ export default function Streaming() {
               </div>
               <div>
                 <label className="text-gray-400 text-xs mb-1.5 block">Video *</label>
-                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="Paste URL or upload from device below" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <Input value={uploadData.video_url} onChange={(e) => setUploadData(p => ({ ...p, video_url: e.target.value }))} placeholder="Paste video URL (MP4, HLS, YouTube...)" className="bg-white/8 border-white/15 text-white" style={{ background: 'rgba(255,255,255,0.06)' }} />
                 <div className="flex items-center gap-2 mt-2">
                   <input
                     type="file"
-                    accept="video/*"
+                    accept="video/*,video/mp4,video/mov,video/avi,video/mkv,video/webm"
                     id="video-file-upload"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      const maxGB = 10;
+                      if (file.size > maxGB * 1024 * 1024 * 1024) {
+                        toast.error(`File too large. Max ${maxGB}GB.`); return;
+                      }
                       setUploading(true);
-                      toast.info("Uploading video from device...");
-                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                      setUploadData(p => ({ ...p, video_url: file_url }));
-                      setUploading(false);
-                      toast.success("Video uploaded!");
+                      toast.info(`Uploading "${file.name}" in background — fill in details while it uploads!`);
+                      try {
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        setUploadData(p => ({ ...p, video_url: file_url }));
+                        toast.success("Video upload complete!");
+                      } catch (err) {
+                        toast.error("Upload failed: " + err.message);
+                      } finally {
+                        setUploading(false);
+                      }
                     }}
                   />
                   <Button
@@ -856,11 +865,15 @@ export default function Streaming() {
                     onClick={() => document.getElementById('video-file-upload').click()}
                     disabled={uploading}
                   >
-                    <Upload className="w-3.5 h-3.5 mr-1" />
-                    {uploading ? "Uploading..." : "Upload from Device"}
+                    {uploading ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Uploading...</> : <><Upload className="w-3.5 h-3.5 mr-1" />Upload File (up to 10GB)</>}
                   </Button>
                 </div>
-                {uploadData.video_url && !uploadData.video_url.includes("blob") && uploadData.video_url.startsWith("http") && (
+                {uploading && (
+                  <p className="text-blue-400 text-xs mt-1 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Uploading in background — you can fill in the details above
+                  </p>
+                )}
+                {uploadData.video_url && !uploading && uploadData.video_url.startsWith("http") && (
                   <p className="text-green-400 text-xs mt-1">✓ Video ready</p>
                 )}
               </div>
