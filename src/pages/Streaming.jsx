@@ -6,7 +6,7 @@ import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
   Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
-  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2
+  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -43,6 +43,7 @@ const SORT_OPTIONS = [
 export default function Streaming() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("all"); // "all" | "following"
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -183,6 +184,32 @@ export default function Streaming() {
     initialData: [],
     refetchInterval: 15000,
   });
+
+  // Fetch who the current user is following
+  const { data: following = [] } = useQuery({
+    queryKey: ['streaming-following', currentUser?.email],
+    queryFn: () => base44.entities.Follow.filter({ follower_email: currentUser.email }),
+    enabled: !!currentUser,
+    initialData: [],
+  });
+
+  const followingEmails = useMemo(() => following.map(f => f.following_email), [following]);
+
+  const followingContent = useMemo(() => {
+    if (!followingEmails.length) return [];
+    return content.filter(i =>
+      !i.is_live &&
+      i.status !== "ended" &&
+      (followingEmails.includes(i.creator_email) || followingEmails.includes(i.created_by))
+    ).sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+  }, [content, followingEmails]);
+
+  const followingLivestreams = useMemo(() => {
+    if (!followingEmails.length) return [];
+    return activeLivestreams.filter(i =>
+      followingEmails.includes(i.creator_email) || followingEmails.includes(i.created_by)
+    );
+  }, [activeLivestreams, followingEmails]);
 
   const { data: endedStreams = [], refetch: refetchEnded } = useQuery({
     queryKey: ['ended-streams'],
@@ -333,7 +360,7 @@ export default function Streaming() {
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
@@ -343,6 +370,32 @@ export default function Streaming() {
             className="w-full bg-white/8 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-purple-500 transition"
             style={{ background: 'rgba(255,255,255,0.06)' }}
           />
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab("all")}
+            className={`flex-1 py-2 rounded-xl text-sm font-semibold transition ${activeTab === "all" ? "bg-purple-600 text-white" : "text-gray-400 hover:text-white"}`}
+            style={{ background: activeTab === "all" ? undefined : 'rgba(255,255,255,0.06)' }}
+          >
+            All Content
+          </button>
+          {currentUser && (
+            <button
+              onClick={() => setActiveTab("following")}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-1.5 ${activeTab === "following" ? "bg-blue-600 text-white" : "text-gray-400 hover:text-white"}`}
+              style={{ background: activeTab === "following" ? undefined : 'rgba(255,255,255,0.06)' }}
+            >
+              <UserCheck className="w-4 h-4" />
+              Following
+              {followingContent.length > 0 && (
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${activeTab === "following" ? "bg-white/20" : "bg-blue-500/30 text-blue-300"}`}>
+                  {followingContent.length}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -519,8 +572,107 @@ export default function Streaming() {
         </div>
       )}
 
-      {/* Category Tabs */}
-      <div className="px-4 mb-4">
+      {/* Following Feed */}
+      {activeTab === "following" && (
+        <div className="px-4 mb-6">
+          {!currentUser ? (
+            <div className="text-center py-16">
+              <UserCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-400 font-semibold">Sign in to see your following feed</p>
+            </div>
+          ) : following.length === 0 ? (
+            <div className="text-center py-16">
+              <UserCheck className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+              <p className="text-gray-400 font-semibold">You're not following anyone yet</p>
+              <p className="text-gray-600 text-sm mt-1">Follow creators to see their content here</p>
+            </div>
+          ) : (
+            <>
+              {/* Live from following */}
+              {followingLivestreams.length > 0 && (
+                <div className="mb-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <h2 className="text-white font-bold text-base">Live from Following</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {followingLivestreams.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={() => navigate(createPageUrl("LivestreamViewer") + `?id=${item.id}`)}
+                        className="flex gap-3 bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+                      >
+                        <div className="relative w-28 h-20 flex-shrink-0">
+                          {item.thumbnail_url ? (
+                            <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-red-900 to-purple-900 flex items-center justify-center">
+                              <Radio className="w-6 h-6 text-white/40" />
+                            </div>
+                          )}
+                          <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-red-600 px-1.5 py-0.5 rounded text-white text-[10px] font-bold">
+                            <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> LIVE
+                          </div>
+                        </div>
+                        <div className="flex-1 py-3 pr-3 min-w-0">
+                          <p className="text-white font-semibold text-sm line-clamp-1">{item.title}</p>
+                          <p className="text-gray-400 text-xs mt-0.5 truncate">@{item.creator_username || item.creator_email}</p>
+                        </div>
+                        <div className="flex items-center pr-3">
+                          <ChevronRight className="w-4 h-4 text-gray-500" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* VOD from following */}
+              {followingContent.length === 0 ? (
+                <div className="text-center py-10">
+                  <Tv className="w-10 h-10 text-gray-700 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No videos from followed creators yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {followingContent.map((item) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      onClick={() => handleContentClick(item)}
+                      className="cursor-pointer group"
+                    >
+                      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900">
+                        {item.thumbnail_url ? (
+                          <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <Tv className="w-10 h-10 text-gray-700" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
+                            <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                          </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-white font-semibold text-xs line-clamp-2 leading-tight mb-1">{item.title}</p>
+                          <p className="text-gray-400 text-[10px] truncate">@{item.creator_username || item.creator_email}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Category Tabs — only show in "all" tab */}
+      {activeTab === "all" && <div className="px-4 mb-4">
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ touchAction: 'pan-x' }}>
           {CATEGORIES.map((cat) => (
             <button
@@ -538,10 +690,10 @@ export default function Streaming() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Filter Toggle Row */}
-      <div className="px-4 mb-4">
+      {activeTab === "all" && <div className="px-4 mb-4">
         <div className="flex items-center justify-between">
           <p className="text-gray-400 text-sm">
             {filteredContent.length} {filteredContent.length === 1 ? "video" : "videos"}
@@ -607,10 +759,11 @@ export default function Streaming() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div>}
 
-      {/* Content Grid */}
-      <div className="px-4">
+      {/* Content Grid — only in "all" tab */}
+
+      {activeTab === "all" && <div className="px-4">
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -700,7 +853,7 @@ export default function Streaming() {
             </AnimatePresence>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ── MODALS ── */}
 
