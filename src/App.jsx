@@ -2,6 +2,7 @@ import './App.css'
 import VODPlayer from './pages/VODPlayer'
 import LiveTracking from './pages/LiveTracking'
 import InventoryManager from './pages/InventoryManager'
+import Reels from './pages/Reels'
 import CreatorChannel from './pages/CreatorChannel'
 import CreatorDashboard from './pages/CreatorDashboard'
 import TravelCategoryHub from './pages/TravelCategoryHub'
@@ -82,6 +83,7 @@ const AuthenticatedApp = () => {
       <Route path="/ApplicationTracker" element={<LayoutWrapper currentPageName="ApplicationTracker"><ApplicationTracker /></LayoutWrapper>} />
       <Route path="/LiveTracking" element={<LayoutWrapper currentPageName="LiveTracking"><LiveTracking /></LayoutWrapper>} />
       <Route path="/InventoryManager" element={<LayoutWrapper currentPageName="InventoryManager"><InventoryManager /></LayoutWrapper>} />
+      <Route path="/Reels" element={<Reels />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

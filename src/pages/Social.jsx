@@ -6,7 +6,7 @@ import { createPageUrl } from "@/utils";
 import { 
   TrendingUp, Users, Hash, Sparkles, Search, Flame,
   Heart, MessageCircle, Eye, Clock, Crown, Star,
-  Globe, MapPin, ChevronRight, Radio
+  Globe, MapPin, ChevronRight, Radio, Clapperboard
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -86,8 +86,23 @@ export default function Social() {
           </h1>
           <p className="text-gray-400">Trending content, popular creators, and what's hot right now</p>
 
+          {/* Reels shortcut */}
+          <button
+            onClick={() => navigate(createPageUrl("Reels"))}
+            className="mt-4 w-full flex items-center gap-3 bg-gradient-to-r from-purple-600/30 to-pink-600/30 border border-purple-500/30 rounded-2xl px-4 py-3 hover:from-purple-600/50 hover:to-pink-600/50 transition mb-3"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+              <Clapperboard className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-white font-bold text-sm">Reels</p>
+              <p className="text-gray-400 text-xs">Short videos from creators</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
+          </button>
+
           {/* Search + Go Live */}
-          <div className="mt-4 flex gap-3">
+          <div className="flex gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
