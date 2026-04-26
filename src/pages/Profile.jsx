@@ -32,6 +32,7 @@ import FriendRequestsModal from "../components/friends/FriendRequestsModal";
 import FriendsListModal from "../components/friends/FriendsListModal";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
+import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -404,6 +405,7 @@ export default function Profile() {
         <Tabs defaultValue="overview" className="mt-6">
           <TabsList className="bg-white/10 border border-white/20 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="business">Business Hub</TabsTrigger>
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="gallery">Gallery</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
@@ -822,6 +824,10 @@ export default function Profile() {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="business" className="space-y-4">
+            <ProfileBusinessHub currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="portfolio" className="space-y-4">
