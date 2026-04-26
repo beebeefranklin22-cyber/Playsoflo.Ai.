@@ -8,13 +8,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus, Trash2, Edit2, Upload, Store, Package, UtensilsCrossed,
   Tag, DollarSign, Image as ImageIcon, Loader2, X, Star, Check,
-  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera, Car, Video
+  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera, Car, Video, Briefcase
 } from "lucide-react";
 import { toast } from "sonner";
 import InventoryProductList from "../inventory/InventoryProductList";
 import InventoryBulkImport from "../inventory/InventoryBulkImport";
 import BusinessHubDriverSection from "./BusinessHubDriverSection";
 import BusinessHubCreatorSection from "./BusinessHubCreatorSection";
+import BusinessHubProviderSection from "./BusinessHubProviderSection";
 
 // ─── Menu Item Form ─────────────────────────────────────────────────────────
 const MENU_CATEGORIES = ["Appetizers", "Mains", "Sides", "Desserts", "Drinks", "Specials", "Breakfast", "Lunch", "Dinner", "Kids Menu", "Combos", "Vegan"];
@@ -763,17 +764,18 @@ export default function ProfileBusinessHub({ currentUser, onUserUpdate }) {
   const [activeSection, setActiveSection] = useState("menu");
 
   const sections = [
-    { id: "menu", label: "Restaurant Menu", icon: UtensilsCrossed, color: "from-orange-500 to-red-500" },
-    { id: "storefront", label: "Digital Storefront", icon: ShoppingBag, color: "from-purple-500 to-pink-500" },
+    { id: "menu", label: "Restaurant", icon: UtensilsCrossed, color: "from-orange-500 to-red-500" },
+    { id: "storefront", label: "Storefront", icon: ShoppingBag, color: "from-purple-500 to-pink-500" },
     { id: "inventory", label: "Inventory", icon: Package, color: "from-blue-500 to-cyan-500" },
-    { id: "creator", label: "Content Hub", icon: Video, color: "from-pink-500 to-purple-600" },
+    { id: "services", label: "Services", icon: Briefcase, color: "from-green-500 to-teal-500" },
+    { id: "creator", label: "Content", icon: Video, color: "from-pink-500 to-purple-600" },
     { id: "driver", label: "Driver", icon: Car, color: "from-blue-600 to-cyan-600" },
   ];
 
   return (
     <div className="space-y-6">
       {/* Section Picker */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {sections.map(s => (
           <button key={s.id} onClick={() => setActiveSection(s.id)}
             className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${activeSection === s.id ? "border-white/30 bg-white/10 scale-[1.02]" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
@@ -800,6 +802,7 @@ export default function ProfileBusinessHub({ currentUser, onUserUpdate }) {
         </>
       )}
       {activeSection === "inventory" && <InventoryProductList currentUser={currentUser} />}
+      {activeSection === "services" && <BusinessHubProviderSection currentUser={currentUser} />}
       {activeSection === "creator" && <BusinessHubCreatorSection currentUser={currentUser} />}
       {activeSection === "driver" && <BusinessHubDriverSection currentUser={currentUser} onUserUpdate={onUserUpdate} />}
     </div>
