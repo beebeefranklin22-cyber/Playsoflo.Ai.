@@ -4,14 +4,13 @@ import {
   Music, MapPin, Calendar, Settings, Edit2, Camera, Users,  
   Lock, Upload, Loader2, Tag, Plus, X,
   Shield, Bell, Globe, Award,
-  Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
-  DollarSign, ChevronRight, Palette, Navigation, AlertTriangle,
+  Activity, Sparkles, Briefcase, Wallet,
+  DollarSign, ChevronRight, Palette, AlertTriangle,
   Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import BecomeDriverButton from "../components/driver/BecomeDriverButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,8 +25,6 @@ import GallerySection from "../components/profile/GallerySection";
 import ReviewsList from "../components/reviews/ReviewsList";
 import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
-import RidePreferencesModal from "../components/ride/RidePreferencesModal";
-import VehicleInfoModal from "../components/ride/VehicleInfoModal";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
@@ -44,8 +41,6 @@ export default function Profile() {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [showCustomization, setShowCustomization] = useState(false);
-  const [showRidePreferences, setShowRidePreferences] = useState(false);
-  const [showVehicleInfo, setShowVehicleInfo] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
@@ -562,140 +557,42 @@ export default function Profile() {
               </CardContent>
             </Card>
 
-            {/* My Hubs & Services */}
-            {/* Ride Settings */}
-            <Card className="glass-effect border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Navigation className="w-5 h-5" />
-                  Ride Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => setShowRidePreferences(true)}
-                  variant="outline"
-                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Ride Preferences
-                </Button>
-                <Button
-                  onClick={() => setShowVehicleInfo(true)}
-                  variant="outline"
-                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
-                >
-                  <Car className="w-4 h-4 mr-2" />
-                  My Vehicle Info (Driver)
-                </Button>
-                {currentUser && <BecomeDriverButton currentUser={currentUser} />}
-              </CardContent>
-            </Card>
-
+            {/* Quick Hub Links */}
             <Card className="glass-effect border-white/10">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Briefcase className="w-5 h-5" />
-                  My Hubs & Services
+                  My Hubs
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-3">
-                  <button
-                    onClick={() => navigate(createPageUrl("DriverHub"))}
-                    className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <Car className="w-5 h-5 text-blue-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">Driver Hub</p>
-                        <p className="text-gray-400 text-xs">Manage rides & earnings</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
-                  </button>
-
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => navigate(createPageUrl("ProviderHub"))}
-                    className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
+                    className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">Provider Hub</p>
-                        <p className="text-gray-400 text-xs">Services & bookings</p>
-                      </div>
+                    <div className="w-9 h-9 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Briefcase className="w-4 h-4 text-purple-400" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
-                  </button>
-
-                  <button
-                    onClick={() => navigate(createPageUrl("CreatorHub"))}
-                    className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-pink-500/20 rounded-lg flex items-center justify-center">
-                        <Video className="w-5 h-5 text-pink-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">Creator Hub</p>
-                        <p className="text-gray-400 text-xs">Content & monetization</p>
-                      </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-white font-medium text-sm">Provider Hub</p>
+                      <p className="text-gray-400 text-xs">Services & bookings</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
                   </button>
-
-                  <button
-                    onClick={() => navigate(createPageUrl("RestaurantOwnerHub"))}
-                    className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                        <Store className="w-5 h-5 text-orange-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">Restaurant Hub</p>
-                        <p className="text-gray-400 text-xs">Menu & orders</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Monetization & Earnings */}
-            <Card className="glass-effect border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Earnings & Monetization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
                   <button
                     onClick={() => navigate(createPageUrl("Wallet"))}
-                    className="flex items-center justify-between w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
+                    className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-green-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">My Wallet</p>
-                        <p className="text-gray-400 text-xs">Balance: $0.00</p>
-                      </div>
+                    <div className="w-9 h-9 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Wallet className="w-4 h-4 text-green-400" />
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
+                    <div className="text-left min-w-0">
+                      <p className="text-white font-medium text-sm">My Wallet</p>
+                      <p className="text-gray-400 text-xs">Balance & earnings</p>
+                    </div>
                   </button>
-
-
                 </div>
+                <p className="text-gray-500 text-xs mt-3 text-center">Driver, Creator & Store tools are in the <strong className="text-gray-400">Business Hub</strong> tab ↗</p>
               </CardContent>
             </Card>
 
@@ -767,7 +664,13 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="business" className="space-y-4">
-            <ProfileBusinessHub currentUser={currentUser} />
+            <ProfileBusinessHub
+              currentUser={currentUser}
+              onUserUpdate={async () => {
+                const user = await base44.auth.me();
+                setCurrentUser(user);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="portfolio" className="space-y-4">
@@ -1218,28 +1121,6 @@ export default function Profile() {
       <ProfileCustomization
         isOpen={showCustomization}
         onClose={() => setShowCustomization(false)}
-        currentUser={currentUser}
-        onUpdate={async () => {
-          const user = await base44.auth.me();
-          setCurrentUser(user);
-        }}
-      />
-
-      {/* Ride Preferences Modal */}
-      <RidePreferencesModal
-        isOpen={showRidePreferences}
-        onClose={() => setShowRidePreferences(false)}
-        currentUser={currentUser}
-        onUpdate={async () => {
-          const user = await base44.auth.me();
-          setCurrentUser(user);
-        }}
-      />
-
-      {/* Vehicle Info Modal */}
-      <VehicleInfoModal
-        isOpen={showVehicleInfo}
-        onClose={() => setShowVehicleInfo(false)}
         currentUser={currentUser}
         onUpdate={async () => {
           const user = await base44.auth.me();

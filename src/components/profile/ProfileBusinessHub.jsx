@@ -8,11 +8,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus, Trash2, Edit2, Upload, Store, Package, UtensilsCrossed,
   Tag, DollarSign, Image as ImageIcon, Loader2, X, Star, Check,
-  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera
+  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera, Car, Video
 } from "lucide-react";
 import { toast } from "sonner";
 import InventoryProductList from "../inventory/InventoryProductList";
 import InventoryBulkImport from "../inventory/InventoryBulkImport";
+import BusinessHubDriverSection from "./BusinessHubDriverSection";
+import BusinessHubCreatorSection from "./BusinessHubCreatorSection";
 
 // ─── Menu Item Form ─────────────────────────────────────────────────────────
 const MENU_CATEGORIES = ["Appetizers", "Mains", "Sides", "Desserts", "Drinks", "Specials", "Breakfast", "Lunch", "Dinner", "Kids Menu", "Combos", "Vegan"];
@@ -757,27 +759,29 @@ function StoreIdentityForm({ currentUser, storeType }) {
 }
 
 // ─── Main ProfileBusinessHub Component ────────────────────────────────────────
-export default function ProfileBusinessHub({ currentUser }) {
+export default function ProfileBusinessHub({ currentUser, onUserUpdate }) {
   const [activeSection, setActiveSection] = useState("menu");
 
   const sections = [
     { id: "menu", label: "Restaurant Menu", icon: UtensilsCrossed, color: "from-orange-500 to-red-500" },
     { id: "storefront", label: "Digital Storefront", icon: ShoppingBag, color: "from-purple-500 to-pink-500" },
-    { id: "inventory", label: "Inventory Manager", icon: Package, color: "from-blue-500 to-cyan-500" },
+    { id: "inventory", label: "Inventory", icon: Package, color: "from-blue-500 to-cyan-500" },
+    { id: "creator", label: "Content Hub", icon: Video, color: "from-pink-500 to-purple-600" },
+    { id: "driver", label: "Driver", icon: Car, color: "from-blue-600 to-cyan-600" },
   ];
 
   return (
     <div className="space-y-6">
       {/* Section Picker */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
         {sections.map(s => (
           <button key={s.id} onClick={() => setActiveSection(s.id)}
-            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all ${activeSection === s.id ? "border-white/30 bg-white/10 scale-[1.02]" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
+            className={`flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all ${activeSection === s.id ? "border-white/30 bg-white/10 scale-[1.02]" : "border-white/10 bg-white/5 hover:bg-white/10"}`}
           >
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
-              <s.icon className="w-5 h-5 text-white" />
+            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>
+              <s.icon className="w-4 h-4 text-white" />
             </div>
-            <span className={`text-xs font-medium text-center ${activeSection === s.id ? "text-white" : "text-gray-400"}`}>{s.label}</span>
+            <span className={`text-xs font-medium text-center leading-tight ${activeSection === s.id ? "text-white" : "text-gray-400"}`}>{s.label}</span>
           </button>
         ))}
       </div>
@@ -796,6 +800,8 @@ export default function ProfileBusinessHub({ currentUser }) {
         </>
       )}
       {activeSection === "inventory" && <InventoryProductList currentUser={currentUser} />}
+      {activeSection === "creator" && <BusinessHubCreatorSection currentUser={currentUser} />}
+      {activeSection === "driver" && <BusinessHubDriverSection currentUser={currentUser} onUserUpdate={onUserUpdate} />}
     </div>
   );
 }
