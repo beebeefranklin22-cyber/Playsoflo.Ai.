@@ -299,27 +299,61 @@ export default function Home() {
       {/* Stories Bar */}
       <div className="sticky top-16 z-10 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
-          {/* Add Your Story */}
-          <button 
-            onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
-            className="flex flex-col items-center gap-2 flex-shrink-0 hover:opacity-80 transition"
-            style={{ scrollSnapAlign: 'start' }}
-          >
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center relative shadow-lg hover:scale-105 transition-transform">
-              <Plus className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-white text-xs font-medium">Add Story</span>
-          </button>
+          
+          {/* Your Story — always first (Instagram style: profile pic + plus button) */}
+          {(() => {
+            const myStories = stories.filter(s => s.created_by === currentUser?.email);
+            const hasMyStory = myStories.length > 0;
+            return (
+              <div className="relative flex flex-col items-center gap-2 flex-shrink-0 group" style={{ scrollSnapAlign: 'start' }}>
+                <button
+                  onClick={() => {
+                    if (hasMyStory) {
+                      const idx = stories.findIndex(s => s.id === myStories[0].id);
+                      setStoryStartIndex(idx);
+                      setViewingStories(stories);
+                    } else {
+                      setCreateModalDefaultType("story");
+                      setShowCreateModal(true);
+                    }
+                  }}
+                  className="relative"
+                >
+                  {/* Profile picture ring */}
+                  <div className={`w-16 h-16 rounded-full p-0.5 shadow-lg hover:scale-105 transition-transform ${hasMyStory ? 'bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500' : 'bg-gray-700'}`}>
+                    <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
+                      {currentUser?.profile_picture ? (
+                        <img src={currentUser.profile_picture} className="w-full h-full object-cover" alt="Your story" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500 text-xl">
+                          {currentUser?.full_name?.[0]?.toUpperCase() || "U"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Plus button overlay at bottom-right */}
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-gray-900 shadow">
+                    <Plus className="w-3 h-3 text-white" />
+                  </div>
+                </button>
+                <span className="text-white text-xs font-medium">Your story</span>
+                {/* Delete own stories on hover */}
+                {hasMyStory && myStories.map(s => null) /* handled below */ }
+              </div>
+            );
+          })()}
 
           {/* Sponsored Story Ad */}
           <AdDisplay currentUser={currentUser} position="stories" />
 
-          {/* Stories from following */}
-          {stories.slice(0, 15).map((story) => {
-            const isMyStory = story.created_by === currentUser?.email;
-            return (
+          {/* Friends' stories — sorted most recent first, no own story */}
+          {stories
+            .filter(s => s.created_by !== currentUser?.email)
+            .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+            .slice(0, 15)
+            .map((story) => (
               <div key={story.id} className="relative flex flex-col items-center gap-2 flex-shrink-0 group" style={{ scrollSnapAlign: 'start' }}>
-                <button 
+                <button
                   onClick={() => {
                     const storyIndex = stories.findIndex(s => s.id === story.id);
                     setStoryStartIndex(storyIndex);
@@ -329,11 +363,13 @@ export default function Home() {
                 >
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 p-0.5 shadow-lg hover:scale-105 transition-transform">
                     <div className="w-full h-full rounded-full bg-gray-900 overflow-hidden">
-                      {story.media_url && story.media_url !== 'text-story' ? (
+                      {story.creator_profile_picture ? (
+                        <img src={story.creator_profile_picture} className="w-full h-full object-cover" alt="Story" />
+                      ) : story.media_url && story.media_url !== '__text__' ? (
                         <img src={story.media_url} className="w-full h-full object-cover" alt="Story" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-purple-500 to-pink-500 text-xl">
-                          {story.created_by?.[0]?.toUpperCase() || "U"}
+                          {(story.creator_name || story.created_by)?.[0]?.toUpperCase() || "U"}
                         </div>
                       )}
                     </div>
@@ -344,35 +380,11 @@ export default function Home() {
                     </div>
                   )}
                 </button>
-
                 <span className="text-gray-300 text-xs max-w-[64px] truncate">
-                  {isMyStory ? 'You' : story.created_by?.split('@')[0]}
+                  {story.creator_name || story.created_by?.split('@')[0]}
                 </span>
-
-                {/* Delete button for own stories */}
-                {isMyStory && (
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (confirm('Delete this story?')) {
-                        try {
-                          await base44.entities.Story.delete(story.id);
-                          await queryClient.invalidateQueries({ queryKey: ['stories'] });
-                          toast.success('✅ Story deleted');
-                        } catch (error) {
-                          console.error('Delete error:', error);
-                          toast.error('❌ Failed to delete story');
-                        }
-                      }
-                    }}
-                    className="absolute top-0 right-0 w-5 h-5 bg-red-500/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:bg-red-600"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                )}
               </div>
-            );
-          })}
+            ))}
         </div>
       </div>
 

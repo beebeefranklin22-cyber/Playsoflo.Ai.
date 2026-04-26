@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import {
   X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
   Type, Image as ImageIcon, Video, Smile, Pen, SlidersHorizontal,
-  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2
+  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2, Trash2, Plus as PlusIcon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -69,7 +69,9 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   // Content
   const [caption, setCaption]           = useState("");
-  const [textOverlay, setTextOverlay]   = useState("");
+  // Multiple text overlays — array of { id, text, x, y, color }
+  const [textOverlays, setTextOverlays] = useState([]);
+  const [activeTextId, setActiveTextId] = useState(null); // which text is being edited
   const [textBg, setTextBg]             = useState("sunset");
   const [location, setLocation]         = useState("");
   const [music, setMusic]               = useState("");
@@ -90,6 +92,10 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const [uploading, setUploading]       = useState(false);
   const [musicQuery, setMusicQuery]     = useState("");
   const [draggingEmoji, setDraggingEmoji] = useState(null);
+  const [draggingTextId, setDraggingTextId] = useState(null);
+  const [draggingTextStart, setDraggingTextStart] = useState(null);
+  const [showTrashZone, setShowTrashZone] = useState(false);
+  const [overTrash, setOverTrash] = useState(false);
 
   const canvasRef  = useRef(null);
   const lastPos    = useRef(null);
@@ -117,14 +123,14 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   const resetForm = () => {
     setMediaUrl(""); setMediaFileType("image");
-    setCaption(""); setTextOverlay(""); setLocation("");
+    setCaption(""); setTextOverlays([]); setActiveTextId(null); setLocation("");
     setMusic(""); setAudioName(""); setVibe("");
     setIsExperience(false); setExperienceType("");
     setTaggedUsers([]); setTagInput("");
     setTextBg("sunset"); setSelectedFilter("none");
     setEmojiOverlays([]); setDrawMode(false);
     setActiveTool(null); setMusicQuery("");
-    setTextPos({ x: null, y: null });
+    setDraggingTextId(null); setShowTrashZone(false); setOverTrash(false);
     setTimeout(() => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); }, 50);
   };
 
@@ -191,25 +197,59 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const endDraw = () => setIsDrawing(false);
   const clearCanvas = () => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); };
 
-  // ── Draggable text overlay ───────────────────────────────────────────────────
-  const [textPos, setTextPos] = useState({ x: null, y: null });
-  const [draggingText, setDraggingText] = useState(null);
+  // ── Draggable text overlays (multi) ─────────────────────────────────────────
+  const addTextOverlay = () => {
+    const id = Date.now();
+    setTextOverlays(prev => [...prev, { id, text: "", x: 60, y: 100, color: "#ffffff" }]);
+    setActiveTextId(id);
+  };
 
-  const startTextDrag = (e) => {
+  const updateTextOverlay = (id, field, value) => {
+    setTextOverlays(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const removeTextOverlay = (id) => {
+    setTextOverlays(prev => prev.filter(t => t.id !== id));
+    if (activeTextId === id) setActiveTextId(null);
+  };
+
+  const startTextDrag = (e, id) => {
     e.preventDefault(); e.stopPropagation();
     const touch = e.touches ? e.touches[0] : e;
-    setDraggingText({ startX: touch.clientX, startY: touch.clientY, origX: textPos.x || 0, origY: textPos.y || 0 });
+    const overlay = textOverlays.find(t => t.id === id);
+    setDraggingTextId(id);
+    setDraggingTextStart({ startX: touch.clientX, startY: touch.clientY, origX: overlay.x, origY: overlay.y });
+    setShowTrashZone(true);
   };
 
   const onTextDragMove = (e) => {
-    if (!draggingText) return; e.preventDefault();
+    if (!draggingTextId || !draggingTextStart) return; e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
-    const dx = touch.clientX - draggingText.startX;
-    const dy = touch.clientY - draggingText.startY;
-    setTextPos({ x: draggingText.origX + dx, y: draggingText.origY + dy });
+    const dx = touch.clientX - draggingTextStart.startX;
+    const dy = touch.clientY - draggingTextStart.startY;
+    const newX = draggingTextStart.origX + dx;
+    const newY = draggingTextStart.origY + dy;
+    setTextOverlays(prev => prev.map(t => t.id === draggingTextId ? { ...t, x: newX, y: newY } : t));
+    // Check if over trash zone (bottom center of canvas)
+    const canvasEl = previewRef.current;
+    if (canvasEl) {
+      const rect = canvasEl.getBoundingClientRect();
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const inTrash = clientY > rect.bottom - 60 && clientX > rect.left + rect.width * 0.3 && clientX < rect.right - rect.width * 0.3;
+      setOverTrash(inTrash);
+    }
   };
 
-  const onTextDragEnd = () => setDraggingText(null);
+  const onTextDragEnd = () => {
+    if (overTrash && draggingTextId) {
+      removeTextOverlay(draggingTextId);
+    }
+    setDraggingTextId(null);
+    setDraggingTextStart(null);
+    setShowTrashZone(false);
+    setOverTrash(false);
+  };
 
   // ── Emoji drag ──────────────────────────────────────────────────────────────
 
@@ -274,7 +314,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
       return await base44.entities.Story.create({
         media_url: mediaUrl || "__text__",
         media_type: mediaUrl ? mediaFileType : "text",
-        caption: caption || textOverlay,
+        caption: caption || textOverlays.map(t => t.text).filter(Boolean).join(' | '),
         music,
         creator_profile_picture: currentUser?.profile_picture || currentUser?.profile_photo,
         creator_name: currentUser?.full_name || currentUser?.username,
@@ -306,7 +346,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   const handlePublish = () => {
     const hasMedia = !!mediaUrl;
-    const hasText  = !!(caption || textOverlay);
+    const hasText  = !!(caption || textOverlays.some(t => t.text));
     if (!hasMedia && !hasText) { toast.error("Add media or text first"); return; }
     if (contentType === "reel" && !mediaUrl) { toast.error("Add a video for your reel"); return; }
     if (contentType === "post" && !mediaUrl) { toast.error("Add media for your post"); return; }
@@ -320,7 +360,8 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const filterStyle  = FILTERS.find(f => f.id === selectedFilter)?.style || {};
   const selectedBg   = BG_GRADIENTS.find(b => b.id === textBg);
   const hasMedia     = !!mediaUrl;
-  const isTextOnly   = !mediaUrl && contentType === "story" && textOverlay;
+  const isTextOnly   = !mediaUrl && contentType === "story" && textOverlays.some(t => t.text);
+  const activeTextOverlay = textOverlays.find(t => t.id === activeTextId);
 
   // Which tools to show on the right rail (always visible once in create step)
   const visibleTools = TOOLS.filter(t => {
@@ -427,9 +468,9 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                 ref={previewRef}
                 className="relative overflow-hidden select-none flex-shrink-0"
                 style={{ height: "min(45vh, 340px)" }}
-                onMouseMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onMouseMove={(e) => { if (draggingTextId) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
                 onMouseUp={() => { onTextDragEnd(); onEmojiDragEnd(); endDraw(); }}
-                onTouchMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onTouchMove={(e) => { if (draggingTextId) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
                 onTouchEnd={() => { onTextDragEnd(); onEmojiDragEnd(); endDraw(); }}
               >
                 {/* Media / background */}
@@ -438,9 +479,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                     ? <video src={mediaUrl} className="w-full h-full object-cover" style={filterStyle} playsInline muted controls />
                     : <img src={mediaUrl} alt="preview" className="w-full h-full object-cover" style={filterStyle} />
                 ) : isTextOnly ? (
-                  <div className={`w-full h-full bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center`}>
-                    <p className="text-white text-2xl font-bold text-center px-8 leading-relaxed drop-shadow">{textOverlay}</p>
-                  </div>
+                  <div className={`w-full h-full bg-gradient-to-br ${selectedBg?.cls}`} />
                 ) : (
                   /* Upload placeholder */
                   <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-black/60 hover:bg-black/50 transition relative">
@@ -469,7 +508,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                         {contentType === "story" && (
                           <button
                             type="button"
-                            onClick={(ev) => { ev.preventDefault(); setTextOverlay("Tap to type..."); setActiveTool("text"); }}
+                            onClick={(ev) => { ev.preventDefault(); addTextOverlay(); setActiveTool("text"); }}
                             className="mt-4 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white text-sm font-medium transition flex items-center gap-2"
                           >
                             <Type className="w-4 h-4" /> Text Story instead
@@ -506,26 +545,35 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   </div>
                 ))}
 
-                {/* Text overlay on media — draggable */}
-                {textOverlay && (hasMedia || isTextOnly) && (
-                  <div
-                    className="absolute cursor-grab active:cursor-grabbing select-none z-10"
-                    style={{
-                      left: textPos.x !== null ? textPos.x : "50%",
-                      top: textPos.y !== null ? textPos.y : "50%",
-                      transform: textPos.x !== null ? "none" : "translate(-50%, -50%)",
-                    }}
-                    onMouseDown={startTextDrag}
-                    onTouchStart={startTextDrag}
-                  >
-                    <p className="text-white text-2xl font-bold text-center leading-relaxed drop-shadow-lg bg-black/40 rounded-2xl px-4 py-2 whitespace-nowrap max-w-xs">
-                      {textOverlay}
-                    </p>
+                {/* Multiple text overlays — draggable */}
+                {textOverlays.map((t) => (
+                  t.text ? (
+                    <div
+                      key={t.id}
+                      className="absolute cursor-grab active:cursor-grabbing select-none z-10"
+                      style={{ left: t.x, top: t.y, touchAction: "none" }}
+                      onMouseDown={(e) => startTextDrag(e, t.id)}
+                      onTouchStart={(e) => startTextDrag(e, t.id)}
+                      onDoubleClick={() => { setActiveTextId(t.id); setActiveTool("text"); }}
+                    >
+                      <p className="text-white text-xl font-bold text-center leading-relaxed drop-shadow-lg bg-black/40 rounded-2xl px-4 py-2 whitespace-nowrap max-w-xs"
+                        style={{ color: t.color }}>
+                        {t.text}
+                      </p>
+                    </div>
+                  ) : null
+                ))}
+
+                {/* Trash zone — appears when dragging a text */}
+                {showTrashZone && (
+                  <div className={`absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 px-6 py-3 rounded-2xl border-2 transition-all z-20 ${overTrash ? 'bg-red-500/80 border-red-400 scale-110' : 'bg-black/60 border-white/30'}`}>
+                    <Trash2 className={`w-6 h-6 ${overTrash ? 'text-white' : 'text-gray-300'}`} />
+                    <span className="text-white text-xs font-semibold">Drop to delete</span>
                   </div>
                 )}
 
                 {/* Caption preview at bottom */}
-                {caption && hasMedia && (
+                {caption && hasMedia && !showTrashZone && (
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                     <p className="text-white text-sm font-medium line-clamp-2">{caption}</p>
                   </div>
@@ -561,7 +609,13 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   {visibleTools.map((tool) => (
                     <button
                       key={tool.id}
-                      onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
+                      onClick={() => {
+                        const next = activeTool === tool.id ? null : tool.id;
+                        setActiveTool(next);
+                        if (next === "text" && textOverlays.length === 0) {
+                          addTextOverlay();
+                        }
+                      }}
                       className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${
                         activeTool === tool.id
                           ? "bg-white text-black scale-105"
@@ -613,14 +667,40 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                       {/* Text */}
                       {activeTool === "text" && (
                         <div className="space-y-3">
-                          <input
-                            autoFocus
-                            value={textOverlay}
-                            onChange={(e) => setTextOverlay(e.target.value)}
-                            placeholder="Type something..."
-                            className="w-full bg-white/5 border border-white/15 text-white text-lg rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                            maxLength={120}
-                          />
+                          {/* List of text overlays */}
+                          {textOverlays.map((t) => (
+                            <div key={t.id} className={`flex items-center gap-2 rounded-xl border p-1 ${activeTextId === t.id ? 'border-purple-500 bg-purple-500/10' : 'border-white/10 bg-white/5'}`}>
+                              <input
+                                autoFocus={activeTextId === t.id}
+                                value={t.text}
+                                onChange={(e) => updateTextOverlay(t.id, 'text', e.target.value)}
+                                onFocus={() => setActiveTextId(t.id)}
+                                placeholder="Type something..."
+                                className="flex-1 bg-transparent text-white text-sm px-3 py-2 placeholder-gray-500 focus:outline-none"
+                                maxLength={120}
+                              />
+                              {/* Color dots */}
+                              {["#ffffff","#ffdd00","#ff3388","#00bbff","#00ff88"].map(c => (
+                                <button key={c} onClick={() => updateTextOverlay(t.id, 'color', c)}
+                                  className={`w-5 h-5 rounded-full flex-shrink-0 transition-all ${t.color === c ? 'ring-2 ring-white scale-110' : ''}`}
+                                  style={{ background: c }} />
+                              ))}
+                              <button onClick={() => removeTextOverlay(t.id)} className="p-1 hover:bg-red-500/20 rounded">
+                                <X className="w-4 h-4 text-red-400" />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add new text button */}
+                          <button
+                            onClick={addTextOverlay}
+                            className="w-full py-2 border border-dashed border-white/20 rounded-xl text-gray-400 text-sm hover:border-purple-500/50 hover:text-white transition flex items-center justify-center gap-2"
+                          >
+                            <PlusIcon className="w-4 h-4" /> Add text
+                          </button>
+
+                          <p className="text-gray-600 text-xs text-center">Drag text on canvas • Double-tap to edit • Drag to 🗑 to delete</p>
+
                           {contentType === "story" && !hasMedia && (
                             <div className="flex gap-2">
                               {BG_GRADIENTS.map(bg => (
