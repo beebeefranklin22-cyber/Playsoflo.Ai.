@@ -25,6 +25,8 @@ import AdDisplay from "../components/ads/AdDisplay";
 import HomeBannerAd from "../components/ads/HomeBannerAd";
 import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
+import PostComments from "../components/social/PostComments";
+import { AnimatePresence } from "framer-motion";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -51,6 +53,7 @@ export default function Home() {
   const [viewingStories, setViewingStories] = useState(null);
   const [storyStartIndex, setStoryStartIndex] = useState(0);
   const [editingPost, setEditingPost] = useState(null);
+  const [commentingPost, setCommentingPost] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -532,10 +535,17 @@ export default function Home() {
                     }`} 
                   />
                 </button>
-                <button onClick={() => trackView("post", post.id, post.vibe || "social")}>
+                <button onClick={() => setCommentingPost(post)} className="flex items-center gap-1">
                   <MessageCircle className="w-7 h-7 text-white" />
                 </button>
-                <button>
+                <button onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: post.caption || "Check this out", url: window.location.href }).catch(() => {});
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Link copied!");
+                  }
+                }}>
                   <Share2 className="w-7 h-7 text-white" />
                 </button>
               </div>
@@ -560,11 +570,9 @@ export default function Home() {
             </div>
 
             {/* Comments */}
-            {post.comments_count > 0 && (
-              <button className="px-4 pb-3 text-gray-400 text-sm">
-                View all {post.comments_count} comments
-              </button>
-            )}
+            <button onClick={() => setCommentingPost(post)} className="px-4 pb-1 text-gray-400 text-sm hover:text-gray-300 transition text-left">
+              {post.comments_count > 0 ? `View all ${post.comments_count} comments` : "Add a comment..."}
+            </button>
 
             {/* Time */}
             <p className="px-4 pb-3 text-gray-500 text-xs">
@@ -639,6 +647,26 @@ export default function Home() {
         onClose={() => setEditingPost(null)}
         post={editingPost}
       />
+
+      {/* Comments Modal */}
+      <AnimatePresence>
+        {commentingPost && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[65] bg-black/60"
+              onClick={() => setCommentingPost(null)}
+            />
+            <PostComments
+              post={commentingPost}
+              currentUser={currentUser}
+              onClose={() => setCommentingPost(null)}
+            />
+          </>
+        )}
+      </AnimatePresence>
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {

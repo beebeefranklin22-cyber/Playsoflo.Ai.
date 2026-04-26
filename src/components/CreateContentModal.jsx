@@ -124,6 +124,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     setTextBg("sunset"); setSelectedFilter("none");
     setEmojiOverlays([]); setDrawMode(false);
     setActiveTool(null); setMusicQuery("");
+    setTextPos({ x: null, y: null });
     setTimeout(() => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); }, 50);
   };
 
@@ -189,6 +190,26 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   };
   const endDraw = () => setIsDrawing(false);
   const clearCanvas = () => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); };
+
+  // ── Draggable text overlay ───────────────────────────────────────────────────
+  const [textPos, setTextPos] = useState({ x: null, y: null });
+  const [draggingText, setDraggingText] = useState(null);
+
+  const startTextDrag = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const touch = e.touches ? e.touches[0] : e;
+    setDraggingText({ startX: touch.clientX, startY: touch.clientY, origX: textPos.x || 0, origY: textPos.y || 0 });
+  };
+
+  const onTextDragMove = (e) => {
+    if (!draggingText) return; e.preventDefault();
+    const touch = e.touches ? e.touches[0] : e;
+    const dx = touch.clientX - draggingText.startX;
+    const dy = touch.clientY - draggingText.startY;
+    setTextPos({ x: draggingText.origX + dx, y: draggingText.origY + dy });
+  };
+
+  const onTextDragEnd = () => setDraggingText(null);
 
   // ── Emoji drag ──────────────────────────────────────────────────────────────
 
@@ -324,8 +345,8 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", damping: 28, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden"
-          style={{ maxHeight: "calc(100vh - 80px)", height: "calc(100vh - 80px)" }}
+          className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col"
+          style={{ maxHeight: "calc(100dvh - 60px)", height: "calc(100dvh - 60px)" }}
         >
 
           {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -405,15 +426,15 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
               <div
                 ref={previewRef}
                 className="relative flex-1 overflow-hidden select-none"
-                onMouseMove={(e) => { if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
-                onMouseUp={(e) => { onEmojiDragEnd(); endDraw(); }}
-                onTouchMove={(e) => { if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
-                onTouchEnd={(e) => { onEmojiDragEnd(); endDraw(); }}
+                onMouseMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onMouseUp={() => { onTextDragEnd(); onEmojiDragEnd(); endDraw(); }}
+                onTouchMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onTouchEnd={() => { onTextDragEnd(); onEmojiDragEnd(); endDraw(); }}
               >
                 {/* Media / background */}
                 {hasMedia ? (
-                  mediaFileType === "video"
-                    ? <video src={mediaUrl} className="w-full h-full object-cover" style={filterStyle} playsInline muted />
+                  (mediaFileType === "video" || /\.(mp4|webm|mov|ogg)(\?|$)/i.test(mediaUrl))
+                    ? <video src={mediaUrl} className="w-full h-full object-cover" style={filterStyle} playsInline muted controls />
                     : <img src={mediaUrl} alt="preview" className="w-full h-full object-cover" style={filterStyle} />
                 ) : isTextOnly ? (
                   <div className={`w-full h-full bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center`}>
@@ -484,10 +505,21 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   </div>
                 ))}
 
-                {/* Text overlay on media */}
-                {hasMedia && textOverlay && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <p className="text-white text-2xl font-bold text-center px-8 leading-relaxed drop-shadow-lg bg-black/30 rounded-2xl px-4 py-2">{textOverlay}</p>
+                {/* Text overlay on media — draggable */}
+                {textOverlay && (hasMedia || isTextOnly) && (
+                  <div
+                    className="absolute cursor-grab active:cursor-grabbing select-none z-10"
+                    style={{
+                      left: textPos.x !== null ? textPos.x : "50%",
+                      top: textPos.y !== null ? textPos.y : "50%",
+                      transform: textPos.x !== null ? "none" : "translate(-50%, -50%)",
+                    }}
+                    onMouseDown={startTextDrag}
+                    onTouchStart={startTextDrag}
+                  >
+                    <p className="text-white text-2xl font-bold text-center leading-relaxed drop-shadow-lg bg-black/40 rounded-2xl px-4 py-2 whitespace-nowrap max-w-xs">
+                      {textOverlay}
+                    </p>
                   </div>
                 )}
 
