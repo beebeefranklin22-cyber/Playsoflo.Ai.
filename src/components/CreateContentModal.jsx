@@ -425,7 +425,8 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
               {/* ── Canvas area ── */}
               <div
                 ref={previewRef}
-                className="relative flex-1 overflow-hidden select-none"
+                className="relative overflow-hidden select-none flex-shrink-0"
+                style={{ height: "min(45vh, 340px)" }}
                 onMouseMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
                 onMouseUp={() => { onTextDragEnd(); onEmojiDragEnd(); endDraw(); }}
                 onTouchMove={(e) => { if (draggingText) onTextDragMove(e); else if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}

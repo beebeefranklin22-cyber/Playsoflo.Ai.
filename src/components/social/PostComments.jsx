@@ -82,8 +82,8 @@ export default function PostComments({ post, currentUser, onClose }) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300 }}
-      className="fixed inset-x-0 bottom-0 z-[70] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
-      style={{ maxHeight: "75vh" }}
+      className="fixed inset-x-0 bottom-0 z-[70] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col overflow-hidden"
+      style={{ maxHeight: "75dvh", height: "75dvh" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -95,7 +95,7 @@ export default function PostComments({ post, currentUser, onClose }) {
       </div>
 
       {/* Comments list */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4" style={{ WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}>
         {isLoading && (
           <p className="text-gray-500 text-center text-sm py-8">Loading comments...</p>
         )}
