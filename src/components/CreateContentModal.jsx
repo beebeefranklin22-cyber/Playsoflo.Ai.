@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
-  Type, Image as ImageIcon, Palette, Video, Smile, Pen, Filter,
-  Clock, ChevronRight, ChevronLeft, Check
+  Type, Image as ImageIcon, Video, Smile, Pen, SlidersHorizontal,
+  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -14,9 +14,9 @@ import { toast } from "sonner";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CONTENT_TYPES = [
-  { id: "story", label: "Story", icon: Clock, desc: "Visible 24 hours", gradient: "from-orange-500 to-pink-500" },
-  { id: "post",  label: "Post",  icon: ImageIcon, desc: "Stays on your profile", gradient: "from-purple-600 to-pink-600" },
-  { id: "reel",  label: "Reel",  icon: Video, desc: "Short-form video", gradient: "from-cyan-500 to-blue-600" },
+  { id: "story", label: "Story", icon: Clock,     desc: "Visible 24 hours",        gradient: "from-orange-500 to-pink-500" },
+  { id: "post",  label: "Post",  icon: ImageIcon,  desc: "Stays on your profile",   gradient: "from-purple-600 to-pink-600" },
+  { id: "reel",  label: "Reel",  icon: Video,      desc: "Short-form video",        gradient: "from-cyan-500 to-blue-600" },
 ];
 
 const VIBES = ["energetic", "chill", "luxury", "adventure", "romantic", "party"];
@@ -44,45 +44,55 @@ const FILTERS = [
 const DRAW_COLORS = ["#ff3388","#ff6600","#ffdd00","#00ff88","#00bbff","#aa44ff","#ffffff","#000000"];
 const POPULAR_EMOJIS = ["😂","❤️","🔥","😍","🎉","💯","✨","😭","🙌","💪","🥰","😎","🎶","💫","🌟","👀","🤩","💥","🎵","🌈"];
 
+// Right-side floating tool buttons
+const TOOLS = [
+  { id: "emoji",  icon: Smile,            label: "Sticker" },
+  { id: "text",   icon: Type,             label: "Text" },
+  { id: "draw",   icon: Pen,              label: "Draw" },
+  { id: "filter", icon: SlidersHorizontal,label: "Filter" },
+  { id: "music",  icon: Music,            label: "Music" },
+  { id: "tag",    icon: Tag,              label: "Tag" },
+  { id: "location",icon: MapPin,          label: "Location" },
+];
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CreateContentModal({ isOpen, onClose, currentUser, defaultType }) {
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState("type"); // "type" | "create"
+  const [step, setStep]             = useState("type");
   const [contentType, setContentType] = useState(null);
 
-  // Media state
-  const [mediaUrl, setMediaUrl] = useState("");
+  // Media
+  const [mediaUrl, setMediaUrl]         = useState("");
   const [mediaFileType, setMediaFileType] = useState("image");
 
-  // Content state
-  const [caption, setCaption] = useState("");
-  const [textContent, setTextContent] = useState("");
-  const [location, setLocation] = useState("");
-  const [music, setMusic] = useState("");
-  const [audioName, setAudioName] = useState("");
-  const [vibe, setVibe] = useState("");
+  // Content
+  const [caption, setCaption]           = useState("");
+  const [textOverlay, setTextOverlay]   = useState("");
+  const [textBg, setTextBg]             = useState("sunset");
+  const [location, setLocation]         = useState("");
+  const [music, setMusic]               = useState("");
+  const [audioName, setAudioName]       = useState("");
+  const [vibe, setVibe]                 = useState("");
   const [isExperience, setIsExperience] = useState(false);
   const [experienceType, setExperienceType] = useState("");
-  const [taggedUsers, setTaggedUsers] = useState([]);
-  const [tagInput, setTagInput] = useState("");
-  const [textBg, setTextBg] = useState("sunset");
+  const [taggedUsers, setTaggedUsers]   = useState([]);
+  const [tagInput, setTagInput]         = useState("");
 
-  // Tool state
-  const [activeTool, setActiveTool] = useState("media");
+  // Tool tray
+  const [activeTool, setActiveTool]     = useState(null); // null = no tray open
   const [selectedFilter, setSelectedFilter] = useState("none");
-  const [emojiOverlays, setEmojiOverlays] = useState([]);
-  const [drawMode, setDrawMode] = useState(false);
-  const [drawColor, setDrawColor] = useState("#ff3388");
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [musicQuery, setMusicQuery] = useState("");
-  const [gifQuery, setGifQuery] = useState("");
-  const [draggingEmoji, setDraggingEmoji] = useState(null); // { id, startX, startY, origX, origY }
+  const [emojiOverlays, setEmojiOverlays]   = useState([]);
+  const [drawMode, setDrawMode]         = useState(false);
+  const [drawColor, setDrawColor]       = useState("#ff3388");
+  const [isDrawing, setIsDrawing]       = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  const [musicQuery, setMusicQuery]     = useState("");
+  const [draggingEmoji, setDraggingEmoji] = useState(null);
 
-  const canvasRef = useRef(null);
-  const lastPos = useRef(null);
+  const canvasRef  = useRef(null);
+  const lastPos    = useRef(null);
   const previewRef = useRef(null);
 
   // Music search
@@ -97,36 +107,27 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     staleTime: 30000,
   });
 
-  // Reset & init when modal opens
   useEffect(() => {
     if (isOpen) {
       resetForm();
-      if (defaultType) {
-        setContentType(defaultType);
-        setStep("create");
-      } else {
-        setContentType(null);
-        setStep("type");
-      }
+      if (defaultType) { setContentType(defaultType); setStep("create"); }
+      else { setContentType(null); setStep("type"); }
     }
   }, [isOpen, defaultType]);
 
   const resetForm = () => {
     setMediaUrl(""); setMediaFileType("image");
-    setCaption(""); setTextContent(""); setLocation("");
+    setCaption(""); setTextOverlay(""); setLocation("");
     setMusic(""); setAudioName(""); setVibe("");
     setIsExperience(false); setExperienceType("");
     setTaggedUsers([]); setTagInput("");
     setTextBg("sunset"); setSelectedFilter("none");
     setEmojiOverlays([]); setDrawMode(false);
-    setActiveTool("media"); setMusicQuery(""); setGifQuery("");
-    setTimeout(() => {
-      const ctx = canvasRef.current?.getContext("2d");
-      ctx?.clearRect(0, 0, 9999, 9999);
-    }, 50);
+    setActiveTool(null); setMusicQuery("");
+    setTimeout(() => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); }, 50);
   };
 
-  // ── Upload helpers ──────────────────────────────────────────────────────────
+  // ── Upload ──────────────────────────────────────────────────────────────────
 
   const handleFileUpload = async (file) => {
     if (!file) return;
@@ -137,26 +138,19 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
       setMediaUrl(file_url);
       setMediaFileType(file.type.startsWith("video") ? "video" : "image");
       toast.success("Media uploaded!");
-    } catch (e) {
-      toast.error("Upload failed: " + e.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (e) { toast.error("Upload failed: " + e.message); }
+    finally { setUploading(false); }
   };
 
   const handleAudioUpload = async (file) => {
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) { toast.error("Audio too large. Max 20MB"); return; }
     setUploading(true);
     try {
       await base44.integrations.Core.UploadFile({ file });
       setMusic(file.name); setAudioName(file.name);
       toast.success("Audio added!");
-    } catch (e) {
-      toast.error("Audio upload failed");
-    } finally {
-      setUploading(false);
-    }
+    } catch (e) { toast.error("Audio upload failed"); }
+    finally { setUploading(false); }
   };
 
   // ── Canvas draw ─────────────────────────────────────────────────────────────
@@ -167,54 +161,37 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     return { x: src.clientX - rect.left, y: src.clientY - rect.top };
   };
 
-  const startDraw = (e) => {
-    if (!drawMode || !canvasRef.current) return;
-    e.preventDefault();
-    setIsDrawing(true);
-    lastPos.current = getPos(e, canvasRef.current);
-  };
-
+  const startDraw = (e) => { if (!drawMode || !canvasRef.current) return; e.preventDefault(); setIsDrawing(true); lastPos.current = getPos(e, canvasRef.current); };
   const draw = (e) => {
-    if (!isDrawing || !canvasRef.current) return;
-    e.preventDefault();
+    if (!isDrawing || !canvasRef.current) return; e.preventDefault();
     const ctx = canvasRef.current.getContext("2d");
     const pos = getPos(e, canvasRef.current);
-    ctx.beginPath();
-    ctx.moveTo(lastPos.current.x, lastPos.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = drawColor;
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(lastPos.current.x, lastPos.current.y);
+    ctx.lineTo(pos.x, pos.y); ctx.strokeStyle = drawColor;
+    ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.stroke();
     lastPos.current = pos;
   };
-
   const endDraw = () => setIsDrawing(false);
+  const clearCanvas = () => { const ctx = canvasRef.current?.getContext("2d"); ctx?.clearRect(0, 0, 9999, 9999); };
 
-  const clearCanvas = () => {
-    const ctx = canvasRef.current?.getContext("2d");
-    ctx?.clearRect(0, 0, 9999, 9999);
-  };
-
-  // ── Emoji overlay ───────────────────────────────────────────────────────────
+  // ── Emoji drag ──────────────────────────────────────────────────────────────
 
   const addEmoji = (emoji) => {
-    setEmojiOverlays(prev => [...prev, { id: Date.now(), emoji, x: 80, y: 80, size: 40 }]);
+    setEmojiOverlays(prev => [...prev, { id: Date.now(), emoji, x: 120, y: 120, size: 44 }]);
+    setActiveTool(null);
   };
 
   const removeEmoji = (id) => setEmojiOverlays(prev => prev.filter(e => e.id !== id));
 
   const startEmojiDrag = (e, id) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     const touch = e.touches ? e.touches[0] : e;
     const overlay = emojiOverlays.find(o => o.id === id);
     setDraggingEmoji({ id, startX: touch.clientX, startY: touch.clientY, origX: overlay.x, origY: overlay.y });
   };
 
   const onEmojiDragMove = (e) => {
-    if (!draggingEmoji) return;
-    e.preventDefault();
+    if (!draggingEmoji) return; e.preventDefault();
     const touch = e.touches ? e.touches[0] : e;
     const dx = touch.clientX - draggingEmoji.startX;
     const dy = touch.clientY - draggingEmoji.startY;
@@ -230,13 +207,10 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const createPostMutation = useMutation({
     mutationFn: async () => {
       const post = await base44.entities.SocialPost.create({
-        image_url: mediaUrl,
-        caption, location,
-        music_playing: music,
+        image_url: mediaUrl, caption, location, music_playing: music,
         vibe, is_experience: isExperience, experience_type: experienceType,
         likes_count: 0, comments_count: 0,
-        author_email: currentUser?.email,
-        author_name: currentUser?.full_name,
+        author_email: currentUser?.email, author_name: currentUser?.full_name,
       });
       if (currentUser) {
         const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
@@ -260,17 +234,15 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const createStoryMutation = useMutation({
     mutationFn: async () => {
       const expiresAt = new Date(); expiresAt.setHours(expiresAt.getHours() + 24);
-      const url = mediaUrl || (textContent ? "__text__" : "");
       return await base44.entities.Story.create({
-        media_url: url,
+        media_url: mediaUrl || "__text__",
         media_type: mediaUrl ? mediaFileType : "text",
-        caption: caption || textContent,
+        caption: caption || textOverlay,
         music,
         creator_profile_picture: currentUser?.profile_picture || currentUser?.profile_photo,
         creator_name: currentUser?.full_name || currentUser?.username,
         expires_at: expiresAt.toISOString(),
-        views: [],
-        visibility: "followers",
+        views: [], visibility: "followers",
       });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["stories"] }); toast.success("Story shared!"); onClose(); },
@@ -286,8 +258,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         video_url: mediaUrl, caption,
         audio_name: audioName || music,
         tags: taggedUsers,
-        likes_count: 0, comments_count: 0, views_count: 0, shares_count: 0,
-        is_public: true,
+        likes_count: 0, comments_count: 0, views_count: 0, shares_count: 0, is_public: true,
       });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["reels"] }); toast.success("Reel published!"); onClose(); },
@@ -298,8 +269,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   const handlePublish = () => {
     const hasMedia = !!mediaUrl;
-    const hasText = !!(caption || textContent);
-
+    const hasText  = !!(caption || textOverlay);
     if (!hasMedia && !hasText) { toast.error("Add media or text first"); return; }
     if (contentType === "reel" && !mediaUrl) { toast.error("Add a video for your reel"); return; }
     if (contentType === "post" && !mediaUrl) { toast.error("Add media for your post"); return; }
@@ -310,21 +280,19 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   if (!isOpen) return null;
 
-  const filterStyle = FILTERS.find(f => f.id === selectedFilter)?.style || {};
-  const selectedBg = BG_GRADIENTS.find(b => b.id === textBg);
-  const hasMedia = !!mediaUrl;
-  const isTextOnlyStory = !mediaUrl && contentType === "story" && textContent;
+  const filterStyle  = FILTERS.find(f => f.id === selectedFilter)?.style || {};
+  const selectedBg   = BG_GRADIENTS.find(b => b.id === textBg);
+  const hasMedia     = !!mediaUrl;
+  const isTextOnly   = !mediaUrl && contentType === "story" && textOverlay;
 
-  const toolTabs = [
-    { id: "media",  icon: ImageIcon, label: "Media" },
-    { id: "text",   icon: Type,      label: "Text",   show: contentType !== "reel" },
-    { id: "music",  icon: Music,     label: "Music" },
-    { id: "emoji",  icon: Smile,     label: "Emoji",  show: hasMedia || isTextOnlyStory },
-    { id: "draw",   icon: Pen,       label: "Draw",   show: hasMedia && contentType !== "reel" },
-    { id: "filter", icon: Filter,    label: "Filter", show: hasMedia },
-    { id: "tag",    icon: AtSign,    label: "Tag" },
-    { id: "gif",    icon: Sparkles,  label: "GIF",    show: contentType !== "reel" },
-  ].filter(t => t.show !== false);
+  // Which tools to show on the right rail
+  const visibleTools = TOOLS.filter(t => {
+    if (t.id === "draw" && (!hasMedia || contentType === "reel")) return false;
+    if (t.id === "filter" && !hasMedia) return false;
+    if (t.id === "emoji" && !hasMedia && !isTextOnly) return false;
+    if (t.id === "text" && contentType === "reel") return false;
+    return true;
+  });
 
   return (
     <AnimatePresence>
@@ -333,7 +301,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]"
-        onClick={onClose}
+        onClick={() => { if (activeTool) { setActiveTool(null); setDrawMode(false); } else onClose(); }}
       >
         <motion.div
           initial={{ y: "100%", opacity: 0 }}
@@ -344,31 +312,44 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
           className="w-full max-w-lg bg-[#111] rounded-t-3xl sm:rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden"
           style={{ maxHeight: "calc(100vh - 80px)", height: "calc(100vh - 80px)" }}
         >
+
           {/* ── Header ─────────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-white/10 flex-shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between px-4 pt-4 pb-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
               {step === "create" && !defaultType && (
                 <button onClick={() => setStep("type")} className="p-1.5 hover:bg-white/10 rounded-full transition">
                   <ChevronLeft className="w-5 h-5 text-gray-400" />
                 </button>
               )}
-              <div>
-                <h2 className="text-white font-bold text-lg leading-tight">
-                  {step === "type" ? "Create" : `New ${contentType === "story" ? "Story" : contentType === "reel" ? "Reel" : "Post"}`}
-                </h2>
-                {step === "create" && contentType === "story" && (
-                  <p className="text-gray-500 text-xs">Visible for 24 hours</p>
-                )}
-              </div>
+              {step === "type" && (
+                <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full transition">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              )}
+              <h2 className="text-white font-bold text-base leading-tight">
+                {step === "type" ? "Create" : `New ${contentType === "story" ? "Story" : contentType === "reel" ? "Reel" : "Post"}`}
+              </h2>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
-              <X className="w-5 h-5 text-gray-400" />
-            </button>
+            {step === "create" && (
+              <div className="flex items-center gap-2">
+                {hasMedia && (
+                  <label className="p-2 hover:bg-white/10 rounded-full transition cursor-pointer" title="Change media">
+                    <input type="file" className="hidden"
+                      accept={contentType === "reel" ? "video/*" : "image/*,video/*"}
+                      onChange={(e) => handleFileUpload(e.target.files?.[0])} />
+                    <ImageIcon className="w-5 h-5 text-gray-300" />
+                  </label>
+                )}
+                <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── STEP 1 — Type Selector ──────────────────────────────────────── */}
           {step === "type" && (
-            <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
+            <div className="flex-1 flex flex-col px-5 pb-5 gap-4 overflow-y-auto">
               <p className="text-gray-400 text-sm">What would you like to share?</p>
 
               {currentUser && (
@@ -386,7 +367,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
               {CONTENT_TYPES.map((type) => (
                 <button
                   key={type.id}
-                  onClick={() => { setContentType(type.id); setStep("create"); setActiveTool("media"); }}
+                  onClick={() => { setContentType(type.id); setStep("create"); }}
                   className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition text-left group"
                 >
                   <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
@@ -402,448 +383,349 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
             </div>
           )}
 
-          {/* ── STEP 2 — Creator ─────────────────────────────────────────────── */}
+          {/* ── STEP 2 — Canvas Creator ─────────────────────────────────────── */}
           {step === "create" && (
             <>
-              {hasMedia ? (
-                <div
-                  ref={previewRef}
-                  className="relative flex-shrink-0 bg-black select-none"
-                  style={{ height: 220 }}
-                  onMouseMove={draggingEmoji ? onEmojiDragMove : undefined}
-                  onMouseUp={draggingEmoji ? onEmojiDragEnd : undefined}
-                  onTouchMove={draggingEmoji ? onEmojiDragMove : undefined}
-                  onTouchEnd={draggingEmoji ? onEmojiDragEnd : undefined}
-                >
-                  {mediaFileType === "video" ? (
-                    <video src={mediaUrl} className="w-full h-full object-contain" style={filterStyle} controls={false} />
-                  ) : (
-                    <img src={mediaUrl} alt="preview" className="w-full h-full object-contain" style={filterStyle} />
-                  )}
+              {/* ── Canvas area ── */}
+              <div
+                ref={previewRef}
+                className="relative flex-1 overflow-hidden select-none"
+                onMouseMove={(e) => { if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onMouseUp={(e) => { onEmojiDragEnd(); endDraw(); }}
+                onTouchMove={(e) => { if (draggingEmoji) onEmojiDragMove(e); else if (isDrawing) draw(e); }}
+                onTouchEnd={(e) => { onEmojiDragEnd(); endDraw(); }}
+              >
+                {/* Media / background */}
+                {hasMedia ? (
+                  mediaFileType === "video"
+                    ? <video src={mediaUrl} className="w-full h-full object-cover" style={filterStyle} playsInline muted />
+                    : <img src={mediaUrl} alt="preview" className="w-full h-full object-cover" style={filterStyle} />
+                ) : isTextOnly ? (
+                  <div className={`w-full h-full bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center`}>
+                    <p className="text-white text-2xl font-bold text-center px-8 leading-relaxed drop-shadow">{textOverlay}</p>
+                  </div>
+                ) : (
+                  /* Upload placeholder */
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-black/60 hover:bg-black/50 transition">
+                    <input type="file" className="hidden"
+                      accept={contentType === "reel" ? "video/*" : "image/*,video/*"}
+                      onChange={(e) => handleFileUpload(e.target.files?.[0])} />
+                    {uploading ? (
+                      <><Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-3" /><p className="text-gray-300">Uploading...</p></>
+                    ) : (
+                      <>
+                        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                          <Upload className="w-9 h-9 text-white" />
+                        </div>
+                        <p className="text-white font-bold text-lg mb-1">{contentType === "reel" ? "Upload Video" : "Upload Photo / Video"}</p>
+                        <p className="text-gray-400 text-sm">{contentType === "reel" ? "MP4, MOV • Max 100MB" : "JPG, PNG, MP4 • Max 100MB"}</p>
+                        {contentType === "story" && (
+                          <button
+                            type="button"
+                            onClick={(ev) => { ev.preventDefault(); setTextOverlay("Tap to type..."); setActiveTool("text"); }}
+                            className="mt-4 px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white text-sm font-medium transition flex items-center gap-2"
+                          >
+                            <Type className="w-4 h-4" /> Text Story instead
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </label>
+                )}
+
+                {/* Draw canvas overlay */}
+                {hasMedia && (
                   <canvas
                     ref={canvasRef}
-                    width={460} height={220}
                     className="absolute inset-0 w-full h-full"
                     style={{ pointerEvents: drawMode ? "auto" : "none", cursor: drawMode ? "crosshair" : "default" }}
-                    onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw}
-                    onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
+                    onMouseDown={startDraw} onTouchStart={startDraw}
                   />
-                  {emojiOverlays.map((e) => (
-                    <div key={e.id} className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "grab", userSelect: "none", touchAction: "none" }}
-                      onMouseDown={(ev) => startEmojiDrag(ev, e.id)}
-                      onTouchStart={(ev) => startEmojiDrag(ev, e.id)}
-                    >
-                      <span>{e.emoji}</span>
-                      <button
-                        onClick={(ev) => { ev.stopPropagation(); removeEmoji(e.id); }}
-                        className="absolute -top-3 -right-3 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >×</button>
-                    </div>
-                  ))}
-                  {caption && (
-                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-white text-xs font-medium line-clamp-2">{caption}</p>
-                    </div>
-                  )}
-                  {textContent && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <p className="text-white text-xl font-bold text-center px-6 leading-relaxed drop-shadow-lg">{textContent}</p>
-                    </div>
-                  )}
-                  {music && (
-                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
-                      <Music className="w-3 h-3 text-pink-400 animate-pulse" />
-                      <span className="text-white text-[10px] max-w-[100px] truncate">{music}</span>
-                    </div>
-                  )}
-                  <button onClick={() => setMediaUrl("")}
-                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition">
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                  {drawMode && (
-                    <div className="absolute top-2 left-2 bg-purple-600/90 rounded-full px-2 py-1 text-white text-xs font-semibold">
-                      ✏️ Drawing
-                    </div>
-                  )}
-                </div>
-              ) : isTextOnlyStory ? (
-                <div
-                  className={`relative flex-shrink-0 bg-gradient-to-br ${selectedBg?.cls} flex items-center justify-center select-none`}
-                  style={{ height: 220 }}
-                  onMouseMove={draggingEmoji ? onEmojiDragMove : undefined}
-                  onMouseUp={draggingEmoji ? onEmojiDragEnd : undefined}
-                  onTouchMove={draggingEmoji ? onEmojiDragMove : undefined}
-                  onTouchEnd={draggingEmoji ? onEmojiDragEnd : undefined}
-                >
-                  <p className="text-white text-xl font-bold text-center px-6 leading-relaxed">{textContent}</p>
-                  {emojiOverlays.map((e) => (
-                    <div key={e.id} className="absolute group"
-                      style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "grab", userSelect: "none", touchAction: "none" }}
-                      onMouseDown={(ev) => startEmojiDrag(ev, e.id)}
-                      onTouchStart={(ev) => startEmojiDrag(ev, e.id)}
-                    >
-                      <span>{e.emoji}</span>
-                      <button
-                        onClick={(ev) => { ev.stopPropagation(); removeEmoji(e.id); }}
-                        className="absolute -top-3 -right-3 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >×</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-shrink-0 bg-black/40 flex items-center justify-center" style={{ height: 100 }}>
-                  <p className="text-gray-600 text-sm">
-                    {contentType === "reel" ? "Upload a video to preview" : "Upload media or add text to preview"}
-                  </p>
-                </div>
-              )}
+                )}
 
-              {/* ── Tool Tab Bar ─────────────────────────────────────────── */}
-              <div className="flex-shrink-0 border-t border-b border-white/10 bg-black/40">
-                <div className="flex overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-                  {toolTabs.map((tab) => (
-                    <button key={tab.id} onClick={() => setActiveTool(tab.id)}
-                      className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-2.5 text-xs font-medium transition border-b-2 ${
-                        activeTool === tab.id ? "border-purple-500 text-white" : "border-transparent text-gray-500 hover:text-gray-300"
-                      }`}>
-                      <tab.icon className="w-4 h-4" />
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+                {/* Emoji overlays — draggable */}
+                {emojiOverlays.map((e) => (
+                  <div key={e.id}
+                    className="absolute group select-none"
+                    style={{ left: e.x, top: e.y, fontSize: e.size, lineHeight: 1, cursor: "grab", touchAction: "none", zIndex: 10 }}
+                    onMouseDown={(ev) => startEmojiDrag(ev, e.id)}
+                    onTouchStart={(ev) => startEmojiDrag(ev, e.id)}
+                  >
+                    <span className="drop-shadow-lg">{e.emoji}</span>
+                    <button
+                      onClick={(ev) => { ev.stopPropagation(); removeEmoji(e.id); }}
+                      className="absolute -top-3 -right-3 w-5 h-5 bg-red-500 rounded-full text-white text-xs items-center justify-center hidden group-hover:flex"
+                    >×</button>
+                  </div>
+                ))}
+
+                {/* Text overlay on media */}
+                {hasMedia && textOverlay && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <p className="text-white text-2xl font-bold text-center px-8 leading-relaxed drop-shadow-lg bg-black/30 rounded-2xl px-4 py-2">{textOverlay}</p>
+                  </div>
+                )}
+
+                {/* Caption preview at bottom */}
+                {caption && hasMedia && (
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
+                    <p className="text-white text-sm font-medium line-clamp-2">{caption}</p>
+                  </div>
+                )}
+
+                {/* Music badge */}
+                {music && (
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/70 backdrop-blur rounded-full px-3 py-1.5">
+                    <Music className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
+                    <span className="text-white text-xs max-w-[120px] truncate font-medium">{music}</span>
+                    <button onClick={() => setMusic("")} className="ml-1 text-gray-400 hover:text-white"><X className="w-3 h-3" /></button>
+                  </div>
+                )}
+
+                {/* Location badge */}
+                {location && (
+                  <div className="absolute top-3 left-3 mt-8 flex items-center gap-1.5 bg-black/70 backdrop-blur rounded-full px-3 py-1.5" style={{ top: music ? 52 : 12 }}>
+                    <MapPin className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-white text-xs font-medium">{location}</span>
+                  </div>
+                )}
+
+                {/* Draw mode indicator */}
+                {drawMode && (
+                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-purple-600/90 rounded-full px-4 py-2">
+                    <Pen className="w-4 h-4 text-white" />
+                    <span className="text-white text-xs font-semibold">Drawing mode — tap anywhere to draw</span>
+                  </div>
+                )}
+
+                {/* ── Right-side floating tool rail ── */}
+                {(hasMedia || isTextOnly) && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+                    {visibleTools.map((tool) => (
+                      <button
+                        key={tool.id}
+                        onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
+                        className={`w-11 h-11 rounded-full flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 ${
+                          activeTool === tool.id
+                            ? "bg-white text-black scale-105"
+                            : "bg-black/60 backdrop-blur text-white hover:bg-black/80"
+                        }`}
+                        title={tool.label}
+                      >
+                        <tool.icon className="w-5 h-5" />
+                      </button>
+                    ))}
+                    {drawMode && (
+                      <button
+                        onClick={clearCanvas}
+                        className="w-11 h-11 rounded-full bg-red-500/80 backdrop-blur flex items-center justify-center text-white text-xs font-bold shadow-lg"
+                        title="Clear drawing"
+                      >✕</button>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* ── Tool Panels ──────────────────────────────────────────── */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-4 space-y-4">
+              {/* ── Bottom tray — slides up per tool ── */}
+              <AnimatePresence>
+                {activeTool && (
+                  <motion.div
+                    key={activeTool}
+                    initial={{ y: 80, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 80, opacity: 0 }}
+                    transition={{ type: "spring", damping: 30, stiffness: 350 }}
+                    className="flex-shrink-0 bg-black/95 border-t border-white/10"
+                  >
+                    <div className="p-4">
 
-                  {activeTool === "media" && (
-                    <div className="space-y-3">
-                      {!hasMedia ? (
-                        <label className="block cursor-pointer">
-                          <input type="file" className="hidden"
-                            accept={contentType === "reel" ? "video/*" : "image/*,video/*"}
-                            onChange={(e) => handleFileUpload(e.target.files?.[0])} />
-                          <div className="border-2 border-dashed border-white/20 rounded-2xl p-10 text-center hover:border-purple-500/50 hover:bg-purple-500/5 transition">
-                            {uploading ? (
-                              <><Loader2 className="w-10 h-10 text-purple-400 animate-spin mx-auto mb-2" /><p className="text-gray-400">Uploading...</p></>
-                            ) : (
-                              <>
-                                <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-                                  <Upload className="w-7 h-7 text-white" />
-                                </div>
-                                <p className="text-white font-semibold mb-1">
-                                  {contentType === "reel" ? "Upload Video" : "Upload Media"}
-                                </p>
-                                <p className="text-gray-500 text-sm">
-                                  {contentType === "reel" ? "MP4, MOV • Max 100MB" : "JPG, PNG, MP4 • Max 100MB"}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                        </label>
-                      ) : (
-                        <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                            {mediaFileType === "video" ? <Video className="w-5 h-5 text-white" /> : <ImageIcon className="w-5 h-5 text-white" />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm font-medium">Media ready</p>
-                            <p className="text-gray-400 text-xs capitalize">{mediaFileType} uploaded</p>
-                          </div>
-                          <button onClick={() => setMediaUrl("")} className="p-1.5 hover:bg-white/10 rounded-lg transition">
-                            <X className="w-4 h-4 text-gray-400" />
-                          </button>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="text-gray-400 text-xs mb-1.5 block">Caption</label>
-                        <textarea value={caption} onChange={(e) => setCaption(e.target.value)}
-                          placeholder={contentType === "reel" ? "Describe your reel..." : "Write a caption..."}
-                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
-                          rows={3} maxLength={300} />
-                        <p className="text-gray-600 text-xs mt-1">{caption.length}/300</p>
-                      </div>
-
-                      {contentType !== "reel" && (
-                        <div className="relative">
-                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input value={location} onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Add location" className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500 h-10" />
-                        </div>
-                      )}
-
-                      {contentType === "post" && (
+                      {/* Emoji picker */}
+                      {activeTool === "emoji" && (
                         <div>
-                          <label className="text-gray-400 text-xs mb-2 block">Vibe</label>
-                          <div className="flex flex-wrap gap-2">
-                            {VIBES.map(v => (
-                              <button key={v} type="button" onClick={() => setVibe(prev => prev === v ? "" : v)}
-                                className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${vibe === v ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
-                              >{v}</button>
+                          <p className="text-gray-400 text-xs mb-3">Tap to add • Drag on canvas to reposition</p>
+                          <div className="grid grid-cols-10 gap-1.5">
+                            {POPULAR_EMOJIS.map((emoji) => (
+                              <button key={emoji} onClick={() => addEmoji(emoji)}
+                                className="h-9 text-xl flex items-center justify-center hover:bg-white/10 rounded-lg transition active:scale-90">
+                                {emoji}
+                              </button>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {contentType === "post" && (
-                        <>
-                          <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
-                            <input type="checkbox" checked={isExperience}
-                              onChange={(e) => { setIsExperience(e.target.checked); if (!e.target.checked) setExperienceType(""); }}
-                              className="w-4 h-4 accent-purple-500" />
-                            <label className="text-white font-medium text-sm flex items-center gap-1.5">
-                              <Sparkles className="w-4 h-4 text-yellow-400" /> Mark as Experience
-                            </label>
-                          </div>
-                          {isExperience && (
-                            <div className="flex flex-wrap gap-2">
-                              {EXPERIENCE_TYPES.map(t => (
-                                <button key={t} type="button" onClick={() => setExperienceType(t)}
-                                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${experienceType === t ? "bg-yellow-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
-                                >{t.replace(/_/g, " ")}</button>
+                      {/* Text */}
+                      {activeTool === "text" && (
+                        <div className="space-y-3">
+                          <input
+                            autoFocus
+                            value={textOverlay}
+                            onChange={(e) => setTextOverlay(e.target.value)}
+                            placeholder="Type something..."
+                            className="w-full bg-white/5 border border-white/15 text-white text-lg rounded-xl px-4 py-3 placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                            maxLength={120}
+                          />
+                          {contentType === "story" && !hasMedia && (
+                            <div className="flex gap-2">
+                              {BG_GRADIENTS.map(bg => (
+                                <button key={bg.id} onClick={() => setTextBg(bg.id)}
+                                  className={`w-9 h-9 rounded-full bg-gradient-to-br ${bg.cls} text-sm flex items-center justify-center transition-all ${textBg === bg.id ? "ring-2 ring-white scale-110" : "opacity-60 hover:opacity-100"}`}
+                                >{bg.label}</button>
                               ))}
                             </div>
                           )}
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTool === "text" && (
-                    <div className="space-y-4">
-                      {contentType === "story" && !hasMedia && (
-                        <p className="text-gray-400 text-xs">Write text for a text-only story, or upload media in the Media tab first to overlay text on it.</p>
-                      )}
-                      {contentType === "post" && !hasMedia && (
-                        <p className="text-yellow-500 text-xs">⚠️ Upload media in the Media tab first to add a text overlay.</p>
-                      )}
-                      <div>
-                        <label className="text-gray-400 text-xs mb-1.5 block">
-                          {hasMedia ? "Text overlay on media" : contentType === "story" ? "Story text (text-only story)" : "Text"}
-                        </label>
-                        <textarea
-                          value={hasMedia ? textContent : (contentType === "story" ? textContent : caption)}
-                          onChange={(e) => {
-                            if (hasMedia) setTextContent(e.target.value);
-                            else if (contentType === "story") setTextContent(e.target.value);
-                            else setCaption(e.target.value);
-                          }}
-                          placeholder="What's on your mind?"
-                          className="w-full bg-white/5 border border-white/10 text-white text-lg rounded-xl p-4 placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
-                          rows={4} maxLength={200} />
-                        <p className="text-gray-500 text-xs">{textContent.length}/200</p>
-                      </div>
-                      {contentType === "story" && !hasMedia && (
-                        <div>
-                          <label className="text-gray-400 text-xs mb-2 block">Background Color</label>
-                          <div className="grid grid-cols-6 gap-2">
-                            {BG_GRADIENTS.map(bg => (
-                              <button key={bg.id} type="button" onClick={() => setTextBg(bg.id)}
-                                className={`h-12 rounded-lg bg-gradient-to-br ${bg.cls} text-lg flex items-center justify-center transition-all ${textBg === bg.id ? "ring-2 ring-white scale-105" : "opacity-70 hover:opacity-100"}`}
-                              >{bg.label}</button>
-                            ))}
+                          <div>
+                            <p className="text-gray-400 text-xs mb-2">Caption</p>
+                            <textarea value={caption} onChange={(e) => setCaption(e.target.value)}
+                              placeholder="Write a caption..."
+                              className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                              rows={2} maxLength={300} />
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {activeTool === "music" && (
-                    <div className="space-y-3">
-                      {music ? (
-                        <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-                          <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Music className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-white text-sm font-medium truncate">{music}</p>
-                            <p className="text-gray-400 text-xs">Music added</p>
-                          </div>
-                          <button onClick={() => { setMusic(""); setAudioName(""); }} className="p-1.5 hover:bg-white/10 rounded-lg">
-                            <X className="w-4 h-4 text-gray-400" />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <Input value={musicQuery} onChange={(e) => setMusicQuery(e.target.value)}
-                              placeholder="Search songs..." className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
-                          </div>
-                          {musicResults.length > 0 && (
-                            <div className="space-y-1 max-h-40 overflow-y-auto">
-                              {musicResults.map((track, i) => (
-                                <button key={i} type="button"
-                                  onClick={() => { setMusic(`${track.artist} - ${track.title}`); setMusicQuery(""); toast.success("Music added!"); }}
-                                  className="w-full text-left p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <Music className="w-4 h-4 text-white" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-white text-xs font-medium truncate">{track.title}</p>
-                                    <p className="text-gray-400 text-[10px] truncate">{track.artist}</p>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          <label className="block cursor-pointer">
-                            <input type="file" className="hidden" accept="audio/*" onChange={(e) => handleAudioUpload(e.target.files?.[0])} />
-                            <div className="p-3 border border-dashed border-white/20 rounded-xl hover:border-purple-500/40 transition text-center">
-                              <Upload className="w-5 h-5 text-gray-400 mx-auto mb-1" />
-                              <p className="text-white text-xs font-medium">Upload audio file</p>
-                              <p className="text-gray-500 text-xs">MP3, M4A • Max 20MB</p>
-                            </div>
-                          </label>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTool === "emoji" && (
-                    <div className="space-y-3">
-                      <p className="text-gray-400 text-xs">Tap to add · Drag to move · Tap × to remove</p>
-                      <div className="grid grid-cols-5 gap-2">
-                        {POPULAR_EMOJIS.map((emoji) => (
-                          <button key={emoji} onClick={() => addEmoji(emoji)}
-                            className="h-12 text-2xl bg-white/5 rounded-xl hover:bg-white/15 transition flex items-center justify-center">
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                      {emojiOverlays.length > 0 && (
-                        <div className="pt-2 border-t border-white/10">
-                          <p className="text-gray-500 text-xs mb-2">Active overlays — hover to remove</p>
-                          <div className="flex flex-wrap gap-2">
-                            {emojiOverlays.map((e) => (
-                              <div key={e.id} className="flex items-center gap-1.5 bg-white/10 rounded-full px-3 py-1">
-                                <span className="text-lg">{e.emoji}</span>
-                                <button onClick={() => removeEmoji(e.id)} className="text-red-400 hover:text-red-300"><X className="w-3 h-3" /></button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeTool === "draw" && (
-                    <div className="space-y-3">
-                      {!hasMedia ? (
-                        <p className="text-yellow-500 text-xs">⚠️ Upload media in the Media tab first to draw on it.</p>
-                      ) : (
-                        <>
+                      {/* Draw */}
+                      {activeTool === "draw" && (
+                        <div className="space-y-3">
                           <div className="flex items-center gap-3">
                             <button onClick={() => setDrawMode(!drawMode)}
-                              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${drawMode ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}>
-                              {drawMode ? "✏️ Drawing ON — draw on preview above" : "Start Drawing"}
-                            </button>
-                            <button onClick={clearCanvas}
-                              className="px-4 py-2.5 rounded-xl bg-white/10 text-gray-300 text-sm hover:bg-white/20 transition">
-                              Clear
+                              className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition ${drawMode ? "bg-purple-600 text-white" : "bg-white/10 text-gray-200 hover:bg-white/20"}`}>
+                              {drawMode ? "✏️ Drawing ON" : "Start Drawing"}
                             </button>
                           </div>
-                          <div>
-                            <p className="text-gray-400 text-xs mb-2">Brush color</p>
-                            <div className="flex gap-2 flex-wrap">
-                              {DRAW_COLORS.map(c => (
-                                <button key={c} onClick={() => setDrawColor(c)}
-                                  className={`w-9 h-9 rounded-full transition-all ${drawColor === c ? "ring-2 ring-white scale-110" : "hover:scale-105"}`}
-                                  style={{ background: c }} />
-                              ))}
-                            </div>
+                          <div className="flex gap-2">
+                            {DRAW_COLORS.map(c => (
+                              <button key={c} onClick={() => setDrawColor(c)}
+                                className={`w-9 h-9 rounded-full transition-all ${drawColor === c ? "ring-2 ring-white scale-110" : "hover:scale-105"}`}
+                                style={{ background: c }} />
+                            ))}
                           </div>
-                        </>
+                        </div>
                       )}
-                    </div>
-                  )}
 
-                  {activeTool === "filter" && (
-                    <div className="space-y-3">
-                      {!hasMedia ? (
-                        <p className="text-yellow-500 text-xs">⚠️ Upload media in the Media tab first to apply filters.</p>
-                      ) : (
-                        <div className="grid grid-cols-4 gap-2">
+                      {/* Filter */}
+                      {activeTool === "filter" && (
+                        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
                           {FILTERS.map(f => (
                             <button key={f.id} onClick={() => setSelectedFilter(f.id)}
-                              className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition ${selectedFilter === f.id ? "bg-purple-600/30 border border-purple-500" : "bg-white/5 border border-white/10 hover:bg-white/10"}`}>
-                              <div className="w-full aspect-square rounded-lg overflow-hidden">
+                              className={`flex-shrink-0 flex flex-col items-center gap-1 transition ${selectedFilter === f.id ? "opacity-100" : "opacity-60 hover:opacity-90"}`}>
+                              <div className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${selectedFilter === f.id ? "border-purple-500" : "border-transparent"}`}>
                                 <img src={mediaUrl} className="w-full h-full object-cover" style={f.style} alt={f.label} />
                               </div>
-                              <p className="text-xs text-gray-300">{f.label}</p>
+                              <p className="text-white text-xs">{f.label}</p>
                               {selectedFilter === f.id && <Check className="w-3 h-3 text-purple-400" />}
                             </button>
                           ))}
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {activeTool === "tag" && (
-                    <div className="space-y-3">
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && tagInput.trim()) {
-                                setTaggedUsers(prev => [...prev, tagInput.trim()]);
-                                setTagInput("");
-                              }
-                            }}
-                            placeholder="@username, press Enter"
-                            className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
-                        </div>
-                        <button onClick={() => { if (tagInput.trim()) { setTaggedUsers(prev => [...prev, tagInput.trim()]); setTagInput(""); }}}
-                          className="px-4 py-2 bg-purple-600 rounded-xl text-white text-sm font-semibold hover:bg-purple-700 transition">Add</button>
-                      </div>
-                      {taggedUsers.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {taggedUsers.map((u, i) => (
-                            <span key={i} className="flex items-center gap-1.5 bg-purple-500/20 border border-purple-500/30 px-3 py-1.5 rounded-full text-purple-300 text-sm">
-                              <AtSign className="w-3 h-3" />{u}
-                              <button onClick={() => setTaggedUsers(prev => prev.filter((_, j) => j !== i))} className="text-purple-400 hover:text-white ml-0.5">
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
+                      {/* Music */}
+                      {activeTool === "music" && (
+                        <div className="space-y-3">
+                          {music ? (
+                            <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                              <Music className="w-5 h-5 text-pink-400" />
+                              <p className="text-white text-sm flex-1 truncate">{music}</p>
+                              <button onClick={() => { setMusic(""); setAudioName(""); }} className="p-1 hover:bg-white/10 rounded"><X className="w-4 h-4 text-gray-400" /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <Input autoFocus value={musicQuery} onChange={(e) => setMusicQuery(e.target.value)}
+                                  placeholder="Search songs..." className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
+                              </div>
+                              {musicResults.length > 0 && (
+                                <div className="space-y-1 max-h-32 overflow-y-auto">
+                                  {musicResults.map((track, i) => (
+                                    <button key={i} onClick={() => { setMusic(`${track.artist} - ${track.title}`); setMusicQuery(""); setActiveTool(null); }}
+                                      className="w-full text-left p-2 bg-white/5 hover:bg-white/10 rounded-xl flex items-center gap-3 transition">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Music className="w-4 h-4 text-white" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-white text-xs font-medium truncate">{track.title}</p>
+                                        <p className="text-gray-400 text-[10px] truncate">{track.artist}</p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <label className="block cursor-pointer">
+                                <input type="file" className="hidden" accept="audio/*" onChange={(e) => handleAudioUpload(e.target.files?.[0])} />
+                                <div className="p-2.5 border border-dashed border-white/20 rounded-xl text-center hover:border-purple-500/40 transition">
+                                  <p className="text-white text-xs font-medium">Upload audio file</p>
+                                </div>
+                              </label>
+                            </>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {activeTool === "gif" && (
-                    <div className="space-y-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input value={gifQuery} onChange={(e) => setGifQuery(e.target.value)}
-                          placeholder="Search GIFs..." className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
-                      </div>
-                      {gifQuery ? (
-                        <div className="grid grid-cols-3 gap-2">
-                          {[1,2,3,4,5,6].map(i => (
-                            <button key={i} onClick={() => { toast.info("GIF integration coming soon!"); }}
-                              className="aspect-square bg-white/5 rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center">
-                              <Sparkles className="w-6 h-6 text-gray-500" />
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-10">
-                          <Sparkles className="w-10 h-10 text-gray-600 mx-auto mb-2" />
-                          <p className="text-gray-500 text-sm">Search for GIFs above</p>
+                      {/* Tag */}
+                      {activeTool === "tag" && (
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <Input autoFocus value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter" && tagInput.trim()) { setTaggedUsers(prev => [...prev, tagInput.trim()]); setTagInput(""); }}}
+                                placeholder="@username, press Enter"
+                                className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
+                            </div>
+                            <button onClick={() => { if (tagInput.trim()) { setTaggedUsers(prev => [...prev, tagInput.trim()]); setTagInput(""); }}}
+                              className="px-4 py-2 bg-purple-600 rounded-xl text-white text-sm font-semibold hover:bg-purple-700 transition">Add</button>
+                          </div>
+                          {taggedUsers.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {taggedUsers.map((u, i) => (
+                                <span key={i} className="flex items-center gap-1 bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded-full text-purple-300 text-xs">
+                                  <AtSign className="w-3 h-3" />{u}
+                                  <button onClick={() => setTaggedUsers(prev => prev.filter((_, j) => j !== i))} className="ml-0.5 text-purple-400 hover:text-white"><X className="w-3 h-3" /></button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
 
+                      {/* Location */}
+                      {activeTool === "location" && (
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Input autoFocus value={location} onChange={(e) => setLocation(e.target.value)}
+                            placeholder="Add location" className="pl-10 bg-white/5 border-white/10 text-white placeholder-gray-500" />
+                        </div>
+                      )}
+
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* If no media yet and it's post/reel — show caption area at bottom */}
+              {!hasMedia && !isTextOnly && activeTool === null && (
+                <div className="flex-shrink-0 px-4 pt-2 pb-1 border-t border-white/10">
+                  <textarea value={caption} onChange={(e) => setCaption(e.target.value)}
+                    placeholder="Write a caption..."
+                    className="w-full bg-white/5 border border-white/10 text-white rounded-xl p-3 text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                    rows={2} maxLength={300} />
                 </div>
-              </div>
+              )}
 
-              {/* ── Publish Button ──────────────────────────────────────────── */}
+              {/* Vibe & experience for posts — compact row */}
+              {contentType === "post" && hasMedia && activeTool === null && (
+                <div className="flex-shrink-0 px-4 py-2 border-t border-white/10 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+                  <span className="text-gray-500 text-xs flex-shrink-0">Vibe:</span>
+                  {VIBES.map(v => (
+                    <button key={v} onClick={() => setVibe(prev => prev === v ? "" : v)}
+                      className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition ${vibe === v ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
+                    >{v}</button>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Publish Button ── */}
               <div className="flex-shrink-0 p-4 border-t border-white/10">
                 <Button onClick={handlePublish} disabled={isPending || uploading}
                   className={`w-full h-12 font-bold text-white bg-gradient-to-r ${
