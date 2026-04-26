@@ -129,17 +129,33 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   // ── Upload ──────────────────────────────────────────────────────────────────
 
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const handleFileUpload = async (file) => {
     if (!file) return;
-    if (file.size > 100 * 1024 * 1024) { toast.error("File too large. Max 100MB"); return; }
+    if (file.size > 500 * 1024 * 1024) { toast.error("File too large. Max 500MB"); return; }
     setUploading(true);
+    setUploadProgress(0);
+
+    // Simulate progress ticks while upload runs
+    const interval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + Math.random() * 12, 90));
+    }, 400);
+
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      clearInterval(interval);
+      setUploadProgress(100);
       setMediaUrl(file_url);
       setMediaFileType(file.type.startsWith("video") ? "video" : "image");
       toast.success("Media uploaded!");
-    } catch (e) { toast.error("Upload failed: " + e.message); }
-    finally { setUploading(false); }
+    } catch (e) {
+      clearInterval(interval);
+      toast.error("Upload failed: " + e.message);
+    } finally {
+      setUploading(false);
+      setTimeout(() => setUploadProgress(0), 800);
+    }
   };
 
   const handleAudioUpload = async (file) => {
@@ -285,11 +301,10 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const hasMedia     = !!mediaUrl;
   const isTextOnly   = !mediaUrl && contentType === "story" && textOverlay;
 
-  // Which tools to show on the right rail
+  // Which tools to show on the right rail (always visible once in create step)
   const visibleTools = TOOLS.filter(t => {
     if (t.id === "draw" && (!hasMedia || contentType === "reel")) return false;
     if (t.id === "filter" && !hasMedia) return false;
-    if (t.id === "emoji" && !hasMedia && !isTextOnly) return false;
     if (t.id === "text" && contentType === "reel") return false;
     return true;
   });
@@ -406,19 +421,29 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   </div>
                 ) : (
                   /* Upload placeholder */
-                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-black/60 hover:bg-black/50 transition">
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-black/60 hover:bg-black/50 transition relative">
                     <input type="file" className="hidden"
                       accept={contentType === "reel" ? "video/*" : "image/*,video/*"}
                       onChange={(e) => handleFileUpload(e.target.files?.[0])} />
                     {uploading ? (
-                      <><Loader2 className="w-12 h-12 text-purple-400 animate-spin mb-3" /><p className="text-gray-300">Uploading...</p></>
+                      <div className="flex flex-col items-center gap-4 px-10 w-full">
+                        <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+                        <p className="text-gray-200 font-semibold">Uploading your media...</p>
+                        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                        <p className="text-gray-400 text-sm">{Math.round(uploadProgress)}%</p>
+                      </div>
                     ) : (
                       <>
                         <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4">
                           <Upload className="w-9 h-9 text-white" />
                         </div>
                         <p className="text-white font-bold text-lg mb-1">{contentType === "reel" ? "Upload Video" : "Upload Photo / Video"}</p>
-                        <p className="text-gray-400 text-sm">{contentType === "reel" ? "MP4, MOV • Max 100MB" : "JPG, PNG, MP4 • Max 100MB"}</p>
+                        <p className="text-gray-400 text-sm">{contentType === "reel" ? "MP4, MOV • Max 500MB" : "JPG, PNG, MP4, MOV • Max 500MB"}</p>
                         {contentType === "story" && (
                           <button
                             type="button"
@@ -498,32 +523,30 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                   </div>
                 )}
 
-                {/* ── Right-side floating tool rail ── */}
-                {(hasMedia || isTextOnly) && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-                    {visibleTools.map((tool) => (
-                      <button
-                        key={tool.id}
-                        onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
-                        className={`w-11 h-11 rounded-full flex flex-col items-center justify-center shadow-lg transition-all active:scale-90 ${
-                          activeTool === tool.id
-                            ? "bg-white text-black scale-105"
-                            : "bg-black/60 backdrop-blur text-white hover:bg-black/80"
-                        }`}
-                        title={tool.label}
-                      >
-                        <tool.icon className="w-5 h-5" />
-                      </button>
-                    ))}
-                    {drawMode && (
-                      <button
-                        onClick={clearCanvas}
-                        className="w-11 h-11 rounded-full bg-red-500/80 backdrop-blur flex items-center justify-center text-white text-xs font-bold shadow-lg"
-                        title="Clear drawing"
-                      >✕</button>
-                    )}
-                  </div>
-                )}
+                {/* ── Right-side floating tool rail — always visible ── */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
+                  {visibleTools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      onClick={() => setActiveTool(prev => prev === tool.id ? null : tool.id)}
+                      className={`w-11 h-11 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-90 ${
+                        activeTool === tool.id
+                          ? "bg-white text-black scale-105"
+                          : "bg-black/70 backdrop-blur-sm border border-white/20 text-white hover:bg-black/90"
+                      }`}
+                      title={tool.label}
+                    >
+                      <tool.icon className="w-5 h-5" />
+                    </button>
+                  ))}
+                  {drawMode && (
+                    <button
+                      onClick={clearCanvas}
+                      className="w-11 h-11 rounded-full bg-red-500/80 backdrop-blur flex items-center justify-center text-white text-xs font-bold shadow-lg"
+                      title="Clear drawing"
+                    >✕</button>
+                  )}
+                </div>
               </div>
 
               {/* ── Bottom tray — slides up per tool ── */}
