@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import {
   Music, MapPin, Calendar, Settings, Edit2, Camera, Users,  
-  Lock, Eye, EyeOff, Upload, Loader2, Tag, Plus, X, Check,
-  Share2, Shield, Bell, Globe, Heart, Star, Award, Trophy,
+  Lock, Upload, Loader2, Tag, Plus, X,
+  Shield, Bell, Globe, Award,
   Activity, Sparkles, Car, Briefcase, Video, Store, Wallet,
-  DollarSign, ChevronRight, Palette, Image as ImageIcon, Navigation, Clock, AlertTriangle,
-  Link as LinkIcon, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
+  DollarSign, ChevronRight, Palette, Navigation, AlertTriangle,
+  Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -28,8 +28,6 @@ import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
 import RidePreferencesModal from "../components/ride/RidePreferencesModal";
 import VehicleInfoModal from "../components/ride/VehicleInfoModal";
-import FriendRequestsModal from "../components/friends/FriendRequestsModal";
-import FriendsListModal from "../components/friends/FriendsListModal";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
@@ -39,18 +37,6 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
 
-  const { data: friendships = [] } = useQuery({
-    queryKey: ['friendships', currentUser?.email],
-    queryFn: async () => {
-      const friendships = await base44.entities.Friendship.filter({ status: 'active' });
-      return friendships.filter(
-        f => f.user1_email === currentUser.email || f.user2_email === currentUser.email
-      );
-    },
-    enabled: !!currentUser
-  });
-
-  const friendshipsCount = friendships.length;
   const [isEditing, setIsEditing] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
   const [showInterests, setShowInterests] = useState(false);
@@ -60,8 +46,6 @@ export default function Profile() {
   const [showCustomization, setShowCustomization] = useState(false);
   const [showRidePreferences, setShowRidePreferences] = useState(false);
   const [showVehicleInfo, setShowVehicleInfo] = useState(false);
-  const [showFriendRequests, setShowFriendRequests] = useState(false);
-  const [showFriends, setShowFriends] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
   const [editedUser, setEditedUser] = useState({
@@ -146,11 +130,18 @@ export default function Profile() {
   }, []);
 
   const updateUserMutation = useMutation({
-    mutationFn: (data) => base44.auth.updateMe(data),
-    onSuccess: async () => {
+    mutationFn: async (data) => {
+      await base44.auth.updateMe(data);
       const user = await base44.auth.me();
+      return user;
+    },
+    onSuccess: (user) => {
       setCurrentUser(user);
-      toast.success('Profile updated!');
+      setEditedUser(prev => ({ ...prev, ...user }));
+      toast.success('Profile saved!');
+    },
+    onError: (err) => {
+      toast.error('Failed to save: ' + (err.message || 'Unknown error'));
     }
   });
 
@@ -531,49 +522,12 @@ export default function Profile() {
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <Trophy className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
-                          <p className="text-xl font-bold text-white">0</p>
-                          <p className="text-gray-400 text-xs">Posts</p>
-                        </div>
                         <FollowStats userEmail={currentUser?.email} currentUser={currentUser} />
-                        <button onClick={() => setShowFriends(true)} className="text-center">
-                          <p className="text-xl font-bold text-white">{friendshipsCount}</p>
-                          <p className="text-gray-400 text-xs">Friends</p>
-                        </button>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
             )}
-
-            {/* Friend Management */}
-            <Card className="glass-effect border-white/10">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Friends & Connections
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  onClick={() => setShowFriendRequests(true)}
-                  variant="outline"
-                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Friend Requests
-                </Button>
-                <Button
-                  onClick={() => setShowFriends(true)}
-                  variant="outline"
-                  className="w-full justify-start bg-white/5 border-white/10 hover:bg-white/10"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  My Friends ({friendshipsCount})
-                </Button>
-              </CardContent>
-            </Card>
 
             {/* Interests Management */}
             <Card className="glass-effect border-white/10">
@@ -740,21 +694,7 @@ export default function Profile() {
                     <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
                   </button>
 
-                  <button
-                    onClick={() => navigate(createPageUrl("CreatorStorefront"))}
-                    className="flex items-center justify-between w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <Store className="w-5 h-5 text-purple-400" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-white font-medium">My Storefront</p>
-                        <p className="text-gray-400 text-xs">Sell products & services</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
-                  </button>
+
                 </div>
               </CardContent>
             </Card>
@@ -1306,22 +1246,6 @@ export default function Profile() {
           setCurrentUser(user);
         }}
       />
-
-      {/* Friend Requests Modal */}
-      {showFriendRequests && (
-        <FriendRequestsModal 
-          currentUser={currentUser}
-          onClose={() => setShowFriendRequests(false)}
-        />
-      )}
-
-      {/* Friends List Modal */}
-      {showFriends && (
-        <FriendsListModal 
-          currentUser={currentUser}
-          onClose={() => setShowFriends(false)}
-        />
-      )}
 
       {/* Delete Account Modal */}
       <DeleteAccountModal

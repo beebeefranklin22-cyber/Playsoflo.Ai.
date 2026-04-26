@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Plus, Trash2, Edit2, Upload, Store, Package, UtensilsCrossed,
   Tag, DollarSign, Image as ImageIcon, Loader2, X, Star, Check,
-  ShoppingBag, ChevronDown, RefreshCw, Percent
+  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera
 } from "lucide-react";
 import { toast } from "sonner";
 import InventoryProductList from "../inventory/InventoryProductList";
@@ -54,6 +54,7 @@ function MenuItemForm({ item, currentUser, onClose, onSaved }) {
     const data = {
       ...form,
       owner_email: currentUser.email,
+      provider_email: currentUser.email,
       store_type: "restaurant",
       base_price: parseFloat(form.base_price) || 0,
       sale_price: parseFloat(form.sale_price) || 0,
@@ -250,6 +251,7 @@ function StorefrontProductForm({ item, currentUser, onClose, onSaved }) {
     const data = {
       ...form,
       owner_email: currentUser.email,
+      provider_email: currentUser.email,
       store_type: "retail",
       base_price: parseFloat(form.base_price) || 0,
       cost_price: parseFloat(form.cost_price) || 0,
@@ -683,6 +685,77 @@ function StorefrontSection({ currentUser }) {
   );
 }
 
+// ─── Store Identity Section ───────────────────────────────────────────────────
+function StoreIdentityForm({ currentUser, storeType }) {
+  const key = storeType === "restaurant" ? "restaurant_profile" : "storefront_profile";
+  const existing = currentUser?.[key] || {};
+  const [form, setForm] = useState({
+    name: existing.name || "",
+    bio: existing.bio || "",
+    cover_url: existing.cover_url || "",
+  });
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setForm(f => ({ ...f, cover_url: file_url }));
+      toast.success("Cover uploaded!");
+    } catch { toast.error("Upload failed"); }
+    finally { setUploading(false); }
+  };
+
+  const handleSave = async () => {
+    if (!form.name) { toast.error("Store name is required"); return; }
+    setSaving(true);
+    try {
+      await base44.auth.updateMe({ [key]: form });
+      toast.success("Store info saved!");
+    } catch (e) { toast.error("Failed: " + e.message); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden mb-4">
+      {/* Cover photo */}
+      <div className="relative h-32">
+        {form.cover_url
+          ? <img src={form.cover_url} className="w-full h-full object-cover" alt="cover" />
+          : <div className="w-full h-full bg-gradient-to-br from-purple-600/40 to-pink-600/40 flex items-center justify-center">
+              <ImageIcon className="w-10 h-10 text-white/30" />
+            </div>
+        }
+        <label className="absolute bottom-2 right-2 cursor-pointer bg-black/60 hover:bg-black/80 px-3 py-1.5 rounded-full text-white text-xs flex items-center gap-1 transition">
+          <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+          {uploading ? "Uploading..." : "Change Cover"}
+        </label>
+      </div>
+      <div className="p-4 space-y-3">
+        <div>
+          <label className="text-gray-400 text-xs mb-1 block">{storeType === "restaurant" ? "Restaurant" : "Store"} Name *</label>
+          <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            placeholder={storeType === "restaurant" ? "e.g. My Kitchen" : "e.g. My Boutique"}
+            className="bg-white/10 border-white/20 text-white" />
+        </div>
+        <div>
+          <label className="text-gray-400 text-xs mb-1 block">Short Description</label>
+          <textarea value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
+            placeholder={storeType === "restaurant" ? "Cuisine type, hours, vibe..." : "What you sell, your brand story..."}
+            rows={2} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-sm placeholder-gray-500 resize-none focus:outline-none focus:border-purple-500" />
+        </div>
+        <Button onClick={handleSave} disabled={saving} size="sm" className="bg-purple-600 hover:bg-purple-700 text-white">
+          {saving ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />Saving...</> : "Save Store Info"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ProfileBusinessHub Component ────────────────────────────────────────
 export default function ProfileBusinessHub({ currentUser }) {
   const [activeSection, setActiveSection] = useState("menu");
@@ -710,8 +783,18 @@ export default function ProfileBusinessHub({ currentUser }) {
       </div>
 
       {/* Active Section */}
-      {activeSection === "menu" && <MenuSection currentUser={currentUser} />}
-      {activeSection === "storefront" && <StorefrontSection currentUser={currentUser} />}
+      {activeSection === "menu" && (
+        <>
+          <StoreIdentityForm currentUser={currentUser} storeType="restaurant" />
+          <MenuSection currentUser={currentUser} />
+        </>
+      )}
+      {activeSection === "storefront" && (
+        <>
+          <StoreIdentityForm currentUser={currentUser} storeType="retail" />
+          <StorefrontSection currentUser={currentUser} />
+        </>
+      )}
       {activeSection === "inventory" && <InventoryProductList currentUser={currentUser} />}
     </div>
   );

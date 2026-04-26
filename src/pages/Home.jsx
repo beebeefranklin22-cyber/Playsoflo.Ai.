@@ -181,14 +181,33 @@ export default function Home() {
     refetchOnWindowFocus: false
   });
 
+  // Initialise liked set from real liked_by data once posts load
+  useEffect(() => {
+    if (posts.length > 0 && currentUser?.email) {
+      const likedSet = new Set(
+        posts.filter(p => Array.isArray(p.liked_by) && p.liked_by.includes(currentUser.email)).map(p => p.id)
+      );
+      setLikedPosts(likedSet);
+    }
+  }, [posts, currentUser?.email]);
+
   const likeMutation = useMutation({
     mutationFn: async ({ postId, isLiked, post }) => {
+      const likedBy = Array.isArray(post.liked_by) ? [...post.liked_by] : [];
       if (isLiked) {
-        // Unlike: decrement
-        await base44.entities.SocialPost.update(postId, { likes_count: Math.max(0, (post.likes_count || 0) - 1) });
+        // Unlike
+        const updated = likedBy.filter(e => e !== currentUser.email);
+        await base44.entities.SocialPost.update(postId, {
+          liked_by: updated,
+          likes_count: updated.length,
+        });
       } else {
-        // Like: increment + notify
-        await base44.entities.SocialPost.update(postId, { likes_count: (post.likes_count || 0) + 1 });
+        // Like
+        if (!likedBy.includes(currentUser.email)) likedBy.push(currentUser.email);
+        await base44.entities.SocialPost.update(postId, {
+          liked_by: likedBy,
+          likes_count: likedBy.length,
+        });
         if (currentUser && post.created_by && post.created_by !== currentUser.email) {
           await base44.entities.Notification.create({
             recipient_email: post.created_by,
@@ -228,11 +247,9 @@ export default function Home() {
   });
 
   const toggleLike = (postId, post) => {
+    if (!currentUser) { toast.error('Sign in to like posts'); return; }
     const isLiked = likedPosts.has(postId);
     likeMutation.mutate({ postId, isLiked, post });
-    if (!isLiked && currentUser?.email) {
-      trackInteractionMutation.mutate({ interaction_type: "like", content_type: "post", content_id: postId, content_category: "social" });
-    }
   };
 
   const vibeColors = {
@@ -569,7 +586,7 @@ export default function Home() {
             {/* Likes Count */}
             <div className="px-4 pb-2">
               <p className="text-white font-semibold">
-                {post.likes_count + (likedPosts.has(post.id) ? 1 : 0)} likes
+                {Array.isArray(post.liked_by) ? post.liked_by.length : (post.likes_count || 0)} likes
               </p>
             </div>
 
