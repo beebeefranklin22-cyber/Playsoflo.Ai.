@@ -330,7 +330,7 @@ export default function Home() {
                       setStoryStartIndex(idx);
                       setViewingStories(stories);
                     } else {
-                      setCreateModalDefaultType("story");
+                      setCreateModalDefaultType(null);
                       setShowCreateModal(true);
                     }
                   }}
@@ -685,7 +685,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[65] bg-black/60"
+              className="fixed inset-0 z-[69] bg-black/60"
               onClick={() => setCommentingPost(null)}
             />
             <PostComments
