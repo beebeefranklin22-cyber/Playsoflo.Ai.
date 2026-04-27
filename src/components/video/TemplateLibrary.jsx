@@ -39,10 +39,11 @@ export default function TemplateLibrary({ onApplyTemplate, currentUser }) {
 
   const useTemplateMutation = useMutation({
     mutationFn: async (templateId) => {
-      const template = templates.find(t => t.id === templateId);
-      await base44.asServiceRole.entities.VideoTemplate.update(templateId, {
+      const template = [...templates, ...myTemplates].find(t => t.id === templateId);
+      // Increment use count (best-effort, non-blocking)
+      base44.entities.VideoTemplate.update(templateId, {
         uses_count: (template.uses_count || 0) + 1
-      });
+      }).catch(() => {});
       return template;
     },
     onSuccess: (template) => {
@@ -52,8 +53,10 @@ export default function TemplateLibrary({ onApplyTemplate, currentUser }) {
     }
   });
 
-  const filteredTemplates = templates.filter(t => {
-    const matchesSearch = t.template_name.toLowerCase().includes(searchQuery.toLowerCase());
+  const allTemplates = [...templates, ...myTemplates.filter(mt => !templates.find(t => t.id === mt.id))];
+
+  const filteredTemplates = allTemplates.filter(t => {
+    const matchesSearch = (t.template_name || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || t.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
