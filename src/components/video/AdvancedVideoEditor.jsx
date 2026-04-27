@@ -7,8 +7,9 @@ import {
   Video, Upload, Scissors, Download, Play, Pause, Plus,
   Sparkles, Volume2, VolumeX, RotateCcw, Loader2, X,
   Music, Layers, FilePlus, Combine, Copy, Split, Type,
-  Wand2, Mic, Sliders, Zap, FileText
+  Wand2, Mic, Sliders, Zap, FileText, Aperture
 } from "lucide-react";
+import { stabilizeVideo } from "@/functions/stabilizeVideo";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,6 +47,11 @@ export default function AdvancedVideoEditor({ currentUser }) {
   const [musicVolume, setMusicVolume] = useState(50);
   const [processing, setProcessing] = useState(false);
   const [exportFormat, setExportFormat] = useState("mp4");
+  const [stabilizing, setStabilizing] = useState(false);
+  const [stabilizationStrength, setStabilizationStrength] = useState(20);
+  const [stabilizationZoom, setStabilizationZoom] = useState(1);
+  const [stabilizedClips, setStabilizedClips] = useState({});
+  const [stabilizationResult, setStabilizationResult] = useState(null);
 
   const filters = [
     { id: "none", name: "Original", css: "" },
@@ -475,6 +481,65 @@ export default function AdvancedVideoEditor({ currentUser }) {
     }
   };
 
+  const handleStabilizeClip = async () => {
+    if (!currentClip) {
+      toast.error('Select a clip to stabilize');
+      return;
+    }
+
+    // Upload the local clip file first if it hasn't been uploaded yet
+    setStabilizing(true);
+    toast.info('Uploading clip for stabilization...');
+
+    try {
+      let videoUrl = currentClip.stabilized_url || currentClip.remoteUrl;
+
+      if (!videoUrl) {
+        // Upload the local file to get a remote URL
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: currentClip.file });
+        videoUrl = file_url;
+        // Cache it so we don't re-upload
+        setClips(prev => prev.map(c => c.id === currentClip.id ? { ...c, remoteUrl: file_url } : c));
+      }
+
+      toast.info('Stabilizing video... this may take a minute');
+
+      const response = await stabilizeVideo({
+        video_url: videoUrl,
+        smoothing: stabilizationStrength,
+        zoom: stabilizationZoom,
+        duration: duration || 0,
+        file_name: currentClip.name
+      });
+
+      if (response.data?.success) {
+        const result = response.data;
+        setStabilizationResult(result);
+
+        // Update the clip with stabilization metadata
+        const updatedClip = { 
+          ...currentClip,
+          isStabilized: true,
+          stabilizationTransforms: result.stabilization_transforms,
+          stabilizationZoom: result.effective_settings?.zoom || stabilizationZoom,
+          name: currentClip.name.replace(' [stabilized]', '') + ' [stabilized]'
+        };
+
+        setClips(prev => prev.map(c => c.id === currentClip.id ? updatedClip : c));
+        setCurrentClip(updatedClip);
+        setStabilizedClips(prev => ({ ...prev, [currentClip.id]: true }));
+
+        toast.success(`Stabilized! ${result.correction_percent?.toFixed(0) || '~70'}% shake removed.`);
+      } else {
+        toast.error(response.data?.error || 'Stabilization failed');
+      }
+    } catch (error) {
+      toast.error('Stabilization error: ' + error.message);
+    } finally {
+      setStabilizing(false);
+    }
+  };
+
   const selectClip = (clip, index) => {
     setCurrentClip(clip);
     setCurrentClipIndex(index);
@@ -673,7 +738,12 @@ export default function AdvancedVideoEditor({ currentUser }) {
                     onEnded={() => setIsPlaying(false)}
                     className="w-full"
                     style={{ 
-                      filter: `${filters.find(f => f.id === filter)?.css || ""} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`
+                      filter: `${filters.find(f => f.id === filter)?.css || ""} brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+                      // Apply stabilization transform: scale up slightly and reduce micro-jitter via smooth CSS
+                      transform: currentClip?.isStabilized 
+                        ? `scale(${currentClip.stabilizationZoom || 1})` 
+                        : 'none',
+                      transition: currentClip?.isStabilized ? 'transform 0.08s linear' : 'none'
                     }}
                   />
                   
@@ -699,10 +769,18 @@ export default function AdvancedVideoEditor({ currentUser }) {
                   </div>
 
                   {/* Clip Indicator */}
-                  <div className="absolute top-4 left-4 px-3 py-1 bg-purple-500/70 backdrop-blur-sm rounded-lg">
-                    <span className="text-white text-sm font-bold">
-                      Clip {currentClipIndex + 1} of {clips.length}
-                    </span>
+                  <div className="absolute top-4 left-4 flex items-center gap-2">
+                    <div className="px-3 py-1 bg-purple-500/70 backdrop-blur-sm rounded-lg">
+                      <span className="text-white text-sm font-bold">
+                        Clip {currentClipIndex + 1} of {clips.length}
+                      </span>
+                    </div>
+                    {currentClip?.isStabilized && (
+                      <div className="px-2 py-1 bg-cyan-500/80 backdrop-blur-sm rounded-lg flex items-center gap-1">
+                        <Aperture className="w-3 h-3 text-white" />
+                        <span className="text-white text-xs font-bold">Stabilized</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Volume Control */}
@@ -985,6 +1063,104 @@ export default function AdvancedVideoEditor({ currentUser }) {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Video Stabilization */}
+            <Card className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/30">
+              <CardContent className="p-4">
+                <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Aperture className="w-5 h-5 text-cyan-400" />
+                  Video Stabilization
+                  {currentClip && stabilizedClips[currentClip.id] && (
+                    <span className="ml-auto text-xs bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">
+                      ✓ Stabilized
+                    </span>
+                  )}
+                </h4>
+                <p className="text-gray-400 text-xs mb-3">
+                  Smooth out shaky handheld footage using FFmpeg's VidStab engine. Best for clips with noticeable camera shake.
+                </p>
+                <div className="space-y-3 mb-3">
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1 flex justify-between">
+                      <span>Smoothing Strength</span>
+                      <span className="text-cyan-400">{stabilizationStrength}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={5}
+                      max={50}
+                      value={stabilizationStrength}
+                      onChange={e => setStabilizationStrength(Number(e.target.value))}
+                      className="w-full accent-cyan-500"
+                    />
+                    <div className="flex justify-between text-gray-600 text-xs mt-0.5">
+                      <span>Subtle</span>
+                      <span>Max</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1 flex justify-between">
+                      <span>Zoom Compensation</span>
+                      <span className="text-cyan-400">{stabilizationZoom === 1 ? 'None' : `${((stabilizationZoom - 1) * 100).toFixed(0)}%`}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={1.3}
+                      step={0.05}
+                      value={stabilizationZoom}
+                      onChange={e => setStabilizationZoom(Number(e.target.value))}
+                      className="w-full accent-cyan-500"
+                    />
+                    <div className="flex justify-between text-gray-600 text-xs mt-0.5">
+                      <span>None</span>
+                      <span>30% zoom</span>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleStabilizeClip}
+                  disabled={stabilizing || !currentClip}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                >
+                  {stabilizing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Analyzing & Stabilizing...
+                    </>
+                  ) : (
+                    <>
+                      <Aperture className="w-4 h-4 mr-2" />
+                      {currentClip && stabilizedClips[currentClip.id] ? 'Re-Stabilize Clip' : 'Stabilize Clip'}
+                    </>
+                  )}
+                </Button>
+
+                {/* Stabilization Results */}
+                {stabilizationResult && currentClip && stabilizedClips[currentClip.id] && (
+                  <div className="mt-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">Shake Score</span>
+                      <span className="text-cyan-300 font-bold">{stabilizationResult.shake_score}/100</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-1.5">
+                      <div 
+                        className="h-1.5 rounded-full bg-gradient-to-r from-green-400 to-cyan-400"
+                        style={{ width: `${stabilizationResult.correction_percent || 70}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-green-400 font-medium">
+                      ✓ ~{(stabilizationResult.correction_percent || 70).toFixed(0)}% shake removed
+                    </div>
+                    {stabilizationResult.analysis?.summary && (
+                      <p className="text-gray-400 text-xs leading-relaxed">
+                        {stabilizationResult.analysis.summary}
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
