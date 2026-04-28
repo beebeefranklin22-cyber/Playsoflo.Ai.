@@ -26,6 +26,7 @@ import HomeBannerAd from "../components/ads/HomeBannerAd";
 import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 import PostComments from "../components/social/PostComments";
+import PersonalizedOffersWidget from "../components/offers/PersonalizedOffersWidget";
 import { AnimatePresence } from "framer-motion";
 
 // Simple Badge component for styling, as it's used in the recommendations section
@@ -468,6 +469,11 @@ export default function Home() {
 
       {/* Platform Ad Banner */}
       <HomeBannerAd currentUser={currentUser} />
+
+      {/* Personalized Offers Widget */}
+      <div className="max-w-2xl mx-auto px-4 pt-4">
+        <PersonalizedOffersWidget user={currentUser} />
+      </div>
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
