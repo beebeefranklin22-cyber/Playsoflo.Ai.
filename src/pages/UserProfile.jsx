@@ -175,13 +175,15 @@ export default function UserProfile() {
       {/* Profile Info — avatar sits below cover, not inside it */}
       <div className="px-4 pb-4">
         {/* Avatar row */}
-        <div className="flex items-end justify-between -mt-12 mb-3">
-          <div className="w-24 h-24 rounded-full border-4 border-[#07131A] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
+        <div className="flex items-end justify-between -mt-12 mb-3 pt-0">
+          <div className="w-24 h-24 rounded-full border-4 border-[#07131A] overflow-visible bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
+            <div className="w-full h-full rounded-full overflow-hidden">
             {(profileUser.profile_picture || profileUser.profile_photo) ? (
               <img src={profileUser.profile_picture || profileUser.profile_photo} alt={profileUser.full_name} className="w-full h-full object-cover" />
             ) : (
               (profileUser.full_name?.[0] || "U").toUpperCase()
             )}
+            </div>
           </div>
           {!isOwnProfile && currentUser && (
             <div className="flex gap-2 mt-2">
