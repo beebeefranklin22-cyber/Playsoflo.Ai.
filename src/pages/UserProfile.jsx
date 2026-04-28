@@ -15,6 +15,7 @@ import FollowButton from "../components/social/FollowButton";
 import AddFriendButton from "../components/friends/AddFriendButton";
 import FollowersModal from "../components/social/FollowersModal";
 import ShowcasePostModal from "../components/profile/ShowcasePostModal";
+import ProfileHighlights from "../components/profile/ProfileHighlights";
 
 const SHOWCASE_TYPE_COLORS = {
   product: "from-purple-500 to-pink-500",
@@ -129,6 +130,10 @@ export default function UserProfile() {
 
   const coverMedia = profileUser.cover_video_url || profileUser.cover_image_url || profileUser.cover_url || profileUser.cover_photo;
   const isCoverVideo = !coverVideoError && (profileUser.cover_video_url || (coverMedia && coverMedia.match(/\.(mp4|mov|webm|ogg)/i)));
+  const themeColors = profileUser.profile_customization;
+  const coverStyle = (!coverMedia && themeColors?.primary_color && themeColors?.secondary_color)
+    ? { background: `linear-gradient(135deg, ${themeColors.primary_color}, ${themeColors.secondary_color})` }
+    : {};
 
   const tabs = [
     { id: "posts", label: "Posts", icon: Grid },
@@ -141,7 +146,7 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen pb-24">
       {/* ── COVER PHOTO / VIDEO ── with header overlaid on top */}
-      <div className="relative w-full h-52 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden">
+      <div className="relative w-full h-52 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden" style={coverStyle}>
         {coverMedia && isCoverVideo ? (
           <video
             src={coverMedia}
@@ -218,6 +223,19 @@ export default function UserProfile() {
 
         {profileUser.bio && <p className="text-gray-300 text-sm mb-3">{profileUser.bio}</p>}
 
+        {/* Link in bio */}
+        {profileUser.link_in_bio && (
+          <a
+            href={profileUser.link_in_bio}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-cyan-400 text-sm font-medium mb-3 hover:text-cyan-300 transition"
+          >
+            <Globe className="w-4 h-4" />
+            {profileUser.link_in_bio.replace(/^https?:\/\//, "")}
+          </a>
+        )}
+
         {/* Social links */}
         {(profileUser.website || profileUser.social_links) && (
           <div className="flex flex-wrap gap-3 mb-3">
@@ -274,6 +292,14 @@ export default function UserProfile() {
           </Button>
         )}
       </div>
+
+      {/* Highlights */}
+      <ProfileHighlights
+        profileUser={profileUser}
+        isOwnProfile={isOwnProfile}
+        posts={posts}
+        reels={reels}
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 overflow-x-auto hide-scrollbar">

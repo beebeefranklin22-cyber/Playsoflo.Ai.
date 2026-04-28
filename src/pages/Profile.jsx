@@ -47,6 +47,7 @@ export default function Profile() {
     full_name: "",
     username: "",
     bio: "",
+    link_in_bio: "",
     website: "",
     social_links: {
       twitter: "",
@@ -87,6 +88,7 @@ export default function Profile() {
           full_name: user.full_name || "",
           username: user.username || "",
           bio: user.bio || "",
+          link_in_bio: user.link_in_bio || "",
           website: user.website || "",
           social_links: user.social_links || {
             twitter: "",
@@ -158,7 +160,7 @@ export default function Profile() {
         await updateUserMutation.mutateAsync({ cover_photo: file_url });
         toast.success('Cover photo updated!');
       } else {
-        await updateUserMutation.mutateAsync({ profile_photo: file_url });
+        await updateUserMutation.mutateAsync({ profile_picture: file_url, profile_photo: file_url });
         toast.success('Profile photo updated!');
       }
       
@@ -257,9 +259,9 @@ export default function Profile() {
       <div className="px-6 -mt-20 relative z-10">
         <div className="flex items-end gap-6 mb-6">
           <div className="relative">
-            {currentUser?.profile_photo ? (
+            {(currentUser?.profile_picture || currentUser?.profile_photo) ? (
               <img
-                src={currentUser.profile_photo}
+                src={currentUser.profile_picture || currentUser.profile_photo}
                 alt="Profile"
                 className="w-32 h-32 rounded-full border-4 border-gray-900 object-cover"
               />
@@ -430,6 +432,15 @@ export default function Profile() {
                       placeholder="Tell us about yourself..."
                       className="bg-white/10 border-white/20 text-white"
                       rows={4}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Link in Bio</label>
+                    <Input
+                      value={editedUser.link_in_bio}
+                      onChange={(e) => setEditedUser({ ...editedUser, link_in_bio: e.target.value })}
+                      placeholder="https://yourlink.com"
+                      className="bg-white/10 border-white/20 text-white"
                     />
                   </div>
                   <div>
