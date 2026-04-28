@@ -110,12 +110,7 @@ export default function ProfilePictureGate({ user, onComplete }) {
           )}
         </Button>
 
-        <button
-          onClick={onComplete}
-          className="mt-4 text-gray-500 text-sm hover:text-gray-300 transition"
-        >
-          Skip for now
-        </button>
+
       </motion.div>
     </div>
   );
