@@ -265,7 +265,7 @@ export default function Home() {
   const quickAccess = [
     { icon: TrendingUp, label: "Discover", color: "yellow", path: "Discover" },
     { icon: Music, label: "Music", color: "pink", path: "Vibe" },
-    { icon: Compass, label: "Explore", color: "purple", path: "Universe" },
+    { icon: Sparkles, label: "For You", color: "blue", path: null, isOffers: true },
     { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
     { icon: ShoppingBag, label: "Shop", color: "orange", path: "Marketplace" },
     { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
@@ -457,7 +457,7 @@ export default function Home() {
           {quickAccess.map((item) => (
             <button
               key={item.path + item.label}
-              onClick={() => navigate(createPageUrl(item.path))}
+              onClick={() => item.isOffers ? null : navigate(createPageUrl(item.path))}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 glass-effect rounded-full hover:bg-white/10 transition border border-white/20"
             >
               <item.icon className={`w-3.5 h-3.5 text-${item.color}-400`} />
@@ -465,15 +465,13 @@ export default function Home() {
             </button>
           ))}
         </div>
+        <div className="mt-2">
+          <PersonalizedOffersWidget user={currentUser} />
+        </div>
       </div>
 
       {/* Platform Ad Banner */}
       <HomeBannerAd currentUser={currentUser} />
-
-      {/* Personalized Offers Widget */}
-      <div className="max-w-2xl mx-auto px-4 pt-4">
-        <PersonalizedOffersWidget user={currentUser} />
-      </div>
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
