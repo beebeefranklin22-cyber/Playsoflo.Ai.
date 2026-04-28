@@ -127,7 +127,7 @@ export default function UserProfile() {
     );
   }
 
-  const coverMedia = profileUser.cover_video_url || profileUser.cover_image_url || profileUser.cover_url;
+  const coverMedia = profileUser.cover_video_url || profileUser.cover_image_url || profileUser.cover_url || profileUser.cover_photo;
   const isCoverVideo = !coverVideoError && (profileUser.cover_video_url || (coverMedia && coverMedia.match(/\.(mp4|mov|webm|ogg)/i)));
 
   const tabs = [
@@ -178,8 +178,8 @@ export default function UserProfile() {
         {/* Avatar row */}
         <div className="flex items-end justify-between -mt-10 mb-3">
           <div className="w-20 h-20 rounded-full border-4 border-[#07131A] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
-            {profileUser.profile_picture ? (
-              <img src={profileUser.profile_picture} alt={profileUser.full_name} className="w-full h-full object-cover" />
+            {(profileUser.profile_picture || profileUser.profile_photo) ? (
+              <img src={profileUser.profile_picture || profileUser.profile_photo} alt={profileUser.full_name} className="w-full h-full object-cover" />
             ) : (
               (profileUser.full_name?.[0] || "U").toUpperCase()
             )}
