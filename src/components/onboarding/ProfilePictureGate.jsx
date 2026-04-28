@@ -84,7 +84,6 @@ export default function ProfilePictureGate({ user, onComplete }) {
           <input
             type="file"
             accept="image/*"
-            capture="user"
             className="hidden"
             onChange={handleFileChange}
             disabled={uploading}
