@@ -48,16 +48,6 @@ export default function ProfilePictureGate({ user, onComplete }) {
     }
   };
 
-  const handleSkip = async () => {
-    // Allow skipping by setting a placeholder so the gate doesn't block them
-    setSaving(true);
-    try {
-      await base44.auth.updateMe({ profile_picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=8B5CF6&color=fff&size=200` });
-      onComplete();
-    } catch {
-      onComplete(); // proceed anyway
-    }
-  };
 
   const isLoading = uploading || saving;
 
@@ -130,13 +120,7 @@ export default function ProfilePictureGate({ user, onComplete }) {
           </div>
         </label>
 
-        <button
-          onClick={handleSkip}
-          disabled={isLoading}
-          className="w-full text-gray-500 hover:text-gray-300 text-sm py-2 transition disabled:opacity-50"
-        >
-          Skip for now
-        </button>
+
       </motion.div>
     </div>
   );
