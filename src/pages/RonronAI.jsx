@@ -78,7 +78,7 @@ export default function RonronAI() {
   };
 
   const quickCommands = [
-    { icon: Navigation, label: "Navigate", command: "Navigate me to Miami Beach", color: "from-blue-500 to-cyan-500" },
+    { icon: Navigation, label: "Plan Trip", command: "Plan me a fun adventurous weekend in Miami", color: "from-blue-500 to-cyan-500" },
     { icon: Calendar, label: "Book Experience", command: "Show me available experiences", color: "from-purple-500 to-pink-500" },
     { icon: Wallet, label: "Check Balance", command: "What's my SoFloCoin balance?", color: "from-green-500 to-emerald-500" },
     { icon: ShoppingBag, label: "Find Services", command: "Find services near me", color: "from-orange-500 to-amber-500" },
@@ -147,6 +147,10 @@ export default function RonronAI() {
       console.error('Security check failed:', secError);
     }
 
+    // Check for smart trip planning request
+    const tripPlanningKeywords = ['weekend', 'trip', 'plan', 'visit', 'traveling to', 'going to', 'flying', 'stay from', 'day trip'];
+    const isTripRequest = tripPlanningKeywords.some(kw => messageText.toLowerCase().includes(kw));
+
     const userMessage = { role: "user", content: messageText };
     setMessages(prev => [...prev, userMessage]);
     setInputText("");
@@ -162,6 +166,36 @@ export default function RonronAI() {
     }, 30000);
 
     try {
+      // Handle smart trip planning
+      if (isTripRequest) {
+        try {
+          const tripPlanResponse = await base44.functions.invoke('smartTripPlanner', {
+            query: messageText,
+            user_location: currentUser?.address || "Unknown",
+            check_in_date: new Date().toISOString(),
+            check_out_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+          });
+
+          if (tripPlanResponse.data?.itinerary) {
+            const itinerary = tripPlanResponse.data.itinerary;
+            const tripSummary = formatTripItinerary(itinerary);
+            
+            setMessages(prev => [...prev, {
+              role: "assistant",
+              content: tripSummary
+            }]);
+            speak(tripSummary);
+            
+            if (requestTimeoutRef.current) clearTimeout(requestTimeoutRef.current);
+            setIsLoading(false);
+            return;
+          }
+        } catch (tripError) {
+          console.log('Trip planning fallback to general AI:', tripError);
+          // Fall through to regular AI handling
+        }
+      }
+
       // Enhanced multilingual context-aware prompting with real-time data
       const contextPrompt = `You are Beebee, the ultra-intelligent multilingual AI assistant for PlaySoFlo - a lifestyle super-app with experiences, marketplace services, wallet, real estate, travel, and more.
 
@@ -599,6 +633,71 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
         }]);
       }, 1000);
     }
+  };
+
+  const formatTripItinerary = (itinerary) => {
+    const { destination, dates, recommendations, estimated_budget } = itinerary;
+    const totalDays = dates.duration_days;
+    
+    let tripText = `✈️ **${destination} Itinerary** (${dates.arrival} to ${dates.departure}, ${totalDays} days)\n\n`;
+    
+    // Flights
+    if (recommendations.flight) {
+      tripText += `✈️ **FLIGHTS**\n`;
+      tripText += `• ${recommendations.flight.airline} - ${recommendations.flight.departure} to ${recommendations.flight.arrival}\n`;
+      tripText += `• Duration: ${recommendations.flight.duration} | Price: $${recommendations.flight.price}\n\n`;
+    }
+    
+    // Hotel
+    if (recommendations.hotel) {
+      tripText += `🏨 **ACCOMMODATION**\n`;
+      tripText += `• ${recommendations.hotel.name} (${recommendations.hotel.category})\n`;
+      tripText += `• $${recommendations.hotel.price_per_night}/night | Total: $${recommendations.hotel.total_price}\n`;
+      tripText += `• Rating: ⭐${recommendations.hotel.rating} | Amenities: ${recommendations.hotel.amenities.join(', ')}\n\n`;
+    }
+    
+    // Car Rental
+    if (recommendations.car_rental) {
+      tripText += `🚗 **CAR RENTAL**\n`;
+      tripText += `• ${recommendations.car_rental.company} - ${recommendations.car_rental.model}\n`;
+      tripText += `• $${recommendations.car_rental.price_per_day}/day | Total: $${recommendations.car_rental.total_price}\n\n`;
+    }
+    
+    // Dining
+    if (recommendations.restaurants.length > 0) {
+      tripText += `🍽️ **DINING RECOMMENDATIONS**\n`;
+      recommendations.restaurants.slice(0, 3).forEach((r, i) => {
+        tripText += `${i + 1}. **${r.name}** - ${r.cuisine}\n`;
+        tripText += `   ⭐${r.rating} | ${r.price_level} | Avg: $${r.avg_cost}\n`;
+      });
+      tripText += `\n`;
+    }
+    
+    // Experiences
+    if (recommendations.experiences.length > 0) {
+      tripText += `🎉 **EXPERIENCES**\n`;
+      recommendations.experiences.slice(0, 3).forEach((e, i) => {
+        tripText += `${i + 1}. **${e.name}** - $${e.price}\n`;
+        tripText += `   ⭐${e.rating} | ${e.duration_hours}h | ${e.group_size} people\n`;
+      });
+      tripText += `\n`;
+    }
+    
+    // Events
+    if (recommendations.local_events.length > 0) {
+      tripText += `🎊 **LOCAL EVENTS**\n`;
+      recommendations.local_events.forEach((ev, i) => {
+        tripText += `${i + 1}. **${ev.name}** - ${ev.type}\n`;
+      });
+      tripText += `\n`;
+    }
+    
+    // Budget Summary
+    const total = Object.values(estimated_budget).reduce((a, b) => typeof b === 'number' ? a + b : a, 0);
+    tripText += `💰 **ESTIMATED BUDGET**: $${Math.round(total)}\n`;
+    tripText += `(Flights: $${recommendations.flight?.price || 0} | Hotel: $${recommendations.hotel?.total_price || 0} | Car: $${recommendations.car_rental?.total_price || 0} | Activities & Food: $${(total - (recommendations.flight?.price || 0) - (recommendations.hotel?.total_price || 0) - (recommendations.car_rental?.total_price || 0))})`;
+    
+    return tripText;
   };
 
   const handleQuickCommand = (command) => {
