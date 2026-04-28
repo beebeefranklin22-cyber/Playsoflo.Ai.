@@ -1,0 +1,90 @@
+{
+  "name": "HelpGuide",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title of the tutorial/guide"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description of what the guide covers"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "fan_pool",
+        "inventory",
+        "creator_channel",
+        "marketplace",
+        "delivery",
+        "travel",
+        "streaming",
+        "music",
+        "social",
+        "wallet",
+        "general"
+      ],
+      "description": "Category this guide belongs to"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL to video tutorial (YouTube embed or direct video)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Rich text or markdown content for written guide"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step_number": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Step-by-step instructions with images"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "beginner",
+        "intermediate",
+        "advanced"
+      ],
+      "default": "beginner"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Search tags"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "order": {
+      "type": "number",
+      "description": "Display order in list"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

@@ -6,6 +6,7 @@ import Reels from './pages/Reels'
 import CreatorChannel from './pages/CreatorChannel'
 import CreatorDashboard from './pages/CreatorDashboard'
 import TravelCategoryHub from './pages/TravelCategoryHub'
+import Help from './pages/Help'
 import AmazonStore from './pages/AmazonStore'
 import AmazonOrders from './pages/AmazonOrders'
 import SavedJobs from './pages/SavedJobs'
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
       <Route path="/LiveTracking" element={<LayoutWrapper currentPageName="LiveTracking"><LiveTracking /></LayoutWrapper>} />
       <Route path="/InventoryManager" element={<LayoutWrapper currentPageName="InventoryManager"><InventoryManager /></LayoutWrapper>} />
       <Route path="/Reels" element={<Reels />} />
+      <Route path="/Help" element={<LayoutWrapper currentPageName="Help"><Help /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

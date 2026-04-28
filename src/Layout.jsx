@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin, BookOpen } from "lucide-react";
 import CitySelector from "./components/location/CitySelector";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
@@ -14,6 +14,7 @@ import CustomerSupportChat from "./components/support/CustomerSupportChat";
 import { ThemeProvider } from "./components/ui/ThemeProvider";
 
 import SmartTooltip from "./components/onboarding/SmartTooltip";
+import OnboardingFlow from "./components/onboarding/OnboardingFlow";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
@@ -40,6 +41,7 @@ export default function Layout({ children, currentPageName }) {
   const [showOrderTracker, setShowOrderTracker] = useState(false);
   const [trackedOrderId, setTrackedOrderId] = useState(null);
   const [trackedOrderType, setTrackedOrderType] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const searchRef = useRef(null);
   const [direction, setDirection] = useState(0);
   const prevPathRef = useRef(location.pathname);
@@ -127,6 +129,10 @@ export default function Layout({ children, currentPageName }) {
         // Sync timezone from profile to localStorage so all time displays are correct
         if (user?.timezone) {
           try { localStorage.setItem('user_timezone', user.timezone); } catch {}
+        }
+        // Show onboarding for new users
+        if (user && !user.onboarding_completed) {
+          setShowOnboarding(true);
         }
       } catch (error) {
         console.log("User not authenticated or error fetching user:", error);
@@ -242,6 +248,9 @@ export default function Layout({ children, currentPageName }) {
   if (currentUser?.role === 'admin' || currentUser?.is_support_agent) {
     sidebarSections.push({ icon: Headphones, label: "Support", path: "SupportDashboard" });
   }
+  
+  // Add Help link for all users
+  sidebarSections.push({ icon: BookOpen, label: "Help & Tutorials", path: "Help" });
 
   const breadcrumbMap = {
     "Home": ["Home"],
@@ -745,6 +754,19 @@ export default function Layout({ children, currentPageName }) {
           setShowOrderTracker(true);
         }
       )}
+
+      {/* Onboarding Flow for New Users */}
+      <AnimatePresence>
+        {showOnboarding && currentUser && (
+          <OnboardingFlow
+            currentUser={currentUser}
+            onComplete={() => {
+              setShowOnboarding(false);
+              setCurrentUser({ ...currentUser, onboarding_completed: true });
+            }}
+          />
+        )}
+      </AnimatePresence>
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
