@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import RealtimeFeedManager from '../components/feed/RealtimeFeedManager';
 import AIPersonalizationEngine from '../components/feed/AIPersonalizationEngine';
 import UniversalFeedFilter from '../components/feed/UniversalFeedFilter';
@@ -39,6 +39,7 @@ const Badge = ({ children, className }) => (
 export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const offersRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [aiPreferences, setAiPreferences] = useState(null);
   const [feedFilters, setFeedFilters] = useState({
@@ -457,7 +458,7 @@ export default function Home() {
           {quickAccess.map((item) => (
             <button
               key={item.path + item.label}
-              onClick={() => item.isOffers ? null : navigate(createPageUrl(item.path))}
+              onClick={() => item.isOffers ? offersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) : navigate(createPageUrl(item.path))}
               className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 glass-effect rounded-full hover:bg-white/10 transition border border-white/20"
             >
               <item.icon className={`w-3.5 h-3.5 text-${item.color}-400`} />
@@ -465,7 +466,7 @@ export default function Home() {
             </button>
           ))}
         </div>
-        <div className="mt-2">
+        <div className="mt-2" ref={offersRef}>
           <PersonalizedOffersWidget user={currentUser} />
         </div>
       </div>
