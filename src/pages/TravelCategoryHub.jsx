@@ -14,6 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import TravelProviderOnboardingModal from "@/components/travel/TravelProviderOnboardingModal";
 import TravelBookingModal from "@/components/travel/TravelBookingModal";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation } from "../hooks/useUserLocation";
 
 const CATEGORY_META = {
   private_jets: {
@@ -72,6 +75,10 @@ export default function TravelCategoryHub() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const [showBooking, setShowBooking] = useState(false);
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
+  const { userCity, refreshLocation } = useUserLocation();
 
   // Get category from URL
   const params = new URLSearchParams(window.location.search);
@@ -82,6 +89,12 @@ export default function TravelCategoryHub() {
     queryKey: ["travel-listings", category],
     queryFn: () => base44.entities.TravelListing.filter({ category, is_active: true }),
     initialData: [],
+  });
+
+  const filteredListings = listings.filter(listing => {
+    if (!locationCity) return true;
+    const q = locationCity.toLowerCase();
+    return [listing.location, listing.provider_name].filter(Boolean).join(" ").toLowerCase().includes(q);
   });
 
   return (
@@ -99,6 +112,17 @@ export default function TravelCategoryHub() {
         </div>
 
         <div className="px-6 py-8">
+          {/* Location Filter */}
+          <LocationFilter
+            cityValue={locationCity}
+            onCityChange={setLocationCity}
+            radiusValue={locationRadius}
+            onRadiusChange={setLocationRadius}
+            userCity={userCity}
+            accentColor="purple"
+            onOpenCitySettings={() => setShowCitySelector(true)}
+          />
+
           {/* Become a Provider CTA */}
           <div className={`mb-8 p-5 rounded-2xl border ${meta.badge} flex items-center justify-between gap-4`}>
             <div>
@@ -130,9 +154,15 @@ export default function TravelCategoryHub() {
                 List Your Service →
               </Button>
             </div>
+          ) : filteredListings.length === 0 && locationCity ? (
+            <div className="text-center py-16">
+              <MapPin className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+              <p className="text-white font-semibold">No listings found near "{locationCity}"</p>
+              <p className="text-gray-400 text-sm mt-1">Try a different city or clear the filter.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {listings.map((listing) => (
+              {filteredListings.map((listing) => (
                 <motion.div
                   key={listing.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -204,6 +234,14 @@ export default function TravelCategoryHub() {
       <TravelBookingModal
         listing={selectedListing}
         onClose={() => { setShowBooking(false); setSelectedListing(null); }}
+      />
+    )}
+
+    {showCitySelector && (
+      <CitySelector
+        user={{ city: userCity }}
+        onClose={() => setShowCitySelector(false)}
+        onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
       />
     )}
     </>
