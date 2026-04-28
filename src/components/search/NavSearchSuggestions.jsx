@@ -41,7 +41,7 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
         const userMatches = users
           .filter(u => u.full_name?.toLowerCase().includes(term) || u.username?.toLowerCase().includes(term))
           .slice(0, 2)
-          .map(u => ({ type: 'user', label: u.full_name || u.username, sub: u.username ? `@${u.username}` : '', email: u.email, username: u.username }));
+          .map(u => ({ type: 'user', label: u.full_name || u.username, sub: u.username ? `@${u.username}` : '', id: u.id, username: u.username }));
         setSuggestions([...videoMatches, ...userMatches]);
       } catch { setSuggestions([]); }
       setLoading(false);
@@ -54,7 +54,7 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
     if (item.type === 'video') {
       navigate(createPageUrl("VODPlayer") + `?id=${item.id}`);
     } else if (item.type === 'user') {
-      navigate(createPageUrl("UserProfile") + `?username=${item.username || item.email}`);
+      navigate(createPageUrl("UserProfile") + `?username=${item.username || item.id}`);
     } else {
       navigate(createPageUrl("UniversalSearch") + `?search=${encodeURIComponent(item.label)}`);
     }

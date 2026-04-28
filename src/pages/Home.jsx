@@ -414,7 +414,7 @@ export default function Home() {
                   )}
                 </button>
                 <span className="text-gray-300 text-xs max-w-[64px] truncate">
-                  {story.creator_name || story.created_by?.split('@')[0]}
+                  {story.creator_name || story.creator_username || "User"}
                 </span>
               </div>
             ))}
@@ -483,14 +483,18 @@ export default function Home() {
             {/* Post Header */}
             <div className="flex items-center justify-between px-4 py-3">
               <button
-                onClick={() => navigate(createPageUrl("UserProfile") + `?user=${post.created_by}`)}
+                onClick={() => navigate(createPageUrl("UserProfile") + `?username=${post.creator_username || post.created_by}`)}
                 className="flex items-center gap-3"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                  {post.created_by?.[0]?.toUpperCase() || "U"}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden text-white font-bold">
+                  {post.creator_profile_picture ? (
+                    <img src={post.creator_profile_picture} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    (post.creator_name || post.created_by)?.[0]?.toUpperCase() || "U"
+                  )}
                 </div>
                 <div>
-                  <p className="text-white font-semibold">{post.created_by || "User"}</p>
+                  <p className="text-white font-semibold">{post.creator_name || post.creator_username || "User"}</p>
                   {post.location && (
                     <div className="flex items-center gap-1 text-gray-400 text-sm">
                       <MapPin className="w-3 h-3" />
@@ -609,7 +613,7 @@ export default function Home() {
             {/* Caption */}
             <div className="px-4 pb-2">
               <p className="text-white">
-                <span className="font-semibold mr-2">{post.created_by || "User"}</span>
+                <span className="font-semibold mr-2">{post.creator_name || post.creator_username || "User"}</span>
                 {post.caption}
               </p>
             </div>

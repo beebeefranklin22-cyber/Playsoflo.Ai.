@@ -98,8 +98,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
   const searchResults = allUsers.filter(user => 
     user.email !== currentUser?.email &&
     (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+     user.username?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (!isOpen) return null;
@@ -158,7 +157,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                         pendingRequests={pendingRequests}
                         onFollow={() => followMutation.mutate(user)}
                         onViewProfile={() => {
-                          navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`);
+                          navigate(createPageUrl("UserProfile") + `?username=${user.username || user.id}`);
                           onClose();
                         }}
                         isLoading={followMutation.isPending}
@@ -179,7 +178,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                       pendingRequests={pendingRequests}
                       onFollow={() => followMutation.mutate(user)}
                       onViewProfile={() => {
-                        navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`);
+                        navigate(createPageUrl("UserProfile") + `?username=${user.username || user.id}`);
                         onClose();
                       }}
                       isLoading={followMutation.isPending}
