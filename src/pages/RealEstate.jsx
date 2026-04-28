@@ -22,6 +22,9 @@ import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
 import MortgageCalculator from "../components/realestate/MortgageCalculator";
 import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFilters";
 import PropertyMapView from "../components/realestate/PropertyMapView";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -43,6 +46,10 @@ const listingTypes = [
 export default function RealEstate() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { userCity, refreshLocation } = useUserLocation();
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedListingType, setSelectedListingType] = useState("all");
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -137,6 +144,13 @@ export default function RealEstate() {
   const filteredProperties = properties.filter(prop => {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
     const listingMatch = selectedListingType === "all" || prop.listing_type === selectedListingType;
+
+    // Location filter (in addition to the search bar)
+    if (locationCity) {
+      const q = locationCity.toLowerCase();
+      const hay = [prop.location, prop.city, prop.county].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     
     // Map bounds filter (only when in map view and bounds are set)
     let boundsMatch = true;
@@ -268,6 +282,19 @@ export default function RealEstate() {
             </Button>
           </form>
         </div>
+      </div>
+
+      {/* Location Filter */}
+      <div className="px-4 sm:px-6 mt-4">
+        <LocationFilter
+          cityValue={locationCity}
+          onCityChange={setLocationCity}
+          radiusValue={locationRadius}
+          onRadiusChange={setLocationRadius}
+          userCity={userCity}
+          accentColor="emerald"
+          onOpenCitySettings={() => setShowCitySelector(true)}
+        />
       </div>
 
       {/* Listing Type Filter */}
@@ -828,6 +855,14 @@ export default function RealEstate() {
           />
         )}
       </AnimatePresence>
+
+      {showCitySelector && (
+        <CitySelector
+          user={{ city: userCity }}
+          onClose={() => setShowCitySelector(false)}
+          onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+        />
+      )}
 
       <AnimatePresence>
         {showAdvancedFilters && (

@@ -23,6 +23,9 @@ import BookingModal from "../components/BookingModal";
 import QuickBookingFlow from "../components/booking/QuickBookingFlow";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -135,6 +138,10 @@ const categories = [
 export default function Marketplace() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { userCity, refreshLocation } = useUserLocation();
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -344,6 +351,13 @@ export default function Marketplace() {
     // Exclude wellness categories
     if (wellnessCategoryIds.includes(item.category)) {
       return false;
+    }
+
+    // Location filter
+    if (locationCity) {
+      const q = locationCity.toLowerCase();
+      const hay = [item.location, item.service_area, item.provider_name].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
     }
 
     // Category filter
@@ -556,6 +570,19 @@ export default function Marketplace() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Location Filter */}
+      <div className="px-6 mb-2">
+        <LocationFilter
+          cityValue={locationCity}
+          onCityChange={setLocationCity}
+          radiusValue={locationRadius}
+          onRadiusChange={setLocationRadius}
+          userCity={userCity}
+          accentColor="orange"
+          onOpenCitySettings={() => setShowCitySelector(true)}
+        />
       </div>
 
       {/* Advanced Filters */}
@@ -1074,6 +1101,14 @@ export default function Marketplace() {
             </div>
           </div>
         </div>
+      )}
+
+      {showCitySelector && (
+        <CitySelector
+          user={{ city: userCity }}
+          onClose={() => setShowCitySelector(false)}
+          onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+        />
       )}
 
       <style>{`

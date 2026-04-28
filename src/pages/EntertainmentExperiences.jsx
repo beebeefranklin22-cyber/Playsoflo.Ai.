@@ -22,6 +22,9 @@ import ListExperienceModal from "../components/entertainment/ListExperienceModal
 import TicketAffiliateStats from "../components/affiliate/TicketAffiliateStats";
 import AffiliatePayoutManager from "../components/affiliate/AffiliatePayoutManager";
 import TicketPurchaseModal from "../components/entertainment/TicketPurchaseModal";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
@@ -80,6 +83,10 @@ export default function EntertainmentExperiences() {
   const params = new URLSearchParams(location.search);
   const initialCategory = params.get('category') || 'all';
   
+  const { userCity, refreshLocation } = useUserLocation();
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOccasion, setSelectedOccasion] = useState(null);
@@ -140,6 +147,12 @@ export default function EntertainmentExperiences() {
   });
 
   const filteredExperiences = experiences.filter(exp => {
+    // Location filter
+    if (locationCity) {
+      const q = locationCity.toLowerCase();
+      const hay = [exp.venue_city, exp.venue_address, exp.venue_state, exp.location].filter(Boolean).join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     const searchMatch = searchQuery ? exp.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     
     // Duration filter
@@ -270,6 +283,17 @@ Return as JSON array with this structure:
             </Button>
           </div>
         </div>
+
+        {/* Location Filter */}
+        <LocationFilter
+          cityValue={locationCity}
+          onCityChange={setLocationCity}
+          radiusValue={locationRadius}
+          onRadiusChange={setLocationRadius}
+          userCity={userCity}
+          accentColor="purple"
+          onOpenCitySettings={() => setShowCitySelector(true)}
+        />
 
         {/* Advanced Filters */}
         <div className="mb-6">
@@ -710,6 +734,14 @@ Return as JSON array with this structure:
           onClose={() => setShowListExperience(false)}
           currentUser={currentUser}
         />
+
+        {showCitySelector && (
+          <CitySelector
+            user={{ city: userCity }}
+            onClose={() => setShowCitySelector(false)}
+            onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+          />
+        )}
 
         {selectedExperience && (
           <TicketPurchaseModal

@@ -15,6 +15,9 @@ import {
   AlertTriangle, CheckCircle, Upload, Key, Smartphone,
   ChevronLeft, FileText, Sparkles
 } from "lucide-react";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation } from "../hooks/useUserLocation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
@@ -25,6 +28,10 @@ import ListCarModal from "../components/car/ListCarModal";
 export default function CarRentals() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { userCity, refreshLocation } = useUserLocation();
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("browse");
   const [selectedCar, setSelectedCar] = useState(null);
@@ -61,6 +68,15 @@ export default function CarRentals() {
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  const filteredCars = (availableCars) => {
+    if (!locationCity) return availableCars;
+    const q = locationCity.toLowerCase();
+    return availableCars.filter(car => {
+      const hay = [car.rental_details?.pickup_location, car.location, car.service_area].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  };
 
   const { data: availableCars = [] } = useQuery({
     queryKey: ['available-cars'],
@@ -341,6 +357,17 @@ export default function CarRentals() {
           </TabsList>
 
           <TabsContent value="browse">
+            {/* Location Filter */}
+            <LocationFilter
+              cityValue={locationCity}
+              onCityChange={setLocationCity}
+              radiusValue={locationRadius}
+              onRadiusChange={setLocationRadius}
+              userCity={userCity}
+              accentColor="blue"
+              onOpenCitySettings={() => setShowCitySelector(true)}
+            />
+
             {/* List Car Button */}
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">Available Cars</h3>
@@ -360,6 +387,13 @@ export default function CarRentals() {
               </div>
             )}
 
+            {filteredCars(availableCars).length === 0 && availableCars.length > 0 && locationCity && (
+              <div className="text-center py-10 mb-4">
+                <MapPin className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                <p className="text-white font-semibold">No cars found near "{locationCity}"</p>
+                <p className="text-gray-400 text-sm mt-1">Try a different city or clear the location filter.</p>
+              </div>
+            )}
             {availableCars.length === 0 && (
               <div className="text-center py-16">
                 <Car className="w-16 h-16 text-gray-600 mx-auto mb-4" />
@@ -372,7 +406,7 @@ export default function CarRentals() {
               </div>
             )}
             <div className="grid md:grid-cols-3 gap-6">
-              {availableCars.map((car) => (
+              {filteredCars(availableCars).map((car) => (
                 <motion.div
                   key={car.id}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -1285,6 +1319,14 @@ export default function CarRentals() {
             toast.success('Car listed successfully!');
           }}
         />
+
+        {showCitySelector && (
+          <CitySelector
+            user={{ city: userCity }}
+            onClose={() => setShowCitySelector(false)}
+            onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+          />
+        )}
       </div>
     </div>
     </PageWrapper>

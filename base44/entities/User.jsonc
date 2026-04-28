@@ -1,0 +1,109 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "user"
+      ],
+      "default": "user"
+    },
+    "city": {
+      "type": "string",
+      "description": "User's home city (e.g. Miami, FL)"
+    },
+    "timezone": {
+      "type": "string",
+      "description": "IANA timezone string (e.g. America/New_York)"
+    },
+    "profile_picture": {
+      "type": "string"
+    },
+    "username": {
+      "type": "string"
+    },
+    "bio": {
+      "type": "string"
+    },
+    "cover_photo": {
+      "type": "string"
+    },
+    "cover_image_url": {
+      "type": "string"
+    },
+    "cover_video_url": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "link_in_bio": {
+      "type": "string"
+    },
+    "social_links": {
+      "type": "object"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false
+    },
+    "privacy_settings": {
+      "type": "object"
+    },
+    "profile_customization": {
+      "type": "object"
+    },
+    "highlights_v2": {
+      "type": "array",
+      "default": []
+    },
+    "followers_count": {
+      "type": "number",
+      "default": 0
+    },
+    "following_count": {
+      "type": "number",
+      "default": 0
+    },
+    "current_music": {
+      "type": "string"
+    },
+    "is_public_history": {
+      "type": "boolean",
+      "default": false
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_restaurant_owner": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_driver": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_provider": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_support_agent": {
+      "type": "boolean",
+      "default": false
+    },
+    "balance": {
+      "type": "number",
+      "default": 0
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  }
+}

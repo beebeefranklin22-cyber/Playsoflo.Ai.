@@ -11,12 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Newspaper, Briefcase, MessageSquare, DollarSign,
   TrendingUp, Users, ChevronRight, Clock, Eye,
-  Plus, Star, Search, Flame, ThumbsUp, Radio
+  Plus, Star, Search, Flame, ThumbsUp, Radio, MapPin
 } from "lucide-react";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation } from "../hooks/useUserLocation";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function CommunityHub() {
   const navigate = useNavigate();
+  const { userCity, refreshLocation } = useUserLocation();
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [contentFilter, setContentFilter] = useState("all");
@@ -191,6 +195,24 @@ export default function CommunityHub() {
             <p className="text-white/90 text-lg max-w-2xl">
               Your central feed for all community activity
             </p>
+            {userCity && (
+              <button
+                onClick={() => setShowCitySelector(true)}
+                className="mt-3 flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-full text-white text-sm transition"
+              >
+                <MapPin className="w-4 h-4" />
+                {userCity} — Change City
+              </button>
+            )}
+            {!userCity && (
+              <button
+                onClick={() => setShowCitySelector(true)}
+                className="mt-3 flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-full text-white text-sm transition"
+              >
+                <MapPin className="w-4 h-4" />
+                Set Your City for Local Content
+              </button>
+            )}
           </motion.div>
         </div>
       </div>
@@ -420,6 +442,13 @@ export default function CommunityHub() {
           </div>
         </div>
       </div>
+      {showCitySelector && (
+        <CitySelector
+          user={{ city: userCity }}
+          onClose={() => setShowCitySelector(false)}
+          onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+        />
+      )}
     </div>
   );
 }

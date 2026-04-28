@@ -1,53 +1,72 @@
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 
 /**
- * Formats a date string to the user's local timezone
- * @param {string} dateString - ISO date string from the database
- * @param {string} formatStr - Optional format string (default: relative time)
- * @returns {string} Formatted date in user's local timezone
+ * Returns the user's configured timezone (from profile, stored locally).
+ * Falls back to the browser's detected timezone.
  */
-export function formatLocalTime(dateString, formatStr = null) {
+export function getUserTimezone() {
+  try {
+    const stored = localStorage.getItem('user_timezone');
+    if (stored) return stored;
+  } catch {}
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+/**
+ * Persist timezone to localStorage so all time displays update without refetch.
+ * Called by CitySelector after saving.
+ */
+export function setUserTimezone(tz) {
+  try {
+    localStorage.setItem('user_timezone', tz);
+  } catch {}
+}
+
+/**
+ * Formats a date string using the user's configured timezone.
+ * @param {string} dateString - ISO date string from the database
+ * @param {object} opts - Intl.DateTimeFormat options (e.g. {hour:'2-digit', minute:'2-digit'})
+ * @returns {string}
+ */
+export function formatLocalTime(dateString, opts = null) {
   if (!dateString) return '';
-  
   try {
     const date = typeof dateString === 'string' ? parseISO(dateString) : new Date(dateString);
-    
-    // If no format specified, return relative time (e.g., "2 hours ago")
-    if (!formatStr) {
+    if (!opts) {
       return formatDistanceToNow(date, { addSuffix: true });
     }
-    
-    // Otherwise format according to the specified format in local timezone
-    return format(date, formatStr);
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return dateString;
+    return new Intl.DateTimeFormat('en-US', { timeZone: getUserTimezone(), ...opts }).format(date);
+  } catch {
+    return String(dateString);
   }
 }
 
 /**
- * Formats a date to show time in 12-hour format with AM/PM
+ * Formats a date to show time in 12-hour format with AM/PM in user's timezone.
  */
 export function formatTimeOnly(dateString) {
-  return formatLocalTime(dateString, 'h:mm a');
+  return formatLocalTime(dateString, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 /**
- * Formats a date to show date and time
+ * Formats a date to show date and time in user's timezone.
  */
 export function formatDateTime(dateString) {
-  return formatLocalTime(dateString, 'MMM d, yyyy h:mm a');
+  return formatLocalTime(dateString, {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
 }
 
 /**
- * Formats a date to show just the date
+ * Formats a date to show just the date in user's timezone.
  */
 export function formatDateOnly(dateString) {
-  return formatLocalTime(dateString, 'MMM d, yyyy');
+  return formatLocalTime(dateString, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /**
- * Gets the current time in ISO format (will be stored in UTC, displayed in local)
+ * Gets the current time in ISO format (UTC — for storage).
  */
 export function getCurrentISOTime() {
   return new Date().toISOString();

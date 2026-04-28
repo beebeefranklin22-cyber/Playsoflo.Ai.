@@ -12,6 +12,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import PageWrapper from "@/components/PageWrapper";
 import WellnessProviderOnboardingModal from "@/components/wellness/WellnessProviderOnboardingModal";
 import WellnessChatModal from "@/components/wellness/WellnessChatModal";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },
@@ -41,6 +44,10 @@ const wellnessCategories = [
 
 export default function Wellness() {
   const navigate = useNavigate();
+  const { userCity, refreshLocation } = useUserLocation();
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -89,7 +96,12 @@ export default function Wellness() {
       service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       service.provider_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesLocation = !locationCity || (() => {
+      const q = locationCity.toLowerCase();
+      const hay = [service.location, service.service_area].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(q);
+    })();
+    return matchesCategory && matchesSearch && matchesLocation;
   });
 
   return (
@@ -171,6 +183,19 @@ export default function Wellness() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Location Filter */}
+      <div className="px-6">
+        <LocationFilter
+          cityValue={locationCity}
+          onCityChange={setLocationCity}
+          radiusValue={locationRadius}
+          onRadiusChange={setLocationRadius}
+          userCity={userCity}
+          accentColor="green"
+          onOpenCitySettings={() => setShowCitySelector(true)}
+        />
       </div>
 
       {/* Category Filters */}
@@ -356,6 +381,13 @@ export default function Wellness() {
         )}
         {chatService && (
           <WellnessChatModal service={chatService} onClose={() => setChatService(null)} />
+        )}
+        {showCitySelector && (
+          <CitySelector
+            user={{ city: userCity }}
+            onClose={() => setShowCitySelector(false)}
+            onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+          />
         )}
       </AnimatePresence>
 

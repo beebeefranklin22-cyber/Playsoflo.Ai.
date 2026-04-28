@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin } from "lucide-react";
+import CitySelector from "./components/location/CitySelector";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +29,7 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
+  const [showCitySelectorModal, setShowCitySelectorModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
@@ -118,6 +120,10 @@ export default function Layout({ children, currentPageName }) {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
+        // Sync timezone from profile to localStorage so all time displays are correct
+        if (user?.timezone) {
+          try { localStorage.setItem('user_timezone', user.timezone); } catch {}
+        }
       } catch (error) {
         console.log("User not authenticated or error fetching user:", error);
         setCurrentUser(null);
@@ -509,6 +515,18 @@ export default function Layout({ children, currentPageName }) {
                   );
                 })}
 
+                {/* City / Timezone */}
+                <button
+                  onClick={() => {
+                    setShowCitySelectorModal(true);
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-gray-400 hover:text-white hover:bg-white/5"
+                >
+                  <MapPin className="w-5 h-5" />
+                  <span className="font-medium">{currentUser?.city ? `📍 ${currentUser.city}` : "Set My City"}</span>
+                </button>
+
                 {/* Sign Out Button */}
                 <button
                   onClick={() => {
@@ -672,6 +690,21 @@ export default function Layout({ children, currentPageName }) {
         <CustomerSupportChat
           currentUser={currentUser}
           onClose={() => setShowSupportChat(false)}
+        />
+      )}
+
+      {/* City / Timezone Selector */}
+      {showCitySelectorModal && (
+        <CitySelector
+          user={currentUser}
+          onClose={() => setShowCitySelectorModal(false)}
+          onSaved={async () => {
+            setShowCitySelectorModal(false);
+            try {
+              const updated = await base44.auth.me();
+              setCurrentUser(updated);
+            } catch {}
+          }}
         />
       )}
 
