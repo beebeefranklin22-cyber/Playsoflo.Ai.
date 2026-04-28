@@ -371,7 +371,23 @@ export default function Home() {
             .map((story) => (
               <div key={story.id} className="relative flex flex-col items-center gap-2 flex-shrink-0 group" style={{ scrollSnapAlign: 'start' }}>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Check if story owner has private account and current user doesn't follow them
+                    try {
+                      const users = await base44.entities.User.list();
+                      const storyOwner = users.find(u => u.email === story.created_by);
+                      const isPrivate = storyOwner?.is_private || storyOwner?.privacy_settings?.is_private;
+                      if (isPrivate && currentUser) {
+                        const follows = await base44.entities.Follow.filter({
+                          follower_email: currentUser.email,
+                          following_email: story.created_by,
+                        });
+                        if (follows.length === 0) {
+                          toast.error("This account is private. Follow them to view their stories.");
+                          return;
+                        }
+                      }
+                    } catch (_) {}
                     const storyIndex = stories.findIndex(s => s.id === story.id);
                     setStoryStartIndex(storyIndex);
                     setViewingStories(stories);

@@ -58,29 +58,45 @@ export default function UserProfile() {
   });
 
   const isOwnProfile = currentUser?.email === profileUser?.email;
+  const isPrivate = !!(profileUser?.is_private || profileUser?.privacy_settings?.is_private);
+
+  // Check if current user follows this profile (needed for private gating)
+  const { data: isFollowing = false } = useQuery({
+    queryKey: ["is-following", currentUser?.email, profileUser?.email],
+    queryFn: async () => {
+      const follows = await base44.entities.Follow.filter({
+        follower_email: currentUser.email,
+        following_email: profileUser.email,
+      });
+      return follows.length > 0;
+    },
+    enabled: !!currentUser && !!profileUser?.email && !isOwnProfile,
+  });
+
+  const canViewContent = isOwnProfile || !isPrivate || isFollowing;
 
   const { data: posts = [] } = useQuery({
     queryKey: ["user-posts", profileUser?.email],
     queryFn: () => base44.entities.SocialPost.filter({ created_by: profileUser.email }, "-created_date"),
-    enabled: !!profileUser?.email,
+    enabled: !!profileUser?.email && canViewContent,
   });
 
   const { data: videoPosts = [] } = useQuery({
     queryKey: ["user-videos", profileUser?.email],
     queryFn: () => base44.entities.VideoPost.filter({ creator_email: profileUser.email }, "-created_date"),
-    enabled: !!profileUser?.email,
+    enabled: !!profileUser?.email && canViewContent,
   });
 
   const { data: reels = [] } = useQuery({
     queryKey: ["user-reels", profileUser?.email],
     queryFn: () => base44.entities.Reel.filter({ creator_email: profileUser.email }, "-created_date"),
-    enabled: !!profileUser?.email,
+    enabled: !!profileUser?.email && canViewContent,
   });
 
   const { data: showcasePosts = [] } = useQuery({
     queryKey: ["user-showcase", profileUser?.email],
     queryFn: () => base44.entities.ShowcasePost.filter({ creator_email: profileUser.email }, "-created_date"),
-    enabled: !!profileUser?.email,
+    enabled: !!profileUser?.email && canViewContent,
   });
 
   const { data: listeningHistory = [] } = useQuery({
@@ -138,7 +154,7 @@ export default function UserProfile() {
       </div>
 
       {/* ── COVER PHOTO / VIDEO ── */}
-      <div className="relative w-full h-52 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden">
+      <div className="relative w-full h-48 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden">
         {coverMedia && isCoverVideo ? (
           <video
             src={coverMedia}
@@ -152,25 +168,38 @@ export default function UserProfile() {
         ) : coverMedia && !isCoverVideo ? (
           <img src={coverMedia} className="w-full h-full object-cover" alt="cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-purple-900 via-fuchsia-900 to-indigo-900 opacity-80" />
+          <div className="w-full h-full bg-gradient-to-br from-purple-900 via-fuchsia-900 to-indigo-900" />
         )}
-        {/* gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      </div>
 
-        {/* Profile avatar pinned to bottom-left of cover */}
-        <div className="absolute bottom-[-36px] left-4">
-          <div className="w-20 h-20 rounded-full border-4 border-[#0f0f1a] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl">
+      {/* Profile Info — avatar sits below cover, not inside it */}
+      <div className="px-4 pb-4">
+        {/* Avatar row */}
+        <div className="flex items-end justify-between -mt-10 mb-3">
+          <div className="w-20 h-20 rounded-full border-4 border-[#07131A] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
             {profileUser.profile_picture ? (
               <img src={profileUser.profile_picture} alt={profileUser.full_name} className="w-full h-full object-cover" />
             ) : (
               (profileUser.full_name?.[0] || "U").toUpperCase()
             )}
           </div>
+          {!isOwnProfile && currentUser && (
+            <div className="flex gap-2 mt-2">
+              <FollowButton
+                targetEmail={profileUser.email}
+                targetName={profileUser.full_name}
+                currentUser={currentUser}
+              />
+              <button
+                className="p-2 bg-white/10 border border-white/20 rounded-full hover:bg-white/20 transition"
+                onClick={() => navigate(createPageUrl("Messages") + `?user=${profileUser.email}`)}
+              >
+                <MessageCircle className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* Profile Info (with left offset for avatar) */}
-      <div className="px-4 pt-12 pb-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <h2 className="text-xl font-bold text-white">{profileUser.full_name}</h2>
@@ -183,23 +212,7 @@ export default function UserProfile() {
             )}
           </div>
 
-          {!isOwnProfile && currentUser && (
-            <div className="flex gap-2 mt-1">
-              <FollowButton
-                targetEmail={profileUser.email}
-                targetName={profileUser.full_name}
-                currentUser={currentUser}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-white/5 border-white/20 hover:bg-white/10"
-                onClick={() => navigate(createPageUrl("Messages") + `?user=${profileUser.email}`)}
-              >
-                <MessageCircle className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+
         </div>
 
         {profileUser.bio && <p className="text-gray-300 text-sm mb-3">{profileUser.bio}</p>}
@@ -279,8 +292,21 @@ export default function UserProfile() {
         ))}
       </div>
 
+      {/* ── PRIVATE PROFILE LOCK ── */}
+      {!canViewContent && (
+        <div className="text-center py-20 px-8">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h3 className="text-white font-bold text-lg mb-1">This account is private</h3>
+          <p className="text-gray-400 text-sm">Follow this account to see their posts, videos, and reels.</p>
+        </div>
+      )}
+
       {/* ── POSTS TAB ── (images + any video posts) */}
-      {activeTab === "posts" && (
+      {canViewContent && activeTab === "posts" && (
         <div className="grid grid-cols-3 gap-0.5 p-0.5">
           {posts.map((post, idx) => (
             <motion.div
@@ -315,7 +341,7 @@ export default function UserProfile() {
       )}
 
       {/* ── VIDEOS TAB ── */}
-      {activeTab === "videos" && (
+      {canViewContent && activeTab === "videos" && (
         <div className="grid grid-cols-3 gap-0.5 p-0.5">
           {videoPosts.map((v, idx) => (
             <motion.div
@@ -347,7 +373,7 @@ export default function UserProfile() {
       )}
 
       {/* ── REELS TAB ── */}
-      {activeTab === "reels" && (
+      {canViewContent && activeTab === "reels" && (
         <div className="grid grid-cols-3 gap-0.5 p-0.5">
           {reels.map((reel, idx) => (
             <motion.div
@@ -380,7 +406,7 @@ export default function UserProfile() {
       )}
 
       {/* ── SHOWCASE TAB ── */}
-      {activeTab === "showcase" && (
+      {canViewContent && activeTab === "showcase" && (
         <div className="p-3 space-y-3">
           {isOwnProfile && (
             <button
@@ -468,7 +494,7 @@ export default function UserProfile() {
       )}
 
       {/* ── MORE TAB (listening history) ── */}
-      {activeTab === "more" && (
+      {canViewContent && activeTab === "more" && (
         <div className="p-4 space-y-3">
           <h3 className="text-white font-semibold mb-3">Listening History</h3>
           {listeningHistory.map((item, idx) => (
