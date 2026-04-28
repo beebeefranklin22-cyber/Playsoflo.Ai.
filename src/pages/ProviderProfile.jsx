@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import PortfolioSection from "../components/profile/PortfolioSection";
 import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
 import DataManagementModal from "../components/provider/DataManagementModal";
+import ProviderStorefront from "../components/booking/ProviderStorefront";
 
 export default function ProviderProfile() {
   const navigate = useNavigate();
@@ -400,6 +401,16 @@ export default function ProviderProfile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Storefront — visible to all visitors, booking flows for others */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Services & Products</h2>
+          <ProviderStorefront
+            providerEmail={currentUser?.email}
+            provider={currentUser}
+            currentUser={currentUser}
+          />
+        </div>
 
         {/* Portfolio Section */}
         <div className="mb-6">
