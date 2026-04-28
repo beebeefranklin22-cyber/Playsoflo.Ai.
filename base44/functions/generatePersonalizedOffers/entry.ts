@@ -46,41 +46,48 @@ Generate bundles that are:
 3. Time-sensitive (limited-time urgency)
 4. Discount-driven (15-35% savings)
 
-Return ONLY a valid JSON array with this exact structure:
-[
-  {
-    "name": "Bundle Name",
-    "description": "What's included and why it's perfect for this user",
-    "services": ["Service 1", "Service 2", "Service 3"],
-    "originalPrice": 150,
-    "bundlePrice": 99,
-    "discountPercent": 34,
-    "hoursValid": 24,
-    "urgencyMessage": "Only 2 bundles left at this price!"
-  }
-]
+Return ONLY a valid JSON object with this exact structure:
+{
+  "offers": [
+    {
+      "name": "Bundle Name",
+      "description": "What's included and why it's perfect for this user",
+      "services": ["Service 1", "Service 2", "Service 3"],
+      "originalPrice": 150,
+      "bundlePrice": 99,
+      "discountPercent": 34,
+      "hoursValid": 24,
+      "urgencyMessage": "Only 2 bundles left at this price!"
+    }
+  ]
+}
 
-Return ONLY the JSON array, no other text.`,
+Return ONLY the JSON object, no other text.`,
       response_json_schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            description: { type: 'string' },
-            services: { type: 'array', items: { type: 'string' } },
-            originalPrice: { type: 'number' },
-            bundlePrice: { type: 'number' },
-            discountPercent: { type: 'number' },
-            hoursValid: { type: 'number' },
-            urgencyMessage: { type: 'string' },
+        type: 'object',
+        properties: {
+          offers: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                description: { type: 'string' },
+                services: { type: 'array', items: { type: 'string' } },
+                originalPrice: { type: 'number' },
+                bundlePrice: { type: 'number' },
+                discountPercent: { type: 'number' },
+                hoursValid: { type: 'number' },
+                urgencyMessage: { type: 'string' },
+              },
+            },
           },
         },
       },
     });
 
     // Enhance offers with timestamps and tracking
-    const offers = Array.isArray(aiResponse) ? aiResponse : [];
+    const offers = aiResponse?.offers || [];
     const enrichedOffers = offers.map((offer, idx) => ({
       id: `offer_${user.email}_${Date.now()}_${idx}`,
       userId: user.email,
