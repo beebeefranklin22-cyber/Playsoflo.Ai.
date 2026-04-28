@@ -24,6 +24,7 @@ import NativeAppBridge from "./components/platform/NativeAppBridge";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PullToRefresh from "./components/PullToRefresh";
 import ToastListener from "./components/ui/ToastListener";
+import LiveOrderTracker from "./components/tracking/LiveOrderTracker";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -36,6 +37,9 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [showOrderTracker, setShowOrderTracker] = useState(false);
+  const [trackedOrderId, setTrackedOrderId] = useState(null);
+  const [trackedOrderType, setTrackedOrderType] = useState(null);
   const searchRef = useRef(null);
   const [direction, setDirection] = useState(0);
   const prevPathRef = useRef(location.pathname);
@@ -231,7 +235,8 @@ export default function Layout({ children, currentPageName }) {
     { icon: MessageCircle, label: "Messages", path: "Messages" },
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },
-  ];
+    { icon: Truck, label: "Live Tracking", path: "LiveTracking" },
+    ];
 
   // Add support dashboard for admins
   if (currentUser?.role === 'admin' || currentUser?.is_support_agent) {
@@ -718,6 +723,28 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Ride Status Notification Handler */}
       <RideNotificationHandler currentUser={currentUser} />
+
+      {/* Live Order Tracker Modal */}
+      {showOrderTracker && (
+        <LiveOrderTracker
+          orderId={trackedOrderId}
+          orderType={trackedOrderType}
+          onClose={() => {
+            setShowOrderTracker(false);
+            setTrackedOrderId(null);
+            setTrackedOrderType(null);
+          }}
+        />
+      )}
+
+      {/* Expose order tracking to global scope for sidebar usage */}
+      {typeof window !== 'undefined' && (
+        window.__openOrderTracker = (orderId, orderType) => {
+          setTrackedOrderId(orderId);
+          setTrackedOrderType(orderType);
+          setShowOrderTracker(true);
+        }
+      )}
       </div>
       </PostHogProvider>
       </TVNavigationHandler>
