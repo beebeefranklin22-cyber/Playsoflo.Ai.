@@ -101,6 +101,11 @@ export default function UnifiedBookingModal({
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
+  // Delivery fee state
+  const [deliveryFeeEstimate, setDeliveryFeeEstimate] = useState(null); // { base, distance_fee, distance_miles, total }
+  const [loadingDeliveryFee, setLoadingDeliveryFee] = useState(false);
+  const [customerCoords, setCustomerCoords] = useState(null);
+
   useEffect(() => {
     if (!isOpen) return;
     base44.auth.me().then(u => {
@@ -120,10 +125,12 @@ export default function UnifiedBookingModal({
   const variantMod = form.selectedVariant ? parseFloat(form.selectedVariant.price_modifier || 0) / 100 * basePrice : 0;
   const addOnsTotal = form.selectedAddOns.reduce((s, ao) => s + parseFloat(ao.price || 0), 0);
   const unitPrice = basePrice + variantMod;
-  const lineTotal = unitPrice * form.quantity + addOnsTotal;
+  const itemSubtotal = unitPrice * form.quantity + addOnsTotal;
   const platformFeeRate = { service_booking: 0.15, product_order: 0.15, digital_product: 0.20, subscription: 0.20, experience: 0.19, food_order: 0.10 }[orderType] || 0.15;
-  const platformFee = parseFloat((lineTotal * platformFeeRate).toFixed(2));
-  const providerEarnings = parseFloat((lineTotal - platformFee).toFixed(2));
+  const platformFee = parseFloat((itemSubtotal * platformFeeRate).toFixed(2));
+  const providerEarnings = parseFloat((itemSubtotal - platformFee).toFixed(2));
+  const totalDeliveryFee = deliveryFeeEstimate?.total || 0;
+  const lineTotal = parseFloat((itemSubtotal + platformFee + totalDeliveryFee).toFixed(2));
 
   const needsSchedule = ['service_booking', 'experience'].includes(orderType);
   const needsFulfillment = ['product_order', 'food_order'].includes(orderType);
@@ -175,6 +182,52 @@ export default function UnifiedBookingModal({
     return d.toISOString().split('T')[0];
   };
 
+  // Try to get customer GPS coords for accurate distance pricing
+  useEffect(() => {
+    if (!isOpen) return;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => setCustomerCoords([pos.coords.latitude, pos.coords.longitude]),
+        () => setCustomerCoords(null),
+        { timeout: 5000 }
+      );
+    }
+  }, [isOpen]);
+
+  // Fetch delivery fee estimate when address is entered for local_delivery
+  const fetchDeliveryFee = async (deliveryAddr) => {
+    if (!deliveryAddr?.trim()) { setDeliveryFeeEstimate(null); return; }
+    setLoadingDeliveryFee(true);
+    try {
+      const res = await base44.functions.invoke('calculateDeliveryPrice', {
+        pickup_coords: provider?.location_coords || customerCoords || [25.7617, -80.1918],
+        delivery_coords: customerCoords,
+        delivery_address: deliveryAddr,
+        provider_address: provider?.location || provider?.provider_location || '',
+        package_type: 'small_box',
+        delivery_type: orderType === 'food_order' ? 'same_day' : 'standard',
+        urgency_level: orderType === 'food_order' ? 'urgent' : 'normal',
+        use_vendor_base_fee: true,
+        provider_email: provider?.email,
+      });
+      const data = res?.data || res;
+      if (data?.pricing) {
+        setDeliveryFeeEstimate({
+          base: data.pricing.base_price,
+          distance_fee: parseFloat(((data.pricing.distance_miles || 0) * 1.25).toFixed(2)),
+          distance_miles: data.pricing.distance_miles || 0,
+          total: parseFloat((data.pricing.base_price + ((data.pricing.distance_miles || 0) * 1.25)).toFixed(2)),
+        });
+      }
+    } catch (e) {
+      console.error('Delivery fee estimate error:', e);
+      // Fallback: show a flat estimate
+      setDeliveryFeeEstimate({ base: 3.99, distance_fee: 2.50, distance_miles: 2.0, total: 6.49 });
+    } finally {
+      setLoadingDeliveryFee(false);
+    }
+  };
+
   // Determine which steps to show
   const steps = ['Items'];
   if (needsSchedule) steps.push('Schedule');
@@ -199,7 +252,7 @@ export default function UnifiedBookingModal({
         const res = await base44.functions.invoke('processUnifiedCheckout', {
           order_type: orderType,
           payment_method: 'wallet',
-          amount: lineTotal,
+          amount: itemSubtotal,  // backend calculates delivery fees separately
           provider_email: provider.email,
           provider_name: provider.provider_business_name || provider.full_name,
           item_id: item?.id,
@@ -214,6 +267,10 @@ export default function UnifiedBookingModal({
           shipping_address: form.shipping_address,
           quantity: form.quantity,
           subscription_interval: form.subscription_interval,
+          customer_coords: customerCoords,
+          franchise_address: provider?.location || provider?.franchise_address || '',
+          franchise_coords: provider?.location_coords || null,
+          franchise_id: provider?.franchise_id || '',
         });
         const data = res?.data || res;
         if (data?.error) throw new Error(data.error);
@@ -226,7 +283,7 @@ export default function UnifiedBookingModal({
         const res = await base44.functions.invoke('processUnifiedCheckout', {
           order_type: orderType,
           payment_method: 'stripe',
-          amount: lineTotal,
+          amount: itemSubtotal,  // backend calculates delivery fees separately
           provider_email: provider.email,
           provider_name: provider.provider_business_name || provider.full_name,
           item_id: item?.id,
@@ -241,6 +298,10 @@ export default function UnifiedBookingModal({
           shipping_address: form.shipping_address,
           quantity: form.quantity,
           subscription_interval: form.subscription_interval,
+          customer_coords: customerCoords,
+          franchise_address: provider?.location || provider?.franchise_address || '',
+          franchise_coords: provider?.location_coords || null,
+          franchise_id: provider?.franchise_id || '',
         });
         const data = res?.data || res;
         if (data?.error) throw new Error(data.error);
@@ -264,7 +325,7 @@ export default function UnifiedBookingModal({
       const res = await base44.functions.invoke('processUnifiedCheckout', {
         order_type: orderType,
         payment_method: 'stripe',
-        amount: lineTotal,
+        amount: itemSubtotal,  // backend calculates delivery fees separately
         provider_email: provider.email,
         provider_name: provider.provider_business_name || provider.full_name,
         item_id: item?.id,
@@ -280,6 +341,10 @@ export default function UnifiedBookingModal({
         quantity: form.quantity,
         subscription_interval: form.subscription_interval,
         confirm_payment_intent_id: intentId,
+        customer_coords: customerCoords,
+        franchise_address: provider?.location || provider?.franchise_address || '',
+        franchise_coords: provider?.location_coords || null,
+        franchise_id: provider?.franchise_id || '',
       });
       const data = res?.data || res;
       if (data?.error) throw new Error(data.error);
@@ -451,7 +516,7 @@ export default function UnifiedBookingModal({
                     className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 resize-none"
                   />
 
-                  <PriceSummary total={lineTotal} platformFee={platformFee} providerEarnings={providerEarnings} platformFeeRate={platformFeeRate} />
+                  <PriceSummary total={lineTotal} itemSubtotal={itemSubtotal} platformFee={platformFee} providerEarnings={providerEarnings} platformFeeRate={platformFeeRate} deliveryFee={totalDeliveryFee} />
 
                   <Button onClick={goNext} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 font-bold py-5">
                     Continue <ArrowRight className="w-4 h-4 ml-2" />
@@ -543,16 +608,46 @@ export default function UnifiedBookingModal({
                       <Textarea
                         placeholder="Full address including city, state, zip"
                         value={form.fulfillment_method === 'local_delivery' ? form.delivery_address : form.shipping_address}
-                        onChange={e => setForm(f => ({
-                          ...f,
-                          [form.fulfillment_method === 'local_delivery' ? 'delivery_address' : 'shipping_address']: e.target.value
-                        }))}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setForm(f => ({
+                            ...f,
+                            [form.fulfillment_method === 'local_delivery' ? 'delivery_address' : 'shipping_address']: val
+                          }));
+                          if (form.fulfillment_method === 'local_delivery') {
+                            clearTimeout(window._deliveryFeeTimer);
+                            window._deliveryFeeTimer = setTimeout(() => fetchDeliveryFee(val), 800);
+                          }
+                        }}
                         rows={3}
                         className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 resize-none"
                       />
                       {form.fulfillment_method === 'local_delivery' && (
-                        <div className="mt-2 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                          <p className="text-blue-300 text-xs">🚗 A driver will be dispatched and assigned to your order. You'll be notified with tracking updates.</p>
+                        <div className="mt-2 space-y-2">
+                          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                            <p className="text-blue-300 text-xs">🚗 A driver will be dispatched. Pickup from: <span className="font-semibold">{provider?.location || provider?.franchise_address || provider?.provider_business_name || 'Provider location'}</span></p>
+                          </div>
+                          {loadingDeliveryFee && (
+                            <div className="flex items-center gap-2 text-gray-400 text-xs">
+                              <Loader2 className="w-3 h-3 animate-spin" /> Calculating delivery fee...
+                            </div>
+                          )}
+                          {deliveryFeeEstimate && !loadingDeliveryFee && (
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-xs space-y-1">
+                              <div className="flex justify-between text-gray-300">
+                                <span>Delivery base fee</span>
+                                <span>${deliveryFeeEstimate.base.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-gray-300">
+                                <span>Distance fee ({deliveryFeeEstimate.distance_miles} mi × $1.25)</span>
+                                <span>${deliveryFeeEstimate.distance_fee.toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-green-300 font-semibold border-t border-white/10 pt-1">
+                                <span>Delivery total</span>
+                                <span>${deliveryFeeEstimate.total.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -580,11 +675,18 @@ export default function UnifiedBookingModal({
                     <SummaryRow label={item?.title} value={`$${unitPrice.toFixed(2)}${form.quantity > 1 ? ` × ${form.quantity}` : ''}`} />
                     {form.selectedAddOns.map(ao => <SummaryRow key={ao.id} label={ao.name} value={`+$${parseFloat(ao.price).toFixed(2)}`} />)}
                     {form.booking_date && <SummaryRow label="Date / Time" value={`${form.booking_date} @ ${form.booking_time}`} />}
+                    {form.fulfillment_method === 'local_delivery' && provider?.location && (
+                      <SummaryRow label="Pickup from" value={provider.location || provider.franchise_address || ''} />
+                    )}
                     {form.fulfillment_method !== 'pickup' && form.fulfillment_method && (
                       <SummaryRow label="Fulfillment" value={form.fulfillment_method.replace('_', ' ')} />
                     )}
                     <div className="border-t border-white/10 pt-2 mt-2">
+                      <SummaryRow label={`Item subtotal`} value={`$${itemSubtotal.toFixed(2)}`} muted />
                       <SummaryRow label={`Platform Fee (${Math.round(platformFeeRate * 100)}%)`} value={`$${platformFee.toFixed(2)}`} muted />
+                      {totalDeliveryFee > 0 && (
+                        <SummaryRow label={`Delivery Fee${deliveryFeeEstimate?.distance_miles ? ` (${deliveryFeeEstimate.distance_miles} mi)` : ''}`} value={`$${totalDeliveryFee.toFixed(2)}`} muted />
+                      )}
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-white font-bold text-base">Total</span>
                         <span className="text-white font-bold text-xl">${lineTotal.toFixed(2)}</span>
@@ -705,13 +807,23 @@ function SummaryRow({ label, value, muted }) {
     </div>
   );
 }
-function PriceSummary({ total, platformFee, providerEarnings, platformFeeRate }) {
+function PriceSummary({ total, itemSubtotal, platformFee, providerEarnings, platformFeeRate, deliveryFee }) {
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-1.5 text-sm">
+      <div className="flex justify-between text-gray-400">
+        <span>Item subtotal</span>
+        <span>${(itemSubtotal || total).toFixed(2)}</span>
+      </div>
       <div className="flex justify-between text-gray-400">
         <span>Platform fee ({Math.round(platformFeeRate * 100)}%)</span>
         <span>${platformFee.toFixed(2)}</span>
       </div>
+      {deliveryFee > 0 && (
+        <div className="flex justify-between text-gray-400">
+          <span>Delivery fee</span>
+          <span>${deliveryFee.toFixed(2)}</span>
+        </div>
+      )}
       <div className="flex justify-between text-white font-bold text-base pt-1 border-t border-white/10 mt-1">
         <span>Total</span>
         <span>${total.toFixed(2)}</span>
