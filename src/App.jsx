@@ -32,7 +32,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, user, checkAppState } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, user, checkAppState, refreshUser } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -56,7 +56,7 @@ const AuthenticatedApp = () => {
 
   // Show profile picture gate for new users who haven't set one
   if (isAuthenticated && user && !user.profile_picture) {
-    return <ProfilePictureGate user={user} onComplete={checkAppState} />;
+    return <ProfilePictureGate user={user} onComplete={refreshUser} />;
   }
 
   // Render the main app

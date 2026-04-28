@@ -494,7 +494,7 @@ export default function Home() {
                   )}
                 </div>
                 <div>
-                  <p className="text-white font-semibold">{post.creator_name || post.creator_username || "User"}</p>
+                  <p className="text-white font-semibold">{post.creator_name || post.creator_username || post.author_name || "User"}</p>
                   {post.location && (
                     <div className="flex items-center gap-1 text-gray-400 text-sm">
                       <MapPin className="w-3 h-3" />
@@ -613,7 +613,7 @@ export default function Home() {
             {/* Caption */}
             <div className="px-4 pb-2">
               <p className="text-white">
-                <span className="font-semibold mr-2">{post.creator_name || post.creator_username || "User"}</span>
+                <span className="font-semibold mr-2">{post.creator_name || post.creator_username || post.author_name || "User"}</span>
                 {post.caption}
               </p>
             </div>

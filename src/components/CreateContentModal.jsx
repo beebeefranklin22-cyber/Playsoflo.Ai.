@@ -287,7 +287,9 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         image_url: mediaUrl, caption, location, music_playing: music,
         vibe, is_experience: isExperience, experience_type: experienceType,
         likes_count: 0, comments_count: 0,
-        author_email: currentUser?.email, author_name: currentUser?.full_name,
+        creator_name: currentUser?.full_name,
+        creator_username: currentUser?.username,
+        creator_profile_picture: currentUser?.profile_picture,
       });
       if (currentUser) {
         const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
