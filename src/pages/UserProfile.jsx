@@ -140,21 +140,8 @@ export default function UserProfile() {
 
   return (
     <div className="min-h-screen pb-24">
-      {/* Top Header */}
-      <div className="sticky top-16 z-30 glass-effect border-b border-white/10 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/10 rounded-full">
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-          <h1 className="text-xl font-bold text-white">{profileUser.username || profileUser.full_name}</h1>
-        </div>
-        <button className="p-2 hover:bg-white/10 rounded-full">
-          <MoreHorizontal className="w-6 h-6 text-white" />
-        </button>
-      </div>
-
-      {/* ── COVER PHOTO / VIDEO ── */}
-      <div className="relative w-full h-48 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden">
+      {/* ── COVER PHOTO / VIDEO ── with header overlaid on top */}
+      <div className="relative w-full h-52 bg-gradient-to-br from-purple-900 via-pink-900 to-indigo-900 overflow-hidden">
         {coverMedia && isCoverVideo ? (
           <video
             src={coverMedia}
@@ -171,13 +158,25 @@ export default function UserProfile() {
           <div className="w-full h-full bg-gradient-to-br from-purple-900 via-fuchsia-900 to-indigo-900" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* Header overlaid on cover */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2">
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate(-1)} className="p-1.5 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-sm">
+              <ChevronLeft className="w-5 h-5 text-white" />
+            </button>
+            <span className="text-white font-semibold text-sm drop-shadow">{profileUser.username || profileUser.full_name}</span>
+          </div>
+          <button className="p-1.5 bg-black/40 hover:bg-black/60 rounded-full backdrop-blur-sm">
+            <MoreHorizontal className="w-5 h-5 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* Profile Info — avatar sits below cover, not inside it */}
       <div className="px-4 pb-4">
         {/* Avatar row */}
-        <div className="flex items-end justify-between -mt-10 mb-3">
-          <div className="w-20 h-20 rounded-full border-4 border-[#07131A] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
+        <div className="flex items-end justify-between -mt-12 mb-3">
+          <div className="w-24 h-24 rounded-full border-4 border-[#07131A] overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold shadow-xl flex-shrink-0">
             {(profileUser.profile_picture || profileUser.profile_photo) ? (
               <img src={profileUser.profile_picture || profileUser.profile_photo} alt={profileUser.full_name} className="w-full h-full object-cover" />
             ) : (
