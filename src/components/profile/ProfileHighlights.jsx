@@ -181,16 +181,16 @@ export default function ProfileHighlights({ profileUser, isOwnProfile, posts = [
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex items-end justify-center bg-black/80 backdrop-blur-sm"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             onClick={() => setShowAlbumPicker(null)}
           >
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-lg bg-gray-900 rounded-t-3xl border border-white/10 flex flex-col"
+              className="w-full max-w-lg bg-gray-900 rounded-3xl border border-white/10 flex flex-col"
               style={{ maxHeight: "85vh" }}
             >
               {/* Modal Header */}
