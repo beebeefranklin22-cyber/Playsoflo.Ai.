@@ -7,6 +7,7 @@ import CreatorChannel from './pages/CreatorChannel'
 import CreatorDashboard from './pages/CreatorDashboard'
 import TravelCategoryHub from './pages/TravelCategoryHub'
 import Help from './pages/Help'
+import UnifiedBooking from './pages/UnifiedBooking'
 import AmazonStore from './pages/AmazonStore'
 import AmazonOrders from './pages/AmazonOrders'
 import SavedJobs from './pages/SavedJobs'
@@ -92,6 +93,7 @@ const AuthenticatedApp = () => {
       <Route path="/InventoryManager" element={<LayoutWrapper currentPageName="InventoryManager"><InventoryManager /></LayoutWrapper>} />
       <Route path="/Reels" element={<Reels />} />
       <Route path="/Help" element={<LayoutWrapper currentPageName="Help"><Help /></LayoutWrapper>} />
+      <Route path="/UnifiedBooking" element={<LayoutWrapper currentPageName="UnifiedBooking"><UnifiedBooking /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
