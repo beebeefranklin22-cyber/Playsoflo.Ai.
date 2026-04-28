@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Camera, Upload, Loader2, CheckCircle } from "lucide-react";
+import { Camera, Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -10,37 +10,56 @@ export default function ProfilePictureGate({ user, onComplete }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [uploadedUrl, setUploadedUrl] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    setError(null);
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file.");
+      return;
+    }
+
     // Show local preview immediately
-    setPreviewUrl(URL.createObjectURL(file));
+    const localUrl = URL.createObjectURL(file);
+    setPreviewUrl(localUrl);
     setUploading(true);
+    setUploadedUrl(null);
 
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setUploadedUrl(file_url);
-    } catch {
-      toast.error("Upload failed. Please try again.");
+      // Auto-save immediately after successful upload
+      setSaving(true);
+      await base44.auth.updateMe({ profile_picture: file_url });
+      onComplete();
+    } catch (err) {
+      console.error("Upload error:", err);
+      setError("Upload failed. Please try a different photo or try again.");
       setPreviewUrl(null);
+      setUploadedUrl(null);
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!uploadedUrl) return;
-    setSaving(true);
-    try {
-      await base44.auth.updateMe({ profile_picture: uploadedUrl });
-      onComplete();
-    } catch {
-      toast.error("Failed to save. Please try again.");
       setSaving(false);
     }
   };
+
+  const handleSkip = async () => {
+    // Allow skipping by setting a placeholder so the gate doesn't block them
+    setSaving(true);
+    try {
+      await base44.auth.updateMe({ profile_picture: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=8B5CF6&color=fff&size=200` });
+      onComplete();
+    } catch {
+      onComplete(); // proceed anyway
+    }
+  };
+
+  const isLoading = uploading || saving;
 
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 flex items-center justify-center p-6">
@@ -67,49 +86,57 @@ export default function ProfilePictureGate({ user, onComplete }) {
               (user?.full_name?.[0] || "U").toUpperCase()
             )}
           </div>
-          {uploading && (
+          {isLoading && (
             <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
               <Loader2 className="w-8 h-8 text-white animate-spin" />
             </div>
           )}
-          {uploadedUrl && !uploading && (
+          {uploadedUrl && !isLoading && (
             <div className="absolute bottom-0 right-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-2 border-gray-900">
               <CheckCircle className="w-4 h-4 text-white" />
             </div>
           )}
         </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="flex items-center gap-2 bg-red-500/20 border border-red-500/40 rounded-xl px-4 py-3 mb-4 text-left">
+            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <p className="text-red-300 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Upload button */}
-        <label className="cursor-pointer block mb-4">
+        <label className={`cursor-pointer block mb-3 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}>
           <input
             type="file"
             accept="image/*"
             className="hidden"
             onChange={handleFileChange}
-            disabled={uploading}
+            disabled={isLoading}
           />
           <div className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition">
-            <Upload className="w-5 h-5" />
-            {previewUrl ? "Change Photo" : "Choose Photo"}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {saving ? "Saving..." : "Uploading..."}
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                {previewUrl ? "Try a Different Photo" : "Choose Photo"}
+              </>
+            )}
           </div>
         </label>
 
-        <Button
-          onClick={handleSave}
-          disabled={!uploadedUrl || saving || uploading}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-semibold py-3 rounded-xl"
+        <button
+          onClick={handleSkip}
+          disabled={isLoading}
+          className="w-full text-gray-500 hover:text-gray-300 text-sm py-2 transition disabled:opacity-50"
         >
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Continue to App"
-          )}
-        </Button>
-
-
+          Skip for now
+        </button>
       </motion.div>
     </div>
   );
