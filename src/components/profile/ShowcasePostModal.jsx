@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
-import { X, Upload, Link, Tag, DollarSign, Loader2, Image, Video, ShoppingBag, Briefcase, Star, Megaphone, Bookmark, Share2 } from "lucide-react";
+import { X, Upload, Link, Tag, DollarSign, Loader2, Image, Video, ShoppingBag, Briefcase, Star, Megaphone, Bookmark, Share2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -37,13 +37,17 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    toast.info("Uploading media...");
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       const isVideo = file.type.startsWith("video/");
       setForm(f => ({ ...f, media_url: file_url, media_type: isVideo ? "video" : "image" }));
       toast.success("Media uploaded!");
-    } catch { toast.error("Upload failed"); }
-    finally { setUploading(false); }
+    } catch {
+      toast.error("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -61,17 +65,17 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
       toast.success("Showcase posted!");
       onSaved?.();
       onClose();
-    } catch (e) { toast.error("Failed: " + e.message); }
-    finally { setSaving(false); }
+    } catch (e) {
+      toast.error("Failed: " + e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const selectedType = SHOWCASE_TYPES.find(t => t.id === form.showcase_type);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/70 backdrop-blur-sm"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -80,11 +84,12 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 25 }}
-        className="w-full max-w-lg bg-[#0f0f1a] rounded-t-3xl border border-white/10 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-[#0f0f1a] rounded-t-3xl border border-white/10 flex flex-col"
+        style={{ maxHeight: "92vh" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-[#0f0f1a] px-5 py-4 flex items-center justify-between border-b border-white/10 z-10">
+        {/* Sticky Header */}
+        <div className="flex-shrink-0 px-5 py-4 flex items-center justify-between border-b border-white/10">
           <div className="flex items-center gap-3">
             {selectedType && (
               <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${selectedType.color} flex items-center justify-center`}>
@@ -98,7 +103,8 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5" style={{ WebkitOverflowScrolling: "touch" }}>
           {/* Type Picker */}
           <div>
             <p className="text-gray-400 text-sm mb-2">Showcase Type</p>
@@ -132,6 +138,9 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
                 ) : (
                   <img src={form.media_url} className="w-full h-full object-cover" alt="" />
                 )}
+                <div className="absolute top-2 left-2 bg-green-500 rounded-full p-1">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
                 <button
                   onClick={() => setForm(f => ({ ...f, media_url: "", media_type: "image" }))}
                   className="absolute top-2 right-2 bg-black/60 p-1.5 rounded-full text-white hover:bg-black/80"
@@ -140,18 +149,29 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
                 </button>
               </div>
             ) : (
-              <label className="cursor-pointer block">
-                <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
+              <label className={`cursor-pointer block ${uploading ? "pointer-events-none" : ""}`}>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleMediaUpload}
+                  className="hidden"
+                  disabled={uploading}
+                />
                 <div className="w-full aspect-video rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-3 hover:border-purple-500/50 hover:bg-white/5 transition">
                   {uploading ? (
-                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                    <>
+                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                      <p className="text-gray-400 text-sm">Uploading...</p>
+                    </>
                   ) : (
                     <>
-                      <div className="flex gap-3">
-                        <Image className="w-6 h-6 text-gray-500" />
-                        <Video className="w-6 h-6 text-gray-500" />
+                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-purple-400" />
                       </div>
-                      <p className="text-gray-400 text-sm">Upload photo or video</p>
+                      <div className="text-center">
+                        <p className="text-white text-sm font-medium">Tap to upload</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Images or videos</p>
+                      </div>
                     </>
                   )}
                 </div>
@@ -203,7 +223,7 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
                 onChange={e => setForm(f => ({ ...f, link_label: e.target.value }))}
                 className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-sm focus:outline-none"
               >
-                {CTA_LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+                {CTA_LABELS.map(l => <option key={l} value={l} className="bg-gray-900">{l}</option>)}
               </select>
             </div>
           </div>
@@ -241,7 +261,7 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
           <label className="flex items-center gap-3 cursor-pointer">
             <div
               onClick={() => setForm(f => ({ ...f, is_promoted: !f.is_promoted }))}
-              className={`w-10 h-6 rounded-full transition-colors ${form.is_promoted ? "bg-purple-600" : "bg-white/20"} relative`}
+              className={`w-10 h-6 rounded-full transition-colors ${form.is_promoted ? "bg-purple-600" : "bg-white/20"} relative flex-shrink-0`}
             >
               <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${form.is_promoted ? "translate-x-5" : "translate-x-1"}`} />
             </div>
@@ -251,11 +271,14 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
             </div>
           </label>
 
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={onClose} className="flex-1 bg-white/5 border-white/20 text-white">Cancel</Button>
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2 pb-4">
+            <Button variant="outline" onClick={onClose} className="flex-1 bg-white/5 border-white/20 text-white">
+              Cancel
+            </Button>
             <Button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || uploading}
               className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold"
             >
               {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Posting...</> : "Post Showcase"}
@@ -263,6 +286,6 @@ export default function ShowcasePostModal({ currentUser, onClose, onSaved }) {
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }

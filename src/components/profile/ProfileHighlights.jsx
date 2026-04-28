@@ -1,51 +1,79 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Star, Plus, X, Play, Grid, Loader2 } from "lucide-react";
+import { Star, Plus, X, Play, Grid, Loader2, Pencil, Check, Image } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+// Each highlight album: { id, name, items: [{ id, type, thumbnail, caption }] }
+
+function generateId() {
+  return Math.random().toString(36).slice(2, 10);
+}
+
 export default function ProfileHighlights({ profileUser, isOwnProfile, posts = [], reels = [] }) {
-  const queryClient = useQueryClient();
-  const [showPicker, setShowPicker] = useState(false);
-  const highlights = profileUser?.highlights || [];
+  const [showAlbumPicker, setShowAlbumPicker] = useState(null); // albumId or "new"
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingName, setEditingName] = useState(null); // albumId being renamed
+  const [editNameValue, setEditNameValue] = useState("");
 
-  const saveMutation = useMutation({
-    mutationFn: (newHighlights) => base44.auth.updateMe({ highlights: newHighlights }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["profile-user"]);
+  const highlights = profileUser?.highlights_v2 || [];
+
+  const saveHighlights = async (updated) => {
+    setSaving(true);
+    try {
+      await base44.auth.updateMe({ highlights_v2: updated });
       toast.success("Highlights updated!");
-      setShowPicker(false);
-    },
-  });
-
-  const removeHighlight = (id) => {
-    const updated = highlights.filter((h) => h.id !== id);
-    saveMutation.mutate(updated);
+    } catch {
+      toast.error("Failed to update highlights");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const addHighlight = (item, type) => {
-    if (highlights.find((h) => h.id === item.id)) {
-      toast.info("Already highlighted");
-      return;
+  const createAlbum = () => {
+    const name = newAlbumName.trim() || "Highlights";
+    const album = { id: generateId(), name, items: [] };
+    const updated = [...highlights, album];
+    saveHighlights(updated);
+    setNewAlbumName("");
+    setShowAlbumPicker(album.id);
+  };
+
+  const deleteAlbum = (albumId) => {
+    saveHighlights(highlights.filter(a => a.id !== albumId));
+  };
+
+  const renameAlbum = (albumId) => {
+    if (!editNameValue.trim()) return;
+    const updated = highlights.map(a =>
+      a.id === albumId ? { ...a, name: editNameValue.trim() } : a
+    );
+    saveHighlights(updated);
+    setEditingName(null);
+  };
+
+  const toggleItemInAlbum = (albumId, item, type) => {
+    const album = highlights.find(a => a.id === albumId);
+    if (!album) return;
+    const exists = album.items.find(i => i.id === item.id);
+    let newItems;
+    if (exists) {
+      newItems = album.items.filter(i => i.id !== item.id);
+    } else {
+      const thumb = type === "reel" ? item.thumbnail_url : item.image_url;
+      newItems = [...album.items, { id: item.id, type, thumbnail: thumb, caption: item.caption || (type === "reel" ? "Reel" : "Post") }];
     }
-    if (highlights.length >= 6) {
-      toast.info("Max 6 highlights");
-      return;
-    }
-    const newHighlight = {
-      id: item.id,
-      type,
-      thumbnail: type === "reel" ? item.thumbnail_url : item.image_url,
-      caption: type === "reel" ? (item.caption || "Reel") : (item.caption || "Post"),
-    };
-    saveMutation.mutate([...highlights, newHighlight]);
+    const updated = highlights.map(a => a.id === albumId ? { ...a, items: newItems } : a);
+    saveHighlights(updated);
   };
 
   const allPickable = [
-    ...posts.filter((p) => p.image_url).map((p) => ({ ...p, _type: "post" })),
-    ...reels.map((r) => ({ ...r, _type: "reel" })),
+    ...posts.filter(p => p.image_url || p.media_url).map(p => ({ ...p, _type: "post" })),
+    ...reels.map(r => ({ ...r, _type: "reel" })),
   ];
+
+  const activeAlbum = showAlbumPicker ? highlights.find(a => a.id === showAlbumPicker) : null;
 
   if (highlights.length === 0 && !isOwnProfile) return null;
 
@@ -57,113 +85,195 @@ export default function ProfileHighlights({ profileUser, isOwnProfile, posts = [
         </h3>
         {isOwnProfile && (
           <button
-            onClick={() => setShowPicker(true)}
+            onClick={() => setShowAlbumPicker("new")}
             className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition"
           >
-            <Plus className="w-3.5 h-3.5" /> Add
+            <Plus className="w-3.5 h-3.5" /> New
           </button>
         )}
       </div>
 
-      <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-1">
-        {highlights.map((h) => (
-          <div key={h.id} className="relative flex-shrink-0 group">
-            <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/10 border-2 border-purple-500/50">
-              {h.thumbnail ? (
-                <img src={h.thumbnail} className="w-full h-full object-cover" alt={h.caption} />
+      {/* Albums Row */}
+      <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+        {highlights.map(album => {
+          const cover = album.items?.[0]?.thumbnail;
+          return (
+            <div key={album.id} className="flex-shrink-0 flex flex-col items-center gap-1 group relative">
+              {/* Album Circle */}
+              <button
+                onClick={() => isOwnProfile && setShowAlbumPicker(album.id)}
+                className="relative w-[68px] h-[68px] rounded-full overflow-hidden border-2 border-purple-500/60 hover:border-purple-400 transition bg-white/10"
+              >
+                {cover ? (
+                  <img src={cover} className="w-full h-full object-cover" alt={album.name} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Image className="w-6 h-6 text-gray-500" />
+                  </div>
+                )}
+                {/* item count badge */}
+                {album.items.length > 1 && (
+                  <div className="absolute bottom-0 right-0 bg-purple-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {album.items.length}
+                  </div>
+                )}
+              </button>
+
+              {/* Name (editable) */}
+              {editingName === album.id ? (
+                <div className="flex items-center gap-1 w-[72px]">
+                  <input
+                    autoFocus
+                    value={editNameValue}
+                    onChange={e => setEditNameValue(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && renameAlbum(album.id)}
+                    className="w-full text-[10px] bg-white/10 border border-white/20 rounded px-1 text-white outline-none"
+                  />
+                  <button onClick={() => renameAlbum(album.id)}>
+                    <Check className="w-3 h-3 text-green-400" />
+                  </button>
+                </div>
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  {h.type === "reel" ? <Play className="w-6 h-6 text-gray-400" /> : <Grid className="w-6 h-6 text-gray-400" />}
-                </div>
+                <p
+                  className="text-gray-300 text-[11px] text-center truncate w-[72px] cursor-pointer"
+                  onClick={() => {
+                    if (isOwnProfile) {
+                      setEditingName(album.id);
+                      setEditNameValue(album.name);
+                    }
+                  }}
+                >
+                  {album.name}
+                </p>
               )}
-              {h.type === "reel" && (
-                <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                  <Play className="w-2.5 h-2.5 text-white" />
-                </div>
+
+              {/* Delete button (own profile) */}
+              {isOwnProfile && (
+                <button
+                  onClick={() => deleteAlbum(album.id)}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center hidden group-hover:flex transition"
+                >
+                  <X className="w-3 h-3 text-white" />
+                </button>
               )}
             </div>
-            <p className="text-gray-400 text-[10px] text-center mt-1 truncate w-20">{h.caption}</p>
-            {isOwnProfile && (
-              <button
-                onClick={() => removeHighlight(h.id)}
-                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-              >
-                <X className="w-3 h-3 text-white" />
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
 
-        {isOwnProfile && highlights.length === 0 && (
+        {/* Create new placeholder */}
+        {isOwnProfile && (
           <button
-            onClick={() => setShowPicker(true)}
-            className="flex-shrink-0 w-20 h-20 rounded-xl border-2 border-dashed border-purple-500/40 flex flex-col items-center justify-center gap-1 hover:border-purple-500/70 transition"
+            onClick={() => setShowAlbumPicker("new")}
+            className="flex-shrink-0 flex flex-col items-center gap-1"
           >
-            <Plus className="w-5 h-5 text-purple-400" />
-            <span className="text-purple-400 text-[10px]">Pin</span>
+            <div className="w-[68px] h-[68px] rounded-full border-2 border-dashed border-purple-500/40 flex items-center justify-center hover:border-purple-500/70 transition bg-white/5">
+              <Plus className="w-6 h-6 text-purple-400" />
+            </div>
+            <p className="text-gray-500 text-[11px]">New</p>
           </button>
         )}
       </div>
 
-      {/* Picker Modal */}
+      {/* Picker / Create Modal */}
       <AnimatePresence>
-        {showPicker && (
+        {showAlbumPicker && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-sm"
-            onClick={() => setShowPicker(false)}
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowAlbumPicker(null)}
           >
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-gray-900 rounded-t-3xl p-5 max-h-[70vh] overflow-y-auto"
+              transition={{ type: "spring", damping: 25 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-lg bg-gray-900 rounded-t-3xl border border-white/10 flex flex-col"
+              style={{ maxHeight: "85vh" }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold">Pin to Highlights</h3>
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />}
-                <button onClick={() => setShowPicker(false)}><X className="w-5 h-5 text-gray-400" /></button>
-              </div>
-              {allPickable.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">No posts or reels to pin yet.</p>
-              ) : (
-                <div className="grid grid-cols-3 gap-1">
-                  {allPickable.map((item) => {
-                    const isHighlighted = highlights.find((h) => h.id === item.id);
-                    const thumb = item._type === "reel" ? item.thumbnail_url : item.image_url;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => addHighlight(item, item._type)}
-                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition ${
-                          isHighlighted ? "border-yellow-400" : "border-transparent hover:border-purple-400"
-                        }`}
-                      >
-                        {thumb ? (
-                          <img src={thumb} className="w-full h-full object-cover" alt="" />
-                        ) : (
-                          <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                            {item._type === "reel" ? <Play className="w-6 h-6 text-gray-500" /> : <Grid className="w-6 h-6 text-gray-500" />}
-                          </div>
-                        )}
-                        {isHighlighted && (
-                          <div className="absolute top-1 right-1 w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
-                            <Star className="w-3 h-3 text-gray-900" />
-                          </div>
-                        )}
-                        {item._type === "reel" && (
-                          <div className="absolute bottom-1 left-1 bg-black/60 rounded-full px-1 py-0.5">
-                            <Play className="w-2.5 h-2.5 text-white inline" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
+              {/* Modal Header */}
+              <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <h3 className="text-white font-bold">
+                  {showAlbumPicker === "new" ? "Create Highlight Album" : `Edit "${activeAlbum?.name}"`}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {saving && <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />}
+                  <button onClick={() => setShowAlbumPicker(null)}>
+                    <X className="w-5 h-5 text-gray-400 hover:text-white" />
+                  </button>
                 </div>
-              )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5" style={{ WebkitOverflowScrolling: "touch" }}>
+                {/* New album creation */}
+                {showAlbumPicker === "new" ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-gray-400 text-sm mb-2">Album Name</p>
+                      <input
+                        autoFocus
+                        value={newAlbumName}
+                        onChange={e => setNewAlbumName(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && createAlbum()}
+                        placeholder="e.g. Travel, Work, Favorites..."
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <button
+                      onClick={createAlbum}
+                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:opacity-90 transition"
+                    >
+                      Create Album
+                    </button>
+                  </div>
+                ) : (
+                  /* Select items for existing album */
+                  <>
+                    <p className="text-gray-400 text-sm mb-3">
+                      Tap to add or remove — {activeAlbum?.items?.length || 0} item{activeAlbum?.items?.length !== 1 ? "s" : ""}
+                    </p>
+                    {allPickable.length === 0 ? (
+                      <p className="text-gray-400 text-center py-12">No posts or reels to add yet.</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-1">
+                        {allPickable.map(item => {
+                          const inAlbum = activeAlbum?.items?.find(i => i.id === item.id);
+                          const thumb = item._type === "reel" ? item.thumbnail_url : item.image_url;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => toggleItemInAlbum(activeAlbum.id, item, item._type)}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition ${
+                                inAlbum ? "border-purple-400" : "border-transparent hover:border-white/30"
+                              }`}
+                            >
+                              {thumb ? (
+                                <img src={thumb} className="w-full h-full object-cover" alt="" />
+                              ) : (
+                                <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                                  {item._type === "reel" ? <Play className="w-6 h-6 text-gray-500" /> : <Grid className="w-6 h-6 text-gray-500" />}
+                                </div>
+                              )}
+                              {inAlbum && (
+                                <div className="absolute top-1 right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                                  <Check className="w-3 h-3 text-white" />
+                                </div>
+                              )}
+                              {item._type === "reel" && (
+                                <div className="absolute bottom-1 left-1 bg-black/60 rounded-full p-0.5">
+                                  <Play className="w-2.5 h-2.5 text-white" />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
