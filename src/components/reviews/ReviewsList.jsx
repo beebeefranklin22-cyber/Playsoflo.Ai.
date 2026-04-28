@@ -1,204 +1,165 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Star, ThumbsUp, MessageCircle } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import ReviewCard from "./ReviewCard";
+import RatingDistribution from "./RatingDistribution";
 
-export default function ReviewsList({ 
-  userEmail, 
-  reviewType,
-  propertyId,
-  limit = 10 
+export default function ReviewsList({
+  serviceType,
+  serviceId,
+  currentUser,
+  showDistribution = true
 }) {
-  const [showAll, setShowAll] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+  const [filterRating, setFilterRating] = useState(null);
+  const [showOnlyVerified, setShowOnlyVerified] = useState(false);
 
-  const { data: reviews = [], isLoading } = useQuery({
-    queryKey: ['reviews', userEmail, reviewType, propertyId],
+  const { data: reviews = [], refetch } = useQuery({
+    queryKey: ["reviews", serviceType, serviceId],
     queryFn: async () => {
-      const filters = { reviewed_user_email: userEmail };
-      if (reviewType) filters.review_type = reviewType;
-      if (propertyId) filters.property_id = propertyId;
-      
-      return await base44.entities.UserReview.filter(filters, '-created_date', 50);
+      try {
+        const result = await base44.entities.Review.filter({
+          service_type: serviceType,
+          service_id: serviceId,
+          status: "approved"
+        }, "-created_date");
+        return result || [];
+      } catch {
+        return [];
+      }
     },
-    initialData: []
+    refetchOnWindowFocus: false
   });
 
-  const displayedReviews = showAll ? reviews : reviews.slice(0, limit);
+  const filteredReviews = useMemo(() => {
+    let filtered = reviews;
 
-  const averageRating = reviews.length > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-    : 0;
+    // Filter by rating
+    if (filterRating) {
+      filtered = filtered.filter(r => r.rating === filterRating);
+    }
 
-  const ratingDistribution = [5, 4, 3, 2, 1].map(rating => ({
-    rating,
-    count: reviews.filter(r => r.rating === rating).length,
-    percentage: reviews.length > 0 ? (reviews.filter(r => r.rating === rating).length / reviews.length) * 100 : 0
-  }));
+    // Filter by verified purchase
+    if (showOnlyVerified) {
+      filtered = filtered.filter(r => r.verified_purchase);
+    }
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-      </div>
-    );
-  }
+    // Search by content
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.content.toLowerCase().includes(query) ||
+        r.title?.toLowerCase().includes(query) ||
+        r.reviewer_name.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    if (sortBy === "helpful") {
+      filtered = [...filtered].sort((a, b) => (b.helpful_count || 0) - (a.helpful_count || 0));
+    } else if (sortBy === "recent") {
+      filtered = [...filtered].sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    } else if (sortBy === "rating-high") {
+      filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "rating-low") {
+      filtered = [...filtered].sort((a, b) => a.rating - b.rating);
+    }
+
+    return filtered;
+  }, [reviews, searchQuery, sortBy, filterRating, showOnlyVerified]);
 
   return (
     <div className="space-y-6">
-      {/* Rating Summary */}
-      {reviews.length > 0 && (
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="text-center md:border-r border-white/10">
-                <div className="text-5xl font-bold text-white mb-2">{averageRating}</div>
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      className={`w-5 h-5 ${
-                        star <= Math.round(averageRating)
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-600'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-400 text-sm">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</p>
-              </div>
-
-              <div className="space-y-2">
-                {ratingDistribution.map(({ rating, count, percentage }) => (
-                  <div key={rating} className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 w-12">
-                      <span className="text-white text-sm">{rating}</span>
-                      <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                    </div>
-                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-yellow-400 rounded-full"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-gray-400 text-sm w-8">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Rating Distribution */}
+      {showDistribution && reviews.length > 0 && (
+        <RatingDistribution reviews={reviews} />
       )}
+
+      {/* Filters */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search reviews..."
+            className="w-full pl-12 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition text-sm"
+          />
+        </div>
+
+        {/* Filter Controls */}
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            className="px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition"
+          >
+            <option value="recent">Most Recent</option>
+            <option value="helpful">Most Helpful</option>
+            <option value="rating-high">Highest Rated</option>
+            <option value="rating-low">Lowest Rated</option>
+          </select>
+
+          {[5, 4, 3, 2, 1].map(rating => (
+            <button
+              key={rating}
+              onClick={() => setFilterRating(filterRating === rating ? null : rating)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                filterRating === rating
+                  ? "bg-yellow-600 text-white"
+                  : "bg-white/10 text-gray-300 hover:bg-white/20"
+              }`}
+            >
+              {rating}★
+            </button>
+          ))}
+
+          <button
+            onClick={() => setShowOnlyVerified(!showOnlyVerified)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              showOnlyVerified
+                ? "bg-green-600 text-white"
+                : "bg-white/10 text-gray-300 hover:bg-white/20"
+            }`}
+          >
+            Verified Only
+          </button>
+        </div>
+      </div>
 
       {/* Reviews List */}
       <div className="space-y-4">
-        {displayedReviews.map((review, index) => (
-          <motion.div
-            key={review.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <Card className="bg-white/5 border-white/10 hover:bg-white/8 transition">
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  {review.reviewer_photo ? (
-                    <img
-                      src={review.reviewer_photo}
-                      alt={review.reviewer_name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                      {review.reviewer_name?.[0] || 'U'}
-                    </div>
-                  )}
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="text-white font-semibold">{review.reviewer_name}</p>
-                        <p className="text-gray-400 text-sm">
-                          {new Date(review.created_date).toLocaleDateString('en-US', {
-                            month: 'long',
-                            year: 'numeric'
-                          })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`w-4 h-4 ${
-                              star <= review.rating
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-gray-600'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {review.review_text && (
-                      <p className="text-gray-300 mb-3">{review.review_text}</p>
-                    )}
-
-                    {review.categories && Object.keys(review.categories).length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {Object.entries(review.categories).map(([category, rating]) => (
-                          <div
-                            key={category}
-                            className="px-3 py-1 bg-white/10 rounded-full text-xs text-gray-300"
-                          >
-                            {category.replace('_', ' ')}: {rating}/5
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {review.verified_transaction && (
-                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full text-xs text-green-400">
-                        ✓ Verified booking
-                      </div>
-                    )}
-
-                    {review.host_response && (
-                      <div className="mt-4 p-4 bg-white/5 rounded-xl border-l-2 border-purple-500">
-                        <p className="text-gray-400 text-sm mb-1">Response from host</p>
-                        <p className="text-gray-300 text-sm">{review.host_response}</p>
-                        <p className="text-gray-500 text-xs mt-2">
-                          {new Date(review.host_response_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+        {filteredReviews.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No reviews found</p>
+          </div>
+        ) : (
+          filteredReviews.map((review, idx) => (
+            <motion.div
+              key={review.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+            >
+              <ReviewCard
+                review={review}
+                currentUser={currentUser}
+                onHelpfulUpdate={() => refetch()}
+              />
+            </motion.div>
+          ))
+        )}
       </div>
 
-      {reviews.length > limit && !showAll && (
-        <Button
-          onClick={() => setShowAll(true)}
-          variant="outline"
-          className="w-full bg-white/5 border-white/20"
-        >
-          Show all {reviews.length} reviews
-        </Button>
-      )}
-
-      {reviews.length === 0 && (
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-12 text-center">
-            <MessageCircle className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400">No reviews yet</p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Results Count */}
+      <p className="text-gray-400 text-sm text-center">
+        Showing {filteredReviews.length} of {reviews.length} reviews
+      </p>
     </div>
   );
 }
