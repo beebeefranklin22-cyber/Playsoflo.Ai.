@@ -1,0 +1,205 @@
+{
+  "name": "AdCampaign",
+  "type": "object",
+  "properties": {
+    "advertiser_email": {
+      "type": "string",
+      "description": "Email of advertiser"
+    },
+    "campaign_name": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string",
+      "enum": [
+        "brand_awareness",
+        "traffic",
+        "engagement",
+        "app_installs",
+        "conversions",
+        "lead_generation",
+        "messages"
+      ],
+      "default": "brand_awareness"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_payment",
+        "active",
+        "paused",
+        "completed",
+        "rejected"
+      ],
+      "default": "active"
+    },
+    "ad_format": {
+      "type": "string",
+      "enum": [
+        "image",
+        "video",
+        "carousel",
+        "story",
+        "collection"
+      ],
+      "default": "image"
+    },
+    "placements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "feed"
+      ],
+      "description": "Where ads appear: feed, stories, banner"
+    },
+    "media_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Ad creative media"
+    },
+    "headline": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "call_to_action": {
+      "type": "string",
+      "enum": [
+        "learn_more",
+        "shop_now",
+        "sign_up",
+        "download",
+        "book_now",
+        "contact_us",
+        "get_quote",
+        "apply_now"
+      ],
+      "default": "learn_more"
+    },
+    "destination_url": {
+      "type": "string"
+    },
+    "targeting": {
+      "type": "object",
+      "default": {}
+    },
+    "budget_type": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "lifetime"
+      ],
+      "default": "lifetime"
+    },
+    "budget_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "bid_strategy": {
+      "type": "string",
+      "enum": [
+        "lowest_cost",
+        "cost_cap",
+        "bid_cap"
+      ],
+      "default": "lowest_cost"
+    },
+    "schedule": {
+      "type": "object",
+      "default": {
+        "run_continuously": true
+      }
+    },
+    "ai_optimized": {
+      "type": "boolean",
+      "default": false
+    },
+    "ai_audience_score": {
+      "type": "number"
+    },
+    "ai_suggested_budget": {
+      "type": "number"
+    },
+    "estimated_reach": {
+      "type": "number"
+    },
+    "impressions": {
+      "type": "number",
+      "default": 0
+    },
+    "clicks": {
+      "type": "number",
+      "default": 0
+    },
+    "conversions": {
+      "type": "number",
+      "default": 0
+    },
+    "spend": {
+      "type": "number",
+      "default": 0
+    },
+    "cpm": {
+      "type": "number"
+    },
+    "cpc": {
+      "type": "number"
+    },
+    "ctr": {
+      "type": "number"
+    },
+    "stripe_session_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "advertiser_email",
+    "campaign_name"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "advertiser_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "advertiser_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "advertiser_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

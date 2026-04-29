@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { createAdCampaign } from "@/functions/createAdCampaign";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Upload, Loader2, Image as ImageIcon } from "lucide-react";
+import { X, Loader2, Image as ImageIcon, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -24,12 +25,15 @@ const defaultForm = {
   placements: ["feed"],
   media_urls: [],
   status: "active",
-  schedule: { start_date: "", end_date: "", run_continuously: false },
+  budget_type: "lifetime",
+  budget_amount: 50,
+  schedule: { start_date: "", end_date: "", run_continuously: true },
 };
 
 export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, onSaved }) {
   const [form, setForm] = useState(defaultForm);
   const [uploading, setUploading] = useState(false);
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     if (editingAd) {
@@ -42,10 +46,12 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
         placements: editingAd.placements || ["feed"],
         media_urls: editingAd.media_urls || [],
         status: editingAd.status || "active",
+        budget_type: editingAd.budget_type || "lifetime",
+        budget_amount: editingAd.budget_amount || 50,
         schedule: {
           start_date: editingAd.schedule?.start_date ? editingAd.schedule.start_date.substring(0, 10) : "",
           end_date: editingAd.schedule?.end_date ? editingAd.schedule.end_date.substring(0, 10) : "",
-          run_continuously: editingAd.schedule?.run_continuously || false,
+          run_continuously: editingAd.schedule?.run_continuously ?? true,
         },
       });
     } else {
@@ -55,27 +61,68 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
-        ...form,
-        advertiser_email: currentUser.email,
+      const schedulePayload = {
+        start_date: form.schedule.start_date ? new Date(form.schedule.start_date).toISOString() : null,
+        end_date: form.schedule.end_date ? new Date(form.schedule.end_date).toISOString() : null,
+        run_continuously: !form.schedule.end_date,
+      };
+
+      // ADMIN: save directly, free, instant active
+      if (isAdmin) {
+        const payload = {
+          ...form,
+          advertiser_email: currentUser.email,
+          objective: "brand_awareness",
+          ad_format: "image",
+          budget_type: "lifetime",
+          budget_amount: 0,
+          schedule: schedulePayload,
+          status: form.status || "active",
+        };
+        if (editingAd) {
+          return base44.entities.AdCampaign.update(editingAd.id, payload);
+        } else {
+          return base44.entities.AdCampaign.create(payload);
+        }
+      }
+
+      // REGULAR USER: editing existing → direct update, creating new → Stripe payment flow
+      if (editingAd) {
+        return base44.entities.AdCampaign.update(editingAd.id, {
+          ...form,
+          advertiser_email: currentUser.email,
+          schedule: schedulePayload,
+        });
+      }
+
+      // New campaign for regular user → backend function → Stripe
+      const res = await createAdCampaign({
+        campaign_name: form.campaign_name,
         objective: "brand_awareness",
         ad_format: "image",
-        budget_type: "lifetime",
-        budget_amount: 0,
-        schedule: {
-          start_date: form.schedule.start_date ? new Date(form.schedule.start_date).toISOString() : null,
-          end_date: form.schedule.end_date ? new Date(form.schedule.end_date).toISOString() : null,
-          run_continuously: !form.schedule.end_date,
-        },
-      };
-      if (editingAd) {
-        return base44.entities.AdCampaign.update(editingAd.id, payload);
-      } else {
-        return base44.entities.AdCampaign.create(payload);
+        media_urls: form.media_urls,
+        headline: form.headline,
+        description: form.description,
+        call_to_action: form.call_to_action,
+        destination_url: form.destination_url,
+        placements: form.placements,
+        budget_type: form.budget_type,
+        budget_amount: form.budget_amount,
+        schedule: schedulePayload,
+        targeting: {},
+      });
+
+      if (res.data?.checkout_url) {
+        // Redirect to Stripe checkout
+        window.location.href = res.data.checkout_url;
+        return res.data;
       }
+      return res.data;
     },
-    onSuccess: () => {
-      toast.success(editingAd ? "Ad updated!" : "Ad created and set live!");
+    onSuccess: (data) => {
+      // If redirecting to Stripe, don't close modal yet
+      if (data?.checkout_url) return;
+      toast.success(editingAd ? "Ad updated!" : isAdmin ? "Ad created and set live!" : "Ad submitted!");
       onSaved();
       onClose();
     },
@@ -126,7 +173,15 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
         >
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-white/10 flex-shrink-0">
-            <h2 className="text-white font-bold text-xl">{editingAd ? "Edit Ad" : "Create New Ad"}</h2>
+            <div>
+              <h2 className="text-white font-bold text-xl">{editingAd ? "Edit Ad" : "Create New Ad"}</h2>
+              {!isAdmin && !editingAd && (
+                <p className="text-gray-400 text-xs mt-0.5">You'll be redirected to pay after submitting</p>
+              )}
+              {isAdmin && (
+                <p className="text-green-400 text-xs mt-0.5">✓ Admin — free placement, instant live</p>
+              )}
+            </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
               <X className="w-5 h-5 text-gray-400" />
             </button>
@@ -157,7 +212,7 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
               )}
             </div>
 
-            {/* Name */}
+            {/* Campaign Name */}
             <div>
               <label className="block text-gray-300 text-sm font-semibold mb-1.5">Campaign Name <span className="text-red-400">*</span></label>
               <Input value={form.campaign_name} onChange={e => setForm(p => ({ ...p, campaign_name: e.target.value }))}
@@ -185,7 +240,7 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
               />
             </div>
 
-            {/* Link */}
+            {/* Destination URL */}
             <div>
               <label className="block text-gray-300 text-sm font-semibold mb-1.5">Destination URL</label>
               <Input value={form.destination_url} onChange={e => setForm(p => ({ ...p, destination_url: e.target.value }))}
@@ -234,6 +289,40 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
               </div>
             </div>
 
+            {/* Budget — only for regular users */}
+            {!isAdmin && (
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-green-400" /> Budget
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <select
+                      value={form.budget_type}
+                      onChange={e => setForm(p => ({ ...p, budget_type: e.target.value }))}
+                      className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="lifetime" className="bg-gray-900">Lifetime Budget</option>
+                      <option value="daily" className="bg-gray-900">Daily Budget</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Input
+                      type="number"
+                      min="10"
+                      value={form.budget_amount}
+                      onChange={e => setForm(p => ({ ...p, budget_amount: parseFloat(e.target.value) || 0 }))}
+                      placeholder="50"
+                      className="bg-white/5 border-white/10 text-white placeholder-gray-500"
+                    />
+                  </div>
+                </div>
+                {form.budget_type === "daily" && (
+                  <p className="text-yellow-400 text-xs mt-1">⚡ Daily budget: you'll be charged for 7 days upfront (${(form.budget_amount * 7).toFixed(2)})</p>
+                )}
+              </div>
+            )}
+
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -251,26 +340,28 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
               </div>
             </div>
 
-            {/* Status toggle */}
-            <div>
-              <label className="block text-gray-300 text-sm font-semibold mb-2">Status</label>
-              <div className="flex gap-2">
-                {["active", "paused", "draft"].map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setForm(p => ({ ...p, status: s }))}
-                    className={`flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition ${
-                      form.status === s
-                        ? s === "active" ? "bg-green-600 text-white" : s === "paused" ? "bg-yellow-600 text-white" : "bg-gray-600 text-white"
-                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+            {/* Status toggle — admin only */}
+            {isAdmin && (
+              <div>
+                <label className="block text-gray-300 text-sm font-semibold mb-2">Status</label>
+                <div className="flex gap-2">
+                  {["active", "paused", "draft"].map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setForm(p => ({ ...p, status: s }))}
+                      className={`flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition ${
+                        form.status === s
+                          ? s === "active" ? "bg-green-600 text-white" : s === "paused" ? "bg-yellow-600 text-white" : "bg-gray-600 text-white"
+                          : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -283,7 +374,14 @@ export default function AdFormModal({ isOpen, onClose, editingAd, currentUser, o
               disabled={saveMutation.isPending || !form.campaign_name || form.placements.length === 0}
               className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-bold"
             >
-              {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editingAd ? "Save Changes" : "Launch Ad"}
+              {saveMutation.isPending
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : editingAd
+                  ? "Save Changes"
+                  : isAdmin
+                    ? "Launch Ad (Free)"
+                    : `Pay & Launch — $${form.budget_type === "daily" ? (form.budget_amount * 7).toFixed(2) : form.budget_amount}`
+              }
             </Button>
           </div>
         </motion.div>
