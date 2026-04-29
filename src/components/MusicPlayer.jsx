@@ -186,6 +186,7 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
   };
 
   const handleSeek = (value) => {
+    if (isYouTube) return;
     if (audioRef.current && value && value[0] !== undefined) {
       try {
         audioRef.current.currentTime = value[0];
@@ -423,7 +424,7 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
             <div className="flex justify-center mb-2">
               <div className="w-12 h-1 bg-white/30 rounded-full" />
             </div>
-            {!isYouTube && <audio ref={audioRef} preload="auto" />}
+            <audio ref={audioRef} preload="auto" style={{ display: 'none' }} />
             
             {error && (
               <div className="mb-2 text-yellow-400 text-xs text-center">
