@@ -21,8 +21,36 @@ Deno.serve(async (req) => {
       schedule, bid_strategy, placements 
     } = body;
 
-    if (!campaign_name || !objective || !budget_amount) {
+    if (!campaign_name || !objective) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Admins get free ad placement — skip payment entirely
+    if (user.role === 'admin') {
+      const campaign = await base44.asServiceRole.entities.AdCampaign.create({
+        advertiser_email: user.email,
+        campaign_name,
+        objective,
+        status: 'active',
+        ad_format,
+        placements: placements || ['feed', 'stories'],
+        media_urls: media_urls || [],
+        headline,
+        description,
+        call_to_action: call_to_action || 'learn_more',
+        destination_url,
+        targeting: targeting || {},
+        budget_type: budget_type || 'lifetime',
+        budget_amount: 0,
+        bid_strategy: bid_strategy || 'lowest_cost',
+        schedule: schedule || { run_continuously: true },
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        spend: 0,
+        ctr: 0
+      });
+      return Response.json({ success: true, campaign, admin_free: true });
     }
 
     // AI calculates pricing and reach
