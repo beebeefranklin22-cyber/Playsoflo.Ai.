@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Plus, Pencil, Trash2, Upload, Loader2, X, ExternalLink,
-  Eye, MousePointerClick, TrendingUp, Calendar, CheckCircle, PauseCircle, AlertCircle
+  Plus, Pencil, Trash2, Loader2, X, ExternalLink,
+  Eye, MousePointerClick, TrendingUp, Calendar, CheckCircle, PauseCircle, AlertCircle, Brain
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AdFormModal from "../components/ads/AdFormModal";
+import AIAssistPanel from "../components/ads/AIAssistPanel";
 
 export default function AdManager() {
   const queryClient = useQueryClient();
@@ -19,6 +20,7 @@ export default function AdManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingAd, setEditingAd] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [activeTab, setActiveTab] = useState("campaigns");
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => setCurrentUser(null));
@@ -93,6 +95,43 @@ export default function AdManager() {
           </Button>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 bg-white/5 rounded-2xl p-1 w-fit">
+          {[
+            { id: "campaigns", label: "Campaigns", icon: TrendingUp },
+            { id: "ai", label: "AI-Assist", icon: Brain },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+              {tab.id === "ai" && campaigns.filter(c => c.ai_optimized).length > 0 && (
+                <span className="w-5 h-5 bg-purple-500 rounded-full text-xs flex items-center justify-center">
+                  {campaigns.filter(c => c.ai_optimized).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* AI-Assist Tab */}
+        {activeTab === "ai" && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-8">
+            <AIAssistPanel
+              campaigns={campaigns}
+              onCampaignsChange={() => queryClient.invalidateQueries({ queryKey: ["admin-ad-campaigns"] })}
+            />
+          </div>
+        )}
+
+        {activeTab === "campaigns" && <>
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
@@ -235,6 +274,7 @@ export default function AdManager() {
             })}
           </div>
         )}
+        </>}
       </div>
 
       {/* Form Modal */}

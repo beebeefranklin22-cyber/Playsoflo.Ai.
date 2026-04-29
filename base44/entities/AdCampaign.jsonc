@@ -52,16 +52,14 @@
       },
       "default": [
         "feed"
-      ],
-      "description": "Where ads appear: feed, stories, banner"
+      ]
     },
     "media_urls": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "default": [],
-      "description": "Ad creative media"
+      "default": []
     },
     "headline": {
       "type": "string"
@@ -119,13 +117,19 @@
     },
     "ai_optimized": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Whether AI-Assist is enabled for this campaign"
     },
     "ai_audience_score": {
       "type": "number"
     },
     "ai_suggested_budget": {
       "type": "number"
+    },
+    "ai_suggestions": {
+      "type": "object",
+      "default": {},
+      "description": "Latest AI performance analysis and suggestions"
     },
     "estimated_reach": {
       "type": "number"
