@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -80,6 +80,8 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
       base44.entities.UserGallery.update(id, { is_pinned: !is_pinned }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['gallery', userEmail] })
   });
+
+  const fileInputRef = React.useRef(null);
 
   const handleFileUpload = async (file) => {
     if (!file) return;
@@ -257,15 +259,15 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
                  ) : (
                    <>
                      <input
+                       ref={fileInputRef}
                        type="file"
-                       id="gallery-upload"
                        className="hidden"
                        accept="image/*,video/*"
                        onChange={(e) => handleFileUpload(e.target.files?.[0])}
                      />
                      <Button
                        type="button"
-                       onClick={() => document.getElementById('gallery-upload').click()}
+                       onClick={() => fileInputRef.current?.click()}
                        disabled={uploading}
                        variant="outline"
                        className="bg-white/10 border-white/20 hover:bg-white/20"
@@ -282,6 +284,16 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
                          </>
                        )}
                      </Button>
+                     <p className="text-gray-500 text-xs mt-3">or paste a URL below</p>
+                     <input
+                       type="text"
+                       placeholder="https://..."
+                       className="mt-2 w-full bg-white/5 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                       onChange={(e) => {
+                         const url = e.target.value.trim();
+                         if (url) setNewMedia(prev => ({ ...prev, media_url: url, media_type: 'photo' }));
+                       }}
+                     />
                    </>
                  )}
                 </div>
