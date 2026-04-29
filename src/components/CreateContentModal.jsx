@@ -144,10 +144,15 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
     setUploading(true);
     setUploadProgress(0);
 
-    // Simulate progress ticks while upload runs
+    // Simulate smooth progress: fast to 70%, then slow crawl to 95%
+    let progress = 0;
     const interval = setInterval(() => {
-      setUploadProgress(prev => Math.min(prev + Math.random() * 12, 90));
-    }, 400);
+      setUploadProgress(prev => {
+        if (prev < 70) return Math.min(prev + Math.random() * 15, 70);
+        if (prev < 95) return Math.min(prev + Math.random() * 2, 95);
+        return prev;
+      });
+    }, 200);
 
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -161,7 +166,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
       toast.error("Upload failed: " + e.message);
     } finally {
       setUploading(false);
-      setTimeout(() => setUploadProgress(0), 800);
+      setTimeout(() => setUploadProgress(0), 600);
     }
   };
 
@@ -498,7 +503,9 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                             style={{ width: `${uploadProgress}%` }}
                           />
                         </div>
-                        <p className="text-gray-400 text-sm">{Math.round(uploadProgress)}%</p>
+                        <p className="text-gray-400 text-sm">
+                          {uploadProgress >= 95 ? "Finishing up..." : `${Math.round(uploadProgress)}%`}
+                        </p>
                       </div>
                     ) : (
                       <>
