@@ -21,6 +21,7 @@ import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
 import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
 import EditPostModal from "../components/social/EditPostModal";
+import ShareToInboxModal from "../components/social/ShareToInboxModal";
 import AdDisplay from "../components/ads/AdDisplay";
 import HomeBannerAd from "../components/ads/HomeBannerAd";
 import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
@@ -55,6 +56,7 @@ export default function Home() {
   const [storyStartIndex, setStoryStartIndex] = useState(0);
   const [editingPost, setEditingPost] = useState(null);
   const [commentingPost, setCommentingPost] = useState(null);
+  const [sharingPost, setSharingPost] = useState(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -599,14 +601,7 @@ export default function Home() {
                 <button onClick={() => setCommentingPost(post)} className="flex items-center gap-1">
                   <MessageCircle className="w-7 h-7 text-white" />
                 </button>
-                <button onClick={() => {
-                  if (navigator.share) {
-                    navigator.share({ title: post.caption || "Check this out", url: window.location.href }).catch(() => {});
-                  } else {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success("Link copied!");
-                  }
-                }}>
+                <button onClick={() => setSharingPost(post)}>
                   <Share2 className="w-7 h-7 text-white" />
                 </button>
               </div>
@@ -701,6 +696,14 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* Share to Inbox Modal */}
+      <ShareToInboxModal
+        isOpen={!!sharingPost}
+        onClose={() => setSharingPost(null)}
+        post={sharingPost}
+        currentUser={currentUser}
+      />
 
       {/* Edit Post Modal */}
       <EditPostModal

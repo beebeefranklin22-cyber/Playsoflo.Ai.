@@ -240,7 +240,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
 
           {/* Step Indicator */}
           <div className="flex items-center justify-center gap-2 py-4 px-6 sm:px-8 flex-shrink-0">
-            {[1, 2, 3, 4, 5, 6].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div
                 key={s}
                 className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition ${
@@ -296,7 +296,18 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     <MobileSelect.Item value="casinos">Casinos</MobileSelect.Item>
                     <MobileSelect.Item value="paint_sip">Paint & Sip</MobileSelect.Item>
                     <MobileSelect.Item value="axe_throwing">Axe Throwing</MobileSelect.Item>
-                  </MobileSelect>
+                    <MobileSelect.Item value="silent_disco">Silent Disco</MobileSelect.Item>
+                    <MobileSelect.Item value="drag_shows">Drag Shows</MobileSelect.Item>
+                    <MobileSelect.Item value="roller_skating">Roller Skating</MobileSelect.Item>
+                    <MobileSelect.Item value="go_karts">Go Karts</MobileSelect.Item>
+                    <MobileSelect.Item value="helicopter_tours">Helicopter Tours</MobileSelect.Item>
+                    <MobileSelect.Item value="skydiving">Skydiving</MobileSelect.Item>
+                    <MobileSelect.Item value="hot_air_balloon">Hot Air Balloon</MobileSelect.Item>
+                    <MobileSelect.Item value="cooking_classes">Cooking Classes</MobileSelect.Item>
+                    <MobileSelect.Item value="dance_classes">Dance Classes</MobileSelect.Item>
+                    <MobileSelect.Item value="virtual_reality">Virtual Reality</MobileSelect.Item>
+                    <MobileSelect.Item value="other">Other (Describe in details)</MobileSelect.Item>
+                    </MobileSelect>
                 </div>
 
                 <div>
@@ -1155,7 +1166,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 Back
               </Button>
             )}
-            {step < 6 ? (
+            {step < 5 ? (
               <Button 
                 onClick={() => {
                   triggerHaptic('light');
