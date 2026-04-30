@@ -1,145 +1,141 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
+
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { position = 'feed', exclude_ids = [] } = await req.json();
 
-    // Get all active campaigns
-    const campaigns = await base44.asServiceRole.entities.AdCampaign.filter({ 
-      status: 'active' 
+    // Fetch all active campaigns
+    const allCampaigns = await base44.asServiceRole.entities.AdCampaign.filter({ status: 'active' });
+
+    // Filter by placement and budget
+    const eligible = allCampaigns.filter(c => {
+      if (!c.placements?.includes(position)) return false;
+      if (exclude_ids.includes(c.id)) return false;
+      if (c.budget_type === 'lifetime' && (c.spend || 0) >= (c.budget_amount || 0)) return false;
+      // Check schedule
+      const now = new Date();
+      if (c.schedule?.start_date && new Date(c.schedule.start_date) > now) return false;
+      if (c.schedule?.end_date && new Date(c.schedule.end_date) < now) return false;
+      return true;
     });
 
-    // Filter campaigns that haven't exceeded budget
-    const activeCampaigns = campaigns.filter(campaign => {
-      if (campaign.budget_type === 'lifetime') {
-        return campaign.spend < campaign.budget_amount;
-      }
-      // For daily budget, check if they're within daily limit
-      return campaign.spend < (campaign.budget_amount * 30); // Rough monthly estimate
-    });
-
-    // Score each campaign for this user
-    const scoredCampaigns = activeCampaigns.map(campaign => {
-      let score = 100;
-
-      // Placement match
-      if (!campaign.placements?.includes(position)) {
-        return null;
-      }
-
-      // Already shown to user
-      if (exclude_ids.includes(campaign.id)) {
-        score -= 50;
-      }
-
-      const targeting = campaign.targeting || {};
-
-      // Age targeting
-      if (user.age) {
-        const ageMin = targeting.age_min || 0;
-        const ageMax = targeting.age_max || 100;
-        if (user.age < ageMin || user.age > ageMax) {
-          return null;
-        }
-        // Perfect age match bonus
-        const midAge = (ageMin + ageMax) / 2;
-        const ageDiff = Math.abs(user.age - midAge);
-        score += Math.max(0, 20 - ageDiff);
-      }
-
-      // Gender targeting
-      if (targeting.genders?.length && !targeting.genders.includes('all')) {
-        if (!user.gender || !targeting.genders.includes(user.gender)) {
-          return null;
-        }
-        score += 15;
-      }
-
-      // Location targeting
-      if (targeting.locations?.length) {
-        const userLocation = (user.address || user.city || '').toLowerCase();
-        const locationMatch = targeting.locations.some(loc => 
-          userLocation.includes(loc.toLowerCase())
-        );
-        if (!locationMatch) {
-          score -= 30;
-        } else {
-          score += 25;
-        }
-      }
-
-      // Interest targeting
-      if (targeting.interests?.length && user.interests?.length) {
-        const interestMatches = targeting.interests.filter(interest =>
-          user.interests.some(userInterest =>
-            userInterest.toLowerCase().includes(interest.toLowerCase()) ||
-            interest.toLowerCase().includes(userInterest.toLowerCase())
-          )
-        ).length;
-        
-        if (interestMatches === 0) {
-          score -= 20;
-        } else {
-          score += interestMatches * 10;
-        }
-      }
-
-      // Performance-based scoring (CTR boost)
-      if (campaign.impressions > 100) {
-        const ctr = campaign.ctr || 0;
-        score += ctr * 5; // Higher CTR = better placement
-      }
-
-      // Budget optimization - prioritize campaigns with higher budgets
-      const budgetBoost = Math.min(campaign.budget_amount / 10, 20);
-      score += budgetBoost;
-
-      // Bid strategy adjustment
-      if (campaign.bid_strategy === 'cost_cap') {
-        score += 5;
-      }
-
-      // AI audience score
-      if (campaign.ai_audience_score) {
-        score += campaign.ai_audience_score / 10;
-      }
-
-      return { campaign, score };
-    }).filter(Boolean);
-
-    // Sort by score and return best match
-    scoredCampaigns.sort((a, b) => b.score - a.score);
-
-    if (scoredCampaigns.length === 0) {
+    if (eligible.length === 0) {
       return Response.json({ ad: null });
     }
 
-    // Weighted random selection from top 3
-    const topCampaigns = scoredCampaigns.slice(0, 3);
-    const totalScore = topCampaigns.reduce((sum, c) => sum + c.score, 0);
-    const random = Math.random() * totalScore;
-    
+    // Build user profile context for AI matching
+    const userProfile = {
+      age: user.age || null,
+      gender: user.gender || null,
+      city: user.city || null,
+      interests: user.interests || [],
+      role: user.role || 'user',
+      account_age_days: user.created_date
+        ? Math.floor((Date.now() - new Date(user.created_date).getTime()) / 86400000)
+        : null,
+    };
+
+    // Build campaign summaries for AI
+    const campaignSummaries = eligible.map(c => ({
+      id: c.id,
+      campaign_name: c.campaign_name,
+      headline: c.headline || '',
+      description: c.description || '',
+      objective: c.objective || '',
+      targeting: c.targeting || {},
+      placements: c.placements || [],
+      budget_amount: c.budget_amount || 0,
+      spend: c.spend || 0,
+      impressions: c.impressions || 0,
+      clicks: c.clicks || 0,
+      ctr: c.ctr || 0,
+      ai_audience_score: c.ai_audience_score || null,
+      ai_optimized: c.ai_optimized || false,
+    }));
+
+    // Use AI to score and rank campaigns for this user
+    const aiResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: `You are an ad targeting engine. Given a user profile and a list of ad campaigns, rank the campaigns from best to worst match for this specific user. Consider the user's demographics, interests, city, account age, and the campaign's objective, targeting settings, and past performance (CTR).
+
+USER PROFILE:
+${JSON.stringify(userProfile, null, 2)}
+
+AD CAMPAIGNS:
+${JSON.stringify(campaignSummaries, null, 2)}
+
+Return a JSON ranking with a score (0-100) and brief reason for each campaign. Higher score = better match. Penalize campaigns with no targeting data (treat as generic). Boost campaigns that closely match user interests/city. Also factor in CTR — higher performing ads should score higher.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          rankings: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                score: { type: 'number' },
+                reason: { type: 'string' }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Build score map from AI result
+    const scoreMap = {};
+    if (aiResult?.rankings) {
+      for (const r of aiResult.rankings) {
+        scoreMap[r.id] = r.score;
+      }
+    }
+
+    // Merge AI scores with fallback heuristic scores
+    const scored = eligible.map(c => {
+      let score = scoreMap[c.id] ?? 50;
+
+      // Additional heuristics on top of AI score
+      // Performance boost
+      if ((c.impressions || 0) > 100) {
+        score += Math.min((c.ctr || 0) * 2, 10);
+      }
+
+      // Budget priority (higher budget = slight boost)
+      score += Math.min((c.budget_amount || 0) / 50, 5);
+
+      // AI-optimized campaigns get a boost
+      if (c.ai_optimized) score += 5;
+
+      return { campaign: c, score };
+    });
+
+    // Sort descending
+    scored.sort((a, b) => b.score - a.score);
+
+    // Weighted random from top 3 to add variety
+    const top = scored.slice(0, 3);
+    const totalScore = top.reduce((s, c) => s + c.score, 0);
+    const rand = Math.random() * totalScore;
     let cumulative = 0;
-    let selectedCampaign = topCampaigns[0].campaign;
-    
-    for (const { campaign, score } of topCampaigns) {
+    let selected = top[0].campaign;
+    for (const { campaign, score } of top) {
       cumulative += score;
-      if (random <= cumulative) {
-        selectedCampaign = campaign;
+      if (rand <= cumulative) {
+        selected = campaign;
         break;
       }
     }
 
-    return Response.json({ 
-      ad: selectedCampaign,
-      targeting_score: scoredCampaigns.find(c => c.campaign.id === selectedCampaign.id)?.score
+    return Response.json({
+      ad: selected,
+      targeting_score: scored.find(s => s.campaign.id === selected.id)?.score ?? null
     });
 
   } catch (error) {
