@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Users, Video, Share2, UserPlus, Maximize2, Minimize2,
   Heart, MessageCircle, BarChart3, HelpCircle, ShoppingCart, StopCircle,
-  Radio, Gift, Settings, Crown, Send
+  Radio, Gift, Settings, Crown, Send, Scissors
 } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
@@ -15,6 +15,7 @@ import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";
 import CoHostManager from "../components/livestream/CoHostManager.jsx";
+import ClipCreator from "../components/livestream/ClipCreator.jsx";
 import ReactionEffects from "../components/livestream/ReactionEffects.jsx";
 import PPVTicketGate from "../components/livestream/PPVTicketGate.jsx";
 import LiveTippingOverlay from "../components/livestream/LiveTippingOverlay.jsx";
@@ -45,6 +46,7 @@ export default function LivestreamViewer() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [showHostPanel, setShowHostPanel] = useState(false);
+  const [showClipCreator, setShowClipCreator] = useState(false);
 
   // Init
   useEffect(() => {
@@ -222,6 +224,13 @@ export default function LivestreamViewer() {
                 />
               </>
             )}
+            <button
+              onClick={() => setShowClipCreator(true)}
+              title="Create Clip"
+              className="p-2 hover:bg-white/10 rounded-full transition"
+            >
+              <Scissors className="w-4 h-4 text-white" />
+            </button>
             <button onClick={handleShare} className="p-2 hover:bg-white/10 rounded-full transition">
               <Share2 className="w-4 h-4 text-white" />
             </button>
@@ -403,6 +412,17 @@ export default function LivestreamViewer() {
           </div>
         )}
       </div>
+
+      {/* Clip Creator Modal */}
+      <AnimatePresence>
+        {showClipCreator && stream && currentUser && (
+          <ClipCreator
+            stream={stream}
+            currentUser={currentUser}
+            onClose={() => setShowClipCreator(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Host Control Panel - Slide-in */}
       <AnimatePresence>
