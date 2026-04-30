@@ -8,6 +8,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Loader2, CreditCard, Shield } from "lucide-react";
+import DigitalWalletButton from "./DigitalWalletButton";
 
 const CheckoutForm = ({ amount, onSuccess, onError }) => {
   const stripe = useStripe();
@@ -129,6 +130,19 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Apple Pay / Google Pay — only shows on supported devices */}
+      <DigitalWalletButton
+        amount={amount}
+        description="PlaySoFlo Payment"
+        onSuccess={(paymentMethodId) => {
+          if (onSuccess) onSuccess(paymentMethodId);
+        }}
+        onError={(msg) => {
+          setErrorMessage(msg);
+          if (onError) onError(msg);
+        }}
+      />
+
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
         <div className="flex items-center gap-3 mb-4">
           <Shield className="w-5 h-5 text-green-400" />

@@ -64,19 +64,21 @@ Deno.serve(async (req) => {
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(totalAmount * 100),
-        currency,
-        description: description || 'PlaySoFlo Payment',
-        metadata: {
-          user_email: user.email,
-          user_id: user.id,
-          base_amount: amount.toString(),
-          platform_fee: platformFee.toString(),
-          ...metadata
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
+      amount: Math.round(totalAmount * 100),
+      currency,
+      description: description || 'PlaySoFlo Payment',
+      metadata: {
+        user_email: user.email,
+        user_id: user.id,
+        base_amount: amount.toString(),
+        platform_fee: platformFee.toString(),
+        ...metadata
+      },
+      // Enable automatic payment methods including Apple Pay, Google Pay, cards, etc.
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'never', // Prevents redirect-based methods for in-app flow
+      },
       });
       console.log('✅ Payment intent created:', paymentIntent.id);
     } catch (stripeError) {
