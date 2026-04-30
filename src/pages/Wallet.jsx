@@ -24,6 +24,7 @@ import PaymentMethodsManager from "../components/wallet/PaymentMethodsManager";
 import PendingTransfersModal from "../components/wallet/PendingTransfersModal";
 import CryptoDepositModal from "../components/wallet/CryptoDepositModal";
 import CryptoWithdrawModal from "../components/wallet/CryptoWithdrawModal";
+import SendCryptoModal from "../components/wallet/SendCryptoModal";
 import StakingManager from "../components/wallet/StakingManager";
 import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings";
 import TaxReportingModal from "../components/wallet/TaxReportingModal";
@@ -452,11 +453,18 @@ export default function Wallet() {
               Deposit
             </button>
             <button
-              onClick={() => setActiveModal('crypto-withdraw')}
-              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 rounded-lg text-orange-400 text-xs sm:text-sm font-medium transition-all"
-            >
-              Withdraw
-            </button>
+                onClick={() => setActiveModal('crypto-withdraw')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 rounded-lg text-orange-400 text-xs sm:text-sm font-medium transition-all"
+              >
+                Withdraw
+              </button>
+            <button
+                onClick={() => setActiveModal('send-crypto')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 rounded-lg text-purple-400 text-xs sm:text-sm font-medium transition-all flex items-center gap-1"
+              >
+                <Send className="w-3 h-3" />
+                Send
+              </button>
             <button
               onClick={() => setActiveModal('physical-card')}
               className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 rounded-lg text-purple-400 text-xs sm:text-sm font-medium transition-all"
@@ -993,6 +1001,9 @@ export default function Wallet() {
       )}
       {activeModal === 'recurring' && currentUser && (
         <RecurringTransfersManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'send-crypto' && currentUser && (
+        <SendCryptoModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
 
       <style>{`
