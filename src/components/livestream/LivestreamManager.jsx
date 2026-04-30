@@ -105,6 +105,31 @@ export default function LivestreamManager({ currentUser }) {
         creator_email: currentUser.email, rating: 0, requires_subscription: false, betting_available: false
       });
       await base44.entities.LivestreamSchedule.update(schedule.id, { status: 'live', stream_id: stream.id });
+
+      // Notify followers and subscribers the stream is now live
+      const [followers, subscribers] = await Promise.all([
+        base44.entities.Follow.filter({ following_email: currentUser.email }),
+        base44.entities.UserSubscription.filter({ creator_email: currentUser.email, status: "active" })
+      ]);
+
+      const recipientEmails = new Set([
+        ...followers.map(f => f.follower_email),
+        ...subscribers.map(s => s.subscriber_email)
+      ]);
+
+      await Promise.all([...recipientEmails].map(email =>
+        base44.entities.Notification.create({
+          recipient_email: email,
+          type: 'live',
+          title: `🔴 ${currentUser.full_name || 'Someone you follow'} is LIVE!`,
+          message: `"${schedule.title}" — Watch now`,
+          sender_email: currentUser.email,
+          sender_name: currentUser.full_name,
+          action_url: `/LivestreamViewer?id=${stream.id}`,
+          read: false
+        }).catch(() => {})
+      ));
+
       return stream;
     },
     onSuccess: (stream) => {
