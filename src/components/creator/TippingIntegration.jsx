@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Gift, DollarSign, Heart } from "lucide-react";
+import { Gift, Heart, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function TippingIntegration({ creatorEmail, contentId, currentUser, variant = "button" }) {
   const queryClient = useQueryClient();
@@ -14,23 +15,73 @@ export default function TippingIntegration({ creatorEmail, contentId, currentUse
   const [amount, setAmount] = useState(5);
   const [message, setMessage] = useState("");
 
+  // Fetch sender's current wallet balance
+  const { data: senderUser } = useQuery({
+    queryKey: ["wallet-balance", currentUser?.email],
+    queryFn: () => base44.auth.me(),
+    enabled: !!currentUser && showModal,
+  });
+
+  const senderBalance = senderUser?.wallet_balance || 0;
+
   const tipMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.TipTransaction.create({
+      if (!currentUser) throw new Error("Must be logged in to tip");
+      if (senderBalance < data.amount_usd) throw new Error("Insufficient wallet balance");
+
+      // 1. Deduct from sender's wallet
+      await secureBalanceUpdate({
+        user_email: currentUser.email,
+        amount: -data.amount_usd,
+        transaction_type: "tip_sent",
+        reference_id: contentId,
+        description: `Tip to ${creatorEmail}`
+      });
+
+      // 2. Credit creator's wallet
+      await secureBalanceUpdate({
+        user_email: creatorEmail,
+        amount: data.amount_usd,
+        transaction_type: "tip_received",
+        reference_id: contentId,
+        description: `Tip from ${currentUser.full_name || currentUser.email}`
+      });
+
+      // 3. Record the transaction
+      const tip = await base44.entities.TipTransaction.create({
         ...data,
         from_email: currentUser.email,
         from_name: currentUser.full_name || currentUser.email,
         creator_email: creatorEmail,
-        content_id: contentId
+        content_id: contentId,
+        status: "completed"
       });
+
+      // 4. Notify the creator
+      await base44.entities.Notification.create({
+        recipient_email: creatorEmail,
+        type: "tip_received",
+        title: `${currentUser.full_name || "Someone"} sent you a $${data.amount_usd} tip!`,
+        message: data.message || "No message",
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        reference_id: tip.id,
+        reference_type: "tip",
+        read: false,
+      }).catch(() => {});
+
+      return tip;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tips'] });
+      queryClient.invalidateQueries({ queryKey: ['my-tips'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-balance'] });
       setShowModal(false);
       setAmount(5);
       setMessage("");
       toast.success('Tip sent! 🎉');
-    }
+    },
+    onError: (e) => toast.error(e.message || "Failed to send tip")
   });
 
   const quickAmounts = [5, 10, 25, 50];
@@ -103,24 +154,32 @@ export default function TippingIntegration({ creatorEmail, contentId, currentUse
                       className="bg-white/10 border-white/20 text-white"
                     />
 
-                    <div className="p-3 bg-white/5 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
+                    <div className="p-3 bg-white/5 rounded-lg space-y-1">
+                      <div className="flex items-center justify-between">
                         <span className="text-gray-400 text-sm">Tip Amount</span>
                         <span className="text-white font-bold">${amount}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-400 text-sm">Processing Fee</span>
-                        <span className="text-gray-400">$0.00</span>
+                        <span className="text-gray-400 text-sm">Your Wallet Balance</span>
+                        <span className={`font-bold text-sm ${senderBalance >= amount ? "text-green-400" : "text-red-400"}`}>
+                          ${senderBalance.toFixed(2)}
+                        </span>
                       </div>
+                      {senderBalance < amount && (
+                        <div className="flex items-center gap-1 text-red-400 text-xs mt-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Insufficient balance. Add funds in your Wallet.
+                        </div>
+                      )}
                     </div>
 
                     <Button
                       onClick={() => tipMutation.mutate({ amount_usd: amount, message })}
-                      disabled={!amount || amount < 1}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3"
+                      disabled={!amount || amount < 1 || senderBalance < amount || tipMutation.isPending}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-3 disabled:opacity-50"
                     >
                       <Heart className="w-5 h-5 mr-2" />
-                      Send ${amount} Tip
+                      {tipMutation.isPending ? "Sending..." : `Send $${amount} Tip`}
                     </Button>
                   </div>
                 </Card>

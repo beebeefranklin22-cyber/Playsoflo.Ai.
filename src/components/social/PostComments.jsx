@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { X, Send, Heart } from "lucide-react";
@@ -13,7 +13,20 @@ export default function PostComments({ post, currentUser, onClose }) {
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ["comments", post.id],
     queryFn: () => base44.entities.Comment.filter({ post_id: post.id }, "-created_date"),
+    refetchInterval: 5000,
   });
+
+  // Real-time subscription — both author and commenter see updates instantly
+  useEffect(() => {
+    if (!post?.id) return;
+    const unsub = base44.entities.Comment.subscribe((event) => {
+      if (event.data?.post_id === post.id) {
+        queryClient.invalidateQueries({ queryKey: ["comments", post.id] });
+        queryClient.invalidateQueries({ queryKey: ["social-posts"] });
+      }
+    });
+    return () => unsub();
+  }, [post.id, queryClient]);
 
   const addCommentMutation = useMutation({
     mutationFn: async (content) => {

@@ -351,9 +351,11 @@ export default function CreatorHub() {
   const totalFollowers = currentUser?.followers?.length || 0;
   const monthlySubscriptionRevenue = subscribers.reduce((sum, sub) => sum + (sub.monthly_amount_usd || 0), 0);
 
-  // Mock analytics data
-  const recentViews = 12450;
-  const engagementRate = 8.5;
+  // Real analytics from actual content
+  const recentViews = myContent.reduce((sum, c) => sum + (c.views || 0), 0);
+  const engagementRate = subscribers.length > 0 && recentViews > 0
+    ? ((totalTips + subscribers.length) / Math.max(recentViews, 1) * 100).toFixed(1)
+    : 0;
 
   return (
     <PageWrapper showBack={false}>

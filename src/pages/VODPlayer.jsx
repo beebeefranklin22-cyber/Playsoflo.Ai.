@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import {
   ArrowLeft, Eye, Calendar, MessageCircle, Clock,
   Play, Users, User, BookOpen, ListVideo, SkipForward
 } from "lucide-react";
+import TippingIntegration from "../components/creator/TippingIntegration";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import VideoComments from "../components/streaming/VideoComments";
@@ -20,7 +21,6 @@ export default function VODPlayer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
-  const [comment, setComment] = useState("");
   const [activeTab, setActiveTab] = useState("comments"); // "comments" | "chat_replay"
   const [videoTime, setVideoTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -95,13 +95,6 @@ export default function VODPlayer() {
 
   useEffect(() => () => { if (countdownRef.current) clearInterval(countdownRef.current); }, []);
 
-  // Fetch persistent comments
-  const { data: comments = [] } = useQuery({
-    queryKey: ["vod-comments", vodId],
-    queryFn: () => base44.entities.Comment.filter({ post_id: vodId }),
-    enabled: !!vodId
-  });
-
   // Fetch chat replay (archived chat messages from the original livestream)
   const { data: chatReplay = [] } = useQuery({
     queryKey: ["vod-chat-replay", vodId],
@@ -112,21 +105,7 @@ export default function VODPlayer() {
     enabled: !!vodId
   });
 
-  const sendCommentMutation = useMutation({
-    mutationFn: () => base44.entities.Comment.create({
-      post_id: vodId,
-      author_email: currentUser.email,
-      author_name: currentUser.full_name || currentUser.email.split("@")[0],
-      author_avatar: currentUser.profile_picture || "",
-      content: comment.trim()
-    }),
-    onSuccess: () => {
-      setComment("");
-      queryClient.invalidateQueries({ queryKey: ["vod-comments", vodId] });
-    }
-  });
 
-  const sortedComments = [...comments].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
 
   // Chat replay — show messages up to current video time
   const streamStartTime = vod?.stream_started_at ? new Date(vod.stream_started_at).getTime() : null;
@@ -253,6 +232,17 @@ export default function VODPlayer() {
           {/* Info + Description */}
           <div className="p-4 border-b border-white/10">
             <h1 className="text-xl font-bold text-white mb-2">{vod.title}</h1>
+            {/* Tip button — only show if viewer is not the creator */}
+            {currentUser && vod.creator_email && currentUser.email !== vod.creator_email && (
+              <div className="mb-3">
+                <TippingIntegration
+                  creatorEmail={vod.creator_email}
+                  contentId={vodId}
+                  currentUser={currentUser}
+                  variant="button"
+                />
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-3">
               <span className="flex items-center gap-1"><Users className="w-4 h-4" />@{vod.creator_username || vod.creator_email}</span>
               <Badge className="bg-white/10 text-gray-300 capitalize">{vod.category}</Badge>
