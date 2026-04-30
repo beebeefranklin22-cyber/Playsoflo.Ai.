@@ -1,0 +1,202 @@
+{
+  "name": "PropertyBooking",
+  "type": "object",
+  "properties": {
+    "customer_email": {
+      "type": "string",
+      "description": "Email of the guest"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "host_email": {
+      "type": "string",
+      "description": "Email of the property host"
+    },
+    "host_name": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "property_name": {
+      "type": "string"
+    },
+    "property_image": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "check_out_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "guests": {
+      "type": "number",
+      "default": 1
+    },
+    "nightly_rate": {
+      "type": "number"
+    },
+    "total_nights": {
+      "type": "number"
+    },
+    "subtotal": {
+      "type": "number"
+    },
+    "cleaning_fee": {
+      "type": "number",
+      "default": 0
+    },
+    "service_fee": {
+      "type": "number",
+      "default": 0
+    },
+    "platform_fee": {
+      "type": "number"
+    },
+    "total_amount": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_verification",
+        "pending_approval",
+        "approved",
+        "active",
+        "completed",
+        "cancelled",
+        "rejected"
+      ],
+      "default": "pending_verification"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "stripe_session_id": {
+      "type": "string"
+    },
+    "special_requests": {
+      "type": "string"
+    },
+    "id_type": {
+      "type": "string",
+      "enum": [
+        "drivers_license",
+        "passport",
+        "national_id",
+        "state_id"
+      ],
+      "description": "Type of identity document submitted"
+    },
+    "id_front_url": {
+      "type": "string",
+      "description": "Front of identity document"
+    },
+    "id_back_url": {
+      "type": "string",
+      "description": "Back of identity document (if applicable)"
+    },
+    "selfie_url": {
+      "type": "string",
+      "description": "Optional selfie for identity verification"
+    },
+    "doc_verification_status": {
+      "type": "string",
+      "enum": [
+        "not_submitted",
+        "pending_review",
+        "verified",
+        "rejected"
+      ],
+      "default": "not_submitted"
+    },
+    "doc_rejection_reason": {
+      "type": "string"
+    },
+    "doc_verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "doc_verified_by": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "review": {
+      "type": "string"
+    },
+    "house_rules_accepted": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "customer_email",
+    "host_email",
+    "property_id",
+    "check_in_date",
+    "check_out_date",
+    "total_amount"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "customer_email": "{{user.email}}"
+        },
+        {
+          "host_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "customer_email": "{{user.email}}"
+        },
+        {
+          "host_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "customer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
