@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, CheckCircle, AlertCircle, FileText, Shield, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { Upload, CheckCircle, AlertCircle, FileText, Shield, X, Brain } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { verifyIdentityDocument } from "@/functions/verifyIdentityDocument";
 
 export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
   const [licenseExpiry, setLicenseExpiry] = useState("");
@@ -16,6 +17,8 @@ export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
     insurance_card_url: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [verifying, setVerifying] = useState(false);
 
   const handleUpload = async (field, file) => {
     if (!file) return;
@@ -42,6 +45,8 @@ export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
     }
     setSubmitting(true);
     try {
+      // Save docs first
+      const user = await base44.auth.me();
       await base44.entities.CarRental.update(rentalId, {
         drivers_license_url: uploaded.drivers_license_url,
         drivers_license_back_url: uploaded.drivers_license_back_url || null,
@@ -51,12 +56,31 @@ export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
         doc_verification_status: "pending_review",
         status: "pending_approval",
       });
-      toast.success("Documents submitted! The provider will review them shortly.");
+
+      // Run AI verification
+      setVerifying(true);
+      toast.info("🔍 Running AI document verification...");
+      const { data } = await verifyIdentityDocument({
+        booking_id: rentalId,
+        booking_type: "car_rental",
+        document_url: uploaded.drivers_license_url,
+        document_back_url: uploaded.drivers_license_back_url || null,
+        customer_name: user?.full_name || "",
+      });
+      setAiResult(data);
+      setVerifying(false);
+
+      if (data?.is_verified) {
+        toast.success("✅ Documents automatically verified! Booking approved.");
+      } else {
+        toast.warning("🔍 Documents sent for manual review by the provider.");
+      }
       onComplete?.();
     } catch (err) {
       toast.error("Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
+      setVerifying(false);
     }
   };
 
@@ -193,12 +217,40 @@ export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
             <p className="text-gray-500 text-xs">We only store the last 4 digits for verification matching.</p>
           </div>
 
+          {/* AI Verification Status */}
+          <AnimatePresence>
+            {verifying && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                <Brain className="w-5 h-5 text-purple-400 animate-pulse flex-shrink-0" />
+                <div>
+                  <p className="text-purple-300 font-semibold text-sm">AI Verification in Progress</p>
+                  <p className="text-purple-400 text-xs">Analyzing your document for authenticity and expiry...</p>
+                </div>
+              </motion.div>
+            )}
+            {aiResult && !verifying && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-xl border ${aiResult.is_verified ? "bg-green-500/10 border-green-500/30" : "bg-yellow-500/10 border-yellow-500/30"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className={`w-4 h-4 ${aiResult.is_verified ? "text-green-400" : "text-yellow-400"}`} />
+                  <p className={`font-semibold text-sm ${aiResult.is_verified ? "text-green-300" : "text-yellow-300"}`}>
+                    AI Result: {aiResult.is_verified ? "Auto-Verified ✅" : "Sent for Manual Review 🔍"}
+                  </p>
+                </div>
+                <p className={`text-xs ${aiResult.is_verified ? "text-green-400" : "text-yellow-400"}`}>{aiResult.details?.verdict_reason}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !uploaded.drivers_license_url || !licenseExpiry}
+            disabled={submitting || verifying || !uploaded.drivers_license_url || !licenseExpiry}
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-4 text-base"
           >
-            {submitting ? "Submitting..." : "Submit Documents for Review"}
+            {verifying ? (
+              <span className="flex items-center gap-2"><Brain className="w-4 h-4 animate-pulse" /> AI Verifying...</span>
+            ) : submitting ? "Submitting..." : "Submit Documents for Review"}
           </Button>
         </div>
       </motion.div>

@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Upload, CheckCircle, Shield, X, FileText, Camera } from "lucide-react";
-import { motion } from "framer-motion";
+import { Upload, CheckCircle, Shield, X, FileText, Camera, Brain } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { verifyIdentityDocument } from "@/functions/verifyIdentityDocument";
 
 const ID_TYPES = [
   { value: "drivers_license", label: "Driver's License", needsBack: true },
@@ -23,6 +24,8 @@ export default function PropertyDocUpload({ bookingId, onComplete, onClose }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [verifying, setVerifying] = useState(false);
 
   const selectedType = ID_TYPES.find((t) => t.value === idType);
 
@@ -51,6 +54,8 @@ export default function PropertyDocUpload({ bookingId, onComplete, onClose }) {
     }
     setSubmitting(true);
     try {
+      const user = await base44.auth.me();
+      // Save docs first
       await base44.entities.PropertyBooking.update(bookingId, {
         id_type: idType,
         id_front_url: uploaded.id_front_url,
@@ -60,12 +65,31 @@ export default function PropertyDocUpload({ bookingId, onComplete, onClose }) {
         status: "pending_approval",
         house_rules_accepted: true,
       });
-      toast.success("Documents submitted! The host will review and confirm your booking.");
+
+      // Run AI verification
+      setVerifying(true);
+      toast.info("🔍 Running AI identity verification...");
+      const { data } = await verifyIdentityDocument({
+        booking_id: bookingId,
+        booking_type: "property_booking",
+        document_url: uploaded.id_front_url,
+        document_back_url: uploaded.id_back_url || null,
+        customer_name: user?.full_name || "",
+      });
+      setAiResult(data);
+      setVerifying(false);
+
+      if (data?.is_verified) {
+        toast.success("✅ Identity automatically verified! Booking confirmed.");
+      } else {
+        toast.warning("🔍 Identity sent for manual review by the host.");
+      }
       onComplete?.();
     } catch {
       toast.error("Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
+      setVerifying(false);
     }
   };
 
@@ -217,12 +241,40 @@ export default function PropertyDocUpload({ bookingId, onComplete, onClose }) {
             </p>
           </div>
 
+          {/* AI Verification Status */}
+          <AnimatePresence>
+            {verifying && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                <Brain className="w-5 h-5 text-purple-400 animate-pulse flex-shrink-0" />
+                <div>
+                  <p className="text-purple-300 font-semibold text-sm">AI Verification in Progress</p>
+                  <p className="text-purple-400 text-xs">Analyzing your identity document...</p>
+                </div>
+              </motion.div>
+            )}
+            {aiResult && !verifying && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-xl border ${aiResult.is_verified ? "bg-green-500/10 border-green-500/30" : "bg-yellow-500/10 border-yellow-500/30"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className={`w-4 h-4 ${aiResult.is_verified ? "text-green-400" : "text-yellow-400"}`} />
+                  <p className={`font-semibold text-sm ${aiResult.is_verified ? "text-green-300" : "text-yellow-300"}`}>
+                    AI Result: {aiResult.is_verified ? "Auto-Verified ✅" : "Sent for Manual Review 🔍"}
+                  </p>
+                </div>
+                <p className={`text-xs ${aiResult.is_verified ? "text-green-400" : "text-yellow-400"}`}>{aiResult.details?.verdict_reason}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <Button
             onClick={handleSubmit}
-            disabled={submitting || !uploaded.id_front_url || !rulesAccepted}
+            disabled={submitting || verifying || !uploaded.id_front_url || !rulesAccepted}
             className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 py-4 text-base"
           >
-            {submitting ? "Submitting..." : "Submit Identity Documents"}
+            {verifying ? (
+              <span className="flex items-center gap-2"><Brain className="w-4 h-4 animate-pulse" /> AI Verifying...</span>
+            ) : submitting ? "Submitting..." : "Submit Identity Documents"}
           </Button>
         </div>
       </motion.div>
