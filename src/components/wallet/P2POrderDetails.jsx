@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, Shield, MessageCircle, AlertTriangle, Star, CheckCircle, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { processP2PEscrow } from "@/functions/processP2PEscrow";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import P2PChat from "./P2PChat";
@@ -96,25 +97,18 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
 
   const releaseEscrowMutation = useMutation({
     mutationFn: async () => {
-      // Transfer crypto to buyer
-      const buyerWallets = await base44.entities.CryptoWallet.filter({
-        user_email: escrow.buyer_email,
-        currency: escrow.crypto_currency
+      // Use secure backend function — handles crypto transfer, fiat payout, platform fee, and rewards
+      const { data } = await processP2PEscrow({
+        action: 'release_escrow',
+        escrow_id: escrow.id,
+        order_id: order.id
       });
 
-      if (buyerWallets[0]) {
-        await base44.entities.CryptoWallet.update(buyerWallets[0].id, {
-          balance: buyerWallets[0].balance + escrow.crypto_amount
-        });
+      if (!data?.success) {
+        throw new Error(data?.error || 'Escrow release failed');
       }
 
-      // Update escrow
-      await base44.entities.P2PEscrow.update(escrow.id, {
-        status: 'released',
-        released_at: new Date().toISOString()
-      });
-
-      // Update order
+      // Update order status
       await base44.entities.P2POrder.update(order.id, {
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -139,10 +133,14 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
         read: false,
         action_url: '/MyP2POrders'
       });
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['p2p-orders']);
       queryClient.invalidateQueries(['p2p-escrow']);
+      queryClient.invalidateQueries(['crypto-wallets']);
+      queryClient.invalidateQueries(['currentUser']);
       toast.success('✅ Escrow released! Trade completed.');
     }
   });

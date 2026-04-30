@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { X, ArrowUp, Wallet, AlertTriangle, CheckCircle, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import Crypto2FAModal from "./Crypto2FAModal";
+import { processCryptoWithdrawal } from "@/functions/processCryptoWithdrawal";
 
 export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const [selectedCrypto, setSelectedCrypto] = useState("BTC");
@@ -16,6 +17,8 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
   const [pendingWithdrawal, setPendingWithdrawal] = useState(null);
+  const [withdrawalResult, setWithdrawalResult] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: wallets = [] } = useQuery({
     queryKey: ['crypto-wallets', currentUser.email],
@@ -84,70 +87,25 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const handleConfirmWithdraw = async () => {
     setConfirming(true);
     try {
-      // Update wallet balance
-      if (!currentWallet) {
-        throw new Error(`No ${selectedCrypto} wallet found`);
-      }
-      
-      await base44.entities.CryptoWallet.update(currentWallet.id, {
-        balance: availableBalance - totalAmount
+      const { data } = await processCryptoWithdrawal({
+        currency: selectedCrypto,
+        amount: totalAmount,
+        recipient_address: recipientAddress,
+        network: selectedCrypto
       });
 
-      // Update daily usage
-      const priceUSD = totalAmount; // USD equivalent fallback
-      await base44.auth.updateMe({
-        usd_balance: (currentUser.usd_balance || 0) - platformFee,
-        daily_withdrawal_used: (currentUser.daily_withdrawal_used || 0) + priceUSD
-      });
-
-      // Record transaction with pending status if email confirmation required
-      const status = currentUser?.withdrawal_confirmations_required !== false ? "pending_confirmation" : "processing";
-      
-      await base44.entities.CryptoTransaction.create({
-        user_email: currentUser.email,
-        transaction_type: "send",
-        from_currency: selectedCrypto,
-        to_currency: selectedCrypto,
-        from_amount: totalAmount,
-        to_amount: youWillReceive,
-        exchange_rate: 1,
-        fee: networkFee + platformFee,
-        status: status,
-        blockchain_tx_hash: `0x${Math.random().toString(16).substring(2, 66)}`,
-        recipient_address: recipientAddress
-      });
-
-      // Send confirmation email if required
-      if (currentUser?.withdrawal_confirmations_required !== false) {
-        await base44.integrations.Core.SendEmail({
-          to: currentUser.email,
-          subject: "Confirm Your Crypto Withdrawal",
-          body: `Please confirm your withdrawal of ${withdrawAmount} ${selectedCrypto} to ${recipientAddress}. Click here to confirm: [Confirmation Link]`
-        });
-
-        toast.success("📧 Confirmation email sent! Check your inbox to complete withdrawal.");
+      if (data?.success) {
+        setWithdrawalResult(data);
+        queryClient.invalidateQueries({ queryKey: ['crypto-wallets'] });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        toast.success(`✅ Withdrawal queued! ID: ${data.withdrawal_id}`);
+        setShowConfirmation(false);
       } else {
-        toast.success("Withdrawal initiated! Check your external wallet shortly.");
+        toast.error(data?.error || "Withdrawal failed");
       }
-
-      // Notification
-      await base44.entities.Notification.create({
-        recipient_email: currentUser.email,
-        type: "payment_sent",
-        title: currentUser?.withdrawal_confirmations_required !== false 
-          ? "Confirm Crypto Withdrawal" 
-          : "Crypto Withdrawal Initiated",
-        message: currentUser?.withdrawal_confirmations_required !== false
-          ? `Please check your email to confirm ${withdrawAmount} ${selectedCrypto} withdrawal`
-          : `${withdrawAmount} ${selectedCrypto} withdrawal is being processed`,
-        read: false,
-        action_url: "/Wallet"
-      });
-
-      onClose();
     } catch (err) {
       console.error("Withdrawal failed:", err);
-      toast.error("Failed to process withdrawal");
+      toast.error(err?.response?.data?.error || err?.message || "Failed to process withdrawal");
     } finally {
       setConfirming(false);
     }
@@ -160,6 +118,62 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
     }
     setPendingWithdrawal(null);
   };
+
+  // Show success screen after withdrawal queued
+  if (withdrawalResult) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-center">
+              <CheckCircle className="w-16 h-16 text-white mx-auto mb-3" />
+              <h2 className="text-2xl font-bold text-white">Withdrawal Queued!</h2>
+              <p className="text-green-100">Processing to blockchain network</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Withdrawal ID</span>
+                  <span className="text-white font-mono text-xs">{withdrawalResult.withdrawal_id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Amount Sent</span>
+                  <span className="text-white">{withdrawalResult.amount} {selectedCrypto}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">You'll Receive</span>
+                  <span className="text-green-400 font-semibold">{withdrawalResult.net_amount?.toFixed(8)} {selectedCrypto}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Status</span>
+                  <span className="text-yellow-400 font-semibold capitalize">{withdrawalResult.status}</span>
+                </div>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                <p className="text-blue-300 text-sm">
+                  📧 A confirmation email has been sent to <strong>{currentUser.email}</strong> with your withdrawal ID for tracking.
+                </p>
+              </div>
+              <p className="text-gray-400 text-xs text-center">
+                Estimated processing time: 15–60 minutes depending on network congestion.
+              </p>
+              <Button onClick={onClose} className="w-full bg-green-600 hover:bg-green-700 py-4">
+                Done
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   if (showConfirmation) {
     if (show2FA) {
