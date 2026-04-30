@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Users, Video, Share2, UserPlus, Maximize2, Minimize2,
   Heart, MessageCircle, BarChart3, HelpCircle, ShoppingCart, StopCircle,
-  Radio, Gift, Settings, Crown
+  Radio, Gift, Settings, Crown, Send
 } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
 import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
@@ -237,60 +237,57 @@ export default function LivestreamViewer() {
       {/* Main Layout */}
       <div className="pt-[60px] h-screen flex flex-col lg:flex-row">
 
-        {/* === MOBILE LAYOUT === */}
-        <div className="flex flex-col h-full lg:hidden">
-          {/* Video - fixed height, always visible */}
-          <div className="relative bg-black flex-shrink-0" style={{ height: '40vh' }}>
-            {stream.is_live && stream.agora_channel_name ? (
-              <>
-                <AgoraVideoPlayer
-                  channelName={stream.agora_channel_name}
-                  role={isBroadcaster ? "host" : "audience"}
-                  onViewerJoin={() => {}}
-                />
-                <ReactionEffects streamId={streamId} />
-                {/* Reaction + join buttons */}
-                <div className="absolute right-3 bottom-3 flex flex-col gap-2 z-10">
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={sendReaction}
-                    className="w-11 h-11 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                    <Heart className="w-5 h-5 text-white" />
-                  </motion.button>
-                  {!isStreamCreator && currentUser && (
-                    <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
-                  )}
-                </div>
-                {isStreamCreator && (
-                  <div className="absolute bottom-3 left-3 z-10">
-                    <Button
-                      onClick={() => { if (confirm('End this livestream?')) endStreamMutation.mutate(); }}
-                      size="sm"
-                      className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm border border-red-500/50 text-xs"
-                    >
-                      <StopCircle className="w-3.5 h-3.5 mr-1" />
-                      End Stream
-                    </Button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center p-6">
-                  <Video className="w-12 h-12 text-white/30 mx-auto mb-3" />
-                  <p className="text-white font-bold mb-1">Stream Ended</p>
-                  <Button onClick={() => navigate(-1)} size="sm" className="bg-purple-600 hover:bg-purple-700 mt-2">Back</Button>
-                </div>
-              </div>
-            )}
-          </div>
+        {/* === MOBILE LAYOUT — Full screen with overlay chat (Instagram/Twitch style) === */}
+        <div className="relative flex-1 bg-black lg:hidden" style={{ height: 'calc(100vh - 60px)' }}>
+          {stream.is_live && stream.agora_channel_name ? (
+            <>
+              <AgoraVideoPlayer
+                channelName={stream.agora_channel_name}
+                role={isBroadcaster ? "host" : "audience"}
+                onViewerJoin={() => {}}
+              />
+              <ReactionEffects streamId={streamId} />
 
-          {/* Mobile Panel below video — fills remaining space */}
-          <LivestreamMobilePanel
-            streamId={streamId}
-            isStreamCreator={isStreamCreator}
-            currentUser={currentUser}
-            stream={stream}
-            onSendReaction={sendReaction}
-          />
+              {/* Floating chat overlay — bottom-left, like Instagram/Twitch */}
+              <MobileOverlayChat
+                streamId={streamId}
+                isCreator={isStreamCreator}
+                currentUser={currentUser}
+              />
+
+              {/* Right side action buttons */}
+              <div className="absolute right-3 bottom-20 flex flex-col gap-3 z-20">
+                <motion.button whileTap={{ scale: 0.85 }} onClick={sendReaction}
+                  className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Heart className="w-5 h-5 text-white" />
+                </motion.button>
+                {!isStreamCreator && currentUser && (
+                  <JoinRequestButton streamId={streamId} currentUser={currentUser} isCreator={false} />
+                )}
+              </div>
+
+              {isStreamCreator && (
+                <div className="absolute top-3 right-3 z-20">
+                  <Button
+                    onClick={() => { if (confirm('End this livestream?')) endStreamMutation.mutate(); }}
+                    size="sm"
+                    className="bg-red-600/80 hover:bg-red-600 backdrop-blur-sm border border-red-500/50 text-xs"
+                  >
+                    <StopCircle className="w-3.5 h-3.5 mr-1" />
+                    End Stream
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center p-6">
+                <Video className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                <p className="text-white font-bold mb-1">Stream Ended</p>
+                <Button onClick={() => navigate(-1)} size="sm" className="bg-purple-600 hover:bg-purple-700 mt-2">Back</Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* === DESKTOP LAYOUT === */}
@@ -474,85 +471,141 @@ export default function LivestreamViewer() {
   return content;
 }
 
-// Mobile Panel Component — sits BELOW the video, not on top of it
-function LivestreamMobilePanel({ streamId, isStreamCreator, currentUser, stream, onSendReaction }) {
-  const [activeTab, setActiveTab] = useState('chat');
-  const [expanded, setExpanded] = useState(false);
+// Instagram/Kick/Twitch-style floating chat overlay for mobile
+function MobileOverlayChat({ streamId, isCreator, currentUser }) {
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+  const [inputFocused, setInputFocused] = useState(false);
+  const chatEndRef = useRef(null);
+  const MAX_VISIBLE = 30; // keep only last 30 messages visible
 
-  const handleTabClick = (tabId) => {
-    if (activeTab === tabId && expanded) {
-      // Clicking the active tab collapses the panel
-      setExpanded(false);
-    } else {
-      setActiveTab(tabId);
-      setExpanded(true);
-    }
+  useEffect(() => {
+    if (!streamId) return;
+
+    // Initial fetch
+    base44.entities.LivestreamChat.filter({ stream_id: streamId, is_deleted: false })
+      .then(msgs => {
+        const sorted = msgs
+          .filter(m => !m.is_deleted)
+          .sort((a, b) => new Date(a.created_date) - new Date(b.created_date))
+          .slice(-MAX_VISIBLE);
+        setMessages(sorted);
+      })
+      .catch(() => {});
+
+    // Real-time subscription
+    const unsub = base44.entities.LivestreamChat.subscribe((event) => {
+      if (event.data?.stream_id !== streamId) return;
+      if (event.type === 'create' && !event.data?.is_deleted) {
+        setMessages(prev => [...prev, event.data].slice(-MAX_VISIBLE));
+      } else if (event.type === 'update') {
+        setMessages(prev => prev.map(m => m.id === event.id ? event.data : m).filter(m => !m.is_deleted));
+      } else if (event.type === 'delete') {
+        setMessages(prev => prev.filter(m => m.id !== event.id));
+      }
+    });
+
+    return () => unsub();
+  }, [streamId]);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length]);
+
+  const handleSend = () => {
+    if (!message.trim() || !currentUser) return;
+    base44.entities.LivestreamChat.create({
+      stream_id: streamId,
+      user_email: currentUser.email,
+      user_name: currentUser.full_name || currentUser.email.split('@')[0],
+      user_profile_picture: currentUser.profile_picture,
+      message: message.trim(),
+      is_deleted: false,
+      is_pinned: false,
+    }).catch(() => {});
+    setMessage("");
   };
 
+  const COLORS = ['#a78bfa', '#f472b6', '#34d399', '#60a5fa', '#fbbf24', '#fb923c'];
+  const getColor = (name) => COLORS[(name?.charCodeAt(0) || 0) % COLORS.length];
+
   return (
-    <div className="flex flex-col flex-1 bg-gray-950 overflow-hidden">
-      {/* Tab bar — always visible */}
-      <div className="flex items-center bg-black/90 border-t border-white/10 px-1 py-1 gap-0.5 flex-shrink-0">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg transition text-xs font-medium ${
-              activeTab === tab.id && expanded ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            {tab.label}
-          </button>
-        ))}
-        {/* Collapse/Expand chevron */}
-        <button
-          onClick={() => setExpanded(v => !v)}
-          className="px-2 py-2 text-gray-400 hover:text-white transition text-sm"
+    <>
+      {/* Floating message list — bottom-left, fades at top */}
+      <div
+        className="absolute left-0 bottom-14 w-full z-10 pointer-events-none"
+        style={{ maxHeight: '55vh' }}
+      >
+        <div
+          className="px-3 pb-2 overflow-y-auto flex flex-col justify-end"
+          style={{
+            maxHeight: '55vh',
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
+          }}
         >
-          {expanded ? '▼' : '▲'}
-        </button>
+          <AnimatePresence initial={false}>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-start gap-2 mb-1.5"
+              >
+                {/* Avatar */}
+                {msg.user_profile_picture ? (
+                  <img src={msg.user_profile_picture} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0 mt-0.5" />
+                ) : (
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5"
+                    style={{ background: getColor(msg.user_name) }}
+                  >
+                    {msg.user_name?.[0]?.toUpperCase()}
+                  </div>
+                )}
+                {/* Bubble */}
+                <div className="bg-black/50 backdrop-blur-sm rounded-2xl px-3 py-1.5 max-w-[80vw]">
+                  <span className="text-xs font-bold mr-1.5" style={{ color: getColor(msg.user_name) }}>
+                    {msg.user_name}
+                  </span>
+                  <span className="text-white text-sm">{msg.message}</span>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          <div ref={chatEndRef} />
+        </div>
       </div>
 
-      {/* Panel content — grows/shrinks */}
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            key="panel"
-            initial={{ height: 0 }}
-            animate={{ height: 260 }}
-            exit={{ height: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="overflow-hidden flex-shrink-0"
-          >
-            <div className="h-full flex flex-col bg-gray-950/95">
-              {activeTab === 'chat' && (
-                <LivestreamChat streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} isOverlay />
-              )}
-              {activeTab === 'polls' && (
-                <div className="p-3 overflow-y-auto flex-1">
-                  <LivestreamPolls streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
-                </div>
-              )}
-              {activeTab === 'qa' && (
-                <div className="p-3 overflow-y-auto flex-1">
-                  <LivestreamQA streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} />
-                </div>
-              )}
-              {activeTab === 'shop' && (
-                <div className="p-3 overflow-y-auto flex-1">
-                  <ProductShowcase streamId={streamId} isCreator={isStreamCreator} currentUser={currentUser} creatorEmail={stream?.created_by} />
-                </div>
-              )}
-              {activeTab === 'tips' && (
-                <div className="p-3 overflow-y-auto flex-1">
-                  <LiveTipFeed streamId={streamId} isCreator={isStreamCreator} />
-                </div>
-              )}
-            </div>
-          </motion.div>
+      {/* Fixed input bar at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 px-3 py-2 bg-gradient-to-t from-black/80 to-transparent">
+        {currentUser ? (
+          <div className="flex gap-2 items-center">
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Say something..."
+              className="flex-1 bg-white/15 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 text-white placeholder-gray-400 text-sm outline-none focus:border-purple-400 transition"
+            />
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={handleSend}
+              disabled={!message.trim()}
+              className="w-10 h-10 bg-purple-600 disabled:bg-purple-600/40 rounded-full flex items-center justify-center flex-shrink-0 transition"
+            >
+              <Send className="w-4 h-4 text-white" />
+            </motion.button>
+          </div>
+        ) : (
+          <p className="text-center text-gray-400 text-xs">Sign in to chat</p>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </>
   );
 }
