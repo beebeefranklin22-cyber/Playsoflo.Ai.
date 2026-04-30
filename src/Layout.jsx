@@ -26,6 +26,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PullToRefresh from "./components/PullToRefresh";
 import ToastListener from "./components/ui/ToastListener";
 import LiveOrderTracker from "./components/tracking/LiveOrderTracker";
+import AIErrorReporter from "./components/errors/AIErrorReporter";
+import LanguageSwitcher from "./components/i18n/LanguageSwitcher";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -278,6 +280,7 @@ export default function Layout({ children, currentPageName }) {
     <PlatformDetector>
     <TVNavigationHandler>
     <PostHogProvider user={currentUser}>
+      <AIErrorReporter>
       <SafeErrorHandler />
       <ServiceWorkerManager />
       <NativeAppBridge />
@@ -444,6 +447,8 @@ export default function Layout({ children, currentPageName }) {
                 </span>
               )}
             </button>
+
+            <LanguageSwitcher className="flex-shrink-0 hidden sm:block" />
 
             {currentUser?.current_music && (
               <button
@@ -768,6 +773,7 @@ export default function Layout({ children, currentPageName }) {
         )}
       </AnimatePresence>
       </div>
+      </AIErrorReporter>
       </PostHogProvider>
       </TVNavigationHandler>
       </PlatformDetector>
