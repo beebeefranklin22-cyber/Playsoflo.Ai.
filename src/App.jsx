@@ -1,6 +1,7 @@
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
 import AdManager from './pages/AdManager'
+import DropshippingDashboard from './pages/DropshippingDashboard'
 import LiveTracking from './pages/LiveTracking'
 import InventoryManager from './pages/InventoryManager'
 import Reels from './pages/Reels'
@@ -96,6 +97,7 @@ const AuthenticatedApp = () => {
       <Route path="/Help" element={<LayoutWrapper currentPageName="Help"><Help /></LayoutWrapper>} />
       <Route path="/UnifiedBooking" element={<LayoutWrapper currentPageName="UnifiedBooking"><UnifiedBooking /></LayoutWrapper>} />
       <Route path="/AdManager" element={<LayoutWrapper currentPageName="AdManager"><AdManager /></LayoutWrapper>} />
+      <Route path="/DropshippingDashboard" element={<LayoutWrapper currentPageName="DropshippingDashboard"><DropshippingDashboard /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
