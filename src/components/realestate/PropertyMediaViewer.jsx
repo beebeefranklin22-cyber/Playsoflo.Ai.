@@ -25,7 +25,6 @@ export default function PropertyMediaViewer({ property, onClose }) {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Floor Plan */}
           {property.floor_plan_url && (
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -35,31 +34,18 @@ export default function PropertyMediaViewer({ property, onClose }) {
               <img
                 src={property.floor_plan_url}
                 alt="Floor Plan"
-                className="w-full rounded-xl object-contain max-h-[400px] bg-white/5"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'block';
-                }}
+                className="w-full rounded-xl object-contain max-h-96 bg-white/5"
               />
-              <a
-                href={property.floor_plan_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden mt-2 text-blue-400 hover:underline text-sm"
-              >
-                Open Floor Plan →
-              </a>
             </div>
           )}
 
-          {/* Walkthrough Video */}
           {property.walkthrough_video_url && (
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Play className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-white font-semibold">Walkthrough Video</h3>
               </div>
-              {property.walkthrough_video_url.includes("youtube.com") || property.walkthrough_video_url.includes("youtu.be") ? (
+              {property.walkthrough_video_url.includes("youtube") || property.walkthrough_video_url.includes("youtu.be") ? (
                 <iframe
                   src={property.walkthrough_video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
                   className="w-full aspect-video rounded-xl"
@@ -70,7 +56,7 @@ export default function PropertyMediaViewer({ property, onClose }) {
                 <video
                   src={property.walkthrough_video_url}
                   controls
-                  className="w-full rounded-xl max-h-[400px]"
+                  className="w-full rounded-xl max-h-96"
                 />
               )}
             </div>
