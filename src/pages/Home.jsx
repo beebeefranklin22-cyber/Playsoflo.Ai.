@@ -265,14 +265,14 @@ export default function Home() {
   };
 
   const quickAccess = [
-    { icon: TrendingUp, label: "Discover", color: "yellow", path: "Discover" },
-    { icon: Music, label: "Music", color: "pink", path: "Vibe" },
-    { icon: Sparkles, label: "For You", color: "blue", path: null, isOffers: true },
-    { icon: Wallet, label: "Wallet", color: "green", path: "Wallet" },
-    { icon: ShoppingBag, label: "Shop", color: "orange", path: "Marketplace" },
-    { icon: Truck, label: "Delivery", color: "blue", path: "PackageDelivery" },
-    { icon: Wand2, label: "AI", color: "violet", path: "RonronAI" },
-    { icon: Tv, label: "Stream", color: "red", path: "Universe" },
+    { icon: TrendingUp, label: "Discover", bg: "bg-yellow-500/20", iconColor: "text-yellow-400", path: "Discover" },
+    { icon: Music, label: "Music", bg: "bg-pink-500/20", iconColor: "text-pink-400", path: "Vibe" },
+    { icon: Sparkles, label: "For You", bg: "bg-blue-500/20", iconColor: "text-blue-400", path: null, isOffers: true },
+    { icon: Wallet, label: "Wallet", bg: "bg-green-500/20", iconColor: "text-green-400", path: "Wallet" },
+    { icon: ShoppingBag, label: "Shop", bg: "bg-orange-500/20", iconColor: "text-orange-400", path: "Marketplace" },
+    { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
+    { icon: Wand2, label: "AI", bg: "bg-violet-500/20", iconColor: "text-violet-400", path: "RonronAI" },
+    { icon: Tv, label: "Stream", bg: "bg-red-500/20", iconColor: "text-red-400", path: "Universe" },
   ];
 
   // Fetch followers list
@@ -425,57 +425,77 @@ export default function Home() {
       </div>
 
       {/* Quick Access */}
-      <div className="px-4 pt-3 pb-2 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
-        <div className="flex items-center justify-between mb-2">
+      <div className="px-4 pt-4 pb-3 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
+        {/* Row 1: Title + Actions */}
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-white text-sm font-semibold">Quick Access</h3>
-            <button onClick={handleRefresh} disabled={refreshing} className="p-1 hover:bg-white/10 rounded-full transition">
+            <h3 className="text-white text-base font-bold tracking-tight">Quick Access</h3>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh feed"
+              className="p-1.5 hover:bg-white/10 rounded-full transition active:scale-90"
+            >
               <RefreshCw className={`w-3.5 h-3.5 text-gray-400 hover:text-white ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
-          <div className="flex items-center gap-1.5 relative z-30">
+          <div className="flex items-center gap-2 relative z-30">
             <GoLiveButton currentUser={currentUser} />
-            <button
-              onClick={() => setShowFollowRequests(true)}
-              className="relative flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-full text-white text-xs font-medium hover:bg-white/20 transition"
-            >
-              Requests
-              {pendingRequestsCount > 0 && (
-                <span className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">
+            {/* Follow Requests badge — shown only when there are pending requests */}
+            {pendingRequestsCount > 0 && (
+              <button
+                onClick={() => setShowFollowRequests(true)}
+                className="relative flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-white text-xs font-semibold hover:bg-white/20 transition active:scale-95"
+              >
+                Requests
+                <span className="min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold">
                   {pendingRequestsCount}
                 </span>
-              )}
-            </button>
+              </button>
+            )}
+            {pendingRequestsCount === 0 && (
+              <button
+                onClick={() => setShowFollowRequests(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/20 rounded-full text-gray-300 text-xs font-semibold hover:bg-white/20 transition active:scale-95"
+              >
+                Requests
+              </button>
+            )}
             <button
               onClick={() => setShowFriendFinder(true)}
-              className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 rounded-full text-white text-xs font-medium hover:bg-purple-700 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 active:scale-95 rounded-full text-white text-xs font-semibold transition shadow-md shadow-purple-900/40"
             >
-              <UserPlus className="w-3 h-3" />
+              <UserPlus className="w-3.5 h-3.5" />
               Find Friends
             </button>
           </div>
         </div>
+
+        {/* Row 2: Quick-access chips with colored icons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar scrollable-content" style={{ overscrollBehavior: 'contain' }}>
           {quickAccess.map((item) => (
             <button
-              key={item.path + item.label}
+              key={item.label}
               onClick={() => {
                 if (item.isOffers) {
-                  setTimeout(() => {
-                    document.querySelector('[data-offers-widget]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                  }, 100);
+                  document.querySelector('[data-offers-widget]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                   navigate(createPageUrl(item.path));
                 }
               }}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 glass-effect rounded-full hover:bg-white/10 transition border border-white/20"
+              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/10 active:scale-95 transition"
             >
-              <item.icon className={`w-3.5 h-3.5 text-${item.color}-400`} />
-              <span className="text-white text-xs font-medium">{item.label}</span>
+              {/* Colored icon container for clear visual hierarchy */}
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${item.bg}`}>
+                <item.icon className={`w-3.5 h-3.5 ${item.iconColor}`} />
+              </span>
+              <span className="text-white text-xs font-semibold">{item.label}</span>
             </button>
           ))}
         </div>
-        <div className="mt-2" data-offers-widget>
+
+        {/* Row 3: Personalized Offers */}
+        <div className="mt-3" data-offers-widget>
           <PersonalizedOffersWidget user={currentUser} />
         </div>
       </div>
@@ -583,55 +603,66 @@ export default function Home() {
               )}
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons — familiar Instagram-style pattern */}
             <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-4">
-                <button 
+              <div className="flex items-center gap-5">
+                {/* Like */}
+                <button
                   onClick={() => toggleLike(post.id, post)}
-                  className="transform active:scale-125 transition-transform"
+                  title={likedPosts.has(post.id) ? "Unlike" : "Like"}
+                  className="flex items-center gap-1.5 active:scale-125 transition-transform"
                 >
-                  <Heart 
-                    className={`w-7 h-7 ${
-                      likedPosts.has(post.id) 
-                        ? 'fill-red-500 text-red-500' 
-                        : 'text-white'
-                    }`} 
-                  />
+                  <Heart className={`w-6 h-6 transition-colors ${likedPosts.has(post.id) ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                  {(Array.isArray(post.liked_by) ? post.liked_by.length : (post.likes_count || 0)) > 0 && (
+                    <span className={`text-sm font-semibold ${likedPosts.has(post.id) ? 'text-red-400' : 'text-gray-300'}`}>
+                      {Array.isArray(post.liked_by) ? post.liked_by.length : post.likes_count}
+                    </span>
+                  )}
                 </button>
-                <button onClick={() => setCommentingPost(post)} className="flex items-center gap-1">
-                  <MessageCircle className="w-7 h-7 text-white" />
+                {/* Comment */}
+                <button
+                  onClick={() => setCommentingPost(post)}
+                  title="Comment"
+                  className="flex items-center gap-1.5 active:scale-110 transition-transform"
+                >
+                  <MessageCircle className="w-6 h-6 text-white" />
+                  {post.comments_count > 0 && (
+                    <span className="text-sm font-semibold text-gray-300">{post.comments_count}</span>
+                  )}
                 </button>
-                <button onClick={() => setSharingPost(post)}>
-                  <Share2 className="w-7 h-7 text-white" />
+                {/* Share */}
+                <button
+                  onClick={() => setSharingPost(post)}
+                  title="Share"
+                  className="active:scale-110 transition-transform"
+                >
+                  <Share2 className="w-6 h-6 text-white" />
                 </button>
               </div>
-              <button>
-                <Bookmark className="w-7 h-7 text-white" />
+              {/* Bookmark */}
+              <button title="Save post" className="active:scale-110 transition-transform">
+                <Bookmark className="w-6 h-6 text-white" />
               </button>
             </div>
 
-            {/* Likes Count */}
+            {/* Caption — inline count removed, now lives inside action buttons */}
             <div className="px-4 pb-2">
-              <p className="text-white font-semibold">
-                {Array.isArray(post.liked_by) ? post.liked_by.length : (post.likes_count || 0)} likes
-              </p>
-            </div>
-
-            {/* Caption */}
-            <div className="px-4 pb-2">
-              <p className="text-white">
-                <span className="font-semibold mr-2">{post.creator_name || post.creator_username || post.author_name || "User"}</span>
+              <p className="text-white text-sm leading-relaxed">
+                <span className="font-bold mr-1.5">{post.creator_name || post.creator_username || post.author_name || "User"}</span>
                 {post.caption}
               </p>
             </div>
 
-            {/* Comments */}
-            <button onClick={() => setCommentingPost(post)} className="px-4 pb-1 text-gray-400 text-sm hover:text-gray-300 transition text-left">
-              {post.comments_count > 0 ? `View all ${post.comments_count} comments` : "Add a comment..."}
+            {/* Comments CTA */}
+            <button
+              onClick={() => setCommentingPost(post)}
+              className="px-4 pb-1 text-gray-500 text-sm hover:text-gray-300 transition text-left"
+            >
+              {post.comments_count > 0 ? `View all ${post.comments_count} comments` : "Add a comment…"}
             </button>
 
-            {/* Time */}
-            <p className="px-4 pb-3 text-gray-500 text-xs">
+            {/* Timestamp — smallest, least prominent */}
+            <p className="px-4 pb-4 text-gray-600 text-xs uppercase tracking-wide">
               {formatLocalTime(post.created_date)}
             </p>
           </motion.div>
@@ -639,28 +670,33 @@ export default function Home() {
         ))}
 
         {posts.length === 0 && !isLoading && (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="text-center py-24 px-6">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Activity className="w-10 h-10 text-pink-400" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Welcome to PlaySoFlo</h3>
-            <p className="text-gray-400 mb-6">Share your lifestyle experiences with the community</p>
-            <button 
+            <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">Share your lifestyle experiences and connect with the community.</p>
+            {/* Primary action — large, high contrast */}
+            <button
               onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold hover:scale-105 transition-transform"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl text-white font-bold shadow-lg shadow-purple-900/40 hover:scale-105 active:scale-95 transition-transform"
             >
+              <Plus className="w-5 h-5" />
               Create Your First Post
             </button>
           </div>
         )}
       </div>
 
-      {/* Floating Create Button */}
-      <button 
+      {/* Floating Create Button — standard FAB pattern with tooltip label */}
+      <button
         onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
-        className="fixed bottom-24 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform glow-effect z-40"
+        title="Create a post"
+        aria-label="Create a post"
+        className="fixed bottom-24 right-6 flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-2xl shadow-purple-900/50 hover:scale-105 active:scale-95 transition-transform glow-effect z-40"
       >
-        <Plus className="w-8 h-8 text-white" />
+        <Plus className="w-5 h-5 text-white" />
+        <span className="text-white text-sm font-bold">Post</span>
       </button>
 
       {/* Unified Create Content Modal */}
