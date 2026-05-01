@@ -5,10 +5,10 @@ import {
   Lock, Upload, Loader2, Tag, Plus, X,
   Shield, Bell, Globe, Award,
   Activity, Sparkles, Briefcase, Wallet,
-  DollarSign, ChevronRight, Palette, AlertTriangle,
+  DollarSign, ChevronRight, Palette, AlertTriangle, RefreshCw,
   Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,10 +29,34 @@ import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
 
+// Skeleton shimmer for fast perceived loading
+function ProfileSkeleton() {
+  return (
+    <div className="min-h-screen pb-20 animate-pulse">
+      <div className="h-64 bg-white/10" />
+      <div className="px-6 -mt-20 relative z-10">
+        <div className="flex items-end gap-6 mb-6">
+          <div className="w-32 h-32 rounded-full bg-white/10 border-4 border-gray-900 flex-shrink-0" />
+          <div className="flex-1 space-y-3 pb-4">
+            <div className="h-7 bg-white/10 rounded-xl w-48" />
+            <div className="h-4 bg-white/10 rounded-xl w-32" />
+            <div className="h-4 bg-white/10 rounded-xl w-64" />
+          </div>
+        </div>
+        <div className="space-y-4 mt-8">
+          <div className="h-28 bg-white/10 rounded-2xl" />
+          <div className="h-40 bg-white/10 rounded-2xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPrivacySettings, setShowPrivacySettings] = useState(false);
@@ -82,6 +106,7 @@ export default function Profile() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        setLoadError(null);
         const user = await base44.auth.me();
         setCurrentUser(user);
         setEditedUser({
@@ -121,6 +146,7 @@ export default function Profile() {
         });
       } catch (error) {
         console.log("Error fetching user:", error);
+        setLoadError("We couldn't load your profile. Please check your connection and try again.");
       }
     };
     fetchUser();
@@ -138,7 +164,14 @@ export default function Profile() {
       toast.success('Profile saved!');
     },
     onError: (err) => {
-      toast.error('Failed to save: ' + (err.message || 'Unknown error'));
+      const msg = err?.message || '';
+      if (msg.includes('network') || msg.includes('fetch')) {
+        toast.error('No connection. Please check your internet and try again.');
+      } else if (msg.includes('unauthorized') || msg.includes('401')) {
+        toast.error('Session expired. Please sign in again.');
+      } else {
+        toast.error('Could not save your profile. Please try again in a moment.');
+      }
     }
   });
 
@@ -220,8 +253,37 @@ export default function Profile() {
     toast.info('Spotify integration coming soon!');
   };
 
+  // Show skeleton while loading
+  if (!currentUser && !loadError) return <ProfileSkeleton />;
+
+  // Show friendly error state
+  if (loadError) return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center gap-6">
+      <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
+        <AlertTriangle className="w-10 h-10 text-red-400" />
+      </div>
+      <div>
+        <h2 className="text-xl font-bold text-white mb-2">Profile Unavailable</h2>
+        <p className="text-gray-400 text-sm max-w-xs">{loadError}</p>
+      </div>
+      <Button
+        onClick={() => { setLoadError(null); setCurrentUser(null); window.location.reload(); }}
+        className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+      >
+        <RefreshCw className="w-4 h-4" />
+        Try Again
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen pb-20" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="min-h-screen pb-20"
+      style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
+    >
       {/* Cover Photo */}
       <div className="relative h-64">
         {currentUser?.cover_photo ? (
@@ -518,8 +580,9 @@ export default function Profile() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={handleSave} className="w-full bg-purple-600 hover:bg-purple-700">
-                    Save Changes
+                  <Button onClick={handleSave} disabled={updateUserMutation.isPending} className="w-full bg-purple-600 hover:bg-purple-700">
+                    {updateUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                    {updateUserMutation.isPending ? "Saving…" : "Save Changes"}
                   </Button>
                 </CardContent>
               </Card>
@@ -1018,17 +1081,22 @@ export default function Profile() {
       </div>
 
       {/* Privacy Settings Modal */}
+      <AnimatePresence>
         {showPrivacySettings && (
           <motion.div
+            key="privacy-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowPrivacySettings(false)}
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md bg-gray-900 rounded-3xl p-6"
             >
@@ -1127,6 +1195,7 @@ export default function Profile() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
 
       {/* Profile Customization Modal */}
       <ProfileCustomization
@@ -1147,17 +1216,22 @@ export default function Profile() {
       />
 
       {/* Interests Modal */}
+      <AnimatePresence>
         {showInterests && (
           <motion.div
+            key="interests-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
             onClick={() => setShowInterests(false)}
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md bg-gray-900 rounded-3xl p-6"
             >
@@ -1166,7 +1240,7 @@ export default function Profile() {
                   <Tag className="w-6 h-6" />
                   Manage Interests
                 </h3>
-                <button onClick={() => setShowInterests(false)}>
+                <button onClick={() => setShowInterests(false)} className="p-1 hover:bg-white/10 rounded-full transition">
                   <X className="w-6 h-6 text-gray-400" />
                 </button>
               </div>
@@ -1179,6 +1253,7 @@ export default function Profile() {
                     onKeyPress={(e) => e.key === 'Enter' && handleAddInterest()}
                     placeholder="Add an interest..."
                     className="bg-white/10 border-white/20 text-white"
+                    autoFocus
                   />
                   <Button onClick={handleAddInterest} className="bg-purple-600 hover:bg-purple-700">
                     <Plus className="w-5 h-5" />
@@ -1189,7 +1264,7 @@ export default function Profile() {
                   {editedUser.interests.map((interest, idx) => (
                     <Badge key={idx} className="bg-purple-500/20 text-purple-300 flex items-center gap-1">
                       {interest}
-                      <button onClick={() => handleRemoveInterest(interest)}>
+                      <button onClick={() => handleRemoveInterest(interest)} className="hover:text-white transition ml-1">
                         <X className="w-3 h-3" />
                       </button>
                     </Badge>
@@ -1201,14 +1276,17 @@ export default function Profile() {
                     await updateUserMutation.mutateAsync({ interests: editedUser.interests });
                     setShowInterests(false);
                   }}
+                  disabled={updateUserMutation.isPending}
                   className="w-full bg-purple-600 hover:bg-purple-700"
                 >
+                  {updateUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Save Interests
                 </Button>
               </div>
             </motion.div>
           </motion.div>
         )}
-    </div>
+      </AnimatePresence>
+    </motion.div>
   );
 }
