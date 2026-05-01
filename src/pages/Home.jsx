@@ -9,7 +9,8 @@ import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star
+  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star,
+  Flag, EyeOff, ChevronRight, Mic2, Building
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -57,6 +58,8 @@ export default function Home() {
   const [editingPost, setEditingPost] = useState(null);
   const [commentingPost, setCommentingPost] = useState(null);
   const [sharingPost, setSharingPost] = useState(null);
+  const [postMenuOpen, setPostMenuOpen] = useState(null); // postId of open context menu
+  const [hiddenPosts, setHiddenPosts] = useState(new Set());
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -273,6 +276,9 @@ export default function Home() {
     { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
     { icon: Wand2, label: "AI", bg: "bg-violet-500/20", iconColor: "text-violet-400", path: "RonronAI" },
     { icon: Tv, label: "Stream", bg: "bg-red-500/20", iconColor: "text-red-400", path: "Universe" },
+    // Progressive disclosure: show role-specific shortcuts only for relevant users
+    ...(currentUser?.is_creator || currentUser?.is_musician ? [{ icon: Mic2, label: "Studio", bg: "bg-fuchsia-500/20", iconColor: "text-fuchsia-400", path: "MusicStudio" }] : []),
+    ...(currentUser?.is_provider || currentUser?.is_restaurant_owner ? [{ icon: Building, label: "My Hub", bg: "bg-teal-500/20", iconColor: "text-teal-400", path: "ProviderHub" }] : []),
   ];
 
   // Fetch followers list
@@ -316,6 +322,28 @@ export default function Home() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen pb-32" style={{ overscrollBehavior: 'contain' }}>
+
+      {/* Personalized Greeting */}
+      {currentUser && (
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+          <div>
+            <p className="text-gray-400 text-xs">
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"} 👋
+            </p>
+            <h2 className="text-white font-bold text-lg leading-tight">
+              {currentUser.full_name?.split(" ")[0] || "Welcome back"}
+            </h2>
+          </div>
+          <button
+            onClick={() => navigate(createPageUrl("Notifications"))}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-gray-300 text-xs hover:bg-white/20 transition"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+            What's new
+          </button>
+        </div>
+      )}
+
       {/* Stories Bar */}
       <div className="sticky top-16 z-10 glass-effect border-b border-white/10 px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollable-content" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory', overscrollBehavior: 'contain' }}>
@@ -505,7 +533,7 @@ export default function Home() {
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
-        {posts.map((post, index) => (
+        {posts.filter(p => !hiddenPosts.has(p.id)).map((post, index) => (
           <React.Fragment key={post.id}>
             {index === 2 && <AdDisplay currentUser={currentUser} position="feed" />}
             <motion.div
@@ -540,14 +568,49 @@ export default function Home() {
               {post.created_by === currentUser?.email ? (
                 <button 
                   onClick={() => setEditingPost(post)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-400 hover:text-white p-1"
                 >
                   <MoreHorizontal className="w-6 h-6" />
                 </button>
               ) : (
-                <button className="text-gray-400 hover:text-white">
-                  <MoreHorizontal className="w-6 h-6" />
-                </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setPostMenuOpen(postMenuOpen === post.id ? null : post.id)}
+                    className="text-gray-400 hover:text-white p-1"
+                  >
+                    <MoreHorizontal className="w-6 h-6" />
+                  </button>
+                  <AnimatePresence>
+                    {postMenuOpen === post.id && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.92, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.92, y: -4 }}
+                        transition={{ duration: 0.12 }}
+                        className="absolute right-0 top-8 z-50 w-44 bg-gray-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                      >
+                        <button
+                          onClick={() => { setSharingPost(post); setPostMenuOpen(null); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition"
+                        >
+                          <Share2 className="w-4 h-4 text-blue-400" /> Share
+                        </button>
+                        <button
+                          onClick={() => { setHiddenPosts(p => new Set([...p, post.id])); setPostMenuOpen(null); toast.success("Post hidden"); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition"
+                        >
+                          <EyeOff className="w-4 h-4 text-gray-400" /> Hide post
+                        </button>
+                        <button
+                          onClick={() => { toast.success("Post reported — we'll review it."); setPostMenuOpen(null); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition"
+                        >
+                          <Flag className="w-4 h-4" /> Report
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
             </div>
 
