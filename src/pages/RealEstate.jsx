@@ -19,6 +19,8 @@ import ListPropertyModal from "../components/provider/ListPropertyModal";
 import ContactSellerModal from "../components/property/ContactSellerModal";
 import PropertyReviewsList from "../components/property/PropertyReviewsList";
 import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
+import LeaseApplicationModal from "../components/realestate/LeaseApplicationModal";
+import PropertyMediaViewer from "../components/realestate/PropertyMediaViewer";
 import MortgageCalculator from "../components/realestate/MortgageCalculator";
 import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFilters";
 import PropertyMapView from "../components/realestate/PropertyMapView";
@@ -64,6 +66,10 @@ export default function RealEstate() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorProperty, setCalculatorProperty] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showLeaseApp, setShowLeaseApp] = useState(false);
+  const [leaseAppProperty, setLeaseAppProperty] = useState(null);
+  const [showMediaViewer, setShowMediaViewer] = useState(false);
+  const [mediaViewerProperty, setMediaViewerProperty] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
   const [advancedFilters, setAdvancedFilters] = useState({
     priceMin: "",
@@ -535,9 +541,10 @@ export default function RealEstate() {
                           setBookingProperty(property);
                           setShowBookingModal(true);
                         } else if (property.listing_type === "for_rent") {
-                          navigate(createPageUrl("Messages") + `?contact=${property.created_by}&subject=Lease Application for ${property.title}`);
+                          setLeaseAppProperty(property);
+                          setShowLeaseApp(true);
                         } else {
-                          navigate(createPageUrl("Messages") + `?contact=${property.created_by}&subject=Interested in ${property.title}`);
+                          setContactProperty(property);
                         }
                       }}
                     >
@@ -749,6 +756,20 @@ export default function RealEstate() {
                       {selectedProperty.virtual_tour_url ? 'Virtual Tour' : 'View Gallery'}
                     </Button>
                   )}
+                  {(selectedProperty.floor_plan_url || selectedProperty.walkthrough_video_url) && (
+                    <Button
+                      onClick={() => {
+                        setMediaViewerProperty(selectedProperty);
+                        setShowMediaViewer(true);
+                        setSelectedProperty(null);
+                      }}
+                      variant="outline"
+                      className="border-blue-500 text-blue-400"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      {selectedProperty.walkthrough_video_url ? "Walkthrough / Floor Plan" : "Floor Plan"}
+                    </Button>
+                  )}
                   {selectedProperty.listing_type === "for_sale" && (
                     <Button
                       onClick={() => {
@@ -791,10 +812,11 @@ export default function RealEstate() {
                         setShowBookingModal(true);
                         setSelectedProperty(null);
                       } else if (selectedProperty.listing_type === "for_rent") {
-                        navigate(createPageUrl("Messages") + `?contact=${selectedProperty.created_by}&subject=Lease Application for ${selectedProperty.title}`);
+                        setLeaseAppProperty(selectedProperty);
+                        setShowLeaseApp(true);
                         setSelectedProperty(null);
                       } else {
-                        navigate(createPageUrl("Messages") + `?contact=${selectedProperty.created_by}&subject=Interested in ${selectedProperty.title}`);
+                        setContactProperty(selectedProperty);
                         setSelectedProperty(null);
                       }
                     }}
@@ -870,6 +892,27 @@ export default function RealEstate() {
             filters={advancedFilters}
             onFiltersChange={setAdvancedFilters}
             onClose={() => setShowAdvancedFilters(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Lease Application Modal */}
+      <AnimatePresence>
+        {showLeaseApp && leaseAppProperty && (
+          <LeaseApplicationModal
+            property={leaseAppProperty}
+            currentUser={currentUser}
+            onClose={() => { setShowLeaseApp(false); setLeaseAppProperty(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Floor Plan / Walkthrough Viewer */}
+      <AnimatePresence>
+        {showMediaViewer && mediaViewerProperty && (
+          <PropertyMediaViewer
+            property={mediaViewerProperty}
+            onClose={() => { setShowMediaViewer(false); setMediaViewerProperty(null); }}
           />
         )}
       </AnimatePresence>

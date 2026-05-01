@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin, BookOpen } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin, BookOpen, FileText } from "lucide-react";
 import CitySelector from "./components/location/CitySelector";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
@@ -244,6 +244,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },
     { icon: Truck, label: "Live Tracking", path: "LiveTracking" },
+    { icon: FileText, label: "Lease Portal", path: "LeasePortal" },
     ];
 
   // Add support dashboard for admins

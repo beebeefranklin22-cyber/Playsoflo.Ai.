@@ -30,7 +30,11 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
     amenities: [],
     host_name: currentUser?.full_name || "",
     instant_book: false,
-    verified_host: false
+    verified_host: false,
+    floor_plan_url: "",
+    walkthrough_video_url: "",
+    security_deposit_months: 1,
+    move_in_fee: 0
   });
 
   const [newAmenity, setNewAmenity] = useState("");
@@ -129,10 +133,12 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       if (type === 'main') {
         setProperty(prev => ({ ...prev, main_image: file_url }));
+      } else if (type === 'floor_plan') {
+        setProperty(prev => ({ ...prev, floor_plan_url: file_url }));
       } else {
         setProperty(prev => ({ ...prev, images: [...prev.images, file_url] }));
       }
-      toast.success('Image uploaded!');
+      toast.success('File uploaded!');
     } catch (error) {
       toast.error('Upload failed');
     } finally {
@@ -467,6 +473,61 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
                 ))}
               </div>
             </div>
+
+            {/* Floor Plan Upload */}
+            <div>
+              <label className="text-white font-semibold mb-2 block">Floor Plan <span className="text-gray-400 font-normal">(image or PDF, optional)</span></label>
+              {property.floor_plan_url ? (
+                <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-blue-400" />
+                    <span className="text-blue-300 text-sm">Floor plan uploaded</span>
+                  </div>
+                  <button onClick={() => setProperty(p => ({ ...p, floor_plan_url: "" }))} className="text-red-400 text-xs hover:underline">Remove</button>
+                </div>
+              ) : (
+                <>
+                  <input id="floor-plan-upload" type="file" accept="image/*,.pdf"
+                    onChange={e => handleImageUpload(e.target.files?.[0], 'floor_plan')} className="hidden" />
+                  <Button type="button" onClick={() => document.getElementById('floor-plan-upload').click()}
+                    disabled={uploading} variant="outline" className="w-full border-dashed border-white/20">
+                    <Upload className="w-4 h-4 mr-2" /> Upload Floor Plan
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Walkthrough Video */}
+            <div>
+              <label className="text-white font-semibold mb-2 block">Walkthrough Video URL <span className="text-gray-400 font-normal">(YouTube or direct link, optional)</span></label>
+              <Input
+                value={property.walkthrough_video_url}
+                onChange={e => setProperty(p => ({ ...p, walkthrough_video_url: e.target.value }))}
+                placeholder="https://youtube.com/watch?v=... or direct video URL"
+                className="bg-white/10 border-white/20 text-white"
+              />
+            </div>
+
+            {/* Long-term rental extras */}
+            {property.listing_type === "for_rent" && (
+              <div className="bg-white/5 rounded-xl p-4 space-y-3">
+                <h3 className="text-white font-semibold text-sm">Rental Terms</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-1 block">Security Deposit (months)</label>
+                    <Input type="number" min="0" max="6" value={property.security_deposit_months}
+                      onChange={e => setProperty(p => ({...p, security_deposit_months: Number(e.target.value)}))}
+                      className="bg-white/10 border-white/20 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-1 block">Move-in Fee ($)</label>
+                    <Input type="number" min="0" value={property.move_in_fee}
+                      onChange={e => setProperty(p => ({...p, move_in_fee: Number(e.target.value)}))}
+                      className="bg-white/10 border-white/20 text-white" />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Checkboxes */}
             <div className="flex items-center gap-6">
