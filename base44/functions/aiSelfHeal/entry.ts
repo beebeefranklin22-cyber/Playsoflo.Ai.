@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
 
     // ── 1. STUCK ORDERS ──────────────────────────────────────────────
     try {
-      const thirtyMinAgo = new Date(now - 30 * 60 * 1000).toISOString();
+      const thirtyMinAgo = new Date(now - 60 * 60 * 1000).toISOString();
       const allOrders = await base44.asServiceRole.entities.Order.filter({ status: 'pending' });
       const stuckOrders = allOrders.filter(o => o.created_date < thirtyMinAgo);
 
