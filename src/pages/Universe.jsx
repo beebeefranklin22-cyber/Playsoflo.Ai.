@@ -164,8 +164,15 @@ export default function Universe() {
   const [showIntro, setShowIntro] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
-  
-  const cards = updatedPillars;
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const cards = searchQuery.trim()
+    ? updatedPillars.filter(p =>
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.features.some(f => f.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : updatedPillars;
 
   if (showIntro) {
     return (
@@ -312,6 +319,8 @@ export default function Universe() {
           <input
             type="text"
             placeholder="Search pillars..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentIndex(0); }}
             className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-white/10 backdrop-blur-md rounded-full text-white text-sm sm:text-base placeholder-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
         </div>
