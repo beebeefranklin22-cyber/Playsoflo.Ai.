@@ -1,10 +1,10 @@
 import React, { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building } from "lucide-react";
+import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building, Video, FileImage, Link } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -126,15 +126,20 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
     }
   });
 
+  const [uploadingType, setUploadingType] = useState(null);
+
   const handleImageUpload = async (file, type = 'main') => {
     if (!file) return;
     setUploading(true);
+    setUploadingType(type);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       if (type === 'main') {
         setProperty(prev => ({ ...prev, main_image: file_url }));
       } else if (type === 'floor_plan') {
         setProperty(prev => ({ ...prev, floor_plan_url: file_url }));
+      } else if (type === 'walkthrough_video') {
+        setProperty(prev => ({ ...prev, walkthrough_video_url: file_url }));
       } else {
         setProperty(prev => ({ ...prev, images: [...prev.images, file_url] }));
       }
@@ -143,6 +148,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
       toast.error('Upload failed');
     } finally {
       setUploading(false);
+      setUploadingType(null);
     }
   };
 
@@ -476,36 +482,90 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
 
             {/* Floor Plan Upload */}
             <div>
-              <label className="text-white font-semibold mb-2 block">Floor Plan <span className="text-gray-400 font-normal">(image or PDF, optional)</span></label>
+              <label className="text-white font-semibold mb-2 block flex items-center gap-2">
+                <FileImage className="w-4 h-4 text-blue-400" />
+                Floor Plan <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
               {property.floor_plan_url ? (
-                <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-blue-400" />
-                    <span className="text-blue-300 text-sm">Floor plan uploaded</span>
-                  </div>
+                <div className="space-y-2">
+                  {property.floor_plan_url.match(/\.(jpg|jpeg|png|webp|gif)(\?|$)/i) ? (
+                    <div className="relative rounded-xl overflow-hidden">
+                      <img src={property.floor_plan_url} className="w-full max-h-48 object-contain bg-black/30 rounded-xl" alt="Floor plan" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
+                      <CheckCircle className="w-5 h-5 text-blue-400" />
+                      <a href={property.floor_plan_url} target="_blank" rel="noreferrer" className="text-blue-300 text-sm hover:underline truncate flex-1">View floor plan file</a>
+                    </div>
+                  )}
                   <button onClick={() => setProperty(p => ({ ...p, floor_plan_url: "" }))} className="text-red-400 text-xs hover:underline">Remove</button>
                 </div>
               ) : (
-                <>
+                <div className="space-y-2">
                   <input id="floor-plan-upload" type="file" accept="image/*,.pdf"
                     onChange={e => handleImageUpload(e.target.files?.[0], 'floor_plan')} className="hidden" />
                   <Button type="button" onClick={() => document.getElementById('floor-plan-upload').click()}
                     disabled={uploading} variant="outline" className="w-full border-dashed border-white/20">
-                    <Upload className="w-4 h-4 mr-2" /> Upload Floor Plan
+                    {uploadingType === 'floor_plan' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload Floor Plan (image or PDF)
                   </Button>
-                </>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-white/10" />
+                    <span className="text-gray-500 text-xs">or paste URL</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+                  <Input
+                    value={property.floor_plan_url}
+                    onChange={e => setProperty(p => ({ ...p, floor_plan_url: e.target.value }))}
+                    placeholder="https://... (image or PDF URL)"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
               )}
             </div>
 
             {/* Walkthrough Video */}
             <div>
-              <label className="text-white font-semibold mb-2 block">Walkthrough Video URL <span className="text-gray-400 font-normal">(YouTube or direct link, optional)</span></label>
-              <Input
-                value={property.walkthrough_video_url}
-                onChange={e => setProperty(p => ({ ...p, walkthrough_video_url: e.target.value }))}
-                placeholder="https://youtube.com/watch?v=... or direct video URL"
-                className="bg-white/10 border-white/20 text-white"
-              />
+              <label className="text-white font-semibold mb-2 block flex items-center gap-2">
+                <Video className="w-4 h-4 text-purple-400" />
+                Walkthrough Video <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              {property.walkthrough_video_url ? (
+                <div className="space-y-2">
+                  {property.walkthrough_video_url.match(/\.(mp4|webm|mov)(\?|$)/i) ? (
+                    <video src={property.walkthrough_video_url} controls className="w-full rounded-xl max-h-48 bg-black" />
+                  ) : (
+                    <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
+                      <CheckCircle className="w-5 h-5 text-purple-400" />
+                      <a href={property.walkthrough_video_url} target="_blank" rel="noreferrer" className="text-purple-300 text-sm hover:underline truncate flex-1">
+                        {property.walkthrough_video_url}
+                      </a>
+                    </div>
+                  )}
+                  <button onClick={() => setProperty(p => ({ ...p, walkthrough_video_url: "" }))} className="text-red-400 text-xs hover:underline">Remove</button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input id="walkthrough-video-upload" type="file" accept="video/*"
+                    onChange={e => handleImageUpload(e.target.files?.[0], 'walkthrough_video')} className="hidden" />
+                  <Button type="button" onClick={() => document.getElementById('walkthrough-video-upload').click()}
+                    disabled={uploading} variant="outline" className="w-full border-dashed border-white/20">
+                    {uploadingType === 'walkthrough_video' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Upload Walkthrough Video (MP4, MOV, etc.)
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-white/10" />
+                    <span className="text-gray-500 text-xs">or paste URL</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+                  <Input
+                    value={property.walkthrough_video_url}
+                    onChange={e => setProperty(p => ({ ...p, walkthrough_video_url: e.target.value }))}
+                    placeholder="https://youtube.com/watch?v=... or direct video URL"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Long-term rental extras */}
