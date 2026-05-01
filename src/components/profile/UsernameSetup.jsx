@@ -18,7 +18,6 @@ export default function UsernameSetup({ currentUser, onComplete }) {
       return;
     }
 
-    // Only allow alphanumeric and underscores
     if (!/^[a-zA-Z0-9_]+$/.test(value)) {
       setAvailable(false);
       return;
@@ -26,10 +25,14 @@ export default function UsernameSetup({ currentUser, onComplete }) {
 
     setChecking(true);
     try {
-      // Optimistically assume available — server will reject on save if taken
-      setAvailable(true);
+      const users = await base44.entities.User.filter({});
+      const taken = users.some(
+        u => u.username?.toLowerCase() === value.toLowerCase() && u.email !== currentUser?.email
+      );
+      setAvailable(!taken);
     } catch (error) {
       console.error('Failed to check username:', error);
+      setAvailable(null);
     } finally {
       setChecking(false);
     }

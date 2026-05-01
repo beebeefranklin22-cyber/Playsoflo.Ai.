@@ -20,16 +20,21 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const queryClient = useQueryClient();
 
-  // Search for users
+  // Search for users by username or phone number
   const { data: searchResults = [] } = useQuery({
     queryKey: ['user-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
       const users = await base44.entities.User.filter({});
-      return users.filter(u => 
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-      ).slice(0, 5);
+      return users.filter(u => {
+        if (u.email === currentUser.email) return false; // exclude self
+        const q = searchQuery.toLowerCase().replace(/^@/, '');
+        return (
+          u.username?.toLowerCase().includes(q) ||
+          u.phone?.includes(searchQuery) ||
+          u.full_name?.toLowerCase().includes(q)
+        );
+      }).slice(0, 5);
     },
     enabled: searchQuery.length >= 2
   });
@@ -188,9 +193,9 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
-                        setRecipient(e.target.value);
+                        setRecipient("");
                       }}
-                      placeholder="Search by name or email..."
+                      placeholder="@username or phone number..."
                       className="bg-white/10 border-white/20 text-white pl-10"
                     />
                   </div>
@@ -202,7 +207,7 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                           key={user.id}
                           onClick={() => {
                             setRecipient(user.email);
-                            setSearchQuery(user.full_name || user.email);
+                            setSearchQuery(user.username ? `@${user.username}` : user.full_name || user.email);
                           }}
                           className="w-full px-4 py-3 hover:bg-white/10 transition text-left flex items-center gap-3"
                         >
@@ -211,7 +216,10 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                           </div>
                           <div>
                             <p className="text-white font-medium">{user.full_name || 'User'}</p>
-                            <p className="text-gray-400 text-sm">{user.email}</p>
+                            <p className="text-gray-400 text-sm">
+                              {user.username ? `@${user.username}` : user.email}
+                              {user.phone ? ` · ${user.phone}` : ''}
+                            </p>
                           </div>
                         </button>
                       ))}
