@@ -652,10 +652,10 @@ export default function Layout({ children, currentPageName }) {
             <motion.div
               key={currentPath}
               custom={direction}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ type: "spring", stiffness: 380, damping: 30, mass: 0.8 }}
               style={{ width: '100%', display: 'block' }}
             >
               {children}
