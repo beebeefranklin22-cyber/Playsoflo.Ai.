@@ -6,7 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building, Users, DollarSign, FileText, CheckCircle, XCircle, AlertTriangle, Shield, Plus, X } from "lucide-react";
+import { Building, Users, DollarSign, FileText, CheckCircle, XCircle, AlertTriangle, Shield, Plus, X, Send } from "lucide-react";
+import SendLeaseModal from "../components/realestate/SendLeaseModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ export default function LandlordDashboard() {
   });
 
   const [showCreateLease, setShowCreateLease] = useState(false);
+  const [showSendLease, setShowSendLease] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
   const [leaseForm, setLeaseForm] = useState({
     monthly_rent: "", security_deposit: "", move_in_fee: "",
@@ -176,10 +178,16 @@ export default function LandlordDashboard() {
             <h1 className="text-3xl font-bold text-white mb-2">Landlord Dashboard</h1>
             <p className="text-gray-300">Manage properties, leases, and applications</p>
           </div>
-          <Button onClick={() => navigate(createPageUrl("RealEstate"))} className="bg-blue-600 hover:bg-blue-700">
-            <Building className="w-5 h-5 mr-2" />
-            View Properties
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowSendLease(true)} variant="outline" className="border-blue-400 text-blue-400 hover:bg-blue-500/10">
+              <Send className="w-4 h-4 mr-2" />
+              Send Lease / Invite
+            </Button>
+            <Button onClick={() => navigate(createPageUrl("RealEstate"))} className="bg-blue-600 hover:bg-blue-700">
+              <Building className="w-5 h-5 mr-2" />
+              View Properties
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -411,6 +419,16 @@ export default function LandlordDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Send Lease / Application Invite Modal */}
+      {showSendLease && (
+        <SendLeaseModal
+          onClose={() => setShowSendLease(false)}
+          currentUser={currentUser}
+          leases={leases}
+          properties={properties}
+        />
+      )}
 
       {/* Create Lease Modal */}
       <AnimatePresence>

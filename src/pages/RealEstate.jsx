@@ -6,7 +6,7 @@ import {
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
   Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
-  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid
+  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid, MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ import ContactSellerModal from "../components/property/ContactSellerModal";
 import PropertyReviewsList from "../components/property/PropertyReviewsList";
 import VirtualTourViewer from "../components/realestate/VirtualTourViewer";
 import LeaseApplicationModal from "../components/realestate/LeaseApplicationModal";
+import PropertyInquiryModal from "../components/realestate/PropertyInquiryModal";
 import PropertyMediaViewer from "../components/realestate/PropertyMediaViewer";
 import MortgageCalculator from "../components/realestate/MortgageCalculator";
 import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFilters";
@@ -70,6 +71,7 @@ export default function RealEstate() {
   const [leaseAppProperty, setLeaseAppProperty] = useState(null);
   const [showMediaViewer, setShowMediaViewer] = useState(false);
   const [mediaViewerProperty, setMediaViewerProperty] = useState(null);
+  const [inquiryProperty, setInquiryProperty] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
   const [advancedFilters, setAdvancedFilters] = useState({
     priceMin: "",
@@ -527,6 +529,20 @@ export default function RealEstate() {
                           <Calculator className="w-5 h-5 text-emerald-400" />
                         </button>
                       )}
+                      {/* Message Host button for non-owners */}
+                      {property.created_by && property.created_by !== currentUser?.email && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!currentUser) { base44.auth.redirectToLogin(); return; }
+                            setInquiryProperty(property);
+                          }}
+                          className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition"
+                          title="Message Host"
+                        >
+                          <MessageCircle className="w-5 h-5 text-emerald-400" />
+                        </button>
+                      )}
                       
                       <button 
                         className="px-6 py-2 bg-emerald-500 rounded-full text-white font-semibold hover:bg-emerald-600 transition"
@@ -743,6 +759,20 @@ export default function RealEstate() {
                 </div>
 
                 <div className="flex gap-3 mb-6 flex-wrap">
+                  {/* Message Host / Inquiry */}
+                  {selectedProperty.created_by && selectedProperty.created_by !== currentUser?.email && (
+                    <Button
+                      onClick={() => {
+                        setInquiryProperty(selectedProperty);
+                        setSelectedProperty(null);
+                      }}
+                      variant="outline"
+                      className="border-emerald-500 text-emerald-400"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Message Host
+                    </Button>
+                  )}
                   {(selectedProperty.images?.length > 1 || selectedProperty.virtual_tour_url) && (
                     <Button
                       onClick={() => {
@@ -913,6 +943,17 @@ export default function RealEstate() {
           <PropertyMediaViewer
             property={mediaViewerProperty}
             onClose={() => { setShowMediaViewer(false); setMediaViewerProperty(null); }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Property Inquiry / Message Host Modal */}
+      <AnimatePresence>
+        {inquiryProperty && (
+          <PropertyInquiryModal
+            property={inquiryProperty}
+            currentUser={currentUser}
+            onClose={() => setInquiryProperty(null)}
           />
         )}
       </AnimatePresence>
