@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff, RefreshCw, Camera, ChevronDown } from "lucide-react";
+import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff, RefreshCw, Camera, ChevronDown, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin, preferredDeviceId = null }) {
+export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin, preferredDeviceId = null, onPauseChange }) {
   const [client] = useState(() => AgoraRTC.createClient({ mode: "live", codec: "vp8" }));
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
@@ -20,6 +20,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
   const [selectedVideoDevice, setSelectedVideoDevice] = useState(preferredDeviceId || null);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState(null);
   const [showDevicePicker, setShowDevicePicker] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const localVideoRef = useRef(null);
   const remoteVideoContainerRef = useRef(null);
 
@@ -270,6 +271,17 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
     }
   };
 
+  const togglePause = async () => {
+    if (!localVideoTrack || !localAudioTrack) return;
+    const pausing = !isPaused;
+    // Disable both tracks so viewers see a frozen/black screen and hear silence
+    localVideoTrack.setEnabled(!pausing);
+    localAudioTrack.setEnabled(!pausing);
+    setIsPaused(pausing);
+    if (onPauseChange) onPauseChange(pausing);
+    toast.success(pausing ? "Stream paused — viewers see a pause screen" : "Stream resumed!");
+  };
+
   const switchToDevice = async (deviceId) => {
     if (!localVideoTrack) return;
     try {
@@ -343,6 +355,15 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
             >
               <RefreshCw className="w-5 h-5" />
             </Button>
+            {/* Pause / Resume */}
+            <Button
+              onClick={togglePause}
+              size="icon"
+              className={`rounded-full ${isPaused ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm'}`}
+              title={isPaused ? "Resume stream" : "Pause stream"}
+            >
+              {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+            </Button>
             {/* Device picker — shows all connected cameras including IRL cams */}
             {videoDevices.length > 1 && (
               <div className="relative">
@@ -401,8 +422,25 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         </>
       )}
       
+      {/* Pause overlay for viewers */}
+      {role === "audience" && Object.keys(remoteUsers).length > 0 && (
+        // No overlay needed — viewers just see frozen/black video naturally
+        null
+      )}
+
+      {/* Paused banner for host */}
+      {role === "host" && isPaused && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-15 pointer-events-none">
+          <div className="text-center">
+            <Pause className="w-14 h-14 text-yellow-400 mx-auto mb-3" />
+            <p className="text-white font-bold text-xl">Stream Paused</p>
+            <p className="text-gray-400 text-sm mt-1">Viewers see a paused screen. Tap Resume to continue.</p>
+          </div>
+        </div>
+      )}
+
       {/* Camera Facing Badge (for host only) */}
-      {role === "host" && localVideoTrack && (
+      {role === "host" && localVideoTrack && !isPaused && (
         <div className="absolute top-4 right-4 bg-purple-500/20 border border-purple-500/50 text-purple-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm z-20">
           {cameraFacing === "user" ? "Front Camera" : "Back Camera"}
         </div>

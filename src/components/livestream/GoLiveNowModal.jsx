@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import MultistreamDestinations from "./MultistreamDestinations";
 import { manageLiveStream } from "@/functions/manageLiveStream";
+import MultistreamSection from "./MultistreamSection";
 
 export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
   const navigate = useNavigate();
@@ -214,8 +215,8 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
             )}
           </div>
 
-          {/* Multistream destinations */}
-          <MultistreamDestinations
+          {/* Multistream — opt-in, collapsed by default */}
+          <MultistreamSection
             destinations={multistreamDests}
             onChange={setMultistreamDests}
           />

@@ -47,6 +47,7 @@ export default function LivestreamViewer() {
   const [viewerCount, setViewerCount] = useState(0);
   const [showHostPanel, setShowHostPanel] = useState(false);
   const [showClipCreator, setShowClipCreator] = useState(false);
+  const [isStreamPaused, setIsStreamPaused] = useState(false);
 
   // Init
   useEffect(() => {
@@ -187,10 +188,15 @@ export default function LivestreamViewer() {
                 <p className="text-white font-bold text-sm truncate">{stream.title}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-400 text-xs truncate">@{stream.creator_username || stream.created_by}</span>
-                  {stream.is_live && (
+                  {stream.is_live && !isStreamPaused && (
                     <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-red-500 rounded-full text-white text-xs font-bold">
                       <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                       LIVE
+                    </span>
+                  )}
+                  {isStreamPaused && (
+                    <span className="flex-shrink-0 flex items-center gap-1 px-2 py-0.5 bg-yellow-500 rounded-full text-white text-xs font-bold">
+                      ⏸ PAUSED
                     </span>
                   )}
                 </div>
@@ -254,6 +260,7 @@ export default function LivestreamViewer() {
                 channelName={stream.agora_channel_name}
                 role={isBroadcaster ? "host" : "audience"}
                 onViewerJoin={() => {}}
+                onPauseChange={setIsStreamPaused}
               />
               <ReactionEffects streamId={streamId} />
 
@@ -307,6 +314,7 @@ export default function LivestreamViewer() {
                 channelName={stream.agora_channel_name}
                 role={isBroadcaster ? "host" : "audience"}
                 onViewerJoin={() => {}}
+                onPauseChange={setIsStreamPaused}
               />
               <ReactionEffects streamId={streamId} />
               <button
