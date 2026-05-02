@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff, RefreshCw } from "lucide-react";
+import { Loader2, Video, AlertCircle, Mic, MicOff, VideoOff, RefreshCw, Camera, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin }) {
+export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin, preferredDeviceId = null }) {
   const [client] = useState(() => AgoraRTC.createClient({ mode: "live", codec: "vp8" }));
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
@@ -14,9 +14,36 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
   const [error, setError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState("user"); // 'user' = front, 'environment' = back
+  const [cameraFacing, setCameraFacing] = useState("user");
+  const [videoDevices, setVideoDevices] = useState([]);
+  const [audioDevices, setAudioDevices] = useState([]);
+  const [selectedVideoDevice, setSelectedVideoDevice] = useState(preferredDeviceId || null);
+  const [selectedAudioDevice, setSelectedAudioDevice] = useState(null);
+  const [showDevicePicker, setShowDevicePicker] = useState(false);
   const localVideoRef = useRef(null);
   const remoteVideoContainerRef = useRef(null);
+
+  // Enumerate devices for IRL camera / device selection
+  useEffect(() => {
+    if (role !== "host") return;
+    const loadDevices = async () => {
+      try {
+        // Trigger permission prompt first so labels are available
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true }).catch(() => {});
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const vDevices = devices.filter(d => d.kind === 'videoinput');
+        const aDevices = devices.filter(d => d.kind === 'audioinput');
+        setVideoDevices(vDevices);
+        setAudioDevices(aDevices);
+        // Default to first device if none selected
+        if (!selectedVideoDevice && vDevices.length > 0) setSelectedVideoDevice(vDevices[0].deviceId);
+        if (!selectedAudioDevice && aDevices.length > 0) setSelectedAudioDevice(aDevices[0].deviceId);
+      } catch (e) {
+        console.warn('Could not enumerate devices:', e);
+      }
+    };
+    loadDevices();
+  }, [role]);
 
   useEffect(() => {
     const init = async () => {
@@ -51,80 +78,62 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         // If host, create and publish tracks
         if (role === "host") {
           try {
-            // Request permissions first
-            console.log("Requesting camera and microphone permissions...");
-            
-            // Create video track with fallback options
             let videoTrack;
+            // Build video config — prefer selectedDeviceId (IRL cam / USB cam) over facingMode
+            const videoConfig = {
+              encoderConfig: {
+                width: { ideal: 1280, min: 640 },
+                height: { ideal: 720, min: 480 },
+                frameRate: { ideal: 30, min: 15 },
+                bitrateMin: 400,
+                bitrateMax: 2000,
+              },
+              optimizationMode: "detail"
+            };
+            if (selectedVideoDevice) {
+              videoConfig.cameraId = selectedVideoDevice;
+            } else {
+              videoConfig.facingMode = cameraFacing;
+            }
+
             try {
-              // Try with facingMode first (mobile)
-              videoTrack = await AgoraRTC.createCameraVideoTrack({
-                facingMode: cameraFacing,
-                encoderConfig: {
-                  width: { ideal: 1280, min: 640 },
-                  height: { ideal: 720, min: 480 },
-                  frameRate: { ideal: 30, min: 15 },
-                  bitrateMin: 400,
-                  bitrateMax: 1000,
-                },
-                optimizationMode: "detail"
-              });
+              videoTrack = await AgoraRTC.createCameraVideoTrack(videoConfig);
             } catch (e) {
-              console.log("FacingMode failed, trying default camera...", e);
-              // Fallback to default camera
+              console.log("Primary camera failed, falling back to default:", e);
               videoTrack = await AgoraRTC.createCameraVideoTrack({
-                encoderConfig: {
-                  width: 640,
-                  height: 480,
-                  frameRate: 30,
-                }
+                encoderConfig: { width: 640, height: 480, frameRate: 30 }
               });
             }
 
-            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-              encoderConfig: "music_standard",
-            });
+            const audioConfig = { encoderConfig: "music_standard" };
+            if (selectedAudioDevice) audioConfig.microphoneId = selectedAudioDevice;
+            const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(audioConfig);
 
-            console.log("✅ Media tracks created successfully");
             setLocalVideoTrack(videoTrack);
             setLocalAudioTrack(audioTrack);
 
-            // Wait for container to be ready
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 300));
             
             if (localVideoRef.current) {
-              console.log("📹 Playing video in container, size:", {
-                width: localVideoRef.current.offsetWidth,
-                height: localVideoRef.current.offsetHeight
-              });
-              
-              // Play video track
               videoTrack.play(localVideoRef.current, { 
                 fit: "cover",
-                mirror: cameraFacing === "user"
+                mirror: !selectedVideoDevice && cameraFacing === "user"
               });
-              console.log("✅ Video preview started");
-            } else {
-              console.error("❌ Video container not found!");
             }
 
-            // Publish to channel
             await client.publish([videoTrack, audioTrack]);
-            console.log("✅ Stream published to channel");
             toast.success("🔴 You're now LIVE!");
             
           } catch (mediaError) {
             console.error("❌ Media access error:", mediaError);
             let errorMsg = "Failed to access camera/microphone";
-            
             if (mediaError.message?.includes("Permission denied")) {
-              errorMsg = "Camera or microphone access denied. Please allow permissions and refresh.";
+              errorMsg = "Camera/microphone access denied. Please allow permissions and refresh.";
             } else if (mediaError.message?.includes("not found")) {
-              errorMsg = "No camera or microphone found. Please connect devices.";
+              errorMsg = "No camera or microphone found. Please connect your device.";
             } else {
               errorMsg = mediaError.message || errorMsg;
             }
-            
             setError(errorMsg);
             toast.error(errorMsg);
             throw mediaError;
@@ -239,40 +248,50 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
 
   const switchCamera = async () => {
     if (!localVideoTrack) return;
-    
     try {
       const newFacing = cameraFacing === "user" ? "environment" : "user";
-      
-      // Capture the current track before state update
       const oldTrack = localVideoTrack;
-      
-      // Unpublish old track first
       await client.unpublish([oldTrack]);
       oldTrack.stop();
       oldTrack.close();
-      
-      // Create new track with opposite facing mode
       const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
         facingMode: newFacing,
         encoderConfig: { width: 640, height: 480, frameRate: 30 }
       });
-      
-      // Play in container
       if (localVideoRef.current) {
         newVideoTrack.play(localVideoRef.current, { fit: "cover", mirror: newFacing === "user" });
       }
-      
-      // Publish new track
       await client.publish([newVideoTrack]);
-      
-      // Update state after everything is set up
       setLocalVideoTrack(newVideoTrack);
       setCameraFacing(newFacing);
-      
       toast.success(`Switched to ${newFacing === "user" ? "front" : "back"} camera`);
     } catch (err) {
-      console.error("Camera switch error:", err);
       toast.error("Failed to switch camera: " + err.message);
+    }
+  };
+
+  const switchToDevice = async (deviceId) => {
+    if (!localVideoTrack) return;
+    try {
+      const oldTrack = localVideoTrack;
+      await client.unpublish([oldTrack]);
+      oldTrack.stop();
+      oldTrack.close();
+      const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
+        cameraId: deviceId,
+        encoderConfig: { width: { ideal: 1280, min: 640 }, height: { ideal: 720, min: 480 }, frameRate: 30, bitrateMax: 2000 }
+      });
+      if (localVideoRef.current) {
+        newVideoTrack.play(localVideoRef.current, { fit: "cover", mirror: false });
+      }
+      await client.publish([newVideoTrack]);
+      setLocalVideoTrack(newVideoTrack);
+      setSelectedVideoDevice(deviceId);
+      setShowDevicePicker(false);
+      const device = videoDevices.find(d => d.deviceId === deviceId);
+      toast.success(`Camera switched to: ${device?.label || 'Selected device'}`);
+    } catch (err) {
+      toast.error("Failed to switch device: " + err.message);
     }
   };
 
@@ -301,7 +320,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
           )}
           
           {/* Host Controls */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 z-20 flex-wrap justify-center px-4">
             <Button
               onClick={toggleMute}
               size="icon"
@@ -320,10 +339,43 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
               onClick={switchCamera}
               size="icon"
               className="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-              title={`Switch to ${cameraFacing === "user" ? "back" : "front"} camera`}
+              title="Flip camera"
             >
               <RefreshCw className="w-5 h-5" />
             </Button>
+            {/* Device picker — shows all connected cameras including IRL cams */}
+            {videoDevices.length > 1 && (
+              <div className="relative">
+                <Button
+                  onClick={() => setShowDevicePicker(v => !v)}
+                  size="sm"
+                  className="rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center gap-1.5 px-3"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span className="text-xs">Camera</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+                {showDevicePicker && (
+                  <div className="absolute bottom-12 left-0 w-64 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-30">
+                    <p className="text-gray-400 text-xs px-3 pt-2 pb-1 font-semibold uppercase tracking-wide">Select Camera Source</p>
+                    {videoDevices.map(device => (
+                      <button
+                        key={device.deviceId}
+                        onClick={() => switchToDevice(device.deviceId)}
+                        className={`w-full text-left px-3 py-2.5 text-sm hover:bg-white/10 transition flex items-center gap-2 ${selectedVideoDevice === device.deviceId ? 'text-purple-400 bg-purple-500/10' : 'text-white'}`}
+                      >
+                        <Camera className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate">{device.label || `Camera ${videoDevices.indexOf(device) + 1}`}</span>
+                        {selectedVideoDevice === device.deviceId && <span className="ml-auto text-xs text-purple-400">✓ Active</span>}
+                      </button>
+                    ))}
+                    <div className="px-3 py-2 border-t border-white/10">
+                      <p className="text-gray-500 text-xs">IRL cameras (GoPro, Sony ZV-1, OBSBOT, etc.) appear here when connected via USB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       ) : (

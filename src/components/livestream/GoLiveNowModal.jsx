@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Radio, Loader2, Image } from "lucide-react";
+import { X, Radio, Loader2, Image, Camera, Smartphone, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +17,8 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
     title: "",
     description: "",
     category: "entertainment",
-    thumbnail_file: null
+    thumbnail_file: null,
+    source_type: "phone", // 'phone', 'irl_camera', 'desktop'
   });
   const [uploading, setUploading] = useState(false);
 
@@ -53,7 +54,8 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
         creator_email: currentUser.email,
         creator_username: currentUser.username || currentUser.full_name,
         status: "live",
-        stream_started_at: new Date().toISOString()
+        stream_started_at: new Date().toISOString(),
+        source_type: data.source_type || "phone",
       });
 
       // Notify followers and subscribers that the creator is live
@@ -163,6 +165,43 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
                 <SelectItem value="lifestyle">Lifestyle</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Stream Source Selection */}
+          <div>
+            <label className="text-gray-300 text-sm mb-2 block">Stream Source</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 'phone', icon: Smartphone, label: 'Phone / Webcam', desc: 'Built-in or browser camera' },
+                { id: 'irl_camera', icon: Camera, label: 'IRL Camera', desc: 'GoPro, Sony ZV-1, OBSBOT, etc.' },
+                { id: 'desktop', icon: Monitor, label: 'Desktop', desc: 'Screen or capture card' },
+              ].map(src => (
+                <button
+                  key={src.id}
+                  type="button"
+                  onClick={() => setLiveData(d => ({ ...d, source_type: src.id }))}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
+                    liveData.source_type === src.id
+                      ? 'border-purple-500 bg-purple-500/20 text-white'
+                      : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/30'
+                  }`}
+                >
+                  <src.icon className="w-5 h-5" />
+                  <span className="text-xs font-semibold">{src.label}</span>
+                  <span className="text-[10px] opacity-60 leading-tight">{src.desc}</span>
+                </button>
+              ))}
+            </div>
+            {liveData.source_type === 'irl_camera' && (
+              <p className="text-purple-300 text-xs mt-2 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
+                📷 Connect your IRL camera (GoPro, Sony ZV-1, OBSBOT Tiny Pro, DJI Action, etc.) via USB before going live. It will appear as a selectable camera source in the broadcast view.
+              </p>
+            )}
+            {liveData.source_type === 'desktop' && (
+              <p className="text-blue-300 text-xs mt-2 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+                🖥️ For HDMI cameras, connect via a capture card (e.g. Elgato Cam Link). It will show as a video device you can select while live.
+              </p>
+            )}
           </div>
 
           <div>
