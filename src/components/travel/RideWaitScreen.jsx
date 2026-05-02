@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Car, Clock, MapPin, Navigation, X } from "lucide-react";
+import { Car, Clock, MapPin, Navigation, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import CancelRideModal from "./CancelRideModal";
 import RideChatModal from "../chat/RideChatModal";
 import DriverMatchedCard from "./DriverMatchedCard";
+import { PassengerPinDisplay } from "@/components/ride/DriverPinVerification";
 
 export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -99,6 +100,22 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
             ride={ride}
             onMessageDriver={ride.driver_email ? () => setShowChat(true) : null}
           />
+        )}
+
+        {/* "Ride for someone else" banner */}
+        {ride.is_for_someone_else && ride.recipient_name && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+            <Users className="w-5 h-5 text-purple-400 flex-shrink-0" />
+            <div>
+              <p className="text-white text-sm font-semibold">Ride for {ride.recipient_name}</p>
+              {ride.recipient_phone && <p className="text-purple-300 text-xs">{ride.recipient_phone}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Safety PIN — shown once driver is on the way */}
+        {(currentStatus === 'accepted' || currentStatus === 'en_route' || currentStatus === 'arrived') && (
+          <PassengerPinDisplay ride={ride} />
         )}
 
         {/* View on Map Button */}

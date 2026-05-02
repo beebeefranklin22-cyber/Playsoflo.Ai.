@@ -27,6 +27,7 @@ import DisputeResolutionModal from "../components/driver/DisputeResolutionModal"
 import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
 import DriverStatsOverview from "../components/driver/DriverStatsOverview";
 import DriverProfileSetup from "../components/driver/DriverProfileSetup";
+import { DriverPinPanel } from "../components/ride/DriverPinVerification";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -378,15 +379,35 @@ export default function DriverHub() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {activeRides.map(ride => (
-                  <RideRequestCard
-                    key={ride.id}
-                    ride={ride}
-                    onAccept={() => {
-                      queryClient.invalidateQueries(['driver-active-rides']);
-                      queryClient.invalidateQueries(['driver-recent-rides']);
-                    }}
-                    onNavigate={setNavRide}
-                  />
+                  <div key={ride.id} className="space-y-3">
+                    <RideRequestCard
+                      ride={ride}
+                      onAccept={() => {
+                        queryClient.invalidateQueries(['driver-active-rides']);
+                        queryClient.invalidateQueries(['driver-recent-rides']);
+                      }}
+                      onNavigate={setNavRide}
+                    />
+                    {/* Show "Ride for someone else" info if applicable */}
+                    {ride.is_for_someone_else && ride.recipient_name && (
+                      <div className="flex items-center gap-3 px-4 py-3 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                        <span className="text-purple-300 text-sm">
+                          👤 Picking up <strong>{ride.recipient_name}</strong>
+                          {ride.recipient_phone && ` · ${ride.recipient_phone}`}
+                        </span>
+                      </div>
+                    )}
+                    {/* Safety PIN — only show for en_route / arrived rides */}
+                    {(ride.status === 'en_route' || ride.status === 'arrived' || ride.status === 'accepted') && (
+                      <DriverPinPanel
+                        ride={ride}
+                        onPinConfirmed={() => {
+                          queryClient.invalidateQueries(['driver-active-rides']);
+                          queryClient.invalidateQueries(['driver-recent-rides']);
+                        }}
+                      />
+                    )}
+                  </div>
                 ))}
               </CardContent>
             </Card>

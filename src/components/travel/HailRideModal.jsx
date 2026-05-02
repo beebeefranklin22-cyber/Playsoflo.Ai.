@@ -14,10 +14,12 @@ import VehicleTypeSelector, { vehicleTypes } from "./VehicleTypeSelector";
 import SavedAddresses from "./SavedAddresses";
 import PaymentConfirmationModal from "./PaymentConfirmationModal";
 import RideWaitScreen from "./RideWaitScreen";
+import RideForSomeoneElse from "@/components/ride/RideForSomeoneElse";
 
 export default function HailRideModal({ open, onClose }) {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
+  const [rideForSomeoneElse, setRideForSomeoneElse] = useState({ isForSomeoneElse: false, recipientName: "", recipientPhone: "" });
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [estimatedDistance, setEstimatedDistance] = useState(null);
   const [estimatedDuration, setEstimatedDuration] = useState(null);
@@ -233,6 +235,9 @@ export default function HailRideModal({ open, onClose }) {
         status: "requested",
         is_shared: selectedVehicle.id === 'shared',
         max_passengers: selectedVehicle.id === 'shared' ? 2 : 1,
+        is_for_someone_else: rideForSomeoneElse.isForSomeoneElse,
+        recipient_name: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientName : null,
+        recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
         pickup_coords: pickupCoords || [25.7617, -80.1918],
         dropoff_coords: dropoffCoords || [25.7743, -80.1937],
         estimated_distance_miles: estimatedDistance,
@@ -452,6 +457,9 @@ export default function HailRideModal({ open, onClose }) {
                   </div>
                 </div>
               )}
+
+              {/* Ride for someone else */}
+              <RideForSomeoneElse onChange={setRideForSomeoneElse} />
 
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
