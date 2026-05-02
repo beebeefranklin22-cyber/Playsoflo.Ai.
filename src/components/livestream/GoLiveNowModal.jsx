@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import MultistreamDestinations from "./MultistreamDestinations";
+import { manageLiveStream } from "@/functions/manageLiveStream";
 
 export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
     thumbnail_file: null,
     source_type: "phone", // 'phone', 'irl_camera', 'desktop'
   });
+  const [multistreamDests, setMultistreamDests] = useState([]);
   const [uploading, setUploading] = useState(false);
 
   const goLiveMutation = useMutation({
@@ -57,6 +60,13 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
         stream_started_at: new Date().toISOString(),
         source_type: data.source_type || "phone",
       });
+
+      // Save multistream destinations if any
+      const activeDests = multistreamDests.filter(d => d.enabled && d.stream_key);
+      if (activeDests.length > 0) {
+        await manageLiveStream({ action: 'save_multistream', streamId: stream.id, destinations: activeDests })
+          .catch(() => {}); // non-blocking
+      }
 
       // Notify followers and subscribers that the creator is live
       const [followers, subscribers] = await Promise.all([
@@ -203,6 +213,12 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
               </p>
             )}
           </div>
+
+          {/* Multistream destinations */}
+          <MultistreamDestinations
+            destinations={multistreamDests}
+            onChange={setMultistreamDests}
+          />
 
           <div>
             <label className="text-gray-300 text-sm mb-2 block flex items-center gap-2">

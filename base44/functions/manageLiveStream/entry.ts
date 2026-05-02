@@ -87,6 +87,60 @@ Deno.serve(async (req) => {
       return Response.json({ success: true });
     }
 
+    if (action === 'save_multistream') {
+      // Save RTMP multistream destinations to the stream record
+      // destinations: [{ platform_id, rtmp_url, stream_key, enabled }]
+      const { streamId, destinations } = body;
+      if (!streamId) return Response.json({ error: 'streamId required' }, { status: 400 });
+
+      const streams = await base44.asServiceRole.entities.StreamingContent.filter({ id: streamId });
+      const stream = streams[0];
+      if (!stream) return Response.json({ error: 'Stream not found' }, { status: 404 });
+      if (stream.creator_email !== user.email) return Response.json({ error: 'Forbidden' }, { status: 403 });
+
+      // Strip stream keys before logging — store securely on the entity
+      const sanitized = (destinations || []).filter(d => d.enabled && d.stream_key).map(d => ({
+        platform_id: d.platform_id,
+        rtmp_url: d.rtmp_url,
+        stream_key: d.stream_key, // stored on entity, never logged
+        enabled: true,
+      }));
+
+      await base44.asServiceRole.entities.StreamingContent.update(streamId, {
+        multistream_destinations: sanitized,
+        multistream_enabled: sanitized.length > 0,
+      });
+
+      return Response.json({
+        success: true,
+        active_destinations: sanitized.map(d => d.platform_id),
+        rtmp_instructions: sanitized.map(d => ({
+          platform: d.platform_id,
+          rtmp_url: d.rtmp_url,
+          // Return RTMP push info so client/OBS can use it
+          full_rtmp_push: `${d.rtmp_url}/${d.stream_key}`,
+          note: `To push externally via OBS: set Server=${d.rtmp_url} and Stream Key=${d.stream_key}`,
+        })),
+      });
+    }
+
+    if (action === 'get_multistream_status') {
+      const { streamId } = body;
+      if (!streamId) return Response.json({ error: 'streamId required' }, { status: 400 });
+      const streams = await base44.asServiceRole.entities.StreamingContent.filter({ id: streamId });
+      const stream = streams[0];
+      if (!stream) return Response.json({ error: 'Stream not found' }, { status: 404 });
+
+      const destinations = (stream.multistream_destinations || []).map(d => ({
+        platform_id: d.platform_id,
+        rtmp_url: d.rtmp_url,
+        enabled: d.enabled,
+        has_key: !!d.stream_key,
+      }));
+
+      return Response.json({ multistream_enabled: stream.multistream_enabled || false, destinations });
+    }
+
     if (action === 'list_devices') {
       // Returns info about expected IRL camera brands and RTMP/USB tips
       return Response.json({
