@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import TemplateLibrary from "./TemplateLibrary";
+import VideoTextOverlayEditor from "./VideoTextOverlayEditor";
 
 export default function AdvancedVideoEditor({ currentUser }) {
   const videoRef = useRef(null);
@@ -814,19 +815,45 @@ export default function AdvancedVideoEditor({ currentUser }) {
                 {/* Text Overlays Render */}
                 {textOverlays.map((overlay) => {
                   if (currentTime >= overlay.startTime && currentTime <= overlay.endTime) {
+                    // Determine position based on positionMode
+                    const isBottom = overlay.positionMode === 'fixed_bottom';
+                    const isTop = overlay.positionMode === 'fixed_top';
+                    const isCenter = overlay.positionMode === 'fixed_center';
+
+                    let posStyle = {};
+                    if (isBottom) {
+                      posStyle = { bottom: 0, left: 0, right: 0, transform: 'none', width: '100%', padding: '8px 12px' };
+                    } else if (isTop) {
+                      posStyle = { top: 0, left: 0, right: 0, transform: 'none', width: '100%', padding: '8px 12px' };
+                    } else if (isCenter) {
+                      posStyle = { top: '50%', left: 0, right: 0, transform: 'translateY(-50%)', width: '100%', padding: '8px 12px' };
+                    } else {
+                      posStyle = {
+                        left: `${overlay.x}%`,
+                        top: `${overlay.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                      };
+                    }
+
+                    const strokeShadow = overlay.strokeColor && overlay.strokeColor !== 'transparent'
+                      ? `${overlay.strokeWidth || 2}px ${overlay.strokeWidth || 2}px 0 ${overlay.strokeColor}, -${overlay.strokeWidth || 2}px -${overlay.strokeWidth || 2}px 0 ${overlay.strokeColor}, ${overlay.strokeWidth || 2}px -${overlay.strokeWidth || 2}px 0 ${overlay.strokeColor}, -${overlay.strokeWidth || 2}px ${overlay.strokeWidth || 2}px 0 ${overlay.strokeColor}`
+                      : '2px 2px 4px rgba(0,0,0,0.8)';
+
                     return (
                       <div
                         key={overlay.id}
                         className="absolute pointer-events-none"
                         style={{
-                          left: `${overlay.x}%`,
-                          top: `${overlay.y}%`,
-                          transform: 'translate(-50%, -50%)',
-                          fontSize: `${overlay.fontSize}px`,
-                          color: overlay.color,
-                          fontWeight: 'bold',
-                          textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                          zIndex: 10
+                          ...posStyle,
+                          fontSize: `${overlay.fontSize || 32}px`,
+                          color: overlay.color || '#FFFFFF',
+                          fontWeight: overlay.fontWeight || 'bold',
+                          fontStyle: overlay.fontStyle || 'normal',
+                          fontFamily: overlay.fontFamily || 'sans-serif',
+                          textAlign: overlay.textAlign || 'center',
+                          textShadow: strokeShadow,
+                          backgroundColor: overlay.backgroundColor || 'transparent',
+                          zIndex: 10,
                         }}
                       >
                         {overlay.text}
@@ -1168,36 +1195,14 @@ export default function AdvancedVideoEditor({ currentUser }) {
               <CardContent className="p-4">
                 <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                   <Type className="w-5 h-5 text-yellow-400" />
-                  Text Overlays
+                  Text Overlays & Captions
                 </h4>
-                <Button
-                  onClick={addTextOverlay}
-                  className="w-full bg-yellow-600 hover:bg-yellow-700 mb-3"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Text Overlay
-                </Button>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {textOverlays.map((overlay) => (
-                    <div key={overlay.id} className="bg-white/5 rounded-lg p-2 flex items-center justify-between">
-                      <Input
-                        value={overlay.text}
-                        onChange={(e) => {
-                          setTextOverlays(textOverlays.map(t => 
-                            t.id === overlay.id ? {...t, text: e.target.value} : t
-                          ));
-                        }}
-                        className="bg-white/10 border-white/20 text-white text-xs mr-2"
-                      />
-                      <button
-                        onClick={() => removeTextOverlay(overlay.id)}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <VideoTextOverlayEditor
+                  overlays={textOverlays}
+                  setOverlays={setTextOverlays}
+                  currentTime={currentTime}
+                  duration={duration}
+                />
               </CardContent>
             </Card>
           </div>

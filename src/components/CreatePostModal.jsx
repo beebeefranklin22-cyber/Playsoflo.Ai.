@@ -32,7 +32,10 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
         likes_count: 0,
         comments_count: 0,
         author_email: currentUser?.email,
-        author_name: currentUser?.full_name
+        author_name: currentUser?.full_name,
+        creator_name: currentUser?.full_name,
+        creator_username: currentUser?.username || currentUser?.email?.split('@')[0],
+        creator_profile_picture: currentUser?.profile_picture || currentUser?.profile_photo
       });
       // Notify followers
       if (currentUser) {

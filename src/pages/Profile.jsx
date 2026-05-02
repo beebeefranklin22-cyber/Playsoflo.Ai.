@@ -292,6 +292,13 @@ export default function Profile() {
             alt="Cover" 
             className="absolute inset-0 w-full h-full object-cover"
           />
+        ) : currentUser?.profile_customization?.primary_color ? (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${currentUser.profile_customization.primary_color}, ${currentUser.profile_customization.secondary_color || currentUser.profile_customization.primary_color})`
+            }}
+          />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600" />
         )}
@@ -353,9 +360,27 @@ export default function Profile() {
           </div>
 
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold text-white mb-2"
+              style={currentUser?.profile_customization?.font_style === 'elegant'
+                ? { fontFamily: "Georgia, serif" }
+                : currentUser?.profile_customization?.font_style === 'playful'
+                ? { fontFamily: "'Comic Sans MS', cursive" }
+                : currentUser?.profile_customization?.font_style === 'modern'
+                ? { fontFamily: "'Courier New', monospace" }
+                : {}}
+            >
               {currentUser?.full_name || "User"}
             </h1>
+            {currentUser?.profile_customization?.custom_status && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-2"
+                style={{ 
+                  backgroundColor: `${currentUser.profile_customization.primary_color || '#9333ea'}30`,
+                  color: currentUser.profile_customization.primary_color || '#c084fc'
+                }}>
+                <Sparkles className="w-3 h-3" />
+                {currentUser.profile_customization.custom_status}
+              </div>
+            )}
             <p className="text-purple-400 flex items-center gap-1 mb-1">
               <AtSign className="w-4 h-4" />
               {currentUser?.username || currentUser?.email?.split('@')[0]}
