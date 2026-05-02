@@ -49,6 +49,7 @@ export default function Home() {
     aiPersonalized: true
   });
   const [likedPosts, setLikedPosts] = useState(new Set());
+  const [userMap, setUserMap] = useState({});
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalDefaultType, setCreateModalDefaultType] = useState(null);
   const [showFollowRequests, setShowFollowRequests] = useState(false);
@@ -91,6 +92,22 @@ export default function Home() {
   }, []);
 
   // Onboarding check removed - users can access freely
+
+  // Build a map of email -> display info from the User entity
+  useEffect(() => {
+    if (!currentUser) return;
+    base44.entities.User.list().then(users => {
+      const map = {};
+      users.forEach(u => {
+        map[u.email] = u.username || u.full_name || u.email?.split("@")[0];
+      });
+      setUserMap(map);
+    }).catch(() => {});
+  }, [currentUser]);
+
+  const getDisplayName = (post) =>
+    post.creator_name || post.creator_username || post.author_name ||
+    userMap[post.created_by] || post.created_by?.split("@")[0] || "User";
 
   // Track interactions for AI
   const trackInteractionMutation = useMutation({
@@ -445,7 +462,7 @@ export default function Home() {
                   )}
                 </button>
                 <span className="text-gray-300 text-xs max-w-[64px] truncate">
-                  {story.creator_name || story.creator_username || "User"}
+                  {story.creator_name || story.creator_username || userMap[story.created_by] || story.created_by?.split("@")[0] || "User"}
                 </span>
               </div>
             ))}
@@ -552,11 +569,11 @@ export default function Home() {
                   {post.creator_profile_picture ? (
                     <img src={post.creator_profile_picture} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    (post.creator_name || post.created_by)?.[0]?.toUpperCase() || "U"
+                    (getDisplayName(post))?.[0]?.toUpperCase() || "U"
                   )}
                 </div>
                 <div>
-                  <p className="text-white font-semibold">{post.creator_name || post.creator_username || post.author_name || "User"}</p>
+                  <p className="text-white font-semibold">{getDisplayName(post)}</p>
                   {post.location && (
                     <div className="flex items-center gap-1 text-gray-400 text-sm">
                       <MapPin className="w-3 h-3" />
@@ -711,7 +728,7 @@ export default function Home() {
             {/* Caption — inline count removed, now lives inside action buttons */}
             <div className="px-4 pb-2">
               <p className="text-white text-sm leading-relaxed">
-                <span className="font-bold mr-1.5">{post.creator_name || post.creator_username || post.author_name || "User"}</span>
+                <span className="font-bold mr-1.5">{getDisplayName(post)}</span>
                 {post.caption}
               </p>
             </div>
