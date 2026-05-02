@@ -6,8 +6,9 @@ import {
   ChevronLeft, Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
   Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
-  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid, MessageCircle
+  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid, MessageCircle, Heart
 } from "lucide-react";
+import SavePropertyButton from "../components/realestate/SavePropertyButton";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -104,6 +105,12 @@ export default function RealEstate() {
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 2000
+  });
+
+  const { data: savedProperties = [] } = useQuery({
+    queryKey: ['saved-properties'],
+    queryFn: () => base44.entities.SavedProperty.filter({ user_email: currentUser?.email }),
+    enabled: !!currentUser,
   });
 
   const fetchPropertiesMutation = useMutation({
@@ -308,7 +315,20 @@ export default function RealEstate() {
       {/* Listing Type Filter */}
       <div className="px-4 sm:px-6 mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">Browse Properties</h2>
+        <h2 className="text-xl font-bold text-white">Browse Properties</h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate(createPageUrl("SavedProperties"))}
+            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm text-white transition"
+          >
+            <Heart className="w-4 h-4 text-red-400" />
+            Saved
+            {savedProperties.length > 0 && (
+              <span className="w-5 h-5 bg-red-500 rounded-full text-xs flex items-center justify-center font-bold">
+                {savedProperties.length}
+              </span>
+            )}
+          </button>
           <Button
             onClick={() => setShowListProperty(true)}
             className="bg-emerald-600 hover:bg-emerald-700"
@@ -316,6 +336,7 @@ export default function RealEstate() {
             <Building className="w-4 h-4 mr-2" />
             List Your Property
           </Button>
+        </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
           {listingTypes.map((type) => (
@@ -456,6 +477,14 @@ export default function RealEstate() {
                       Instant Book
                     </div>
                   )}
+
+                  <div className="absolute top-4 left-4 z-10" onClick={(e) => e.stopPropagation()}>
+                    <SavePropertyButton
+                      property={property}
+                      currentUser={currentUser}
+                      savedProperties={savedProperties}
+                    />
+                  </div>
 
                   <div className="absolute bottom-4 left-4 right-4">
                     <div className="flex items-center gap-2 mb-2">

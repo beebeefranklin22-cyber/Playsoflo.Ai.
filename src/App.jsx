@@ -3,6 +3,7 @@ import VODPlayer from './pages/VODPlayer'
 import AdManager from './pages/AdManager'
 import DropshippingDashboard from './pages/DropshippingDashboard'
 import LeasePortal from './pages/LeasePortal'
+import SavedProperties from './pages/SavedProperties'
 import LiveTracking from './pages/LiveTracking'
 import InventoryManager from './pages/InventoryManager'
 import Reels from './pages/Reels'
@@ -100,6 +101,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdManager" element={<LayoutWrapper currentPageName="AdManager"><AdManager /></LayoutWrapper>} />
       <Route path="/DropshippingDashboard" element={<LayoutWrapper currentPageName="DropshippingDashboard"><DropshippingDashboard /></LayoutWrapper>} />
       <Route path="/LeasePortal" element={<LayoutWrapper currentPageName="LeasePortal"><LeasePortal /></LayoutWrapper>} />
+      <Route path="/SavedProperties" element={<LayoutWrapper currentPageName="SavedProperties"><SavedProperties /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
