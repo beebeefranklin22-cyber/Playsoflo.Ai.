@@ -23,6 +23,7 @@ import WatchPartyModal from "../components/livestream/WatchPartyModal";
 import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
 import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 import ContentUploadModal from "../components/streaming/ContentUploadModal";
+import PostStreamEditor from "../components/livestream/PostStreamEditor";
 
 const CATEGORIES = [
   { id: "all", label: "All", icon: Tv },
@@ -58,6 +59,7 @@ export default function Streaming() {
   const [showScheduler, setShowScheduler] = useState(false);
   const [showTMDBBrowser, setShowTMDBBrowser] = useState(false);
   const [showWatchParty, setShowWatchParty] = useState(null);
+  const [editingStream, setEditingStream] = useState(null);
   const [selectedContent, setSelectedContent] = useState(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [purchaseType, setPurchaseType] = useState("buy");
@@ -510,15 +512,25 @@ export default function Streaming() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium line-clamp-1">{s.title}</p>
-                    <p className="text-gray-500 text-xs">Stream ended — save as VOD?</p>
+                    <p className="text-gray-500 text-xs">Stream ended — edit & save as VOD</p>
                   </div>
-                  <Button
-                    size="sm"
-                    className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold flex-shrink-0"
-                    onClick={() => saveToChannelMutation(s.id)}
-                  >
-                    Save
-                  </Button>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700 font-bold"
+                      onClick={() => setEditingStream(s)}
+                    >
+                      ✂️ Edit & Save
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/20 text-gray-400 hover:text-white"
+                      onClick={() => saveToChannelMutation(s.id)}
+                    >
+                      Quick Save
+                    </Button>
+                  </div>
                 </div>
               ))}
           </div>
@@ -1152,6 +1164,15 @@ export default function Streaming() {
       {/* TV & Movies Upload Modal */}
       {showContentUpload && (
         <ContentUploadModal currentUser={currentUser} onClose={() => setShowContentUpload(false)} />
+      )}
+
+      {/* Post-Stream Editor (trim + highlights + VOD save) */}
+      {editingStream && (
+        <PostStreamEditor
+          stream={editingStream}
+          onClose={() => setEditingStream(null)}
+          onSaved={() => { setEditingStream(null); refetchEnded(); }}
+        />
       )}
     </div>
     </PageWrapper>
