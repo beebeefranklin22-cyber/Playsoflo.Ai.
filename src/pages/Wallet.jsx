@@ -307,7 +307,7 @@ export default function Wallet() {
         </motion.div>
 
         {/* Quick Actions - Streamlined */}
-        <div className="mt-3 flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-1 px-1">
+        <div className="mt-3 flex flex-wrap gap-2 pb-2 -mx-1 px-1">
           <button 
             onClick={() => setActiveModal('add')}
             className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-green-500/10 border border-green-500/30 rounded-xl hover:bg-green-500/20 transition-all flex-shrink-0"
@@ -699,7 +699,7 @@ export default function Wallet() {
           animate={{ opacity: 1, x: 0 }}
           className="glass-effect rounded-xl p-4 border border-white/10 hover:border-green-500/30 transition-all group"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                 <DollarSign className="w-5 h-5 text-green-400" />
@@ -710,11 +710,20 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="text-right">
-              <p className="text-gray-400 text-xs mb-1">Balance</p>
-              <p className="text-white font-bold text-lg">
-                {showBalance ? `$${(currentUser?.usd_balance || 0).toFixed(2)}` : "••••"}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-gray-400 text-xs mb-1">Balance</p>
+                <p className="text-white font-bold text-lg">
+                  {showBalance ? `$${(currentUser?.usd_balance || 0).toFixed(2)}` : "••••"}
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveModal('withdraw')}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-white text-sm font-semibold transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                Withdraw
+              </button>
             </div>
           </div>
         </motion.div>
