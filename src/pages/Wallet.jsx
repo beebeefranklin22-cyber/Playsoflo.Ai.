@@ -37,6 +37,7 @@ import TransactionHistoryFilter from "../components/wallet/TransactionHistoryFil
 import FinancialAnalytics from "../components/wallet/FinancialAnalytics";
 import PhysicalCardRequest from "../components/wallet/PhysicalCardRequest";
 import RecurringTransfersManager from "../components/wallet/RecurringTransfersManager";
+import CurrencyConverter from "../components/wallet/CurrencyConverter";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -349,6 +350,17 @@ export default function Wallet() {
             <div className="text-left">
               <p className="text-white text-xs sm:text-sm font-semibold">Exchange</p>
               <p className="text-cyan-400 text-[10px] sm:text-xs hidden sm:block">Swap crypto</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setActiveModal('currency-converter')}
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl hover:bg-indigo-500/20 transition-all flex-shrink-0"
+          >
+            <Globe className="w-4 sm:w-5 h-4 sm:h-5 text-indigo-400" />
+            <div className="text-left">
+              <p className="text-white text-xs sm:text-sm font-semibold">Convert</p>
+              <p className="text-indigo-400 text-[10px] sm:text-xs hidden sm:block">Fiat converter</p>
             </div>
           </button>
 
@@ -1013,6 +1025,13 @@ export default function Wallet() {
       )}
       {activeModal === 'send-crypto' && currentUser && (
         <SendCryptoModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'currency-converter' && (
+        <CurrencyConverter
+          exchangeRates={exchangeRates}
+          usdBalance={currentUser?.usd_balance || 0}
+          onClose={() => setActiveModal(null)}
+        />
       )}
 
       <style>{`
