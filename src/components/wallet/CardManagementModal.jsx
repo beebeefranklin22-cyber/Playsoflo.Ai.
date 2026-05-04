@@ -102,11 +102,11 @@ export default function CardManagementModal({ currentUser, onClose }) {
                       <select
                         value={cardForm.card_type}
                         onChange={(e) => setCardForm({...cardForm, card_type: e.target.value})}
-                        className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
+                        className="w-full bg-gray-800 border border-white/20 text-white rounded-lg px-3 py-2"
                       >
-                        <option value="debit">Debit Card</option>
-                        <option value="credit">Credit Card</option>
-                        <option value="virtual">Virtual Card</option>
+                        <option value="debit" className="bg-gray-800">Debit Card</option>
+                        <option value="credit" className="bg-gray-800">Credit Card</option>
+                        <option value="virtual" className="bg-gray-800">Virtual Card</option>
                       </select>
                     </div>
 
@@ -115,12 +115,12 @@ export default function CardManagementModal({ currentUser, onClose }) {
                       <select
                         value={cardForm.brand}
                         onChange={(e) => setCardForm({...cardForm, brand: e.target.value})}
-                        className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
+                        className="w-full bg-gray-800 border border-white/20 text-white rounded-lg px-3 py-2"
                       >
-                        <option value="visa">Visa</option>
-                        <option value="mastercard">Mastercard</option>
-                        <option value="amex">American Express</option>
-                        <option value="discover">Discover</option>
+                        <option value="visa" className="bg-gray-800">Visa</option>
+                        <option value="mastercard" className="bg-gray-800">Mastercard</option>
+                        <option value="amex" className="bg-gray-800">American Express</option>
+                        <option value="discover" className="bg-gray-800">Discover</option>
                       </select>
                     </div>
 
