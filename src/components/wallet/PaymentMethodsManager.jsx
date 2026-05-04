@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
+function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -30,18 +30,27 @@ function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
     toast.loading("Securing your payment method...");
 
     try {
-      // Confirm card setup
-      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        }
-      });
+      let setupIntent, error;
+
+      if (mode === 'bank') {
+        ({ error, setupIntent } = await stripe.confirmUsBankAccountSetup(clientSecret, {
+          payment_method: {
+            us_bank_account: elements.getElement('usBankAccount'),
+            billing_details: { name: 'Account Holder' }
+          }
+        }));
+      } else {
+        ({ error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+          payment_method: {
+            card: elements.getElement(CardElement),
+          }
+        }));
+      }
 
       if (error) {
         throw new Error(error.message);
       }
 
-      // Save to database
       const response = await base44.functions.invoke('savePaymentMethod', {
         payment_method_id: setupIntent.payment_method
       });
@@ -75,13 +84,13 @@ function StripePaymentForm({ clientSecret, onSuccess, onCancel }) {
               },
               invalid: { color: '#ef4444' },
             },
-            hidePostalCode: false
+            hidePostalCode: true
           }}
         />
       </div>
       <p className="text-gray-400 text-xs">
         <Shield className="w-3 h-3 inline mr-1" />
-        Your card details are encrypted and secure
+        Your card details are encrypted and secure. Visa, Mastercard, Amex, Discover supported.
       </p>
       <div className="flex gap-3">
         <Button
@@ -119,6 +128,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [showAddExternal, setShowAddExternal] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
+  const [addMode, setAddMode] = useState('card'); // 'card' | 'bank'
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [externalType, setExternalType] = useState(null);
@@ -126,7 +136,8 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const [deletingId, setDeletingId] = useState(null);
   const [loadingStripe, setLoadingStripe] = useState(false);
 
-  const handleOpenCardForm = async () => {
+  const handleOpenForm = async (mode) => {
+    setAddMode(mode);
     setLoadingStripe(true);
     toast.loading("Loading payment form...");
     
@@ -301,23 +312,36 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                   Add New Payment Method
                 </h3>
                 
-                <Button
-                  onClick={handleOpenCardForm}
-                  disabled={loadingStripe}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-lg font-semibold"
-                >
-                  {loadingStripe ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      Add Card or Bank Account
-                    </>
-                  )}
-                </Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={() => handleOpenForm('card')}
+                    disabled={loadingStripe}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-base font-semibold"
+                  >
+                    {loadingStripe && addMode === 'card' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Add Card
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => handleOpenForm('bank')}
+                    disabled={loadingStripe}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-14 text-base font-semibold"
+                  >
+                    {loadingStripe && addMode === 'bank' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Building className="w-5 h-5 mr-2" />
+                        Add Bank
+                      </>
+                    )}
+                  </Button>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <Button
@@ -382,11 +406,12 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                       <CardContent className="p-6">
                         <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                           <Shield className="w-5 h-5 text-green-400" />
-                          Add Card (Secure)
+                          {addMode === 'bank' ? 'Add Bank Account (Secure)' : 'Add Card (Secure)'}
                         </h3>
                         <Elements stripe={stripePromise}>
                           <StripePaymentForm
                             clientSecret={clientSecret}
+                            mode={addMode}
                             onSuccess={() => {
                               setShowAddCard(false);
                               setClientSecret(null);

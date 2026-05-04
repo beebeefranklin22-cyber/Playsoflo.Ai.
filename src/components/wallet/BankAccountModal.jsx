@@ -36,7 +36,7 @@ export default function BankAccountModal({ currentUser, onClose }) {
       is_primary: accounts.length === 0
     }),
     onSuccess: () => {
-      qc.invalidateQueries(["bank-accounts"]);
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] });
       setShowAddAccount(false);
       setAccountForm({
         account_type: "checking",
@@ -54,7 +54,7 @@ export default function BankAccountModal({ currentUser, onClose }) {
   const deleteAccountMutation = useMutation({
     mutationFn: (id) => base44.entities.BankAccount.delete(id),
     onSuccess: () => {
-      qc.invalidateQueries(["bank-accounts"]);
+      qc.invalidateQueries({ queryKey: ["bank-accounts"] });
       toast.success('Bank account removed');
     },
     onError: (error) => {

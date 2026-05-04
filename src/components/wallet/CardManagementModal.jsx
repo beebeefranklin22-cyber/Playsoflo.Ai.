@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { X, CreditCard, Plus, Trash2, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function CardManagementModal({ currentUser, onClose }) {
   const qc = useQueryClient();
@@ -29,21 +30,20 @@ export default function CardManagementModal({ currentUser, onClose }) {
       user_email: currentUser.email
     }),
     onSuccess: () => {
-      qc.invalidateQueries(["payment-cards"]);
+      qc.invalidateQueries({ queryKey: ["payment-cards"] });
       setShowAddCard(false);
-      setCardForm({
-        card_type: "debit",
-        last4: "",
-        brand: "visa",
-        exp_month: "",
-        exp_year: ""
-      });
-    }
+      setCardForm({ card_type: "debit", last4: "", brand: "visa", exp_month: "", exp_year: "" });
+      toast.success("Card added successfully!");
+    },
+    onError: (err) => toast.error(err?.message || "Failed to add card")
   });
 
   const deleteCardMutation = useMutation({
     mutationFn: (id) => base44.entities.PaymentCard.delete(id),
-    onSuccess: () => qc.invalidateQueries(["payment-cards"])
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payment-cards"] });
+      toast.success("Card removed");
+    }
   });
 
   const brandColors = {
@@ -168,11 +168,21 @@ export default function CardManagementModal({ currentUser, onClose }) {
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => addCardMutation.mutate(cardForm)}
-                      disabled={!cardForm.last4 || addCardMutation.isLoading}
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                     onClick={() => {
+                       if (!cardForm.last4 || cardForm.last4.length !== 4) {
+                         toast.error("Enter the last 4 digits of your card");
+                         return;
+                       }
+                       if (!cardForm.exp_month || !cardForm.exp_year) {
+                         toast.error("Enter card expiration date");
+                         return;
+                       }
+                       addCardMutation.mutate(cardForm);
+                     }}
+                     disabled={addCardMutation.isPending}
+                     className="flex-1 bg-purple-600 hover:bg-purple-700"
                     >
-                      Add Card
+                     {addCardMutation.isPending ? "Saving..." : "Add Card"}
                     </Button>
                   </div>
                 </CardContent>

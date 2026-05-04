@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     // Create SetupIntent for in-app payment method collection
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'us_bank_account'],
       metadata: { user_email: user.email }
     });
 
