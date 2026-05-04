@@ -109,11 +109,11 @@ export default function BankAccountModal({ currentUser, onClose }) {
                       <select
                         value={accountForm.account_type}
                         onChange={(e) => setAccountForm({...accountForm, account_type: e.target.value})}
-                        className="w-full bg-gray-800 border border-white/20 text-white rounded-lg px-3 py-2"
+                        className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
                       >
-                        <option value="checking" className="bg-gray-800">Checking</option>
-                        <option value="savings" className="bg-gray-800">Savings</option>
-                        <option value="business" className="bg-gray-800">Business</option>
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                        <option value="business">Business</option>
                       </select>
                     </div>
 

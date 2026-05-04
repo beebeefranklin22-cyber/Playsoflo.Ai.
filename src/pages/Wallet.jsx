@@ -384,7 +384,7 @@ export default function Wallet() {
           </summary>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
             <button 
-              onClick={() => setActiveModal('cards')}
+              onClick={() => setActiveModal('payment-methods')}
               className="flex items-center gap-2 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition text-left"
             >
               <CreditCard className="w-4 h-4 text-orange-400" />
