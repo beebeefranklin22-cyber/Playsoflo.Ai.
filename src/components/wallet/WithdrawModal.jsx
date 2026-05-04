@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 export default function WithdrawModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("bank");
+  const [method, setMethod] = useState("instant");
   const [loading, setLoading] = useState(false);
 
   const { data: bankAccounts = [] } = useQuery({
@@ -53,7 +53,9 @@ export default function WithdrawModal({ currentUser, onClose }) {
     }
 
     if (method === "bank" && bankAccounts.length === 0) {
-      toast.error("Please add a bank account first");
+      // Auto-switch to instant payout if no bank account
+      setMethod("instant");
+      toast.error("No bank account linked. Switched to Instant Payout — please try again.");
       return;
     }
 
