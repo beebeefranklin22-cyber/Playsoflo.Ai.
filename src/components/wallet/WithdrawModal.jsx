@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Download, Building, CreditCard, Zap } from "lucide-react";
+import { X, Download, Building, CreditCard, Zap, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,12 +15,13 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
   const { data: bankAccounts = [] } = useQuery({
     queryKey: ['bank-accounts', currentUser.email],
-    queryFn: async () => {
-      return await base44.entities.BankAccount.filter({
-        user_email: currentUser.email,
-        is_verified: true
-      });
-    },
+    queryFn: () => base44.entities.BankAccount.filter({ user_email: currentUser.email, is_verified: true }),
+    initialData: []
+  });
+
+  const { data: paymentCards = [] } = useQuery({
+    queryKey: ['payment-cards', currentUser.email],
+    queryFn: () => base44.entities.PaymentCard.filter({ user_email: currentUser.email }),
     initialData: []
   });
 
@@ -53,9 +54,12 @@ export default function WithdrawModal({ currentUser, onClose }) {
     }
 
     if (method === "bank" && bankAccounts.length === 0) {
-      // Auto-switch to instant payout if no bank account
-      setMethod("instant");
-      toast.error("No bank account linked. Switched to Instant Payout — please try again.");
+      toast.error("Please add a verified bank account first to use Bank Transfer.");
+      return;
+    }
+
+    if ((method === "instant" || method === "card") && paymentCards.length === 0) {
+      toast.error("Please add a debit card first to use this withdrawal method.");
       return;
     }
 
@@ -120,7 +124,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
+          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
         >
           <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6">
             <div className="flex items-center justify-between">
@@ -131,7 +135,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 overflow-y-auto flex-1">
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-gray-400 text-sm mb-1">Available Balance</p>
               <p className="text-white text-3xl font-bold">
@@ -223,10 +227,16 @@ export default function WithdrawModal({ currentUser, onClose }) {
             </div>
 
             {method === "bank" && bankAccounts.length === 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <p className="text-yellow-300 text-sm">
-                  You need to add a verified bank account first
-                </p>
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <p className="text-yellow-300 text-sm">No verified bank account linked. Add one under <strong>Banks</strong> in the Wallet to use this method.</p>
+              </div>
+            )}
+
+            {(method === "instant" || method === "card") && paymentCards.length === 0 && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <p className="text-yellow-300 text-sm">No debit card linked. Add one under <strong>Cards</strong> in the Wallet to use this method.</p>
               </div>
             )}
 
