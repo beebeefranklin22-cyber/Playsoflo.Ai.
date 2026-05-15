@@ -60,8 +60,8 @@ const AuthenticatedApp = () => {
     }
   }
 
-  // Show profile picture gate for new users who haven't set one
-  if (isAuthenticated && user && !user.profile_picture) {
+  // Show onboarding gate for new users who haven't set a username or profile picture
+  if (isAuthenticated && user && (!user.username || !user.profile_picture)) {
     return <ProfilePictureGate user={user} onComplete={refreshUser} />;
   }
 
