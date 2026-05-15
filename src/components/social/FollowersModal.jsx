@@ -237,7 +237,7 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
               return (
                 <div key={follow.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition">
                   <button
-                    onClick={() => { navigate(createPageUrl("UserProfile") + `?user=${email}`); onClose(); }}
+                    onClick={() => { navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(email)}`); onClose(); }}
                     className="flex items-center gap-3 flex-1 min-w-0"
                   >
                     {photo ? (
