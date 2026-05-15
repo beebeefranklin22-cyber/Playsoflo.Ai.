@@ -75,6 +75,7 @@ export default function UniversalSearch() {
       return allUsers.filter(u =>
         u.username?.toLowerCase().includes(term) ||
         u.full_name?.toLowerCase().includes(term) ||
+        u.email?.toLowerCase().includes(term) ||
         u.bio?.toLowerCase().includes(term)
       );
     },
@@ -383,7 +384,7 @@ export default function UniversalSearch() {
                 <section className="space-y-3">
                   <h3 className="text-white font-bold flex items-center gap-2"><User className="w-4 h-4" /> Users ({users.length})</h3>
                   {users.slice(0, 3).map(u => (
-                    <ResultCard key={u.id} item={u} type="User" icon={User} onClick={() => navigate(createPageUrl("UserProfile") + `?username=${u.username || u.id}`)} />
+                    <ResultCard key={u.id} item={u} type="User" icon={User} onClick={() => navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(u.email)}`)} />
                   ))}
                   {users.length > 3 && <Button variant="outline" className="w-full text-sm" onClick={() => setActiveTab("users")}>View all {users.length} users</Button>}
                 </section>
@@ -415,7 +416,7 @@ export default function UniversalSearch() {
             </TabsContent>
             <TabsContent value="users" className="space-y-3">
               {users.map(u => (
-                <ResultCard key={u.id} item={u} type="User" icon={User} onClick={() => navigate(createPageUrl("UserProfile") + `?username=${u.username || u.id}`)} />
+                <ResultCard key={u.id} item={u} type="User" icon={User} onClick={() => navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(u.email)}`)} />
               ))}
             </TabsContent>
             <TabsContent value="services" className="space-y-3">

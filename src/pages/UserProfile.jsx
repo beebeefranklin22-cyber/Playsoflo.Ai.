@@ -31,7 +31,7 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const userParam = searchParams.get("user") || searchParams.get("username") || searchParams.get("email");
+  const userParam = searchParams.get("email") || searchParams.get("user") || searchParams.get("username");
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("posts");
   const [showFollowersModal, setShowFollowersModal] = useState(false);
@@ -48,10 +48,11 @@ export default function UserProfile() {
     queryFn: async () => {
       if (!userParam) return null;
       const users = await base44.entities.User.list();
+      const term = userParam.toLowerCase();
       return (
-        users.find(u => u.email === userParam) ||
-        users.find(u => u.username === userParam) ||
-        users.find(u => u.full_name === userParam) ||
+        users.find(u => u.email?.toLowerCase() === term) ||
+        users.find(u => u.username?.toLowerCase() === term) ||
+        users.find(u => u.full_name?.toLowerCase() === term) ||
         null
       );
     },
@@ -75,6 +76,20 @@ export default function UserProfile() {
   });
 
   const canViewContent = isOwnProfile || !isPrivate || isFollowing;
+
+  const { data: followersData = [] } = useQuery({
+    queryKey: ["followers", profileUser?.email],
+    queryFn: () => base44.entities.Follow.filter({ following_email: profileUser.email }),
+    enabled: !!profileUser?.email,
+    staleTime: 0,
+  });
+
+  const { data: followingData = [] } = useQuery({
+    queryKey: ["following", profileUser?.email],
+    queryFn: () => base44.entities.Follow.filter({ follower_email: profileUser.email }),
+    enabled: !!profileUser?.email,
+    staleTime: 0,
+  });
 
   const { data: posts = [] } = useQuery({
     queryKey: ["user-posts", profileUser?.email],
@@ -193,8 +208,7 @@ export default function UserProfile() {
           {!isOwnProfile && currentUser && (
             <div className="flex gap-2 mt-2">
               <FollowButton
-                targetEmail={profileUser.email}
-                targetName={profileUser.full_name}
+                targetUserEmail={profileUser.email}
                 currentUser={currentUser}
               />
               <button
@@ -269,11 +283,11 @@ export default function UserProfile() {
             <p className="text-gray-400 text-xs">Posts</p>
           </div>
           <button onClick={() => { setFollowersModalMode("followers"); setShowFollowersModal(true); }} className="text-center hover:opacity-80">
-            <p className="text-white font-bold">{profileUser.followers_count || 0}</p>
+            <p className="text-white font-bold">{followersData.length}</p>
             <p className="text-gray-400 text-xs">Followers</p>
           </button>
           <button onClick={() => { setFollowersModalMode("following"); setShowFollowersModal(true); }} className="text-center hover:opacity-80">
-            <p className="text-white font-bold">{profileUser.following_count || 0}</p>
+            <p className="text-white font-bold">{followingData.length}</p>
             <p className="text-gray-400 text-xs">Following</p>
           </button>
         </div>
