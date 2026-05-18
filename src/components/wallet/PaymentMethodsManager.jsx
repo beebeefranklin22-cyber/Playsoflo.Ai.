@@ -14,15 +14,20 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel }) {
+function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUser }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [cardholderName, setCardholderName] = useState(currentUser?.full_name || "");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements) {
       toast.error("Payment form not ready");
+      return;
+    }
+    if (!cardholderName.trim()) {
+      toast.error("Please enter the cardholder name");
       return;
     }
 
@@ -36,13 +41,14 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel }) {
         ({ error, setupIntent } = await stripe.confirmUsBankAccountSetup(clientSecret, {
           payment_method: {
             us_bank_account: elements.getElement('usBankAccount'),
-            billing_details: { name: 'Account Holder' }
+            billing_details: { name: cardholderName, email: currentUser?.email }
           }
         }));
       } else {
         ({ error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
           payment_method: {
             card: elements.getElement(CardElement),
+            billing_details: { name: cardholderName, email: currentUser?.email },
           }
         }));
       }
@@ -72,6 +78,18 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="text-gray-400 text-sm mb-1.5 block">Cardholder Name</label>
+        <input
+          type="text"
+          value={cardholderName}
+          onChange={(e) => setCardholderName(e.target.value)}
+          placeholder="Full name on card"
+          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
+        />
+      </div>
+      <div>
+        <label className="text-gray-400 text-sm mb-1.5 block">Card Details</label>
       <div className="bg-white rounded-xl p-4 border border-gray-300">
         <CardElement
           options={{
@@ -84,9 +102,10 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel }) {
               },
               invalid: { color: '#ef4444' },
             },
-            hidePostalCode: true
+            hidePostalCode: false
           }}
         />
+      </div>
       </div>
       <p className="text-gray-400 text-xs">
         <Shield className="w-3 h-3 inline mr-1" />
@@ -409,10 +428,11 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                           {addMode === 'bank' ? 'Add Bank Account (Secure)' : 'Add Card (Secure)'}
                         </h3>
                         <Elements stripe={stripePromise}>
-                          <StripePaymentForm
-                            clientSecret={clientSecret}
-                            mode={addMode}
-                            onSuccess={() => {
+                         <StripePaymentForm
+                           clientSecret={clientSecret}
+                           mode={addMode}
+                           currentUser={currentUser}
+                           onSuccess={() => {
                               setShowAddCard(false);
                               setClientSecret(null);
                               queryClient.invalidateQueries(['payment-methods']);

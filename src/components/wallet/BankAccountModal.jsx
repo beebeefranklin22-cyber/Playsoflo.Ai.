@@ -2,65 +2,69 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { X, Building, Plus, Trash2, CheckCircle, Clock } from "lucide-react";
+import { X, Building, Plus, Trash2, CheckCircle, Clock, Lock, Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
+const COMMON_BANKS = ["Chase", "Bank of America", "Wells Fargo", "Citibank", "US Bank", "PNC", "Capital One", "TD Bank", "Truist", "SunTrust", "Other"];
+
 export default function BankAccountModal({ currentUser, onClose }) {
   const qc = useQueryClient();
   const [showAddAccount, setShowAddAccount] = useState(false);
-  const [accountForm, setAccountForm] = useState({
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [showRouting, setShowRouting] = useState(false);
+  const [form, setForm] = useState({
     account_type: "checking",
     bank_name: "",
+    account_holder_name: "",
     routing_number: "",
-    account_number_last4: ""
+    account_number: "",
+    confirm_account_number: "",
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["bank-accounts", currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser) return [];
-      return await base44.entities.BankAccount.filter({ user_email: currentUser.email });
-    },
+    queryFn: () => base44.entities.BankAccount.filter({ user_email: currentUser.email }),
     enabled: !!currentUser,
-    initialData: []
   });
 
-  const addAccountMutation = useMutation({
+  const addMutation = useMutation({
     mutationFn: (data) => base44.entities.BankAccount.create({
-      ...data,
       user_email: currentUser.email,
+      account_type: data.account_type,
+      bank_name: data.bank_name,
+      account_holder_name: data.account_holder_name,
+      routing_number: data.routing_number,
+      account_number_last4: data.account_number.slice(-4),
       is_verified: false,
-      is_primary: accounts.length === 0
+      is_primary: accounts.length === 0,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bank-accounts"] });
       setShowAddAccount(false);
-      setAccountForm({
-        account_type: "checking",
-        bank_name: "",
-        routing_number: "",
-        account_number_last4: ""
-      });
-      toast.success('Bank account added successfully!');
+      setForm({ account_type: "checking", bank_name: "", account_holder_name: "", routing_number: "", account_number: "", confirm_account_number: "" });
+      toast.success("Bank account linked! Verification may take 1-2 business days.");
     },
-    onError: (error) => {
-      toast.error(error?.message || 'Failed to add bank account');
-    }
+    onError: (err) => toast.error(err?.message || "Failed to link account"),
   });
 
-  const deleteAccountMutation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.BankAccount.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bank-accounts"] });
-      toast.success('Bank account removed');
+      toast.success("Bank account removed");
     },
-    onError: (error) => {
-      toast.error(error?.message || 'Failed to remove account');
-    }
   });
+
+  const handleSubmit = () => {
+    if (!form.account_holder_name.trim()) { toast.error("Enter account holder name"); return; }
+    if (!form.bank_name) { toast.error("Select your bank"); return; }
+    if (!/^\d{9}$/.test(form.routing_number)) { toast.error("Routing number must be exactly 9 digits"); return; }
+    if (form.account_number.length < 5 || !/^\d+$/.test(form.account_number)) { toast.error("Enter a valid account number"); return; }
+    if (form.account_number !== form.confirm_account_number) { toast.error("Account numbers do not match"); return; }
+    addMutation.mutate(form);
+  };
 
   return (
     <AnimatePresence>
@@ -68,171 +72,237 @@ export default function BankAccountModal({ currentUser, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
+          initial={{ y: 60, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 60, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="w-full sm:max-w-lg bg-gray-950 sm:rounded-3xl rounded-t-3xl overflow-hidden max-h-[95vh] overflow-y-auto"
         >
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white">Bank Accounts</h2>
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
-                <X className="w-6 h-6 text-white" />
-              </button>
+          {/* Header */}
+          <div className="sticky top-0 bg-gray-950 border-b border-white/10 px-5 py-4 flex items-center justify-between z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-green-500/20 rounded-xl flex items-center justify-center">
+                <Building className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-white font-bold text-lg">Bank Accounts</h2>
+                <p className="text-gray-500 text-xs">{accounts.length} account{accounts.length !== 1 ? "s" : ""} linked</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
           </div>
 
-          <div className="p-6 space-y-4">
-            {!showAddAccount && (
-              <Button
-                onClick={() => setShowAddAccount(true)}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 py-6"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Link Bank Account
-              </Button>
-            )}
-
-            {showAddAccount && (
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6 space-y-4">
-                  <h3 className="text-white font-bold text-lg">Link Bank Account</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Account Type</label>
-                      <select
-                        value={accountForm.account_type}
-                        onChange={(e) => setAccountForm({...accountForm, account_type: e.target.value})}
-                        className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
-                      >
-                        <option value="checking">Checking</option>
-                        <option value="savings">Savings</option>
-                        <option value="business">Business</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Bank Name</label>
-                      <Input
-                        value={accountForm.bank_name}
-                        onChange={(e) => setAccountForm({...accountForm, bank_name: e.target.value})}
-                        placeholder="Chase, Bank of America, etc."
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Routing Number</label>
-                      <Input
-                        value={accountForm.routing_number}
-                        onChange={(e) => setAccountForm({...accountForm, routing_number: e.target.value})}
-                        placeholder="9 digits"
-                        maxLength="9"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-gray-400 text-sm mb-2 block">Account Number (Last 4)</label>
-                      <Input
-                        value={accountForm.account_number_last4}
-                        onChange={(e) => setAccountForm({...accountForm, account_number_last4: e.target.value})}
-                        placeholder="1234"
-                        maxLength="4"
-                        className="bg-white/10 border-white/20 text-white"
-                      />
+          <div className="p-5 space-y-4">
+            <AnimatePresence>
+              {showAddAccount && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-white font-semibold">Link Bank Account</h3>
+                    <div className="flex items-center gap-1.5 text-green-400 text-xs">
+                      <Lock className="w-3 h-3" />
+                      256-bit Encrypted
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => setShowAddAccount(false)}
-                      variant="outline"
-                      className="flex-1"
+                  {/* Account Type */}
+                  <div className="flex gap-2">
+                    {["checking", "savings", "business"].map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setForm({ ...form, account_type: t })}
+                        className={`flex-1 py-2 rounded-xl text-xs font-medium transition ${
+                          form.account_type === t
+                            ? "bg-green-500/20 text-green-300 border border-green-500/40"
+                            : "bg-white/5 text-gray-400 border border-white/10"
+                        }`}
+                      >
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Account Holder Name */}
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Account Holder Name</label>
+                    <Input
+                      value={form.account_holder_name}
+                      onChange={(e) => setForm({ ...form, account_holder_name: e.target.value })}
+                      placeholder="Full name as it appears on account"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                  </div>
+
+                  {/* Bank Name */}
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Bank Name</label>
+                    <select
+                      value={form.bank_name}
+                      onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
+                      className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm"
                     >
+                      <option value="" disabled>Select your bank</option>
+                      {COMMON_BANKS.map((b) => (
+                        <option key={b} value={b} className="bg-gray-900">{b}</option>
+                      ))}
+                    </select>
+                    {form.bank_name === "Other" && (
+                      <Input
+                        className="bg-white/10 border-white/20 text-white mt-2"
+                        placeholder="Enter bank name"
+                        onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
+                      />
+                    )}
+                  </div>
+
+                  {/* Routing Number */}
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Routing Number (9 digits)</label>
+                    <div className="relative">
+                      <Input
+                        value={form.routing_number}
+                        onChange={(e) => setForm({ ...form, routing_number: e.target.value.replace(/\D/g, "").slice(0, 9) })}
+                        placeholder="123456789"
+                        inputMode="numeric"
+                        type={showRouting ? "text" : "password"}
+                        className="bg-white/10 border-white/20 text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRouting(!showRouting)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {showRouting ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-gray-600 text-xs mt-1">Found at the bottom left of your check</p>
+                  </div>
+
+                  {/* Account Number */}
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Account Number</label>
+                    <div className="relative">
+                      <Input
+                        value={form.account_number}
+                        onChange={(e) => setForm({ ...form, account_number: e.target.value.replace(/\D/g, "").slice(0, 17) })}
+                        placeholder="Enter full account number"
+                        inputMode="numeric"
+                        type={showAccountNumber ? "text" : "password"}
+                        className="bg-white/10 border-white/20 text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAccountNumber(!showAccountNumber)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {showAccountNumber ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Account Number */}
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Confirm Account Number</label>
+                    <Input
+                      value={form.confirm_account_number}
+                      onChange={(e) => setForm({ ...form, confirm_account_number: e.target.value.replace(/\D/g, "").slice(0, 17) })}
+                      placeholder="Re-enter account number"
+                      inputMode="numeric"
+                      type="password"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    {form.confirm_account_number && form.account_number !== form.confirm_account_number && (
+                      <p className="text-red-400 text-xs mt-1">Account numbers do not match</p>
+                    )}
+                    {form.confirm_account_number && form.account_number === form.confirm_account_number && form.account_number.length > 0 && (
+                      <p className="text-green-400 text-xs mt-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Account numbers match</p>
+                    )}
+                  </div>
+
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-yellow-300 text-xs">
+                    Micro-deposits of $0.01–$0.99 will be sent to verify your account within 1-2 business days.
+                  </div>
+
+                  <div className="flex gap-3 pt-1">
+                    <Button variant="outline" onClick={() => setShowAddAccount(false)} className="flex-1 border-white/20 bg-transparent text-white">
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => {
-                        if (!accountForm.bank_name || !accountForm.routing_number || !accountForm.account_number_last4) {
-                          toast.error('Please fill in all fields');
-                          return;
-                        }
-                        if (accountForm.routing_number.length !== 9) {
-                          toast.error('Routing number must be 9 digits');
-                          return;
-                        }
-                        if (accountForm.account_number_last4.length !== 4) {
-                          toast.error('Account number last 4 must be 4 digits');
-                          return;
-                        }
-                        addAccountMutation.mutate(accountForm);
-                      }}
-                      disabled={addAccountMutation.isPending}
-                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      onClick={handleSubmit}
+                      disabled={addMutation.isPending}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                     >
-                      {addAccountMutation.isPending ? 'Linking...' : 'Link Account'}
+                      {addMutation.isPending ? "Linking..." : "Link Account"}
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!showAddAccount && (
+              <button
+                onClick={() => setShowAddAccount(true)}
+                className="w-full border-2 border-dashed border-white/20 rounded-2xl py-4 flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:border-white/40 transition"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="font-medium">Link Bank Account</span>
+              </button>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {accounts.map((account) => (
-                <Card key={account.id} className="bg-white/5 border-white/10">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                          <Building className="w-6 h-6 text-green-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-bold">{account.bank_name}</h4>
-                          <p className="text-gray-400 text-sm capitalize">{account.account_type}</p>
-                          <p className="text-gray-500 text-xs">••••{account.account_number_last4}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {account.is_verified ? (
-                              <div className="flex items-center gap-1 text-green-400 text-xs">
-                                <CheckCircle className="w-3 h-3" />
-                                Verified
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1 text-yellow-400 text-xs">
-                                <Clock className="w-3 h-3" />
-                                Pending Verification
-                              </div>
-                            )}
-                            {account.is_primary && (
-                              <span className="px-2 py-0.5 bg-green-500/20 text-green-300 text-xs rounded-full">
-                                Primary
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => deleteAccountMutation.mutate(account.id)}
-                        className="p-2 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-400" />
-                      </button>
+                <div key={account.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 bg-green-500/15 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Building className="w-5 h-5 text-green-400" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <div>
+                      <div className="text-white font-semibold">{account.bank_name}</div>
+                      {account.account_holder_name && (
+                        <div className="text-gray-400 text-xs">{account.account_holder_name}</div>
+                      )}
+                      <div className="text-gray-400 text-sm capitalize">{account.account_type} ••••{account.account_number_last4}</div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {account.is_verified ? (
+                          <span className="flex items-center gap-1 text-green-400 text-xs bg-green-500/10 px-2 py-0.5 rounded-full">
+                            <CheckCircle className="w-3 h-3" /> Verified
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-yellow-400 text-xs bg-yellow-500/10 px-2 py-0.5 rounded-full">
+                            <Clock className="w-3 h-3" /> Pending
+                          </span>
+                        )}
+                        {account.is_primary && (
+                          <span className="text-blue-400 text-xs bg-blue-500/10 px-2 py-0.5 rounded-full">Primary</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteMutation.mutate(account.id)}
+                    className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
 
             {accounts.length === 0 && !showAddAccount && (
-              <div className="text-center py-12">
-                <Building className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-400">No bank accounts linked yet</p>
+              <div className="text-center py-10">
+                <Building className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 font-medium">No bank accounts linked</p>
+                <p className="text-gray-600 text-sm">Link an account for withdrawals and payouts</p>
               </div>
             )}
           </div>

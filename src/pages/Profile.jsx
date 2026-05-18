@@ -28,6 +28,7 @@ import FollowStats from "../components/social/FollowStats";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
+import EditProfileModal from "../components/profile/EditProfileModal";
 
 // Skeleton shimmer for fast perceived loading
 function ProfileSkeleton() {
@@ -411,11 +412,11 @@ export default function Profile() {
               Privacy
             </Button>
             <Button
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => setIsEditing(true)}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Edit2 className="w-4 h-4 mr-2" />
-              {isEditing ? "Cancel" : "Edit"}
+              Edit Profile
             </Button>
           </div>
         </div>
@@ -488,140 +489,15 @@ export default function Profile() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6 mt-6">
-            {isEditing ? (
-              <Card className="glass-effect border-white/10">
-                <CardHeader>
-                  <CardTitle className="text-white">Edit Profile</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Full Name</label>
-                    <Input
-                      value={editedUser.full_name}
-                      onChange={(e) => setEditedUser({ ...editedUser, full_name: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+            <Card className="glass-effect border-white/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <FollowStats userEmail={currentUser?.email} currentUser={currentUser} />
                   </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Username</label>
-                    <Input
-                      value={editedUser.username}
-                      onChange={(e) => setEditedUser({ ...editedUser, username: e.target.value })}
-                      placeholder="@yourhandle"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Bio</label>
-                    <Textarea
-                      value={editedUser.bio}
-                      onChange={(e) => setEditedUser({ ...editedUser, bio: e.target.value })}
-                      placeholder="Tell us about yourself..."
-                      className="bg-white/10 border-white/20 text-white"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Link in Bio</label>
-                    <Input
-                      value={editedUser.link_in_bio}
-                      onChange={(e) => setEditedUser({ ...editedUser, link_in_bio: e.target.value })}
-                      placeholder="https://yourlink.com"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Phone</label>
-                    <Input
-                      value={editedUser.phone}
-                      onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Address</label>
-                    <Input
-                      value={editedUser.address}
-                      onChange={(e) => setEditedUser({ ...editedUser, address: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Website</label>
-                    <Input
-                      value={editedUser.website}
-                      onChange={(e) => setEditedUser({ ...editedUser, website: e.target.value })}
-                      placeholder="https://yourwebsite.com"
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Social Links</label>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Twitter className="w-4 h-4 text-gray-400" />
-                        <Input
-                          value={editedUser.social_links.twitter}
-                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, twitter: e.target.value }})}
-                          placeholder="Twitter username"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Instagram className="w-4 h-4 text-gray-400" />
-                        <Input
-                          value={editedUser.social_links.instagram}
-                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, instagram: e.target.value }})}
-                          placeholder="Instagram username"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Facebook className="w-4 h-4 text-gray-400" />
-                        <Input
-                          value={editedUser.social_links.facebook}
-                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, facebook: e.target.value }})}
-                          placeholder="Facebook username"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Youtube className="w-4 h-4 text-gray-400" />
-                        <Input
-                          value={editedUser.social_links.youtube}
-                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, youtube: e.target.value }})}
-                          placeholder="YouTube channel"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Linkedin className="w-4 h-4 text-gray-400" />
-                        <Input
-                          value={editedUser.social_links.linkedin}
-                          onChange={(e) => setEditedUser({ ...editedUser, social_links: { ...editedUser.social_links, linkedin: e.target.value }})}
-                          placeholder="LinkedIn username"
-                          className="bg-white/10 border-white/20 text-white"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <Button onClick={handleSave} disabled={updateUserMutation.isPending} className="w-full bg-purple-600 hover:bg-purple-700">
-                    {updateUserMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    {updateUserMutation.isPending ? "Saving…" : "Save Changes"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="glass-effect border-white/10">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                        <FollowStats userEmail={currentUser?.email} currentUser={currentUser} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-            )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Interests Management */}
             <Card className="glass-effect border-white/10">
@@ -1104,6 +980,20 @@ export default function Profile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {isEditing && (
+          <EditProfileModal
+            currentUser={currentUser}
+            onClose={() => setIsEditing(false)}
+            onSaved={async () => {
+              const user = await base44.auth.me();
+              setCurrentUser(user);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Privacy Settings Modal */}
       <AnimatePresence>

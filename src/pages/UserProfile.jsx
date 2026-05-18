@@ -47,14 +47,29 @@ export default function UserProfile() {
     queryKey: ["profile-user", userParam],
     queryFn: async () => {
       if (!userParam) return null;
-      const users = await base44.entities.User.list();
       const term = userParam.toLowerCase();
-      return (
-        users.find(u => u.email?.toLowerCase() === term) ||
-        users.find(u => u.username?.toLowerCase() === term) ||
-        users.find(u => u.full_name?.toLowerCase() === term) ||
-        null
-      );
+
+      // Try by email first (most reliable, direct filter)
+      if (term.includes("@")) {
+        try {
+          const byEmail = await base44.entities.User.filter({ email: term });
+          if (byEmail?.length > 0) return byEmail[0];
+        } catch {}
+      }
+
+      // Try by username
+      try {
+        const byUsername = await base44.entities.User.filter({ username: term });
+        if (byUsername?.length > 0) return byUsername[0];
+      } catch {}
+
+      // Try by email fallback (non-@ param could still be an email)
+      try {
+        const byEmail2 = await base44.entities.User.filter({ email: term });
+        if (byEmail2?.length > 0) return byEmail2[0];
+      } catch {}
+
+      return null;
     },
     enabled: !!userParam,
   });
