@@ -74,8 +74,22 @@ export default function Messages() {
     if (!currentUser) return;
     
     const unsubscribe = base44.entities.ChatConversation.subscribe((event) => {
-      if (event.data.participants?.includes(currentUser.email)) {
+      if (event.data?.participants?.includes(currentUser.email)) {
         queryClient.invalidateQueries(['conversations']);
+        // Browser push notification for new messages when tab is not focused
+        if (
+          event.type === 'update' &&
+          event.data.last_message_sender &&
+          event.data.last_message_sender !== currentUser.email &&
+          document.hidden &&
+          Notification.permission === 'granted'
+        ) {
+          new Notification('New Message', {
+            body: event.data.last_message || 'You have a new message',
+            icon: '/icon-192.png',
+            tag: event.data.id,
+          });
+        }
       }
     });
     

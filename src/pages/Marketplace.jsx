@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageWrapper from "@/components/PageWrapper";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,7 @@ import {
   Smartphone, Zap, Droplets, Paintbrush, Wind,
   Eye, Waves, Trash2, Key, FileText, DollarSign,
   FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon,
-  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck, SlidersHorizontal, X
+  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck, SlidersHorizontal, X, Plus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,7 @@ import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import ListItemModal from "../components/marketplace/ListItemModal";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -142,7 +143,13 @@ export default function Marketplace() {
   const [locationCity, setLocationCity] = useState("");
   const [locationRadius, setLocationRadius] = useState(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
+  const [showListModal, setShowListModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  useEffect(() => {
+    base44.auth.me().then(setCurrentUser).catch(() => {});
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -486,6 +493,17 @@ export default function Marketplace() {
           <p className="text-gray-300 text-lg mb-4">
             60+ service categories - find anything you need
           </p>
+
+          {/* List Item CTA */}
+          {currentUser && (
+            <button
+              onClick={() => setShowListModal(true)}
+              className="mb-3 flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white font-semibold text-sm hover:scale-105 transition-transform shadow-lg shadow-orange-500/20"
+            >
+              <Plus className="w-4 h-4" />
+              List Your Product or Service
+            </button>
+          )}
 
           {/* Search Bar */}
           <div className="flex gap-3 max-w-3xl">
@@ -1110,6 +1128,18 @@ export default function Marketplace() {
           onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
         />
       )}
+
+      <AnimatePresence>
+        {showListModal && currentUser && (
+          <ListItemModal
+            currentUser={currentUser}
+            onClose={() => setShowListModal(false)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
