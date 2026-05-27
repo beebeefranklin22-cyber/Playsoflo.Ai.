@@ -3,7 +3,7 @@ import PageWrapper from "@/components/PageWrapper";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  ChevronLeft, Car, Plane, Anchor, Rocket, Bike,
+  Car, Plane, Anchor, Rocket, Bike,
   Briefcase, Search, Globe, Key, Clock
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -147,7 +147,16 @@ export default function Travel() {
                 <Clock className="w-5 h-5" />
                 <span className="hidden sm:inline">My Rides</span>
               </button>
-              {currentUser && <BecomeDriverButton currentUser={currentUser} />}
+              {currentUser && !currentUser.is_driver && <BecomeDriverButton currentUser={currentUser} />}
+              {currentUser?.is_driver && (
+                <button
+                  onClick={() => navigate(createPageUrl("DriverHub"))}
+                  className="px-4 py-2 bg-green-600/80 backdrop-blur-xl rounded-full hover:bg-green-600 transition border border-green-500/40 text-white font-medium flex items-center gap-2"
+                >
+                  <Car className="w-5 h-5" />
+                  <span>Driver Hub</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

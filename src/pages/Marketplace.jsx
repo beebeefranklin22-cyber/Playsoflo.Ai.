@@ -360,11 +360,12 @@ export default function Marketplace() {
       return false;
     }
 
-    // Location filter
+    // Location filter — only filter out items that have a location set AND it doesn't match
     if (locationCity) {
       const q = locationCity.toLowerCase();
-      const hay = [item.location, item.service_area, item.provider_name].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+      const hay = [item.location, item.service_area].filter(Boolean).join(" ").toLowerCase();
+      // If item has no location set, always show it (don't hide newly listed items)
+      if (hay.length > 0 && !hay.includes(q)) return false;
     }
 
     // Category filter

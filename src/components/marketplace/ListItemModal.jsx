@@ -25,12 +25,12 @@ const CATEGORIES = [
 ];
 
 const PRICE_TYPES = [
-  { value: "each", label: "Per Item" },
-  { value: "hour", label: "Per Hour" },
-  { value: "day", label: "Per Day" },
-  { value: "month", label: "Per Month" },
-  { value: "flat", label: "Flat Rate" },
-  { value: "night", label: "Per Night" },
+  { value: "fixed", label: "Per Item / Fixed" },
+  { value: "hourly", label: "Per Hour" },
+  { value: "per_day", label: "Per Day" },
+  { value: "per_month", label: "Per Month" },
+  { value: "per_project", label: "Per Project" },
+  { value: "negotiable", label: "Negotiable" },
 ];
 
 export default function ListItemModal({ currentUser, onClose, onSuccess }) {
@@ -39,7 +39,7 @@ export default function ListItemModal({ currentUser, onClose, onSuccess }) {
     description: "",
     category: "",
     price: "",
-    price_type: "each",
+    price_type: "fixed",
     image_url: "",
     location: "",
     service_area: "",

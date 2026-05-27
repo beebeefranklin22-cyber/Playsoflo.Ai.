@@ -21,8 +21,8 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
   });
 
   const handlePayment = async () => {
-    if (!rideDetails || !rideDetails.totalFare) {
-      toast.error("Invalid ride details");
+    if (!rideDetails || !rideDetails.totalFare || rideDetails.totalFare <= 0) {
+      toast.error("Invalid ride details. Please recalculate route.");
       return;
     }
 

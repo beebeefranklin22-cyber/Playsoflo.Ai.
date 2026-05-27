@@ -70,14 +70,54 @@ export default function UniversalSearch() {
     queryKey: ['search-users', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery) return [];
-      const allUsers = await base44.entities.User.list();
       const term = debouncedQuery.toLowerCase().replace('@', '');
-      return allUsers.filter(u =>
-        u.username?.toLowerCase().includes(term) ||
-        u.full_name?.toLowerCase().includes(term) ||
-        u.email?.toLowerCase().includes(term) ||
-        u.bio?.toLowerCase().includes(term)
-      );
+      // Search SocialPost creators and MarketplaceItem providers as proxies for users
+      // since User.list() is restricted to admins
+      const [posts, items] = await Promise.all([
+        base44.entities.SocialPost.list('-created_date', 200),
+        base44.entities.MarketplaceItem.list('-created_date', 200),
+      ]);
+      const seen = new Set();
+      const results = [];
+      for (const p of posts) {
+        const key = p.created_by || p.creator_email;
+        if (!key || seen.has(key)) continue;
+        const name = p.creator_name || p.creator_username || '';
+        if (
+          name.toLowerCase().includes(term) ||
+          key.toLowerCase().includes(term) ||
+          (p.creator_username || '').toLowerCase().includes(term)
+        ) {
+          seen.add(key);
+          results.push({
+            id: key,
+            email: key,
+            full_name: p.creator_name || p.creator_username || key,
+            username: p.creator_username,
+            profile_photo: p.creator_photo,
+            bio: null,
+          });
+        }
+      }
+      for (const item of items) {
+        const key = item.provider_email;
+        if (!key || seen.has(key)) continue;
+        if (
+          (item.provider_name || '').toLowerCase().includes(term) ||
+          key.toLowerCase().includes(term)
+        ) {
+          seen.add(key);
+          results.push({
+            id: key,
+            email: key,
+            full_name: item.provider_name || key,
+            username: null,
+            profile_photo: null,
+            bio: item.description,
+          });
+        }
+      }
+      return results;
     },
     enabled: debouncedQuery.length > 0
   });
