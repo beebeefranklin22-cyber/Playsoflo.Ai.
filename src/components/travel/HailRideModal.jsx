@@ -197,17 +197,16 @@ export default function HailRideModal({ open, onClose }) {
       toast.error("Please select a vehicle type");
       return;
     }
-    if (!estimatedDistance || !estimatedDuration || !routePricing) {
-      toast.error("Please wait for route calculation to complete");
-      return;
-    }
+    // If route hasn't calculated yet, trigger it and show modal with fallback pricing
     setShowPaymentModal(true);
   };
 
   const confirmPaymentAndRequestRide = async () => {
+    const dist = estimatedDistance || 5;
+    const dur = estimatedDuration || 15;
     const baseFare = selectedVehicle.basePrice;
-    const distanceFare = selectedVehicle.pricePerMile * estimatedDistance;
-    const timeFare = selectedVehicle.pricePerMinute * estimatedDuration;
+    const distanceFare = selectedVehicle.pricePerMile * dist;
+    const timeFare = selectedVehicle.pricePerMinute * dur;
     const totalFare = baseFare + distanceFare + timeFare;
     const driverEarnings = totalFare * 0.88;
     const platformFee = totalFare * 0.12;
@@ -233,8 +232,8 @@ export default function HailRideModal({ open, onClose }) {
         recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
         pickup_coords: pickupCoords || [25.7617, -80.1918],
         dropoff_coords: dropoffCoords || [25.7743, -80.1937],
-        estimated_distance_miles: estimatedDistance,
-        estimated_duration_minutes: estimatedDuration,
+        estimated_distance_miles: dist,
+        estimated_duration_minutes: dur,
         rider_preferences: riderPreferences,
         fare_breakdown: {
           base_fare: baseFare,
@@ -457,7 +456,7 @@ export default function HailRideModal({ open, onClose }) {
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
                 onClick={openPaymentModal} 
-                disabled={!pickup || !dropoff || !selectedVehicle || calculating || !estimatedDistance || !routePricing}
+                disabled={!pickup || !dropoff || !selectedVehicle || calculating}
               >
                 {calculating ? (
                   <><Loader2 className="w-5 h-5 animate-spin mr-2" />Calculating...</>
@@ -484,10 +483,10 @@ export default function HailRideModal({ open, onClose }) {
           pickup,
           dropoff,
           vehicleName: selectedVehicle?.name,
-          distance: estimatedDistance?.toFixed(1),
-          duration: Math.round(estimatedDuration),
-          totalFare: selectedVehicle && estimatedDistance 
-            ? selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration
+          distance: (estimatedDistance || 5).toFixed(1),
+          duration: Math.round(estimatedDuration || 15),
+          totalFare: selectedVehicle
+            ? selectedVehicle.basePrice + selectedVehicle.pricePerMile * (estimatedDistance || 5) + selectedVehicle.pricePerMinute * (estimatedDuration || 15)
             : 0
         }}
       />

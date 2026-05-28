@@ -30,7 +30,7 @@ const pillars = [
     gradient: "from-pink-600 via-rose-600 to-pink-600",
     image: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1200",
     features: ["Stories", "Live Posts", "Connect", "Experiences"],
-    action: "Home"
+    action: "Social"
   },
   {
     id: "music",
@@ -161,7 +161,7 @@ const updatedPillars = [
 
 export default function Universe() {
   const navigate = useNavigate();
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showMap, setShowMap] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
