@@ -47,83 +47,44 @@ export default function UserProfile() {
     queryKey: ["profile-user", userParam],
     queryFn: async () => {
       if (!userParam) return null;
-      const term = userParam.toLowerCase();
 
-      // Try User entity (works for own profile or admin)
+      // Try exact email match first (most reliable)
       if (userParam.includes("@")) {
         try {
           const byEmail = await base44.entities.User.filter({ email: userParam });
           if (byEmail?.length > 0) return byEmail[0];
-        } catch {}
-        try {
-          const byEmailLower = await base44.entities.User.filter({ email: term });
+          // Try lowercase
+          const byEmailLower = await base44.entities.User.filter({ email: userParam.toLowerCase() });
           if (byEmailLower?.length > 0) return byEmailLower[0];
         } catch {}
       }
+
+      // Try by username (exact, then lowercase)
       try {
         const byUsername = await base44.entities.User.filter({ username: userParam });
         if (byUsername?.length > 0) return byUsername[0];
       } catch {}
-
-      // Fallback: reconstruct profile from public social data
-      // SocialPost has creator_name, creator_photo, creator_email, creator_username
       try {
-        const posts = await base44.entities.SocialPost.filter(
-          userParam.includes("@") ? { created_by: userParam } : { creator_username: userParam },
-          '-created_date', 5
-        );
-        if (posts?.length > 0) {
-          const p = posts[0];
-          return {
-            id: p.created_by,
-            email: p.created_by,
-            full_name: p.creator_name || p.creator_username || p.created_by,
-            username: p.creator_username,
-            profile_picture: p.creator_photo,
-            bio: null,
-            _fromPublicData: true,
-          };
-        }
+        const byUsernameLower = await base44.entities.User.filter({ username: userParam.toLowerCase() });
+        if (byUsernameLower?.length > 0) return byUsernameLower[0];
       } catch {}
 
-      // Try Reel entity
+      // Fallback: try as email even without @
       try {
-        const reelData = await base44.entities.Reel.filter(
-          userParam.includes("@") ? { creator_email: userParam } : { creator_name: userParam },
-          '-created_date', 3
-        );
-        if (reelData?.length > 0) {
-          const r = reelData[0];
-          return {
-            id: r.creator_email,
-            email: r.creator_email,
-            full_name: r.creator_name || r.creator_email,
-            username: null,
-            profile_picture: r.creator_photo,
-            bio: null,
-            _fromPublicData: true,
-          };
-        }
+        const byEmail2 = await base44.entities.User.filter({ email: userParam });
+        if (byEmail2?.length > 0) return byEmail2[0];
       } catch {}
 
-      // Try MarketplaceItem
+      // Last resort: list and search (handles edge cases)
       try {
-        const items = await base44.entities.MarketplaceItem.filter(
-          { provider_email: userParam.includes("@") ? userParam : undefined },
-          '-created_date', 3
+        const allUsers = await base44.entities.User.list('-created_date', 200);
+        const term = userParam.toLowerCase();
+        const found = allUsers.find(u =>
+          u.email?.toLowerCase() === term ||
+          u.username?.toLowerCase() === term ||
+          u.full_name?.toLowerCase() === term
         );
-        if (items?.length > 0) {
-          const item = items[0];
-          return {
-            id: item.provider_email,
-            email: item.provider_email,
-            full_name: item.provider_name || item.provider_email,
-            username: null,
-            profile_picture: null,
-            bio: item.description,
-            _fromPublicData: true,
-          };
-        }
+        if (found) return found;
       } catch {}
 
       return null;
