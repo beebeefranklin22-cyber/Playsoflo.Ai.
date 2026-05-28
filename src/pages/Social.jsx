@@ -46,8 +46,26 @@ export default function Social() {
   const { data: popularUsers = [] } = useQuery({
     queryKey: ['popular-users'],
     queryFn: async () => {
-      const users = await base44.entities.User.list();
-      return users.filter(u => u.email !== currentUser?.email).slice(0, 10);
+      // User.list() is admin-only — build popular users list from public SocialPost data
+      const posts = await base44.entities.SocialPost.list('-likes_count', 100);
+      const seen = new Set();
+      const result = [];
+      for (const p of posts) {
+        const email = p.created_by;
+        if (!email || seen.has(email) || email === currentUser?.email) continue;
+        seen.add(email);
+        result.push({
+          id: email,
+          email,
+          full_name: p.creator_name || email.split('@')[0],
+          username: p.creator_username,
+          profile_picture: p.creator_photo,
+          bio: p.caption?.slice(0, 80),
+          is_creator: true,
+        });
+        if (result.length >= 12) break;
+      }
+      return result;
     },
     enabled: !!currentUser
   });
@@ -208,7 +226,7 @@ export default function Social() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => navigate(createPageUrl("UserProfile") + `?user=${post.created_by}`)}
+                  onClick={() => navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(post.created_by)}`)}
                   className="group cursor-pointer"
                 >
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800">
@@ -265,12 +283,14 @@ export default function Social() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  onClick={() => navigate(createPageUrl("UserProfile") + `?user=${encodeURIComponent(user.email)}`)}
+                  onClick={() => navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(user.email)}`)}
                   className="glass-effect border-white/10 rounded-2xl p-6 hover:bg-white/10 transition cursor-pointer"
                 >
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl">
-                      {user.full_name?.[0] || user.email[0].toUpperCase()}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-2xl overflow-hidden flex-shrink-0">
+                      {user.profile_picture
+                        ? <img src={user.profile_picture} alt={user.full_name} className="w-full h-full object-cover" />
+                        : (user.full_name?.[0] || user.email[0].toUpperCase())}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-bold truncate">{user.full_name || "User"}</h3>

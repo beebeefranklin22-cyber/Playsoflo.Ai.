@@ -110,10 +110,21 @@ export default function HailRideModal({ open, onClose }) {
     }
   };
 
+  const resetRoute = () => {
+    setEstimatedDistance(null);
+    setEstimatedDuration(null);
+    setRoutePricing(null);
+    setPickupCoords(null);
+    setDropoffCoords(null);
+    // Also deselect vehicle so user sees fresh "Calculate route" state
+    setSelectedVehicle(null);
+  };
+
   const handlePickupChange = (e) => {
     const val = e.target.value;
     setPickup(val);
     setPickupSuggestions([]);
+    resetRoute();
     if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
     pickupTimerRef.current = setTimeout(() => {
       fetchSuggestions(val, setPickupSuggestions, setLoadingPickupSuggestions);
@@ -124,6 +135,7 @@ export default function HailRideModal({ open, onClose }) {
     const val = e.target.value;
     setDropoff(val);
     setDropoffSuggestions([]);
+    resetRoute();
     if (dropoffTimerRef.current) clearTimeout(dropoffTimerRef.current);
     dropoffTimerRef.current = setTimeout(() => {
       fetchSuggestions(val, setDropoffSuggestions, setLoadingDropoffSuggestions);
@@ -132,8 +144,7 @@ export default function HailRideModal({ open, onClose }) {
 
   useEffect(() => {
     const autoCalculate = async () => {
-      // Validate minimum address length
-      if (!pickup || !dropoff || pickup.trim().length < 5 || dropoff.trim().length < 5 || calculating) {
+      if (!pickup || !dropoff || pickup.trim().length < 5 || dropoff.trim().length < 5) {
         return;
       }
       
@@ -329,10 +340,10 @@ export default function HailRideModal({ open, onClose }) {
                       {pickupSuggestions.length > 0 && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-800 border border-white/20 rounded-xl overflow-hidden shadow-xl">
                           {pickupSuggestions.map((s, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              onClick={() => { setPickup(s); setPickupSuggestions([]); }}
+                          <button
+                          key={i}
+                          type="button"
+                          onClick={() => { setPickup(s); setPickupSuggestions([]); resetRoute(); }}
                               className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                             >
                               <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -370,10 +381,10 @@ export default function HailRideModal({ open, onClose }) {
                     {dropoffSuggestions.length > 0 && (
                       <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-gray-800 border border-white/20 rounded-xl overflow-hidden shadow-xl">
                         {dropoffSuggestions.map((s, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => { setDropoff(s); setDropoffSuggestions([]); }}
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => { setDropoff(s); setDropoffSuggestions([]); resetRoute(); }}
                             className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                           >
                             <Navigation className="w-4 h-4 text-red-400 flex-shrink-0" />
