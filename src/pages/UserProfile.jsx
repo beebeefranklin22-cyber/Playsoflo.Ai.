@@ -47,21 +47,16 @@ export default function UserProfile() {
     queryKey: ["profile-user", userParam],
     queryFn: async () => {
       if (!userParam) return null;
+      const term = userParam.toLowerCase();
 
-      // If it looks like a MongoDB ObjectId (24 hex chars), do a direct ID lookup
-      const isId = /^[a-f0-9]{24}$/i.test(userParam);
-      if (isId) {
-        const res = await base44.functions.invoke("searchUsers", { id: userParam });
-        return res.users?.[0] || null;
-      }
-
-      // Otherwise search by email/username
+      // Search by name/username/email via the backend (service role, no restriction)
       const res = await base44.functions.invoke("searchUsers", { query: userParam });
       const users = res.users || [];
-      const term = userParam.toLowerCase();
+
+      // Prefer exact match on username or email, then fall back to first result
       return users.find(u =>
-        u.email?.toLowerCase() === term ||
-        u.username?.toLowerCase() === term
+        u.username?.toLowerCase() === term ||
+        u.email?.toLowerCase() === term
       ) || users[0] || null;
     },
     enabled: !!userParam,

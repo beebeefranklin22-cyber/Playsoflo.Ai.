@@ -39,7 +39,8 @@ export default function UserSearchBar({ placeholder = "Search users by @username
   }, [query]);
 
   const handleUserSelect = (user) => {
-    navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(user.email)}`);
+    const identifier = user.username || user.email;
+    navigate(createPageUrl("UserProfile") + `?username=${encodeURIComponent(identifier)}`);
     setQuery("");
     setShowResults(false);
   };

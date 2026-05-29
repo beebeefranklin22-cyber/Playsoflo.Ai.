@@ -29,19 +29,18 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const [videos, users] = await Promise.all([
-          base44.entities.StreamingContent.list('-views', 50),
-          base44.entities.User.list('-created_date', 30),
+        const [videos, usersRes] = await Promise.all([
+          base44.entities.StreamingContent.list('-views', 50).catch(() => []),
+          base44.functions.invoke("searchUsers", { query }),
         ]);
         const term = query.toLowerCase();
         const videoMatches = videos
           .filter(v => v.title?.toLowerCase().includes(term) || v.creator_username?.toLowerCase().includes(term))
           .slice(0, 3)
           .map(v => ({ type: 'video', label: v.title, sub: v.creator_username ? `@${v.creator_username}` : '', id: v.id }));
-        const userMatches = users
-          .filter(u => u.full_name?.toLowerCase().includes(term) || u.username?.toLowerCase().includes(term))
-          .slice(0, 2)
-          .map(u => ({ type: 'user', label: u.full_name || u.username, sub: u.username ? `@${u.username}` : '', id: u.id, username: u.username }));
+        const userMatches = (usersRes.users || [])
+          .slice(0, 4)
+          .map(u => ({ type: 'user', label: u.full_name || u.username, sub: u.username ? `@${u.username}` : u.email?.split('@')[0], id: u.id, username: u.username, email: u.email }));
         setSuggestions([...videoMatches, ...userMatches]);
       } catch { setSuggestions([]); }
       setLoading(false);
@@ -54,7 +53,9 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
     if (item.type === 'video') {
       navigate(createPageUrl("VODPlayer") + `?id=${item.id}`);
     } else if (item.type === 'user') {
-      navigate(createPageUrl("UserProfile") + `?username=${item.username || item.id}`);
+      // Navigate by username if available, otherwise by email — never by raw ID
+      const identifier = item.username || item.email;
+      navigate(createPageUrl("UserProfile") + `?username=${encodeURIComponent(identifier)}`);
     } else {
       navigate(createPageUrl("UniversalSearch") + `?search=${encodeURIComponent(item.label)}`);
     }
