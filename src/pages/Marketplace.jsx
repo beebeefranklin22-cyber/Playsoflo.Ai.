@@ -174,6 +174,7 @@ export default function Marketplace() {
   const handleRefresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['marketplace-items'] }),
+      queryClient.invalidateQueries({ queryKey: ['marketplace-inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-properties'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-p2p'] })
     ]);
@@ -372,10 +373,12 @@ export default function Marketplace() {
     const matchesCategory = selectedCategory === "all" || item.category === selectedCategory;
     
     // Search filter
+    const searchTerm = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.provider_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      item.title?.toLowerCase().includes(searchTerm) ||
+      item.description?.toLowerCase().includes(searchTerm) ||
+      item.provider_name?.toLowerCase().includes(searchTerm) ||
+      item.category?.replace(/_/g, ' ').toLowerCase().includes(searchTerm);
 
     // Price range filter
     const itemPrice = item.price || 0;
@@ -777,11 +780,17 @@ export default function Marketplace() {
                   }}
                 >
                   <div className="relative h-80 rounded-3xl overflow-hidden bg-gray-900">
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-red-600 to-purple-700 flex items-center justify-center">
+                        <ShoppingBag className="w-20 h-20 text-white/30" />
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
                     {/* Enhanced Verification Badges */}
@@ -862,8 +871,8 @@ export default function Marketplace() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="flex items-baseline gap-2 text-white">
-                            <span className="text-2xl font-bold">${item.price}</span>
-                            <span className="text-sm text-gray-400">/{item.price_type}</span>
+                                <span className="text-2xl font-bold">${Number(item.price || 0).toFixed(2)}</span>
+                            <span className="text-sm text-gray-400">/{item.price_type || 'item'}</span>
                           </div>
                           {item.price_in_soflo && (
                             <span className="text-sm text-orange-300">
