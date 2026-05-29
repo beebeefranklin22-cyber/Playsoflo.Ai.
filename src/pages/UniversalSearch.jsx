@@ -70,41 +70,8 @@ export default function UniversalSearch() {
     queryKey: ['search-users', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery) return [];
-      const term = debouncedQuery.toLowerCase().replace('@', '');
-
-      const [posts, items, reels, reviews, comments, follows] = await Promise.all([
-        base44.entities.SocialPost.list('-created_date', 300).catch(() => []),
-        base44.entities.MarketplaceItem.list('-created_date', 200).catch(() => []),
-        base44.entities.Reel.list('-created_date', 200).catch(() => []),
-        base44.entities.Review.list('-created_date', 200).catch(() => []),
-        base44.entities.Comment.list('-created_date', 200).catch(() => []),
-        base44.entities.Follow.list('-created_date', 200).catch(() => []),
-      ]);
-
-      const seen = new Set();
-      const results = [];
-
-      const addUser = (key, name, username, photo, bio) => {
-        if (!key || seen.has(key)) return;
-        const n = (name || '').toLowerCase();
-        const u = (username || '').toLowerCase();
-        if (n.includes(term) || u.includes(term) || key.toLowerCase().includes(term)) {
-          seen.add(key);
-          results.push({ id: key, email: key, full_name: name || username || key, username, profile_photo: photo, bio: bio || null });
-        }
-      };
-
-      for (const p of posts) addUser(p.created_by || p.creator_email, p.creator_name, p.creator_username, p.creator_photo, null);
-      for (const r of reels) addUser(r.creator_email, r.creator_name, null, r.creator_photo, null);
-      for (const rv of reviews) addUser(rv.reviewer_email, rv.reviewer_name, null, rv.reviewer_avatar, null);
-      for (const c of comments) addUser(c.author_email, c.author_name, c.author_username, c.author_photo, null);
-      for (const f of follows) {
-        addUser(f.follower_email, f.follower_name, f.follower_username, f.follower_photo, null);
-        addUser(f.following_email, f.following_name, f.following_username, f.following_photo, null);
-      }
-      for (const item of items) addUser(item.provider_email, item.provider_name, null, null, item.description);
-
-      return results;
+      const res = await base44.functions.invoke("searchUsers", { query: debouncedQuery });
+      return (res.users || []).map(u => ({ ...u, profile_photo: u.profile_picture }));
     },
     enabled: debouncedQuery.length > 0
   });
