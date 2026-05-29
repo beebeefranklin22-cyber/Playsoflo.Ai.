@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       return Response.json({ users: [] });
     }
 
-    const term = query.toLowerCase().replace('@', '').trim();
+    const term = query.toLowerCase().trim();
 
     // Fetch in batches to ensure we get all users
     let allUsers = [];
@@ -39,13 +39,21 @@ Deno.serve(async (req) => {
       if (allUsers.length >= 5000) break; // safety cap
     }
 
+    const termNoAt = term.replace('@', '');
     const results = allUsers
       .filter(u => {
         const name = (u.full_name || '').toLowerCase();
         const username = (u.username || '').toLowerCase();
         const email = (u.email || '').toLowerCase();
+        const emailPrefix = email.split('@')[0];
         const uid = (u.id || '').toLowerCase();
-        return name.includes(term) || username.includes(term) || email.includes(term) || uid === term;
+        return (
+          name.includes(termNoAt) ||
+          username.includes(termNoAt) ||
+          email.includes(term) ||
+          emailPrefix.includes(termNoAt) ||
+          uid === term
+        );
       })
       .map(sanitize)
       .slice(0, 20);

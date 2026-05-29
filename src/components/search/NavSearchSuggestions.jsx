@@ -53,9 +53,7 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
     if (item.type === 'video') {
       navigate(createPageUrl("VODPlayer") + `?id=${item.id}`);
     } else if (item.type === 'user') {
-      // Navigate by username if available, otherwise by email — never by raw ID
-      const identifier = item.username || item.email;
-      navigate(createPageUrl("UserProfile") + `?username=${encodeURIComponent(identifier)}`);
+      navigate(createPageUrl("UserProfile") + `?id=${item.id}`);
     } else {
       navigate(createPageUrl("UniversalSearch") + `?search=${encodeURIComponent(item.label)}`);
     }

@@ -44,11 +44,20 @@ export default function UserProfile() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
+  // Support ?id=, ?email=, ?user=, ?username= params
+  const idParam = searchParams.get("id");
+
   const { data: profileUser, isLoading: loadingProfile } = useQuery({
-    queryKey: ["profile-user", userParam],
+    queryKey: ["profile-user", idParam || userParam],
     queryFn: async () => {
+      // Fast path: direct ID lookup
+      if (idParam) {
+        const res = await base44.functions.invoke("searchUsers", { id: idParam });
+        return (res.users || [])[0] || null;
+      }
+
       if (!userParam) return null;
-      const term = userParam.toLowerCase().replace('@', '').trim();
+      const term = userParam.trim();
 
       // Search via the backend (service role, searches all users)
       const res = await base44.functions.invoke("searchUsers", { query: term });
@@ -56,15 +65,16 @@ export default function UserProfile() {
 
       if (users.length === 0) return null;
 
-      // Prefer exact match on username or email first
+      const lower = term.toLowerCase();
+      // Prefer exact match on email, then username, then email prefix, then first result
       return (
-        users.find(u => u.username?.toLowerCase() === term) ||
-        users.find(u => u.email?.toLowerCase() === term) ||
-        users.find(u => u.email?.toLowerCase().split('@')[0] === term) ||
+        users.find(u => u.email?.toLowerCase() === lower) ||
+        users.find(u => u.username?.toLowerCase() === lower) ||
+        users.find(u => u.email?.toLowerCase().split('@')[0] === lower) ||
         users[0]
       );
     },
-    enabled: !!userParam,
+    enabled: !!(idParam || userParam),
   });
 
   const isOwnProfile = currentUser?.email === profileUser?.email;
