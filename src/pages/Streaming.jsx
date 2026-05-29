@@ -24,6 +24,9 @@ import TMDBMovieBrowser from "../components/streaming/TMDBMovieBrowser";
 import GoLiveNowModal from "../components/livestream/GoLiveNowModal";
 import ContentUploadModal from "../components/streaming/ContentUploadModal";
 import PostStreamEditor from "../components/livestream/PostStreamEditor";
+import StreamingActionPanel from "../components/streaming/StreamingActionPanel";
+import StreamingContentRail from "../components/streaming/StreamingContentRail";
+import StreamingTips from "../components/streaming/StreamingTips";
 
 const CATEGORIES = [
   { id: "all", label: "All", icon: Tv },
@@ -267,6 +270,21 @@ export default function Streaming() {
     [content]
   );
 
+  const newReleases = useMemo(() =>
+    [...content]
+      .filter(i => !i.is_live && i.status !== "ended")
+      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+      .slice(0, 10),
+    [content]
+  );
+
+  const forYouContent = useMemo(() => {
+    const baseList = followingContent.length > 0 ? followingContent : content.filter(i => !i.is_live && i.status !== "ended");
+    return [...baseList]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 10);
+  }, [content, followingContent]);
+
   const handleUpload = async () => {
     if (!currentUser) { toast.error("Please log in to upload"); return; }
     if (!uploadData.title || !uploadData.video_url) { toast.error("Title and video URL required"); return; }
@@ -401,28 +419,14 @@ export default function Streaming() {
         </div>
       </div>
 
-      {/* Quick Actions - Creator Tools */}
-      {currentUser && (
-        <div className="px-4 mb-5">
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { label: "My Channel", icon: Users, color: "from-violet-600 to-purple-700", action: () => navigate(createPageUrl("CreatorDashboard")) },
-              { label: "Upload", icon: Upload, color: "from-blue-600 to-cyan-600", action: () => setShowUpload(true) },
-              { label: "TV & Films", icon: Film, color: "from-orange-600 to-red-600", action: () => setShowContentUpload(true) },
-              { label: "Schedule", icon: Calendar, color: "from-purple-600 to-violet-600", action: () => setShowScheduler(true) },
-            ].map((item) => (
-              <button
-                key={item.label}
-                onClick={item.action}
-                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl bg-gradient-to-br ${item.color} active:scale-95 transition-transform`}
-              >
-                <item.icon className="w-5 h-5 text-white" />
-                <span className="text-white text-xs font-semibold">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      <StreamingActionPanel
+        currentUser={currentUser}
+        onBrowse={() => { setActiveTab("all"); setSelectedCategory("all"); setSearchQuery(""); }}
+        onGoLive={() => setShowGoLive(true)}
+        onUpload={() => setShowUpload(true)}
+        onSchedule={() => setShowScheduler(true)}
+        onMovies={() => setShowContentUpload(true)}
+      />
 
       {/* Stats Row */}
       <div className="px-4 mb-6">
@@ -443,6 +447,17 @@ export default function Streaming() {
           </div>
         </div>
       </div>
+
+      {activeTab === "all" && !searchQuery && (
+        <StreamingContentRail
+          title="For You"
+          subtitle={followingContent.length > 0 ? "Fresh picks from creators you follow" : "Popular picks to help you start watching"}
+          icon={Sparkles}
+          items={forYouContent}
+          onSelect={handleContentClick}
+          onWatchParty={setShowWatchParty}
+        />
+      )}
 
       {/* LIVE NOW */}
       {activeLivestreams.length > 0 && (
@@ -582,6 +597,17 @@ export default function Streaming() {
             ))}
           </div>
         </div>
+      )}
+
+      {activeTab === "all" && !searchQuery && (
+        <StreamingContentRail
+          title="New Releases"
+          subtitle="Recently published videos and shows"
+          icon={Clock}
+          items={newReleases}
+          onSelect={handleContentClick}
+          onWatchParty={setShowWatchParty}
+        />
       )}
 
       {/* Following Feed */}
@@ -866,6 +892,8 @@ export default function Streaming() {
           </div>
         )}
       </div>}
+
+      <StreamingTips />
 
       {/* ── MODALS ── */}
 
