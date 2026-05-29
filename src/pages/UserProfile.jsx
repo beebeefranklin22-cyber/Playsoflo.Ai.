@@ -53,7 +53,7 @@ export default function UserProfile() {
       // Fast path: direct ID lookup
       if (idParam) {
         const res = await base44.functions.invoke("searchUsers", { id: idParam });
-        return (res.users || [])[0] || null;
+        return (res.data?.users || res.users || [])[0] || null;
       }
 
       if (!userParam) return null;
@@ -61,7 +61,7 @@ export default function UserProfile() {
 
       // Search via the backend (service role, searches all users)
       const res = await base44.functions.invoke("searchUsers", { query: term });
-      const users = res.users || [];
+      const users = res.data?.users || res.users || [];
 
       if (users.length === 0) return null;
 

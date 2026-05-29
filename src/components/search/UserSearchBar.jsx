@@ -23,7 +23,7 @@ export default function UserSearchBar({ placeholder = "Search users by name or @
       setSearching(true);
       try {
         const res = await base44.functions.invoke("searchUsers", { query });
-        setResults(res.users || []);
+        setResults(res.data?.users || res.users || []);
         setShowResults(true);
       } catch {
         setResults([]);

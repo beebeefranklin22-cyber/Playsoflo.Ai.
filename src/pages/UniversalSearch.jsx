@@ -71,7 +71,7 @@ export default function UniversalSearch() {
     queryFn: async () => {
       if (!debouncedQuery) return [];
       const res = await base44.functions.invoke("searchUsers", { query: debouncedQuery });
-      return (res.users || []).map(u => ({ ...u, profile_photo: u.profile_picture }));
+      return (res.data?.users || res.users || []).map(u => ({ ...u, profile_photo: u.profile_picture }));
     },
     enabled: debouncedQuery.length > 0
   });

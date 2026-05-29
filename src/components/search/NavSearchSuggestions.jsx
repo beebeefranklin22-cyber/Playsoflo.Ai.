@@ -38,7 +38,7 @@ export default function NavSearchSuggestions({ query, onClose, onSelect }) {
           .filter(v => v.title?.toLowerCase().includes(term) || v.creator_username?.toLowerCase().includes(term))
           .slice(0, 3)
           .map(v => ({ type: 'video', label: v.title, sub: v.creator_username ? `@${v.creator_username}` : '', id: v.id }));
-        const userMatches = (usersRes.users || [])
+        const userMatches = (usersRes.data?.users || usersRes.users || [])
           .slice(0, 4)
           .map(u => ({ type: 'user', label: u.full_name || u.username, sub: u.username ? `@${u.username}` : u.email?.split('@')[0], id: u.id, username: u.username, email: u.email }));
         setSuggestions([...videoMatches, ...userMatches]);

@@ -11,13 +11,8 @@ Deno.serve(async (req) => {
 
     // Direct ID lookup (fastest path, used by UserProfile page)
     if (id) {
-      try {
-        const user = await base44.asServiceRole.entities.User.get(id);
-        if (user) {
-          return Response.json({ users: [sanitize(user)] });
-        }
-      } catch {}
-      return Response.json({ users: [] });
+      const users = await base44.asServiceRole.entities.User.filter({ id });
+      return Response.json({ users: (users || []).slice(0, 1).map(sanitize) });
     }
 
     if (!query || query.length < 1) {
