@@ -89,7 +89,7 @@ export default function HailRideModal({ open, onClose }) {
   };
 
   const fetchSuggestions = async (input, setSuggestions, setLoading) => {
-    if (!input || input.trim().length < 3) {
+    if (!input || input.trim().length < 2) {
       setSuggestions([]);
       return;
     }
@@ -197,18 +197,23 @@ export default function HailRideModal({ open, onClose }) {
       toast.error("Please select a vehicle type");
       return;
     }
-    if (!estimatedDistance || !estimatedDuration || !routePricing) {
-      toast.error("Please wait for route calculation to complete");
+    if (calculating) {
+      toast.info("Still calculating your route, please wait a moment…");
+      return;
+    }
+    if (!estimatedDistance || !estimatedDuration) {
+      toast.error("Could not calculate route. Please check your addresses and try again.");
       return;
     }
     setShowPaymentModal(true);
   };
 
   const confirmPaymentAndRequestRide = async () => {
-    const baseFare = selectedVehicle.basePrice;
-    const distanceFare = selectedVehicle.pricePerMile * estimatedDistance;
-    const timeFare = selectedVehicle.pricePerMinute * estimatedDuration;
-    const totalFare = baseFare + distanceFare + timeFare;
+    // Ensure we always have valid numbers — never let fare be 0 or NaN
+    const baseFare = selectedVehicle.basePrice || 0;
+    const distanceFare = (selectedVehicle.pricePerMile || 0) * (estimatedDistance || 0);
+    const timeFare = (selectedVehicle.pricePerMinute || 0) * (estimatedDuration || 0);
+    const totalFare = Math.max(baseFare + distanceFare + timeFare, 1.00); // minimum $1
     const driverEarnings = totalFare * 0.88;
     const platformFee = totalFare * 0.12;
     
@@ -457,16 +462,16 @@ export default function HailRideModal({ open, onClose }) {
               <Button 
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 py-6 text-lg font-bold" 
                 onClick={openPaymentModal} 
-                disabled={!pickup || !dropoff || !selectedVehicle || calculating || !estimatedDistance || !routePricing}
+                disabled={!pickup || !dropoff || !selectedVehicle || calculating}
               >
                 {calculating ? (
-                  <><Loader2 className="w-5 h-5 animate-spin mr-2" />Calculating...</>
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" />Calculating Route...</>
                 ) : selectedVehicle && estimatedDistance ? (
                   `Confirm Ride • $${((selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration).toFixed(2))}`
-                ) : selectedVehicle ? (
-                  'Continue'
+                ) : selectedVehicle && pickup && dropoff ? (
+                  'Continue →'
                 ) : (
-                  'Select Vehicle & Enter Addresses'
+                  'Enter Addresses & Select Vehicle'
                 )}
               </Button>
         </div>

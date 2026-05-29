@@ -13,16 +13,6 @@ import NearbyMapView from "../components/universe/NearbyMapView";
 
 const pillars = [
   {
-    id: "entertainment",
-    title: "Entertainment",
-    subtitle: "Exotic Experiences",
-    icon: Sparkles,
-    gradient: "from-purple-600 via-pink-600 to-purple-600",
-    image: "https://images.unsplash.com/photo-1566024287286-457247b70310?w=1200",
-    features: ["Exotic Cars", "Yachts", "Wine Tastings", "Nightlife"],
-    action: "EntertainmentExperiences"
-  },
-  {
     id: "social",
     title: "Social",
     subtitle: "Share Your Vibe",
@@ -31,6 +21,16 @@ const pillars = [
     image: "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1200",
     features: ["Stories", "Live Posts", "Connect", "Experiences"],
     action: "Home"
+  },
+  {
+    id: "entertainment",
+    title: "Entertainment",
+    subtitle: "Exotic Experiences",
+    icon: Sparkles,
+    gradient: "from-purple-600 via-pink-600 to-purple-600",
+    image: "https://images.unsplash.com/photo-1566024287286-457247b70310?w=1200",
+    features: ["Exotic Cars", "Yachts", "Wine Tastings", "Nightlife"],
+    action: "EntertainmentExperiences"
   },
   {
     id: "music",

@@ -22,19 +22,57 @@ export default function UserSearchBar({ placeholder = "Search users by @username
     const searchUsers = async () => {
       setSearching(true);
       try {
-        const allUsers = await base44.entities.User.list();
-        const searchTerm = query.toLowerCase().replace('@', '');
-        
-        const filtered = allUsers.filter(user => 
-          user.username?.toLowerCase().includes(searchTerm) ||
-          user.full_name?.toLowerCase().includes(searchTerm) ||
-          user.email?.toLowerCase().includes(searchTerm)
-        ).slice(0, 10);
-        
-        setResults(filtered);
+        const term = query.toLowerCase().replace("@", "");
+
+        // Use SocialPost + MarketplaceItem as public user proxies
+        // since User.list() is restricted to admins
+        const [posts, items] = await Promise.all([
+          base44.entities.SocialPost.list("-created_date", 300),
+          base44.entities.MarketplaceItem.list("-created_date", 200),
+        ]);
+
+        const seen = new Set();
+        const userMap = [];
+
+        for (const p of posts) {
+          const key = p.created_by || p.creator_email;
+          if (!key || seen.has(key)) continue;
+          const name = (p.creator_name || "").toLowerCase();
+          const uname = (p.creator_username || "").toLowerCase();
+          if (name.includes(term) || uname.includes(term) || key.toLowerCase().includes(term)) {
+            seen.add(key);
+            userMap.push({
+              id: key,
+              email: key,
+              full_name: p.creator_name || p.creator_username || key,
+              username: p.creator_username,
+              profile_picture: p.creator_photo,
+            });
+          }
+        }
+
+        for (const item of items) {
+          const key = item.provider_email;
+          if (!key || seen.has(key)) continue;
+          const name = (item.provider_name || "").toLowerCase();
+          if (name.includes(term) || key.toLowerCase().includes(term)) {
+            seen.add(key);
+            userMap.push({
+              id: key,
+              email: key,
+              full_name: item.provider_name || key,
+              username: null,
+              profile_picture: null,
+            });
+          }
+        }
+
+        setResults(userMap.slice(0, 10));
         setShowResults(true);
       } catch (error) {
-        console.error('Search failed:', error);
+        console.error("Search failed:", error);
+        setResults([]);
+        setShowResults(true);
       } finally {
         setSearching(false);
       }
@@ -45,7 +83,7 @@ export default function UserSearchBar({ placeholder = "Search users by @username
   }, [query]);
 
   const handleUserSelect = (user) => {
-    navigate(createPageUrl("UserProfile") + `?username=${user.username || user.email}`);
+    navigate(createPageUrl("UserProfile") + `?email=${encodeURIComponent(user.email)}`);
     setQuery("");
     setShowResults(false);
   };
@@ -67,7 +105,6 @@ export default function UserSearchBar({ placeholder = "Search users by @username
         )}
       </div>
 
-      {/* Search Results Dropdown */}
       {showResults && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-white/20 rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto">
           {results.map((user) => (
@@ -76,14 +113,18 @@ export default function UserSearchBar({ placeholder = "Search users by @username
               onClick={() => handleUserSelect(user)}
               className="w-full flex items-center gap-3 p-3 hover:bg-white/10 transition"
             >
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                {user.full_name?.[0] || "U"}
-              </div>
+              {user.profile_picture ? (
+                <img src={user.profile_picture} alt={user.full_name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                  {user.full_name?.[0] || "U"}
+                </div>
+              )}
               <div className="flex-1 text-left min-w-0">
                 <p className="text-white font-semibold truncate">{user.full_name}</p>
                 <p className="text-purple-400 text-xs flex items-center gap-1 truncate">
                   <AtSign className="w-3 h-3" />
-                  {user.username || user.email?.split('@')[0]}
+                  {user.username || user.email?.split("@")[0]}
                 </p>
               </div>
             </button>
@@ -93,7 +134,7 @@ export default function UserSearchBar({ placeholder = "Search users by @username
 
       {showResults && results.length === 0 && query.length >= 2 && !searching && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-white/20 rounded-xl shadow-2xl p-4 z-50">
-          <p className="text-gray-400 text-sm text-center">No users found</p>
+          <p className="text-gray-400 text-sm text-center">No users found for "{query}"</p>
         </div>
       )}
     </div>

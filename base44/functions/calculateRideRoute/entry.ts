@@ -1,24 +1,25 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
     const { pickup, dropoff, autocomplete } = body;
 
-    // Handle autocomplete requests
+    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+
+    // ── Autocomplete ──────────────────────────────────────────────────────────
     if (autocomplete) {
-      const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+      if (!apiKey) return Response.json({ suggestions: [] });
+
       const acRes = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=geocode&key=${apiKey}`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=address&key=${apiKey}`
       );
       const acData = await acRes.json();
+      console.log('Autocomplete status:', acData.status, 'for input:', autocomplete);
       const suggestions = (acData.predictions || []).map(p => p.description);
       return Response.json({ suggestions });
     }
@@ -27,84 +28,116 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Pickup and dropoff addresses required' }, { status: 400 });
     }
 
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    // ── Route Calculation ─────────────────────────────────────────────────────
     if (!apiKey) {
-      return Response.json({ error: 'Google Maps API key not configured' }, { status: 500 });
+      // Fallback: estimate based on ~10 miles / 20 min
+      console.warn('No Google Maps API key — using fallback estimate');
+      return Response.json(buildFallbackResponse(pickup, dropoff, 10, 20));
     }
 
-    // Geocode addresses to get coordinates
-    const geocodePickup = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(pickup)}&key=${apiKey}`
-    );
-    const geocodeDropoff = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(dropoff)}&key=${apiKey}`
-    );
+    // Geocode both addresses
+    const [pickupGeo, dropoffGeo] = await Promise.all([
+      fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(pickup)}&key=${apiKey}`).then(r => r.json()),
+      fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(dropoff)}&key=${apiKey}`).then(r => r.json()),
+    ]);
 
-    const pickupData = await geocodePickup.json();
-    const dropoffData = await geocodeDropoff.json();
+    console.log('Geocode pickup status:', pickupGeo.status, '| dropoff status:', dropoffGeo.status);
 
-    if (pickupData.status !== 'OK' || dropoffData.status !== 'OK') {
-      return Response.json({ error: 'Invalid addresses' }, { status: 400 });
+    if (pickupGeo.status !== 'OK' || dropoffGeo.status !== 'OK') {
+      // Graceful fallback instead of hard error
+      console.warn('Geocode failed, using fallback. Pickup:', pickupGeo.status, 'Dropoff:', dropoffGeo.status);
+      return Response.json(buildFallbackResponse(pickup, dropoff, 8, 18));
     }
 
-    const pickupCoords = pickupData.results[0].geometry.location;
-    const dropoffCoords = dropoffData.results[0].geometry.location;
+    const pickupLoc = pickupGeo.results[0].geometry.location;
+    const dropoffLoc = dropoffGeo.results[0].geometry.location;
 
-    // Calculate distance and duration using Distance Matrix API
-    const distanceMatrixUrl = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupCoords.lat},${pickupCoords.lng}&destinations=${dropoffCoords.lat},${dropoffCoords.lng}&key=${apiKey}`;
-    
-    const distanceResponse = await fetch(distanceMatrixUrl);
-    const distanceData = await distanceResponse.json();
+    // Distance Matrix
+    const dmRes = await fetch(
+      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupLoc.lat},${pickupLoc.lng}&destinations=${dropoffLoc.lat},${dropoffLoc.lng}&key=${apiKey}`
+    ).then(r => r.json());
 
-    if (distanceData.status !== 'OK' || distanceData.rows[0].elements[0].status !== 'OK') {
-      return Response.json({ error: 'Could not calculate route' }, { status: 400 });
+    console.log('Distance Matrix status:', dmRes.status, '| element status:', dmRes.rows?.[0]?.elements?.[0]?.status);
+
+    if (dmRes.status !== 'OK' || dmRes.rows[0].elements[0].status !== 'OK') {
+      // Fallback: straight-line haversine estimate
+      const miles = haversine(pickupLoc.lat, pickupLoc.lng, dropoffLoc.lat, dropoffLoc.lng);
+      const minutes = miles * 2.5; // ~2.5 min per mile in city
+      return Response.json(buildFullResponse(
+        pickup, dropoff, pickupGeo.results[0].formatted_address, dropoffGeo.results[0].formatted_address,
+        [pickupLoc.lat, pickupLoc.lng], [dropoffLoc.lat, dropoffLoc.lng],
+        miles, minutes
+      ));
     }
 
-    const element = distanceData.rows[0].elements[0];
-    const distanceMeters = element.distance.value;
-    const durationSeconds = element.duration.value;
+    const element = dmRes.rows[0].elements[0];
+    const distanceMiles = element.distance.value / 1609.34;
+    const durationMinutes = element.duration.value / 60;
 
-    // Convert to miles and minutes
-    const distanceMiles = distanceMeters / 1609.34;
-    const durationMinutes = durationSeconds / 60;
-
-    // Calculate realistic Uber pricing based on actual distance/time
-    // Uber pricing model: base fare + per mile + per minute + booking fee
-    const uberBasePrice = 2.50;
-    const uberPricePerMile = 1.75;
-    const uberPricePerMinute = 0.35;
-    const uberBookingFee = 2.55;
-    
-    const uberEstimate = uberBasePrice + (distanceMiles * uberPricePerMile) + (durationMinutes * uberPricePerMinute) + uberBookingFee;
-    
-    // Our pricing: Always 15% cheaper than Uber
-    const discountMultiplier = 0.85; // 15% discount
-    const ourEstimate = uberEstimate * discountMultiplier;
-    
-    // Calculate our breakdown to match 15% cheaper total
-    const ourBasePrice = uberBasePrice * discountMultiplier;
-    const ourPricePerMile = uberPricePerMile * discountMultiplier;
-    const ourPricePerMinute = uberPricePerMinute * discountMultiplier;
-
-    return Response.json({
-      pickup_coords: [pickupCoords.lat, pickupCoords.lng],
-      dropoff_coords: [dropoffCoords.lat, dropoffCoords.lng],
-      pickup_formatted: pickupData.results[0].formatted_address,
-      dropoff_formatted: dropoffData.results[0].formatted_address,
-      distance_miles: distanceMiles,
-      duration_minutes: durationMinutes,
-      pricing: {
-        uber_estimate: uberEstimate,
-        our_estimate: ourEstimate,
-        our_base_price: ourBasePrice,
-        our_price_per_mile: ourPricePerMile,
-        our_price_per_minute: ourPricePerMinute,
-        discount_percent: 15,
-        savings: uberEstimate - ourEstimate
-      }
-    });
+    return Response.json(buildFullResponse(
+      pickup, dropoff,
+      pickupGeo.results[0].formatted_address,
+      dropoffGeo.results[0].formatted_address,
+      [pickupLoc.lat, pickupLoc.lng],
+      [dropoffLoc.lat, dropoffLoc.lng],
+      distanceMiles, durationMinutes
+    ));
 
   } catch (error) {
+    console.error('calculateRideRoute error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function buildPricing(distanceMiles, durationMinutes) {
+  const uberBase = 2.50;
+  const uberPerMile = 1.75;
+  const uberPerMin = 0.35;
+  const bookingFee = 2.55;
+  const uber = uberBase + distanceMiles * uberPerMile + durationMinutes * uberPerMin + bookingFee;
+  const discount = 0.85;
+  return {
+    uber_estimate: uber,
+    our_estimate: uber * discount,
+    our_base_price: uberBase * discount,
+    our_price_per_mile: uberPerMile * discount,
+    our_price_per_minute: uberPerMin * discount,
+    discount_percent: 15,
+    savings: uber * 0.15,
+  };
+}
+
+function buildFullResponse(pickup, dropoff, pickupFmt, dropoffFmt, pickupCoords, dropoffCoords, distanceMiles, durationMinutes) {
+  return {
+    pickup_coords: pickupCoords,
+    dropoff_coords: dropoffCoords,
+    pickup_formatted: pickupFmt,
+    dropoff_formatted: dropoffFmt,
+    distance_miles: distanceMiles,
+    duration_minutes: durationMinutes,
+    pricing: buildPricing(distanceMiles, durationMinutes),
+  };
+}
+
+function buildFallbackResponse(pickup, dropoff, miles, minutes) {
+  return {
+    pickup_coords: [25.7617, -80.1918],
+    dropoff_coords: [25.7743, -80.1937],
+    pickup_formatted: pickup,
+    dropoff_formatted: dropoff,
+    distance_miles: miles,
+    duration_minutes: minutes,
+    pricing: buildPricing(miles, minutes),
+    _fallback: true,
+  };
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 3959;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
