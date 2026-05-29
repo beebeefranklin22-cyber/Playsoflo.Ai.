@@ -230,22 +230,21 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const sidebarSections = [
-    { icon: Store, label: "Marketplace", path: "Marketplace" },
-    { icon: Truck, label: "Package Delivery", path: "PackageDelivery" },
-    { icon: Home, label: "Real Estate", path: "RealEstate" },
-    { icon: Navigation, label: "Rides", path: "Travel" },
-    { icon: TrendingUp, label: "Ads Manager", path: "AdsManager" },
-    { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
-    { icon: Package, label: "Food Orders", path: "FoodOrderTracking" },
-    { icon: TrendingUp, label: "Food Menu", path: "FoodDelivery" },
-    { icon: MapPin, label: "Live Tracking", path: "LiveTracking" },
-    { icon: Package, label: "Inventory", path: "InventoryManager" },
     { icon: MessageCircle, label: "Messages", path: "Messages" },
     { icon: Calendar, label: "My Bookings", path: "CustomerBookings" },
+    { icon: Store, label: "Marketplace", path: "Marketplace" },
+    { icon: Navigation, label: "Rides", path: "Travel" },
+    { icon: Package, label: "Food Delivery", path: "FoodDelivery" },
+    { icon: Package, label: "Food Orders", path: "FoodOrderTracking" },
+    { icon: Truck, label: "Package Delivery", path: "PackageDelivery" },
+    { icon: MapPin, label: "Live Tracking", path: "LiveTracking" },
+    { icon: Home, label: "Real Estate", path: "RealEstate" },
     { icon: Home, label: "Property Bookings", path: "MyPropertyBookings" },
-    { icon: Truck, label: "Live Tracking", path: "LiveTracking" },
     { icon: FileText, label: "Lease Portal", path: "LeasePortal" },
-    ];
+    { icon: Package, label: "Inventory", path: "InventoryManager" },
+    { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
+    { icon: TrendingUp, label: "Ads Manager", path: "AdsManager" },
+  ];
 
   // Add support dashboard for admins
   if (currentUser?.role === 'admin' || currentUser?.is_support_agent) {
