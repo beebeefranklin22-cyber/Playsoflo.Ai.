@@ -26,7 +26,18 @@ Deno.serve(async (req) => {
 
     const term = query.toLowerCase().replace('@', '').trim();
 
-    const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
+    // Fetch in batches to ensure we get all users
+    let allUsers = [];
+    const batchSize = 500;
+    let skip = 0;
+    while (true) {
+      const batch = await base44.asServiceRole.entities.User.list('-created_date', batchSize, skip);
+      if (!batch || batch.length === 0) break;
+      allUsers = allUsers.concat(batch);
+      if (batch.length < batchSize) break;
+      skip += batchSize;
+      if (allUsers.length >= 5000) break; // safety cap
+    }
 
     const results = allUsers
       .filter(u => {
@@ -53,6 +64,7 @@ function sanitize(u) {
     full_name: u.full_name,
     username: u.username,
     profile_picture: u.profile_picture,
+    profile_photo: u.profile_photo,
     bio: u.bio,
     cover_image_url: u.cover_image_url,
     cover_video_url: u.cover_video_url,
@@ -65,5 +77,10 @@ function sanitize(u) {
     is_public_history: u.is_public_history,
     cover_photo: u.cover_photo,
     cover_url: u.cover_url,
+    is_creator: u.is_creator,
+    is_provider: u.is_provider,
+    is_driver: u.is_driver,
+    city: u.city,
+    role: u.role,
   };
 }

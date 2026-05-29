@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   Grid, Video, Bookmark, MessageCircle, MoreHorizontal, ChevronLeft, Play,
   Heart, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign,
-  MoreVertical, ShoppingBag, Megaphone, ExternalLink, Plus, Music
+  MoreVertical, ShoppingBag, Megaphone, ExternalLink, Plus, Music, Trash2
 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { createPageUrl } from "@/utils";
@@ -47,23 +48,49 @@ export default function UserProfile() {
     queryKey: ["profile-user", userParam],
     queryFn: async () => {
       if (!userParam) return null;
-      const term = userParam.toLowerCase();
+      const term = userParam.toLowerCase().replace('@', '').trim();
 
-      // Search by name/username/email via the backend (service role, no restriction)
-      const res = await base44.functions.invoke("searchUsers", { query: userParam });
+      // Search via the backend (service role, searches all users)
+      const res = await base44.functions.invoke("searchUsers", { query: term });
       const users = res.users || [];
 
-      // Prefer exact match on username or email, then fall back to first result
-      return users.find(u =>
-        u.username?.toLowerCase() === term ||
-        u.email?.toLowerCase() === term
-      ) || users[0] || null;
+      if (users.length === 0) return null;
+
+      // Prefer exact match on username or email first
+      return (
+        users.find(u => u.username?.toLowerCase() === term) ||
+        users.find(u => u.email?.toLowerCase() === term) ||
+        users.find(u => u.email?.toLowerCase().split('@')[0] === term) ||
+        users[0]
+      );
     },
     enabled: !!userParam,
   });
 
   const isOwnProfile = currentUser?.email === profileUser?.email;
   const isPrivate = !!(profileUser?.is_private || profileUser?.privacy_settings?.is_private);
+
+  const deletePostMutation = useMutation({
+    mutationFn: async ({ type, id }) => {
+      if (type === 'post') await base44.entities.SocialPost.delete(id);
+      else if (type === 'video') await base44.entities.VideoPost.delete(id);
+      else if (type === 'reel') await base44.entities.Reel.delete(id);
+      else if (type === 'showcase') await base44.entities.ShowcasePost.delete(id);
+    },
+    onSuccess: (_, { type }) => {
+      toast.success("Deleted successfully");
+      if (type === 'post') queryClient.invalidateQueries(["user-posts", profileUser?.email]);
+      else if (type === 'video') queryClient.invalidateQueries(["user-videos", profileUser?.email]);
+      else if (type === 'reel') queryClient.invalidateQueries(["user-reels", profileUser?.email]);
+      else if (type === 'showcase') queryClient.invalidateQueries(["user-showcase", profileUser?.email]);
+    },
+  });
+
+  const confirmDelete = (type, id, label = "this item") => {
+    if (confirm(`Delete ${label}? This cannot be undone.`)) {
+      deletePostMutation.mutate({ type, id });
+    }
+  };
 
   // Check if current user follows this profile (needed for private gating)
   const { data: isFollowing = false } = useQuery({
@@ -371,6 +398,14 @@ export default function UserProfile() {
                 <div className="flex items-center gap-1 text-white text-sm"><Heart className="w-4 h-4 fill-white" />{post.likes_count || 0}</div>
                 <div className="flex items-center gap-1 text-white text-sm"><MessageCircle className="w-4 h-4 fill-white" />{post.comments_count || 0}</div>
               </div>
+              {isOwnProfile && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); confirmDelete('post', post.id, 'post'); }}
+                  className="absolute top-1.5 right-1.5 p-1.5 bg-red-600/80 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
               {post.music_playing && (
                 <div className="absolute top-1.5 right-1.5 bg-black/60 rounded-full p-1">
                   <Music className="w-3 h-3 text-white" />
@@ -408,6 +443,14 @@ export default function UserProfile() {
               <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 text-white text-xs">
                 <Play className="w-3 h-3" />{v.views || 0}
               </div>
+              {isOwnProfile && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); confirmDelete('video', v.id, 'video'); }}
+                  className="absolute top-1.5 right-1.5 p-1.5 bg-red-600/80 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
             </motion.div>
           ))}
           {videoPosts.length === 0 && (
@@ -441,6 +484,14 @@ export default function UserProfile() {
               <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs">
                 <Heart className="w-3 h-3" />{reel.likes_count || 0}
               </div>
+              {isOwnProfile && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); confirmDelete('reel', reel.id, 'reel'); }}
+                  className="absolute top-1.5 right-1.5 p-1.5 bg-red-600/80 hover:bg-red-600 rounded-full opacity-0 group-hover:opacity-100 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-white" />
+                </button>
+              )}
             </motion.div>
           ))}
           {reels.length === 0 && (
@@ -493,9 +544,19 @@ export default function UserProfile() {
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="text-white font-bold text-base">{item.title}</h3>
-                  {item.price > 0 && (
-                    <span className="text-green-400 font-bold text-sm flex-shrink-0">${item.price.toFixed(2)}</span>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {item.price > 0 && (
+                      <span className="text-green-400 font-bold text-sm">${item.price.toFixed(2)}</span>
+                    )}
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => confirmDelete('showcase', item.id, 'showcase post')}
+                        className="p-1.5 bg-red-600/20 hover:bg-red-600/40 rounded-full transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {item.description && (
