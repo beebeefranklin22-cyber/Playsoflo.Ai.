@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function UserSearchBar({ placeholder = "Search users by @username..." }) {
+export default function UserSearchBar({ placeholder = "Search users by name or @username..." }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -13,20 +13,19 @@ export default function UserSearchBar({ placeholder = "Search users by @username
   const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
-    if (!query || query.length < 2) {
+    if (!query || query.length < 1) {
       setResults([]);
       setShowResults(false);
       return;
     }
 
-    const searchUsers = async () => {
+    const doSearch = async () => {
       setSearching(true);
       try {
         const res = await base44.functions.invoke("searchUsers", { query });
         setResults(res.users || []);
         setShowResults(true);
-      } catch (error) {
-        console.error("Search failed:", error);
+      } catch {
         setResults([]);
         setShowResults(true);
       } finally {
@@ -34,13 +33,13 @@ export default function UserSearchBar({ placeholder = "Search users by @username
       }
     };
 
-    const debounce = setTimeout(searchUsers, 300);
-    return () => clearTimeout(debounce);
+    // Short debounce for instant feel
+    const timer = setTimeout(doSearch, 150);
+    return () => clearTimeout(timer);
   }, [query]);
 
   const handleUserSelect = (user) => {
-    const identifier = user.username || user.email;
-    navigate(createPageUrl("UserProfile") + `?username=${encodeURIComponent(identifier)}`);
+    navigate(createPageUrl("UserProfile") + `?id=${user.id}`);
     setQuery("");
     setShowResults(false);
   };
@@ -68,16 +67,16 @@ export default function UserSearchBar({ placeholder = "Search users by @username
             <button
               key={user.id}
               onClick={() => handleUserSelect(user)}
-              className="w-full flex items-center gap-3 p-3 hover:bg-white/10 transition"
+              className="w-full flex items-center gap-3 p-3 hover:bg-white/10 transition text-left"
             >
               {user.profile_picture ? (
                 <img src={user.profile_picture} alt={user.full_name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold flex-shrink-0">
-                  {user.full_name?.[0] || "U"}
+                  {(user.full_name?.[0] || "U").toUpperCase()}
                 </div>
               )}
-              <div className="flex-1 text-left min-w-0">
+              <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold truncate">{user.full_name}</p>
                 <p className="text-purple-400 text-xs flex items-center gap-1 truncate">
                   <AtSign className="w-3 h-3" />
@@ -89,7 +88,7 @@ export default function UserSearchBar({ placeholder = "Search users by @username
         </div>
       )}
 
-      {showResults && results.length === 0 && query.length >= 2 && !searching && (
+      {showResults && results.length === 0 && query.length >= 1 && !searching && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-white/20 rounded-xl shadow-2xl p-4 z-50">
           <p className="text-gray-400 text-sm text-center">No users found for "{query}"</p>
         </div>
