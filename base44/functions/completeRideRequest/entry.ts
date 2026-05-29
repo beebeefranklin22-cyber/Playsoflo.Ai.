@@ -31,9 +31,14 @@ Deno.serve(async (req) => {
       end_time: new Date().toISOString()
     });
 
-    // Settle driver earnings via universal settlement engine
+    // Settle driver earnings via universal settlement engine.
+    // If a precise driver_earnings amount was stored on the fare breakdown, pass it
+    // through directly (earnings_override); otherwise fall back to a 90% split.
     const totalFare = ride.fare_breakdown?.total_fare || 0;
-    const driverPercentage = ride.driver_earnings?.driver_percentage || 90;
+    const storedDriverEarnings = ride.fare_breakdown?.driver_earnings || 0;
+    const driverPercentage = totalFare > 0 && storedDriverEarnings > 0
+      ? (storedDriverEarnings / totalFare) * 100
+      : 90;
 
     const settlement = await base44.functions.invoke('settlePayment', {
       vertical: 'ride',

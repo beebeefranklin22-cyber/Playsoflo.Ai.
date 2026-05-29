@@ -26,6 +26,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import PullToRefresh from "./components/PullToRefresh";
 import ToastListener from "./components/ui/ToastListener";
 import LiveOrderTracker from "./components/tracking/LiveOrderTracker";
+import OrderTrackerBridge from "./components/tracking/OrderTrackerBridge";
 import AIErrorReporter from "./components/errors/AIErrorReporter";
 import LanguageSwitcher from "./components/i18n/LanguageSwitcher";
 
@@ -752,13 +753,13 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {/* Expose order tracking to global scope for sidebar usage */}
-      {typeof window !== 'undefined' && (
-        window.__openOrderTracker = (orderId, orderType) => {
+      <OrderTrackerBridge
+        onOpen={(orderId, orderType) => {
           setTrackedOrderId(orderId);
           setTrackedOrderType(orderType);
           setShowOrderTracker(true);
-        }
-      )}
+        }}
+      />
 
       {/* Onboarding Flow for New Users */}
       <AnimatePresence>
