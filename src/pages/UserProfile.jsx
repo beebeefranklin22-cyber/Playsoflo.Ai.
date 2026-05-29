@@ -47,47 +47,17 @@ export default function UserProfile() {
     queryKey: ["profile-user", userParam],
     queryFn: async () => {
       if (!userParam) return null;
-
-      // Try exact email match first (most reliable)
-      if (userParam.includes("@")) {
-        try {
-          const byEmail = await base44.entities.User.filter({ email: userParam });
-          if (byEmail?.length > 0) return byEmail[0];
-          // Try lowercase
-          const byEmailLower = await base44.entities.User.filter({ email: userParam.toLowerCase() });
-          if (byEmailLower?.length > 0) return byEmailLower[0];
-        } catch {}
-      }
-
-      // Try by username (exact, then lowercase)
-      try {
-        const byUsername = await base44.entities.User.filter({ username: userParam });
-        if (byUsername?.length > 0) return byUsername[0];
-      } catch {}
-      try {
-        const byUsernameLower = await base44.entities.User.filter({ username: userParam.toLowerCase() });
-        if (byUsernameLower?.length > 0) return byUsernameLower[0];
-      } catch {}
-
-      // Fallback: try as email even without @
-      try {
-        const byEmail2 = await base44.entities.User.filter({ email: userParam });
-        if (byEmail2?.length > 0) return byEmail2[0];
-      } catch {}
-
-      // Last resort: list and search (handles edge cases)
-      try {
-        const allUsers = await base44.entities.User.list('-created_date', 200);
-        const term = userParam.toLowerCase();
-        const found = allUsers.find(u =>
-          u.email?.toLowerCase() === term ||
-          u.username?.toLowerCase() === term ||
-          u.full_name?.toLowerCase() === term
-        );
-        if (found) return found;
-      } catch {}
-
-      return null;
+      // Use the searchUsers backend function which runs as service role,
+      // bypassing the admin-only restriction on User.list/filter
+      const res = await base44.functions.invoke("searchUsers", { query: userParam });
+      const users = res.users || [];
+      const term = userParam.toLowerCase();
+      // Prefer exact match on email, id, or username
+      return users.find(u =>
+        u.email?.toLowerCase() === term ||
+        u.id === userParam ||
+        u.username?.toLowerCase() === term
+      ) || users[0] || null;
     },
     enabled: !!userParam,
   });
