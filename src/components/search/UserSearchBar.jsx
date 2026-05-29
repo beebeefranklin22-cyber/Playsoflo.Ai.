@@ -24,48 +24,38 @@ export default function UserSearchBar({ placeholder = "Search users by @username
       try {
         const term = query.toLowerCase().replace("@", "");
 
-        // Use SocialPost + MarketplaceItem as public user proxies
-        // since User.list() is restricted to admins
-        const [posts, items] = await Promise.all([
-          base44.entities.SocialPost.list("-created_date", 300),
-          base44.entities.MarketplaceItem.list("-created_date", 200),
+        // Pull from many entities to maximize user discoverability
+        const [posts, items, reels, reviews, comments, follows] = await Promise.all([
+          base44.entities.SocialPost.list("-created_date", 300).catch(() => []),
+          base44.entities.MarketplaceItem.list("-created_date", 200).catch(() => []),
+          base44.entities.Reel.list("-created_date", 200).catch(() => []),
+          base44.entities.Review.list("-created_date", 200).catch(() => []),
+          base44.entities.Comment.list("-created_date", 200).catch(() => []),
+          base44.entities.Follow.list("-created_date", 200).catch(() => []),
         ]);
 
         const seen = new Set();
         const userMap = [];
 
-        for (const p of posts) {
-          const key = p.created_by || p.creator_email;
-          if (!key || seen.has(key)) continue;
-          const name = (p.creator_name || "").toLowerCase();
-          const uname = (p.creator_username || "").toLowerCase();
-          if (name.includes(term) || uname.includes(term) || key.toLowerCase().includes(term)) {
+        const addUser = (key, name, username, photo) => {
+          if (!key || seen.has(key)) return;
+          const n = (name || "").toLowerCase();
+          const u = (username || "").toLowerCase();
+          if (n.includes(term) || u.includes(term) || key.toLowerCase().includes(term)) {
             seen.add(key);
-            userMap.push({
-              id: key,
-              email: key,
-              full_name: p.creator_name || p.creator_username || key,
-              username: p.creator_username,
-              profile_picture: p.creator_photo,
-            });
+            userMap.push({ id: key, email: key, full_name: name || username || key, username, profile_picture: photo });
           }
-        }
+        };
 
-        for (const item of items) {
-          const key = item.provider_email;
-          if (!key || seen.has(key)) continue;
-          const name = (item.provider_name || "").toLowerCase();
-          if (name.includes(term) || key.toLowerCase().includes(term)) {
-            seen.add(key);
-            userMap.push({
-              id: key,
-              email: key,
-              full_name: item.provider_name || key,
-              username: null,
-              profile_picture: null,
-            });
-          }
+        for (const p of posts) addUser(p.created_by || p.creator_email, p.creator_name, p.creator_username, p.creator_photo);
+        for (const r of reels) addUser(r.creator_email, r.creator_name, null, r.creator_photo);
+        for (const rv of reviews) addUser(rv.reviewer_email, rv.reviewer_name, null, rv.reviewer_avatar);
+        for (const c of comments) addUser(c.author_email, c.author_name, c.author_username, c.author_photo);
+        for (const f of follows) {
+          addUser(f.follower_email, f.follower_name, f.follower_username, f.follower_photo);
+          addUser(f.following_email, f.following_name, f.following_username, f.following_photo);
         }
+        for (const item of items) addUser(item.provider_email, item.provider_name, null, null);
 
         setResults(userMap.slice(0, 10));
         setShowResults(true);

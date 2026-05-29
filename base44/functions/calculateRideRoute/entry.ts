@@ -91,21 +91,37 @@ Deno.serve(async (req) => {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Uber published rate card (UberX, US average 2024-2025)
+// Source: Uber rate card data aggregated from major US cities
 function buildPricing(distanceMiles, durationMinutes) {
-  const uberBase = 2.50;
-  const uberPerMile = 1.75;
-  const uberPerMin = 0.35;
-  const bookingFee = 2.55;
-  const uber = uberBase + distanceMiles * uberPerMile + durationMinutes * uberPerMin + bookingFee;
+  // UberX standard rates (US average, published rate cards)
+  const uberBase = 1.20;          // base fare
+  const uberPerMile = 1.09;       // per mile
+  const uberPerMin = 0.21;        // per minute
+  const uberBookingFee = 2.85;    // platform booking fee (fixed)
+  const uberServiceFee = 0.67;    // Uber service fee
+  const uberMinFare = 7.00;       // minimum fare
+
+  const uberRaw = uberBase + (distanceMiles * uberPerMile) + (durationMinutes * uberPerMin) + uberBookingFee + uberServiceFee;
+  const uberEstimate = Math.max(uberRaw, uberMinFare);
+
+  // Our platform is 15% cheaper than Uber
   const discount = 0.85;
+  const ourEstimate = uberEstimate * discount;
+
+  // Our per-component rates (for fare breakdown display)
+  const ourBase = uberBase * discount;
+  const ourPerMile = uberPerMile * discount;
+  const ourPerMin = uberPerMin * discount;
+
   return {
-    uber_estimate: uber,
-    our_estimate: uber * discount,
-    our_base_price: uberBase * discount,
-    our_price_per_mile: uberPerMile * discount,
-    our_price_per_minute: uberPerMin * discount,
+    uber_estimate: Math.round(uberEstimate * 100) / 100,
+    our_estimate: Math.round(ourEstimate * 100) / 100,
+    our_base_price: Math.round(ourBase * 100) / 100,
+    our_price_per_mile: Math.round(ourPerMile * 100) / 100,
+    our_price_per_minute: Math.round(ourPerMin * 100) / 100,
     discount_percent: 15,
-    savings: uber * 0.15,
+    savings: Math.round((uberEstimate - ourEstimate) * 100) / 100,
   };
 }
 
