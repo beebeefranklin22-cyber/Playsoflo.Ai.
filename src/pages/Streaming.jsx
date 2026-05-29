@@ -6,7 +6,8 @@ import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
   Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
-  Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck
+   Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck,
+   Heart, Bookmark, Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +28,7 @@ import PostStreamEditor from "../components/livestream/PostStreamEditor";
 import StreamingActionPanel from "../components/streaming/StreamingActionPanel";
 import StreamingContentRail from "../components/streaming/StreamingContentRail";
 import StreamingTips from "../components/streaming/StreamingTips";
+import { toggleStreamingEngagement } from "@/functions/toggleStreamingEngagement";
 
 const CATEGORIES = [
   { id: "all", label: "All", icon: Tv },
@@ -168,7 +170,7 @@ export default function Streaming() {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
-  const { data: content = [], isLoading } = useQuery({
+  const { data: content = [], isLoading, refetch: refetchContent } = useQuery({
     queryKey: ['streaming-content'],
     queryFn: () => base44.entities.StreamingContent.filter({ status: "published" }),
     initialData: [],
@@ -284,6 +286,37 @@ export default function Streaming() {
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 10);
   }, [content, followingContent]);
+
+  const requireLogin = () => {
+    if (currentUser) return true;
+    base44.auth.redirectToLogin();
+    return false;
+  };
+
+  const handleEngagement = async (item, action) => {
+    if (!requireLogin()) return;
+    await toggleStreamingEngagement({ contentId: item.id, action });
+    refetchContent();
+    if (action === "like") toast.success(item.liked_by?.includes(currentUser.email) ? "Removed like" : "Liked");
+    if (action === "watch_later") toast.success(item.saved_by?.includes(currentUser.email) ? "Removed from Watch Later" : "Saved to Watch Later");
+  };
+
+  const handleShare = async (item) => {
+    const url = `${window.location.origin}${createPageUrl("LivestreamViewer")}?id=${item.id}`;
+    const text = `Watch ${item.title} on Streaming`;
+
+    if (navigator.share) {
+      await navigator.share({ title: item.title, text, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Share link copied");
+    }
+
+    if (currentUser) {
+      await toggleStreamingEngagement({ contentId: item.id, action: "share" });
+      refetchContent();
+    }
+  };
 
   const handleUpload = async () => {
     if (!currentUser) { toast.error("Please log in to upload"); return; }
@@ -454,8 +487,12 @@ export default function Streaming() {
           subtitle={followingContent.length > 0 ? "Fresh picks from creators you follow" : "Popular picks to help you start watching"}
           icon={Sparkles}
           items={forYouContent}
+          currentUser={currentUser}
           onSelect={handleContentClick}
           onWatchParty={setShowWatchParty}
+          onLike={(item) => handleEngagement(item, "like")}
+          onWatchLater={(item) => handleEngagement(item, "watch_later")}
+          onShare={handleShare}
         />
       )}
 
@@ -605,8 +642,12 @@ export default function Streaming() {
           subtitle="Recently published videos and shows"
           icon={Clock}
           items={newReleases}
+          currentUser={currentUser}
           onSelect={handleContentClick}
           onWatchParty={setShowWatchParty}
+          onLike={(item) => handleEngagement(item, "like")}
+          onWatchLater={(item) => handleEngagement(item, "watch_later")}
+          onShare={handleShare}
         />
       )}
 
@@ -707,6 +748,21 @@ export default function Streaming() {
             </>
           )}
         </div>
+      )}
+
+      {activeTab === "all" && currentUser && content.some(item => item.saved_by?.includes(currentUser.email)) && (
+        <StreamingContentRail
+          title="Watch Later"
+          subtitle="Videos you saved for later"
+          icon={Clock}
+          items={content.filter(item => item.saved_by?.includes(currentUser.email))}
+          currentUser={currentUser}
+          onSelect={handleContentClick}
+          onWatchParty={setShowWatchParty}
+          onLike={(item) => handleEngagement(item, "like")}
+          onWatchLater={(item) => handleEngagement(item, "watch_later")}
+          onShare={handleShare}
+        />
       )}
 
       {/* Category Tabs — only show in "all" tab */}
@@ -850,13 +906,36 @@ export default function Streaming() {
                       )}
                     </div>
 
-                    {/* Watch party button */}
-                    <button
-                      className="absolute top-2 right-2 bg-purple-600/80 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                      onClick={(e) => { e.stopPropagation(); setShowWatchParty(item); }}
-                    >
-                      <Users className="w-3 h-3 text-white" />
-                    </button>
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition">
+                      <button
+                        className="bg-black/60 p-1.5 rounded-lg backdrop-blur text-white"
+                        onClick={(e) => { e.stopPropagation(); handleEngagement(item, "like"); }}
+                        title="Like"
+                      >
+                        <Heart className={`w-3 h-3 ${item.liked_by?.includes(currentUser?.email) ? "fill-red-500 text-red-500" : ""}`} />
+                      </button>
+                      <button
+                        className="bg-black/60 p-1.5 rounded-lg backdrop-blur text-white"
+                        onClick={(e) => { e.stopPropagation(); handleEngagement(item, "watch_later"); }}
+                        title="Watch later"
+                      >
+                        <Bookmark className={`w-3 h-3 ${item.saved_by?.includes(currentUser?.email) ? "fill-blue-400 text-blue-400" : ""}`} />
+                      </button>
+                      <button
+                        className="bg-black/60 p-1.5 rounded-lg backdrop-blur text-white"
+                        onClick={(e) => { e.stopPropagation(); handleShare(item); }}
+                        title="Share"
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </button>
+                      <button
+                        className="bg-purple-600/80 p-1.5 rounded-lg backdrop-blur text-white"
+                        onClick={(e) => { e.stopPropagation(); setShowWatchParty(item); }}
+                        title="Watch party"
+                      >
+                        <Users className="w-3 h-3" />
+                      </button>
+                    </div>
 
                     {/* Play overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">

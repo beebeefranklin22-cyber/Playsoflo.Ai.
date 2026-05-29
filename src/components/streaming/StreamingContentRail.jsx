@@ -1,8 +1,10 @@
 import React from "react";
-import { Play, Star, Clock, Eye, Users, DollarSign, Tv } from "lucide-react";
+import { Play, Star, Clock, Eye, Users, DollarSign, Tv, Heart, Bookmark, Share2 } from "lucide-react";
 
-export default function StreamingContentRail({ title, subtitle, icon: Icon, items, onSelect, onWatchParty }) {
+export default function StreamingContentRail({ title, subtitle, icon: Icon, items, currentUser, onSelect, onWatchParty, onLike, onWatchLater, onShare }) {
   if (!items?.length) return null;
+
+  const actionButton = "rounded-lg bg-black/55 p-1.5 text-white backdrop-blur transition hover:bg-white/20";
 
   return (
     <div className="mb-6">
@@ -16,49 +18,61 @@ export default function StreamingContentRail({ title, subtitle, icon: Icon, item
         </div>
       </div>
       <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ touchAction: "pan-x" }}>
-        {items.map((item) => (
-          <button key={item.id} onClick={() => onSelect(item)} className="flex-shrink-0 w-40 text-left group">
-            <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900 border border-white/10">
-              {item.thumbnail_url ? (
-                <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-purple-950 flex items-center justify-center">
-                  <Tv className="w-10 h-10 text-white/25" />
+        {items.map((item) => {
+          const liked = item.liked_by?.includes(currentUser?.email);
+          const saved = item.saved_by?.includes(currentUser?.email);
+
+          return (
+            <div key={item.id} onClick={() => onSelect(item)} className="flex-shrink-0 w-40 text-left group cursor-pointer">
+              <div className="relative aspect-[2/3] rounded-2xl overflow-hidden bg-gray-900 border border-white/10">
+                {item.thumbnail_url ? (
+                  <img src={item.thumbnail_url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-purple-950 flex items-center justify-center">
+                    <Tv className="w-10 h-10 text-white/25" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                {item.is_monetized && (
+                  <div className="absolute top-2 left-2 bg-green-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                    <DollarSign className="w-2.5 h-2.5" />
+                    {item.rental_price_usd > 0 ? item.rental_price_usd : item.price_usd}
+                  </div>
+                )}
+                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition">
+                  <button className={actionButton} onClick={(e) => { e.stopPropagation(); onLike?.(item); }} title="Like">
+                    <Heart className={`w-3.5 h-3.5 ${liked ? "fill-red-500 text-red-500" : ""}`} />
+                  </button>
+                  <button className={actionButton} onClick={(e) => { e.stopPropagation(); onWatchLater?.(item); }} title="Watch later">
+                    <Bookmark className={`w-3.5 h-3.5 ${saved ? "fill-blue-400 text-blue-400" : ""}`} />
+                  </button>
+                  <button className={actionButton} onClick={(e) => { e.stopPropagation(); onShare?.(item); }} title="Share">
+                    <Share2 className="w-3.5 h-3.5" />
+                  </button>
+                  {onWatchParty && (
+                    <button className={actionButton} onClick={(e) => { e.stopPropagation(); onWatchParty(item); }} title="Watch party">
+                      <Users className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-              {item.is_monetized && (
-                <div className="absolute top-2 left-2 bg-green-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                  <DollarSign className="w-2.5 h-2.5" />
-                  {item.rental_price_usd > 0 ? item.rental_price_usd : item.price_usd}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
+                    <Play className="w-5 h-5 text-white fill-white ml-0.5" />
+                  </div>
                 </div>
-              )}
-              {onWatchParty && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); onWatchParty(item); }}
-                  className="absolute top-2 right-2 bg-purple-600/85 p-1.5 rounded-lg opacity-100 md:opacity-0 md:group-hover:opacity-100 transition"
-                >
-                  <Users className="w-3 h-3 text-white" />
-                </span>
-              )}
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
-                  <Play className="w-5 h-5 text-white fill-white ml-0.5" />
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="text-white font-semibold text-sm line-clamp-2 leading-tight mb-1">{item.title}</p>
-                <div className="flex flex-wrap items-center gap-2 text-gray-400 text-[10px]">
-                  {item.rating && <span className="flex items-center gap-0.5 text-yellow-400"><Star className="w-2.5 h-2.5 fill-yellow-400" />{item.rating}</span>}
-                  {item.duration && <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{item.duration}</span>}
-                  {item.views > 0 && <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{item.views.toLocaleString()}</span>}
+                <div className="absolute bottom-0 left-0 right-0 p-3">
+                  <p className="text-white font-semibold text-sm line-clamp-2 leading-tight mb-1">{item.title}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-gray-400 text-[10px]">
+                    {item.likes_count > 0 && <span className="flex items-center gap-0.5 text-red-400"><Heart className="w-2.5 h-2.5 fill-red-400" />{item.likes_count}</span>}
+                    {item.rating && <span className="flex items-center gap-0.5 text-yellow-400"><Star className="w-2.5 h-2.5 fill-yellow-400" />{item.rating}</span>}
+                    {item.duration && <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{item.duration}</span>}
+                    {item.views > 0 && <span className="flex items-center gap-0.5"><Eye className="w-2.5 h-2.5" />{item.views.toLocaleString()}</span>}
+                  </div>
                 </div>
               </div>
             </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

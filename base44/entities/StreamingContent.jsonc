@@ -100,7 +100,9 @@
       "enum": [
         "draft",
         "published",
-        "archived"
+        "archived",
+        "live",
+        "ended"
       ],
       "default": "draft"
     },
@@ -112,6 +114,32 @@
       "format": "date-time"
     },
     "views": {
+      "type": "number",
+      "default": 0
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "saves_count": {
+      "type": "number",
+      "default": 0
+    },
+    "saved_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "shares_count": {
       "type": "number",
       "default": 0
     },
