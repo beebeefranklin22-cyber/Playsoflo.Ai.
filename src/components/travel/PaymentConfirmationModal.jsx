@@ -46,11 +46,11 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
 
       // Create payment record
       await base44.entities.Payment.create({
-        amount: rideDetails.totalFare,
-        payment_method: paymentMethod,
-        payment_type: "ride_request",
+        amount_usd: rideDetails.totalFare,
+        method: paymentMethod === "card" ? "card" : "internal_transfer",
         status: "completed",
-        description: `Ride from ${rideDetails.pickup} to ${rideDetails.dropoff}`
+        reference_type: "other",
+        memo: `Ride from ${rideDetails.pickup} to ${rideDetails.dropoff}`
       });
 
       toast.success("Payment confirmed!");

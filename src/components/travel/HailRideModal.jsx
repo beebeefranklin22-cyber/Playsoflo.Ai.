@@ -89,7 +89,7 @@ export default function HailRideModal({ open, onClose }) {
   };
 
   const fetchSuggestions = async (input, setSuggestions, setLoading) => {
-    if (!input || input.trim().length < 2) {
+    if (!input || input.trim().length < 4) {
       setSuggestions([]);
       return;
     }
