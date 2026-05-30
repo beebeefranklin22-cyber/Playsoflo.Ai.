@@ -9,41 +9,20 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { pickup, dropoff, autocomplete } = body;
 
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    const apiKey = Deno.env.get('MAPBOX_ACCESS_TOKEN');
 
-    // ── Autocomplete (Places API New) ──────────────────────────────────────────
+    // ── Autocomplete (Mapbox Geocoding API) ─────────────────────────────────────
     if (autocomplete) {
       if (!apiKey) return Response.json({ suggestions: [], _reason: 'no_api_key' });
 
-      // Try the new Places API first
-      const acRes = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': apiKey,
-        },
-        body: JSON.stringify({ input: autocomplete }),
-      });
+      const acRes = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(autocomplete)}.json?autocomplete=true&country=us&types=address,place,poi&limit=5&access_token=${apiKey}`
+      );
       const acData = await acRes.json();
-      console.log('Autocomplete (new) status:', acRes.status, '| error:', acData.error?.message || 'none');
+      console.log('Mapbox autocomplete status:', acRes.status, '| error:', acData.message || 'none');
 
-      if (acRes.ok && acData.suggestions) {
-        const suggestions = acData.suggestions
-          .map(s => s.placePrediction?.text?.text)
-          .filter(Boolean);
-        return Response.json({ suggestions });
-      }
-
-      // Legacy fallback (in case only legacy is enabled)
-      const legacy = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=address&key=${apiKey}`
-      ).then(r => r.json());
-      const suggestions = (legacy.predictions || []).map(p => p.description);
-      return Response.json({
-        suggestions,
-        _google_status: legacy.status,
-        _error: acData.error?.message || legacy.error_message || null,
-      });
+      const suggestions = (acData.features || []).map(f => f.place_name).filter(Boolean);
+      return Response.json({ suggestions, _error: acData.message || null });
     }
 
     if (!pickup || !dropoff) {
@@ -52,56 +31,60 @@ Deno.serve(async (req) => {
 
     // ── Route Calculation ─────────────────────────────────────────────────────
     if (!apiKey) {
-      // Fallback: estimate based on ~10 miles / 20 min
-      console.warn('No Google Maps API key — using fallback estimate');
+      console.warn('No Mapbox access token — using fallback estimate');
       return Response.json(buildFallbackResponse(pickup, dropoff, 10, 20));
     }
 
     // Geocode both addresses
-    const [pickupGeo, dropoffGeo] = await Promise.all([
-      fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(pickup)}&key=${apiKey}`).then(r => r.json()),
-      fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(dropoff)}&key=${apiKey}`).then(r => r.json()),
-    ]);
+    const geocode = async (addr) => {
+      const r = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addr)}.json?country=us&limit=1&access_token=${apiKey}`
+      );
+      return r.json();
+    };
+    const [pickupGeo, dropoffGeo] = await Promise.all([geocode(pickup), geocode(dropoff)]);
 
-    console.log('Geocode pickup status:', pickupGeo.status, '| dropoff status:', dropoffGeo.status);
+    const pickupFeat = pickupGeo.features?.[0];
+    const dropoffFeat = dropoffGeo.features?.[0];
+    console.log('Geocode pickup found:', !!pickupFeat, '| dropoff found:', !!dropoffFeat);
 
-    if (pickupGeo.status !== 'OK' || dropoffGeo.status !== 'OK') {
-      // Graceful fallback instead of hard error
-      console.warn('Geocode failed, using fallback. Pickup:', pickupGeo.status, 'Dropoff:', dropoffGeo.status);
+    if (!pickupFeat || !dropoffFeat) {
+      console.warn('Geocode failed, using fallback.');
       return Response.json(buildFallbackResponse(pickup, dropoff, 8, 18));
     }
 
-    const pickupLoc = pickupGeo.results[0].geometry.location;
-    const dropoffLoc = dropoffGeo.results[0].geometry.location;
+    // Mapbox returns coords as [lng, lat]
+    const [pickupLng, pickupLat] = pickupFeat.center;
+    const [dropoffLng, dropoffLat] = dropoffFeat.center;
 
-    // Distance Matrix
-    const dmRes = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${pickupLoc.lat},${pickupLoc.lng}&destinations=${dropoffLoc.lat},${dropoffLoc.lng}&key=${apiKey}`
+    // Directions API (driving with traffic)
+    const dirRes = await fetch(
+      `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickupLng},${pickupLat};${dropoffLng},${dropoffLat}?access_token=${apiKey}`
     ).then(r => r.json());
 
-    console.log('Distance Matrix status:', dmRes.status, '| element status:', dmRes.rows?.[0]?.elements?.[0]?.status);
+    console.log('Mapbox directions code:', dirRes.code, '| routes:', dirRes.routes?.length || 0);
 
-    if (dmRes.status !== 'OK' || dmRes.rows[0].elements[0].status !== 'OK') {
+    if (dirRes.code !== 'Ok' || !dirRes.routes?.length) {
       // Fallback: straight-line haversine estimate
-      const miles = haversine(pickupLoc.lat, pickupLoc.lng, dropoffLoc.lat, dropoffLoc.lng);
+      const miles = haversine(pickupLat, pickupLng, dropoffLat, dropoffLng);
       const minutes = miles * 2.5; // ~2.5 min per mile in city
       return Response.json(buildFullResponse(
-        pickup, dropoff, pickupGeo.results[0].formatted_address, dropoffGeo.results[0].formatted_address,
-        [pickupLoc.lat, pickupLoc.lng], [dropoffLoc.lat, dropoffLoc.lng],
+        pickup, dropoff, pickupFeat.place_name, dropoffFeat.place_name,
+        [pickupLat, pickupLng], [dropoffLat, dropoffLng],
         miles, minutes
       ));
     }
 
-    const element = dmRes.rows[0].elements[0];
-    const distanceMiles = element.distance.value / 1609.34;
-    const durationMinutes = element.duration.value / 60;
+    const route = dirRes.routes[0];
+    const distanceMiles = route.distance / 1609.34;
+    const durationMinutes = route.duration / 60;
 
     return Response.json(buildFullResponse(
       pickup, dropoff,
-      pickupGeo.results[0].formatted_address,
-      dropoffGeo.results[0].formatted_address,
-      [pickupLoc.lat, pickupLoc.lng],
-      [dropoffLoc.lat, dropoffLoc.lng],
+      pickupFeat.place_name,
+      dropoffFeat.place_name,
+      [pickupLat, pickupLng],
+      [dropoffLat, dropoffLng],
       distanceMiles, durationMinutes
     ));
 
