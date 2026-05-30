@@ -29,6 +29,7 @@ import DeleteAccountModal from "../components/profile/DeleteAccountModal";
 import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
 import EditProfileModal from "../components/profile/EditProfileModal";
+import StripePayoutCard from "../components/profile/StripePayoutCard";
 
 // Skeleton shimmer for fast perceived loading
 function ProfileSkeleton() {
@@ -151,6 +152,16 @@ export default function Profile() {
       }
     };
     fetchUser();
+
+    // Stripe onboarding return feedback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('stripe') === 'success') {
+      toast.success('Stripe connected! Your payout status will update shortly.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('stripe') === 'refresh') {
+      toast.info('Setup paused — you can finish connecting Stripe anytime.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const updateUserMutation = useMutation({
@@ -394,29 +405,31 @@ export default function Profile() {
             )}
           </div>
 
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              onClick={() => setShowCustomization(true)}
-              variant="outline"
-              className="bg-white/10 border-white/20"
-            >
-              <Palette className="w-4 h-4 mr-2" />
-              Customize
-            </Button>
-            <Button
-              onClick={() => setShowPrivacySettings(true)}
-              variant="outline"
-              className="bg-white/10 border-white/20"
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Privacy
-            </Button>
+          <div className="flex gap-2 flex-wrap items-center">
             <Button
               onClick={() => setIsEditing(true)}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Edit2 className="w-4 h-4 mr-2" />
               Edit Profile
+            </Button>
+            <Button
+              onClick={() => setShowCustomization(true)}
+              variant="outline"
+              size="icon"
+              title="Customize appearance"
+              className="bg-white/10 border-white/20"
+            >
+              <Palette className="w-4 h-4" />
+            </Button>
+            <Button
+              onClick={() => setShowPrivacySettings(true)}
+              variant="outline"
+              size="icon"
+              title="Privacy settings"
+              className="bg-white/10 border-white/20"
+            >
+              <Lock className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -532,6 +545,9 @@ export default function Profile() {
               </CardContent>
             </Card>
 
+            {/* Payments & Payouts — easy Stripe setup right from the profile */}
+            <StripePayoutCard currentUser={currentUser} />
+
             {/* Quick Hub Links */}
             <Card className="glass-effect border-white/10">
               <CardHeader>
@@ -542,32 +558,38 @@ export default function Profile() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => navigate(createPageUrl("ProviderHub"))}
-                    className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="w-9 h-9 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Briefcase className="w-4 h-4 text-purple-400" />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <p className="text-white font-medium text-sm">Provider Hub</p>
-                      <p className="text-gray-400 text-xs">Services & bookings</p>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => navigate(createPageUrl("Wallet"))}
-                    className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition group"
-                  >
-                    <div className="w-9 h-9 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Wallet className="w-4 h-4 text-green-400" />
-                    </div>
-                    <div className="text-left min-w-0">
-                      <p className="text-white font-medium text-sm">My Wallet</p>
-                      <p className="text-gray-400 text-xs">Balance & earnings</p>
-                    </div>
-                  </button>
+                  {[
+                    { label: "Provider Hub", sub: "Services & bookings", icon: Briefcase, color: "purple", page: "ProviderHub" },
+                    { label: "My Wallet", sub: "Balance & earnings", icon: Wallet, color: "green", page: "Wallet" },
+                    { label: "Business Hub", sub: "Store, driver & creator", icon: DollarSign, color: "blue", tab: "business" },
+                    { label: "Reviews", sub: "What clients say", icon: Award, color: "yellow", tab: "reviews" },
+                  ].map((hub) => (
+                    <button
+                      key={hub.label}
+                      onClick={() => {
+                        if (hub.page) navigate(createPageUrl(hub.page));
+                        else document.querySelector(`[value="${hub.tab}"]`)?.click();
+                      }}
+                      className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition group text-left"
+                    >
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        hub.color === "purple" ? "bg-purple-500/20" :
+                        hub.color === "green" ? "bg-green-500/20" :
+                        hub.color === "blue" ? "bg-blue-500/20" : "bg-yellow-500/20"
+                      }`}>
+                        <hub.icon className={`w-4 h-4 ${
+                          hub.color === "purple" ? "text-purple-400" :
+                          hub.color === "green" ? "text-green-400" :
+                          hub.color === "blue" ? "text-blue-400" : "text-yellow-400"
+                        }`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white font-medium text-sm truncate">{hub.label}</p>
+                        <p className="text-gray-400 text-xs truncate">{hub.sub}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <p className="text-gray-500 text-xs mt-3 text-center">Driver, Creator & Store tools are in the <strong className="text-gray-400">Business Hub</strong> tab ↗</p>
               </CardContent>
             </Card>
 
