@@ -5,7 +5,7 @@ import { X, Download, Building, CreditCard, Zap, AlertCircle } from "lucide-reac
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
+import { processWithdrawal } from "@/functions/processWithdrawal";
 import { toast } from "sonner";
 
 export default function WithdrawModal({ currentUser, onClose }) {
@@ -65,14 +65,12 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
     setLoading(true);
     try {
-      const feeAmount = getFeeAmount();
-      
-      // Use secure backend function to deduct balance
-      const { data } = await secureBalanceUpdate({
-        operation: 'subtract',
-        amount: totalWithFees,
-        reference_type: 'withdrawal',
-        memo: `Withdraw to ${method} (Fee: $${feeAmount.toFixed(2)})`
+      // Backend handles balance deduction, fees, payment record and notification
+      const { data } = await processWithdrawal({
+        amount: parseFloat(amount),
+        method,
+        bank_account_id: bankAccounts[0]?.id,
+        card_id: paymentCards[0]?.id
       });
 
       if (!data.success) {
@@ -80,15 +78,6 @@ export default function WithdrawModal({ currentUser, onClose }) {
         setLoading(false);
         return;
       }
-
-      await base44.entities.Notification.create({
-        recipient_email: currentUser.email,
-        type: "payment_received",
-        title: "Withdrawal Initiated",
-        message: `Your withdrawal of $${parseFloat(amount).toFixed(2)} is being processed. Fee: $${feeAmount.toFixed(2)}`,
-        read: false,
-        action_url: "/Wallet"
-      });
 
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
