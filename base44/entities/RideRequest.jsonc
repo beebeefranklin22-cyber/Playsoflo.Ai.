@@ -239,6 +239,16 @@
         "type": "number"
       }
     },
+    "route_geometry": {
+      "type": "array",
+      "description": "Array of [lat, lng] coordinate pairs tracing the real road route from pickup to dropoff",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        }
+      }
+    },
     "notes": {
       "type": "string"
     }

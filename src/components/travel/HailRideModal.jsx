@@ -40,6 +40,7 @@ export default function HailRideModal({ open, onClose }) {
   const [routePricing, setRoutePricing] = useState(null);
   const [pickupCoords, setPickupCoords] = useState(null);
   const [dropoffCoords, setDropoffCoords] = useState(null);
+  const [routeGeometry, setRouteGeometry] = useState(null);
   const [pickupSuggestions, setPickupSuggestions] = useState([]);
   const [dropoffSuggestions, setDropoffSuggestions] = useState([]);
   const [loadingPickupSuggestions, setLoadingPickupSuggestions] = useState(false);
@@ -156,6 +157,7 @@ export default function HailRideModal({ open, onClose }) {
           setEstimatedDuration(response.data.duration_minutes);
           setPickupCoords(response.data.pickup_coords);
           setDropoffCoords(response.data.dropoff_coords);
+          setRouteGeometry(response.data.route_geometry || null);
 
           // Store route pricing so VehicleTypeSelector can compute per-vehicle fares
           if (response.data.pricing) {
@@ -238,6 +240,7 @@ export default function HailRideModal({ open, onClose }) {
         recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
         pickup_coords: pickupCoords || [25.7617, -80.1918],
         dropoff_coords: dropoffCoords || [25.7743, -80.1937],
+        route_geometry: routeGeometry || null,
         estimated_distance_miles: estimatedDistance,
         estimated_duration_minutes: estimatedDuration,
         rider_preferences: riderPreferences,

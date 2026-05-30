@@ -220,17 +220,40 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
                 </Marker>
               )}
 
-              {/* Route Line */}
-              {ride.driver_location && ride.dropoff_coords && (
+              {/* Real road route from pickup to dropoff */}
+              {ride.route_geometry && ride.route_geometry.length > 1 && (
+                <Polyline
+                  positions={ride.route_geometry}
+                  color="#8B5CF6"
+                  weight={5}
+                  opacity={0.85}
+                />
+              )}
+
+              {/* Live driver-to-pickup connector */}
+              {ride.driver_location && (
                 <Polyline
                   positions={[
                     [ride.driver_location.latitude, ride.driver_location.longitude],
+                    [ride.pickup_coords[0], ride.pickup_coords[1]]
+                  ]}
+                  color="#22D3EE"
+                  weight={4}
+                  opacity={0.7}
+                  dashArray="8, 10"
+                />
+              )}
+
+              {/* Fallback straight route if real geometry not available */}
+              {(!ride.route_geometry || ride.route_geometry.length < 2) && ride.dropoff_coords && (
+                <Polyline
+                  positions={[
                     [ride.pickup_coords[0], ride.pickup_coords[1]],
                     [ride.dropoff_coords[0], ride.dropoff_coords[1]]
                   ]}
                   color="#8B5CF6"
                   weight={4}
-                  opacity={0.7}
+                  opacity={0.6}
                   dashArray="10, 10"
                 />
               )}

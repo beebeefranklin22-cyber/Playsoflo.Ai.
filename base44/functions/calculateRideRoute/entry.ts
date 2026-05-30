@@ -57,9 +57,9 @@ Deno.serve(async (req) => {
     const [pickupLng, pickupLat] = pickupFeat.center;
     const [dropoffLng, dropoffLat] = dropoffFeat.center;
 
-    // Directions API (driving with traffic)
+    // Directions API (driving with traffic) — request full GeoJSON geometry for the road route
     const dirRes = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickupLng},${pickupLat};${dropoffLng},${dropoffLat}?access_token=${apiKey}`
+      `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${pickupLng},${pickupLat};${dropoffLng},${dropoffLat}?geometries=geojson&overview=full&access_token=${apiKey}`
     ).then(r => r.json());
 
     console.log('Mapbox directions code:', dirRes.code, '| routes:', dirRes.routes?.length || 0);
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       return Response.json(buildFullResponse(
         pickup, dropoff, pickupFeat.place_name, dropoffFeat.place_name,
         [pickupLat, pickupLng], [dropoffLat, dropoffLng],
-        miles, minutes
+        miles, minutes, null
       ));
     }
 
@@ -79,13 +79,16 @@ Deno.serve(async (req) => {
     const distanceMiles = route.distance / 1609.34;
     const durationMinutes = route.duration / 60;
 
+    // Convert GeoJSON [lng, lat] coordinates to Leaflet-friendly [lat, lng] pairs
+    const routeGeometry = (route.geometry?.coordinates || []).map(([lng, lat]) => [lat, lng]);
+
     return Response.json(buildFullResponse(
       pickup, dropoff,
       pickupFeat.place_name,
       dropoffFeat.place_name,
       [pickupLat, pickupLng],
       [dropoffLat, dropoffLng],
-      distanceMiles, durationMinutes
+      distanceMiles, durationMinutes, routeGeometry
     ));
 
   } catch (error) {
@@ -130,7 +133,7 @@ function buildPricing(distanceMiles, durationMinutes) {
   };
 }
 
-function buildFullResponse(pickup, dropoff, pickupFmt, dropoffFmt, pickupCoords, dropoffCoords, distanceMiles, durationMinutes) {
+function buildFullResponse(pickup, dropoff, pickupFmt, dropoffFmt, pickupCoords, dropoffCoords, distanceMiles, durationMinutes, routeGeometry) {
   return {
     pickup_coords: pickupCoords,
     dropoff_coords: dropoffCoords,
@@ -138,6 +141,7 @@ function buildFullResponse(pickup, dropoff, pickupFmt, dropoffFmt, pickupCoords,
     dropoff_formatted: dropoffFmt,
     distance_miles: distanceMiles,
     duration_minutes: durationMinutes,
+    route_geometry: routeGeometry || null,
     pricing: buildPricing(distanceMiles, durationMinutes),
   };
 }
