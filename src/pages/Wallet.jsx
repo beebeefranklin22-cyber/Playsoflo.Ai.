@@ -4,7 +4,8 @@ import {
   Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
-  Plus, Crown, Building2, Clock, Shield, FileText, Droplet, Globe, Gift, Brain
+  Plus, Crown, Building2, Clock, Shield, FileText, Droplet, Globe, Gift, Brain,
+  HandCoins, Undo2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
@@ -13,6 +14,8 @@ import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SendMoneyModal from "../components/wallet/SendMoneyModal";
+import RequestMoneyModal from "../components/wallet/RequestMoneyModal";
+import RequestRefundModal from "../components/wallet/RequestRefundModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
 import CardManagementModal from "../components/wallet/CardManagementModal";
 import BankAccountModal from "../components/wallet/BankAccountModal";
@@ -328,6 +331,28 @@ export default function Wallet() {
             <div className="text-left">
               <p className="text-white text-xs sm:text-sm font-semibold">Send</p>
               <p className="text-purple-400 text-[10px] sm:text-xs hidden sm:block">Transfer</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setActiveModal('request')}
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/20 transition-all flex-shrink-0"
+          >
+            <HandCoins className="w-4 sm:w-5 h-4 sm:h-5 text-emerald-400" />
+            <div className="text-left">
+              <p className="text-white text-xs sm:text-sm font-semibold">Request</p>
+              <p className="text-emerald-400 text-[10px] sm:text-xs hidden sm:block">Ask for money</p>
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setActiveModal('refund')}
+            className="flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all flex-shrink-0"
+          >
+            <Undo2 className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400" />
+            <div className="text-left">
+              <p className="text-white text-xs sm:text-sm font-semibold">Refund</p>
+              <p className="text-amber-400 text-[10px] sm:text-xs hidden sm:block">Request back</p>
             </div>
           </button>
 
@@ -959,6 +984,12 @@ export default function Wallet() {
       )}
       {activeModal === 'send' && currentUser && (
         <SendMoneyModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'request' && currentUser && (
+        <RequestMoneyModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'refund' && currentUser && (
+        <RequestRefundModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'withdraw' && currentUser && (
         <WithdrawModal currentUser={currentUser} onClose={() => setActiveModal(null)} />

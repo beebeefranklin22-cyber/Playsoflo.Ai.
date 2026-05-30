@@ -18,6 +18,7 @@ import OnboardingFlow from "./components/onboarding/OnboardingFlow";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
 import DeliveryNotificationHandler from "./components/notifications/DeliveryNotificationHandler";
+import PaymentRequestHandler from "./components/notifications/PaymentRequestHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import PlatformDetector from "./components/platform/PlatformDetector";
@@ -739,6 +740,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Ride Status Notification Handler */}
       <RideNotificationHandler currentUser={currentUser} />
+
+      {/* Payment Request Handler (request money / refund popups) */}
+      <PaymentRequestHandler currentUser={currentUser} />
 
       {/* Live Order Tracker Modal */}
       {showOrderTracker && (
