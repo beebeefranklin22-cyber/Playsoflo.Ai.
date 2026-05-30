@@ -52,6 +52,14 @@ function MapUpdater({ center, bounds }) {
   return null;
 }
 
+// Normalize coords to [lat, lng] array regardless of input shape
+const toLatLng = (c) => {
+  if (!c) return null;
+  if (Array.isArray(c) && c.length === 2) return [c[0], c[1]];
+  if (typeof c === 'object' && 'lat' in c && 'lng' in c) return [c.lat, c.lng];
+  return null;
+};
+
 export default function NavigationModal({ open, onClose, ride }) {
   const [directions, setDirections] = useState(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -138,18 +146,20 @@ export default function NavigationModal({ open, onClose, ride }) {
           }
           
           // Check if reached destination
-          if (navigationPhase === 'pickup' && ride?.pickup_coords) {
+          const pickupLL = toLatLng(ride?.pickup_coords);
+          const dropoffLL = toLatLng(ride?.dropoff_coords);
+          if (navigationPhase === 'pickup' && pickupLL) {
             const distToPickup = calculateDistance(
               newLocation[0], newLocation[1],
-              ride.pickup_coords[0], ride.pickup_coords[1]
+              pickupLL[0], pickupLL[1]
             );
             if (distToPickup < 0.05) {
               handleReachedPickup();
             }
-          } else if (navigationPhase === 'dropoff' && ride?.dropoff_coords) {
+          } else if (navigationPhase === 'dropoff' && dropoffLL) {
             const distToDropoff = calculateDistance(
               newLocation[0], newLocation[1],
-              ride.dropoff_coords[0], ride.dropoff_coords[1]
+              dropoffLL[0], dropoffLL[1]
             );
             if (distToDropoff < 0.05) {
               handleReachedDropoff();
@@ -194,7 +204,7 @@ export default function NavigationModal({ open, onClose, ride }) {
         }
       }
       
-      const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      const destination = toLatLng(navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords);
       
       if (!destination) {
         toast.error('Destination coordinates not available');
@@ -229,9 +239,11 @@ export default function NavigationModal({ open, onClose, ride }) {
 
   const checkGeofence = async () => {
     try {
+      const pickupLL = toLatLng(ride.pickup_coords);
+      if (!pickupLL) return;
       const response = await base44.functions.invoke('checkGeofence', {
-        lat: ride.pickup_coords[0],
-        lng: ride.pickup_coords[1]
+        lat: pickupLL[0],
+        lng: pickupLL[1]
       });
 
       if (response.data?.in_geofenced_area) {
@@ -318,7 +330,7 @@ export default function NavigationModal({ open, onClose, ride }) {
       if (!currentLocation || !directions) return;
       
       // Re-fetch route to check for traffic updates
-      const destination = navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords;
+      const destination = toLatLng(navigationPhase === 'pickup' ? ride.pickup_coords : ride.dropoff_coords);
       if (!destination) return;
       
       try {

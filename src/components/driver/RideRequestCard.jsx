@@ -322,7 +322,7 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           ) : ride.status === 'en_route' ? (
             <div className="space-y-2">
               <Button
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.pickup_address)}`, '_blank')}
+                onClick={() => onNavigate ? onNavigate(ride) : window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.pickup_address)}`, '_blank')}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Navigation className="w-4 h-4 mr-2" />
@@ -393,7 +393,7 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
           ) : ride.status === 'accepted' ? (
             <div className="space-y-2">
               <Button
-                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.dropoff_address)}`, '_blank')}
+                onClick={() => onNavigate ? onNavigate(ride) : window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(ride.dropoff_address)}`, '_blank')}
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <Navigation className="w-4 h-4 mr-2" />
