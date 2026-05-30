@@ -11,17 +11,39 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
-    // ── Autocomplete ──────────────────────────────────────────────────────────
+    // ── Autocomplete (Places API New) ──────────────────────────────────────────
     if (autocomplete) {
-      if (!apiKey) return Response.json({ suggestions: [] });
+      if (!apiKey) return Response.json({ suggestions: [], _reason: 'no_api_key' });
 
-      const acRes = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=address&key=${apiKey}`
-      );
+      // Try the new Places API first
+      const acRes = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+        },
+        body: JSON.stringify({ input: autocomplete }),
+      });
       const acData = await acRes.json();
-      console.log('Autocomplete status:', acData.status, 'for input:', autocomplete);
-      const suggestions = (acData.predictions || []).map(p => p.description);
-      return Response.json({ suggestions });
+      console.log('Autocomplete (new) status:', acRes.status, '| error:', acData.error?.message || 'none');
+
+      if (acRes.ok && acData.suggestions) {
+        const suggestions = acData.suggestions
+          .map(s => s.placePrediction?.text?.text)
+          .filter(Boolean);
+        return Response.json({ suggestions });
+      }
+
+      // Legacy fallback (in case only legacy is enabled)
+      const legacy = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(autocomplete)}&types=address&key=${apiKey}`
+      ).then(r => r.json());
+      const suggestions = (legacy.predictions || []).map(p => p.description);
+      return Response.json({
+        suggestions,
+        _google_status: legacy.status,
+        _error: acData.error?.message || legacy.error_message || null,
+      });
     }
 
     if (!pickup || !dropoff) {

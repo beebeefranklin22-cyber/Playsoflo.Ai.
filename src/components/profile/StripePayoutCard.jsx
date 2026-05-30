@@ -8,12 +8,14 @@ import {
   ArrowRight, ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
+import StripeSetupWizard from "./StripeSetupWizard";
 
 // A clean, self-contained card that lets any user connect Stripe for payouts
 // directly from their profile — no need to dig into the Business Hub.
 export default function StripePayoutCard({ currentUser }) {
   const [connecting, setConnecting] = useState(false);
   const [openingDashboard, setOpeningDashboard] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const hasAccount = !!currentUser?.stripe_account_id;
 
@@ -85,6 +87,14 @@ export default function StripePayoutCard({ currentUser }) {
   // ── Not connected yet ──────────────────────────────────────────────
   if (!hasAccount) {
     return (
+      <>
+      {showWizard && (
+        <StripeSetupWizard
+          currentUser={currentUser}
+          onClose={() => setShowWizard(false)}
+          onConnected={() => refetch()}
+        />
+      )}
       <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-600/15 to-green-700/10 p-5">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
@@ -102,17 +112,13 @@ export default function StripePayoutCard({ currentUser }) {
           Bank-level secure · Takes about 2 minutes · No monthly fees
         </div>
         <Button
-          onClick={() => { setConnecting(true); connectMutation.mutate(); }}
-          disabled={connecting}
+          onClick={() => setShowWizard(true)}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold min-h-[48px]"
         >
-          {connecting ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting setup…</>
-          ) : (
-            <>Connect Stripe<ArrowRight className="w-4 h-4 ml-2" /></>
-          )}
+          Start Setup<ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
+      </>
     );
   }
 
@@ -128,6 +134,14 @@ export default function StripePayoutCard({ currentUser }) {
 
   // ── Connected ──────────────────────────────────────────────────────
   return (
+    <>
+    {showWizard && (
+      <StripeSetupWizard
+        currentUser={currentUser}
+        onClose={() => setShowWizard(false)}
+        onConnected={() => refetch()}
+      />
+    )}
     <div
       className={`rounded-2xl border p-5 ${
         isReady
@@ -176,13 +190,10 @@ export default function StripePayoutCard({ currentUser }) {
 
       {!isReady ? (
         <Button
-          onClick={() => finishSetup.mutate()}
-          disabled={finishSetup.isLoading}
+          onClick={() => setShowWizard(true)}
           className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold min-h-[44px]"
         >
-          {finishSetup.isLoading
-            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Opening…</>
-            : <>Finish Setup<ArrowRight className="w-4 h-4 ml-2" /></>}
+          Finish Setup<ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       ) : (
         <div className="flex gap-2">
@@ -201,5 +212,6 @@ export default function StripePayoutCard({ currentUser }) {
         </div>
       )}
     </div>
+    </>
   );
 }
