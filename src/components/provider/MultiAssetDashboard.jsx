@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const assetTypeIcons = {
 
 export default function MultiAssetDashboard({ currentUser }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -99,6 +101,16 @@ export default function MultiAssetDashboard({ currentUser }) {
 
   const totalRevenue = assetMetrics.reduce((sum, a) => sum + a.revenue, 0);
   const totalActiveBookings = assetMetrics.reduce((sum, a) => sum + a.activeBookings, 0);
+
+  const deleteAssetMutation = useMutation({
+    mutationFn: (id) => base44.entities.MarketplaceItem.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['provider-all-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['my-services'] });
+      toast.success("Asset deleted");
+    },
+    onError: (e) => toast.error("Failed to delete: " + e.message)
+  });
 
   const AssetCard = ({ asset }) => {
     const Icon = assetTypeIcons[asset.category] || assetTypeIcons.default;
@@ -178,6 +190,19 @@ export default function MultiAssetDashboard({ currentUser }) {
               >
                 <BarChart3 className="w-3 h-3 mr-1" />
                 Stats
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-red-500/20 border-red-500/30 text-red-400 hover:bg-red-500/30"
+                disabled={deleteAssetMutation.isLoading}
+                onClick={() => {
+                  if (confirm(`Delete "${asset.title}"? This cannot be undone.`)) {
+                    deleteAssetMutation.mutate(asset.id);
+                  }
+                }}
+              >
+                <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           </div>
