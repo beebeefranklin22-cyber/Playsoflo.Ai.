@@ -2,14 +2,58 @@ import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import { Navigation, MapPin, Package, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import { base44 } from "@/api/base44Client";
 import "leaflet/dist/leaflet.css";
+
+// Decode Google/Mapbox encoded polyline into [lat, lng] pairs
+const decodePolyline = (encoded) => {
+  const coords = [];
+  let index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    coords.push([lat / 1e5, lng / 1e5]);
+  }
+  return coords;
+};
 
 export default function LiveGPSTracking({ delivery, driverLocation }) {
   const [eta, setEta] = useState(null);
+  const [routeCoords, setRouteCoords] = useState([]);
+
+  // Fetch the real road route (Mapbox via getDirections) from driver to delivery
+  useEffect(() => {
+    let cancelled = false;
+    const fetchRoute = async () => {
+      if (!driverLocation || !delivery.delivery_coords) return;
+      try {
+        const res = await base44.functions.invoke('getDirections', {
+          origin: driverLocation,
+          destination: delivery.delivery_coords,
+          mode: 'driving'
+        });
+        if (cancelled) return;
+        if (res.data?.polyline) {
+          setRouteCoords(decodePolyline(res.data.polyline));
+        }
+        // Use the real road-based ETA when available
+        const mins = res.data?.duration_in_traffic?.minutes || res.data?.duration?.minutes;
+        if (mins) setEta(mins);
+      } catch {
+        // Keep straight-line fallback below
+      }
+    };
+    fetchRoute();
+    return () => { cancelled = true; };
+  }, [driverLocation, delivery.delivery_coords]);
 
   useEffect(() => {
-    if (driverLocation && delivery.delivery_coords) {
-      // Calculate ETA based on distance
+    if (eta === null && driverLocation && delivery.delivery_coords) {
+      // Straight-line ETA fallback
       const R = 3959; // Earth radius in miles
       const lat1 = driverLocation[0] * Math.PI / 180;
       const lat2 = delivery.delivery_coords[0] * Math.PI / 180;
@@ -21,12 +65,9 @@ export default function LiveGPSTracking({ delivery, driverLocation }) {
                 Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       const distance = R * c;
-
-      // Assume 30 mph average speed
-      const etaMinutes = Math.ceil((distance / 30) * 60);
-      setEta(etaMinutes);
+      setEta(Math.ceil((distance / 30) * 60));
     }
-  }, [driverLocation, delivery]);
+  }, [driverLocation, delivery, eta]);
 
   const center = delivery.pickup_coords || [25.7617, -80.1918];
   const zoom = 13;
@@ -107,13 +148,21 @@ export default function LiveGPSTracking({ delivery, driverLocation }) {
             </Marker>
           )}
 
-          {/* Route Line */}
-          {driverLocation && delivery.delivery_coords && (
+          {/* Real road route (Mapbox) with straight-line fallback */}
+          {routeCoords.length > 1 ? (
+            <Polyline
+              positions={routeCoords}
+              color="#3B82F6"
+              weight={5}
+              opacity={0.85}
+            />
+          ) : driverLocation && delivery.delivery_coords && (
             <Polyline 
               positions={[driverLocation, delivery.delivery_coords]} 
               color="blue"
               weight={3}
               opacity={0.7}
+              dashArray="8, 10"
             />
           )}
         </MapContainer>

@@ -1,7 +1,23 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Geocode address to coordinates using Nominatim (free, no API key)
+const MAPBOX_TOKEN = Deno.env.get('MAPBOX_ACCESS_TOKEN');
+
+// Geocode address to coordinates — Mapbox first, Nominatim fallback
 async function geocodeAddress(address) {
+  if (MAPBOX_TOKEN) {
+    try {
+      const r = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?country=us&limit=1&access_token=${MAPBOX_TOKEN}`
+      );
+      const d = await r.json();
+      const feat = d.features?.[0];
+      if (feat?.center) {
+        return { lat: feat.center[1], lng: feat.center[0] };
+      }
+    } catch (e) {
+      console.warn('Mapbox geocode failed, falling back to Nominatim:', e.message);
+    }
+  }
   const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
   const response = await fetch(url, {
     headers: { 'User-Agent': 'PlaySoFloApp/1.0' }
@@ -11,6 +27,11 @@ async function geocodeAddress(address) {
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
   }
   return null;
+}
+
+// Map Mapbox maneuver to a human-readable instruction
+function mapboxInstruction(step) {
+  return step.maneuver?.instruction || step.name || 'Continue';
 }
 
 Deno.serve(async (req) => {
@@ -29,22 +50,49 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Origin and destination required' }, { status: 400 });
     }
 
-    // Convert addresses to coordinates
-    let originCoords = typeof origin === 'string' ? await geocodeAddress(origin) : origin;
-    let destCoords = typeof destination === 'string' ? await geocodeAddress(destination) : destination;
+    // Normalize coordinate inputs: accept string address, [lat, lng] array, or {lat, lng} object
+    const normalizeCoords = async (input) => {
+      if (typeof input === 'string') return await geocodeAddress(input);
+      if (Array.isArray(input) && input.length === 2) return { lat: input[0], lng: input[1] };
+      if (input && typeof input === 'object' && 'lat' in input && 'lng' in input) {
+        return { lat: input.lat, lng: input.lng };
+      }
+      return null;
+    };
+
+    let originCoords = await normalizeCoords(origin);
+    let destCoords = await normalizeCoords(destination);
 
     if (!originCoords || !destCoords) {
       return Response.json({ error: 'Could not geocode addresses' }, { status: 400 });
     }
 
-    // Call OSRM API (free, no API key needed)
-    const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}?overview=full&steps=true&geometries=polyline`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
+    // Prefer Mapbox Directions (driving with live traffic + turn-by-turn), fall back to OSRM
+    let data = null;
+    let usedMapbox = false;
 
-    if (data.code !== 'Ok') {
-      return Response.json({ error: 'Routing failed', details: data.code }, { status: 400 });
+    if (MAPBOX_TOKEN) {
+      try {
+        const mbUrl = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}?steps=true&overview=full&geometries=polyline&access_token=${MAPBOX_TOKEN}`;
+        const mbRes = await fetch(mbUrl);
+        const mbData = await mbRes.json();
+        console.log('Mapbox status:', mbRes.status, '| code:', mbData.code, '| message:', mbData.message || 'none', '| routes:', mbData.routes?.length || 0);
+        if (mbData.code === 'Ok' && mbData.routes?.length) {
+          data = mbData;
+          usedMapbox = true;
+        }
+      } catch (e) {
+        console.warn('Mapbox directions failed, falling back to OSRM:', e.message);
+      }
+    }
+
+    if (!data) {
+      const url = `https://router.project-osrm.org/route/v1/driving/${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}?overview=full&steps=true&geometries=polyline`;
+      const response = await fetch(url);
+      data = await response.json();
+      if (data.code !== 'Ok') {
+        return Response.json({ error: 'Routing failed', details: data.code }, { status: 400 });
+      }
     }
 
     const route = data.routes[0];
@@ -68,11 +116,16 @@ Deno.serve(async (req) => {
         seconds: route.duration,
         minutes: durationMins
       },
-      duration_in_traffic: null,
+      duration_in_traffic: usedMapbox ? {
+        text: durationHours > 0 ? `${durationHours} hour${durationHours > 1 ? 's' : ''} ${durationRemainingMins} min` : `${durationMins} min`,
+        seconds: route.duration,
+        minutes: durationMins
+      } : null,
       start_location: { lat: originCoords.lat, lng: originCoords.lng },
       end_location: { lat: destCoords.lat, lng: destCoords.lng },
       steps: leg.steps.map(step => ({
-        instruction: step.maneuver.type === 'depart' ? 'Head ' + step.maneuver.modifier :
+        instruction: step.maneuver.instruction ? step.maneuver.instruction :
+                     step.maneuver.type === 'depart' ? 'Head ' + step.maneuver.modifier :
                      step.maneuver.type === 'arrive' ? 'Arrive at destination' :
                      step.maneuver.type === 'turn' ? `Turn ${step.maneuver.modifier}` :
                      step.maneuver.type === 'merge' ? `Merge ${step.maneuver.modifier || ''}` :
