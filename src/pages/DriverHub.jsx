@@ -28,6 +28,7 @@ import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
 import DriverStatsOverview from "../components/driver/DriverStatsOverview";
 import DriverProfileSetup from "../components/driver/DriverProfileSetup";
 import { DriverPinPanel } from "../components/ride/DriverPinVerification";
+import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -147,36 +148,11 @@ export default function DriverHub() {
           driver_status: "pending"
         });
 
-        // Calculate distance for each request if driver location available
-        if (driverLocation && requests.length > 0) {
-          const enrichedRequests = requests.map(ride => {
-            if (ride.pickup_coords && Array.isArray(ride.pickup_coords)) {
-              const R = 3959; // Earth's radius in miles
-              const lat1 = driverLocation[0] * Math.PI / 180;
-              const lat2 = ride.pickup_coords[0] * Math.PI / 180;
-              const dLat = (ride.pickup_coords[0] - driverLocation[0]) * Math.PI / 180;
-              const dLon = (ride.pickup_coords[1] - driverLocation[1]) * Math.PI / 180;
-              
-              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                       Math.cos(lat1) * Math.cos(lat2) *
-                       Math.sin(dLon/2) * Math.sin(dLon/2);
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-              const distance = R * c;
-              
-              return { ...ride, distance_to_pickup: distance };
-            }
-            return ride;
-          });
-
-          // Sort by distance (closest first)
-          return enrichedRequests.sort((a, b) => {
-            if (!a.distance_to_pickup) return 1;
-            if (!b.distance_to_pickup) return -1;
-            return a.distance_to_pickup - b.distance_to_pickup;
-          });
-        }
-        
-        return requests;
+        // Only show rides whose pickup is within the driver's service radius.
+        // Without a driver location we can't verify proximity, so show nothing
+        // (prevents a Miami driver from seeing Tampa requests).
+        if (!driverLocation) return [];
+        return filterNearbyRequests(requests, driverLocation, (r) => r.pickup_coords);
       } catch (err) {
         console.error("Error fetching pending requests:", err);
         return [];
@@ -499,7 +475,9 @@ export default function DriverHub() {
               </motion.div>
               <h3 className="text-xl font-bold text-white mb-2">You're Online!</h3>
               <p className="text-gray-400 mb-4">
-                Waiting for ride requests in your area...
+                {driverLocation
+                  ? `Waiting for ride requests within ${DEFAULT_DRIVER_RADIUS_MILES} miles of you...`
+                  : "Enable location to receive nearby ride requests."}
               </p>
               <div className="flex items-center justify-center gap-2 text-green-400 text-sm">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />

@@ -69,7 +69,10 @@ export default function SendMoneyModal({ currentUser, onClose }) {
           queryClient.invalidateQueries({ queryKey: ['currentUser'] });
           queryClient.invalidateQueries({ queryKey: ['transactions'] });
           setShowConfirmation(true);
-          toast.success(`$${sendAmount.toFixed(2)} sent successfully!`);
+          toast.success(`$${sendAmount.toFixed(2)} sent successfully!`, {
+            description: `Sent to ${searchQuery || recipient}`,
+            duration: 5000,
+          });
         } else {
           toast.error(data.error || "Transfer failed");
         }
@@ -132,7 +135,24 @@ export default function SendMoneyModal({ currentUser, onClose }) {
       }
     } catch (err) {
       console.error("Send failed:", err);
-      toast.error(err?.response?.data?.error || err?.message || "Failed to send money");
+      const serverError = err?.response?.data?.error || err?.message || "";
+      const lower = serverError.toLowerCase();
+      if (lower.includes("insufficient")) {
+        toast.error("Insufficient funds", {
+          description: "You don't have enough balance to send this amount.",
+          duration: 6000,
+        });
+      } else if (lower.includes("not found") || lower.includes("invalid recipient")) {
+        toast.error("Invalid recipient", {
+          description: "We couldn't find that user. Double-check the username or phone.",
+          duration: 6000,
+        });
+      } else {
+        toast.error("Transfer failed", {
+          description: serverError || "Something went wrong. Please try again.",
+          duration: 6000,
+        });
+      }
     } finally {
       setLoading(false);
     }

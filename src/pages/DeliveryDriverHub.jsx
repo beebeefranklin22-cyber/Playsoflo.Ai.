@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import VehicleManagementModal from "../components/delivery/VehicleManagementModal";
 import ProofOfDeliveryModal from "../components/delivery/ProofOfDeliveryModal";
 import DriverEarningsSummary from "../components/delivery/DriverEarningsSummary";
+import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
 
 export default function DeliveryDriverHub() {
   const navigate = useNavigate();
@@ -23,17 +24,29 @@ export default function DeliveryDriverHub() {
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [showProofModal, setShowProofModal] = useState(false);
   const [deliveryForProof, setDeliveryForProof] = useState(null);
+  const [driverLocation, setDriverLocation] = useState(null);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
+    // Capture driver's current location to only show nearby deliveries
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setDriverLocation([pos.coords.latitude, pos.coords.longitude]),
+        (err) => console.log("Location error:", err),
+        { enableHighAccuracy: true }
+      );
+    }
   }, []);
 
   const { data: availableOrders = [] } = useQuery({
-    queryKey: ['available-deliveries'],
+    queryKey: ['available-deliveries', driverLocation],
     queryFn: async () => {
-      return await base44.entities.DeliveryOrder.filter({ 
-        status: 'pending' 
-      });
+      const orders = await base44.entities.DeliveryOrder.filter({ status: 'pending' });
+      // Only show deliveries whose pickup is within the driver's service radius.
+      // Without a location we can't verify proximity, so show nothing (prevents a
+      // South Carolina driver from seeing a New Mexico order).
+      if (!driverLocation) return [];
+      return filterNearbyRequests(orders, driverLocation, (o) => o.pickup_coords);
     },
     refetchInterval: 5000,
     refetchOnWindowFocus: true
@@ -391,7 +404,11 @@ export default function DeliveryDriverHub() {
             <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10">
               <Package className="w-20 h-20 text-gray-600 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">No Orders Available</h3>
-              <p className="text-gray-400">Check back soon for new delivery requests</p>
+              <p className="text-gray-400">
+                {driverLocation
+                  ? `No delivery requests within ${DEFAULT_DRIVER_RADIUS_MILES} miles. Check back soon.`
+                  : "Enable location to receive nearby delivery requests."}
+              </p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
@@ -430,8 +447,14 @@ export default function DeliveryDriverHub() {
                         <p className="text-white">{order.delivery_address}</p>
                       </div>
                     </div>
+                    {order.distance_to_pickup != null && (
+                      <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                        <span className="text-gray-400">📍 Pickup is</span>
+                        <span className="text-cyan-300 font-semibold">{order.distance_to_pickup.toFixed(1)} mi away</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                      <span className="text-gray-400">Distance</span>
+                      <span className="text-gray-400">Trip Distance</span>
                       <span className="text-white font-semibold">{order.distance_miles} mi</span>
                     </div>
                     <div className="flex items-center justify-between">

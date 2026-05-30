@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -8,11 +8,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bike, DollarSign, Clock, MapPin, CheckCircle, Package } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
 
 export default function FoodDriverHub() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isOnline, setIsOnline] = useState(false);
+  const [driverLocation, setDriverLocation] = useState(null);
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setDriverLocation([pos.coords.latitude, pos.coords.longitude]),
+        (err) => console.log("Location error:", err),
+        { enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -20,10 +32,13 @@ export default function FoodDriverHub() {
   });
 
   const { data: availableOrders = [] } = useQuery({
-    queryKey: ['available-food-orders'],
+    queryKey: ['available-food-orders', driverLocation],
     queryFn: async () => {
       const orders = await base44.entities.FoodOrder.filter({ status: 'confirmed' });
-      return orders.filter(o => !o.driver_email);
+      const unassigned = orders.filter(o => !o.driver_email);
+      // Only show orders whose delivery destination is within the driver's radius.
+      if (!driverLocation) return [];
+      return filterNearbyRequests(unassigned, driverLocation, (o) => o.delivery_coords);
     },
     refetchInterval: 5000
   });
@@ -184,7 +199,11 @@ export default function FoodDriverHub() {
 
             {isOnline && availableOrders.length === 0 && (
               <div className="text-center py-12 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl">
-                <p className="text-gray-400">No available orders right now</p>
+                <p className="text-gray-400">
+                  {driverLocation
+                    ? `No orders within ${DEFAULT_DRIVER_RADIUS_MILES} miles right now`
+                    : "Enable location to see nearby orders"}
+                </p>
               </div>
             )}
 

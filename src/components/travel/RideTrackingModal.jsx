@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import DriverTippingModal from "../ride/DriverTippingModal";
 import PassengerRatingModal from "../ride/PassengerRatingModal";
+import StatusTimeline from "../tracking/StatusTimeline";
 
 export default function RideTrackingModal({ rideRequest, onClose, currentUser }) {
   const navigate = useNavigate();
@@ -337,6 +338,12 @@ export default function RideTrackingModal({ rideRequest, onClose, currentUser })
 
         {/* Ride Details */}
         <div className="p-6 space-y-4">
+          {/* Live status timeline */}
+          <div className="bg-white/5 rounded-xl p-4">
+            <p className="text-gray-400 text-xs mb-3 font-semibold uppercase tracking-wide">Ride Status</p>
+            <StatusTimeline type="ride" status={ride?.status} />
+          </div>
+
           <div className="bg-white/5 rounded-xl p-4">
             <div className="flex items-start gap-3 mb-3">
               <MapPin className="w-5 h-5 text-green-400 flex-shrink-0 mt-1" />

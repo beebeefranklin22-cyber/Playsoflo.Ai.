@@ -17,6 +17,7 @@ import SmartTooltip from "./components/onboarding/SmartTooltip";
 import OnboardingFlow from "./components/onboarding/OnboardingFlow";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
+import DeliveryNotificationHandler from "./components/notifications/DeliveryNotificationHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
 import PlatformDetector from "./components/platform/PlatformDetector";
