@@ -484,12 +484,15 @@ export default function ProviderHub() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 pb-20">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-white">Provider Hub</h1>
-          <Link to={createPageUrl("ProviderProfile")} className="flex items-center gap-2">
-            <Button className="bg-purple-600 hover:bg-purple-700">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Provider Hub</h1>
+            <p className="text-gray-400 text-sm mt-1">Manage your services, bookings, and earnings</p>
+          </div>
+          <Link to={createPageUrl("ProviderProfile")}>
+            <Button variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 w-full sm:w-auto">
               <Shield className="w-4 h-4 mr-2" />
-              View My Public Profile
+              View Public Profile
             </Button>
           </Link>
         </div>
@@ -551,51 +554,71 @@ export default function ProviderHub() {
           </Card>
         )}
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Button onClick={() => navigate(createPageUrl("ProviderListings"))} className="bg-gradient-to-r from-purple-600 to-pink-600 py-8 text-lg hover:from-purple-700 hover:to-pink-700">
-            <List className="w-6 h-6 mr-2" />Manage Listings
-          </Button>
-          <Button onClick={() => setActiveTab("services")} className="bg-gradient-to-r from-indigo-600 to-blue-600 py-8 text-lg hover:from-indigo-700 hover:to-blue-700">
-            <Plus className="w-6 h-6 mr-2" />Add New Service
-          </Button>
-          <Button onClick={() => setActiveTab("verification")} className="bg-gradient-to-r from-green-600 to-teal-600 py-8 text-lg hover:from-green-700 hover:to-teal-700">
-            <Shield className="w-6 h-6 mr-2" />Get Verified
-          </Button>
-          <Button onClick={() => setActiveTab("profile")} className="bg-gradient-to-r from-yellow-600 to-orange-600 py-8 text-lg hover:from-yellow-700 hover:to-orange-700">
-            <User className="w-6 h-6 mr-2" />Update Profile
-          </Button>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+          {[
+            { label: "Manage Listings", icon: List, color: "text-purple-400", bg: "bg-purple-500/10", onClick: () => navigate(createPageUrl("ProviderListings")) },
+            { label: "Add New Service", icon: Plus, color: "text-blue-400", bg: "bg-blue-500/10", onClick: () => setActiveTab("services") },
+            { label: "Get Verified", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-500/10", onClick: () => setActiveTab("verification") },
+            { label: "Update Profile", icon: User, color: "text-orange-400", bg: "bg-orange-500/10", onClick: () => setActiveTab("profile") },
+          ].map((action) => (
+            <button
+              key={action.label}
+              onClick={action.onClick}
+              className="group flex flex-col items-start gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all text-left active:scale-[0.98]"
+            >
+              <div className={`w-11 h-11 rounded-xl ${action.bg} flex items-center justify-center`}>
+                <action.icon className={`w-5 h-5 ${action.color}`} />
+              </div>
+              <span className="text-white font-semibold text-sm">{action.label}</span>
+            </button>
+          ))}
         </div>
 
-        <Card className={`bg-gradient-to-r ${verificationLevelColors[currentUser?.provider_verification_level || "none"]} border-0 mb-6`}>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                  <Shield className="w-8 h-8 text-white" />
+        {(() => {
+          const level = currentUser?.provider_verification_level && currentUser.provider_verification_level !== "none"
+            ? currentUser.provider_verification_level : null;
+          const trustScore = currentUser?.provider_trust_score || overallTrustScore;
+          return (
+            <Card className={`bg-gradient-to-r ${verificationLevelColors[level || "none"]} border-0 mb-8 overflow-hidden`}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-white text-xl font-bold mb-0.5 truncate">
+                        {level ? `${level.charAt(0).toUpperCase() + level.slice(1)} Verified Provider` : "Get Verified"}
+                      </h3>
+                      <p className="text-white/80 text-sm">{verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} completed</p>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-white text-3xl font-bold leading-none">{verifiedCount}/{verifications.length}</div>
+                    <p className="text-white/80 text-xs mt-1">Verifications</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-white text-2xl font-bold mb-1">
-                    {currentUser?.provider_verification_level === "none" ? "Get Verified" : `${currentUser?.provider_verification_level?.toUpperCase()} Verified Provider`}
-                  </h3>
-                  <p className="text-white/90">Trust Score: {currentUser?.provider_trust_score || overallTrustScore}/100</p>
-                  <p className="text-white/80 text-sm">{verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} completed</p>
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-white/90 text-xs mb-1.5">
+                    <span>Trust Score</span>
+                    <span className="font-semibold">{trustScore}/100</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${Math.min(trustScore, 100)}%` }} />
+                  </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="text-white text-4xl font-bold mb-2">{verifiedCount}/{verifications.length}</div>
-                <p className="text-white/90 text-sm">Verifications</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="overflow-x-auto -mx-2 px-2">
-            <TabsList className="inline-flex w-auto min-w-full bg-white/10 backdrop-blur-xl border border-white/20 p-2 gap-2">
-              <TabsTrigger value="dashboard" className="whitespace-nowrap px-4">Dashboard</TabsTrigger>
-              <TabsTrigger value="assets" className="whitespace-nowrap px-4">My Assets ({myServices.length})</TabsTrigger>
-              <TabsTrigger value="video-editor" className="whitespace-nowrap px-4">Video Editor</TabsTrigger>
-              <TabsTrigger value="requests" className="relative whitespace-nowrap px-4">
+          <div className="overflow-x-auto -mx-2 px-2 hide-scrollbar">
+            <TabsList className="inline-flex w-auto min-w-full bg-white/[0.04] backdrop-blur-xl border border-white/10 p-1.5 gap-1 rounded-xl">
+              <TabsTrigger value="dashboard" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Dashboard</TabsTrigger>
+              <TabsTrigger value="assets" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">My Assets ({myServices.length})</TabsTrigger>
+              <TabsTrigger value="video-editor" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Video Editor</TabsTrigger>
+              <TabsTrigger value="requests" className="relative whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">
                 Requests
                 {unreadBookingRequests > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -603,7 +626,7 @@ export default function ProviderHub() {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="messages" className="relative whitespace-nowrap px-4">
+              <TabsTrigger value="messages" className="relative whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">
                 Messages
                 {unreadMessages > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
@@ -611,14 +634,14 @@ export default function ProviderHub() {
                   </span>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="earnings" className="whitespace-nowrap px-4">Earnings</TabsTrigger>
-              <TabsTrigger value="portfolio" className="whitespace-nowrap px-4">Portfolio</TabsTrigger>
-              <TabsTrigger value="services" className="whitespace-nowrap px-4">Services</TabsTrigger>
-              <TabsTrigger value="availability" className="whitespace-nowrap px-4">Availability</TabsTrigger>
-              <TabsTrigger value="verification" className="whitespace-nowrap px-4">Verification</TabsTrigger>
-              <TabsTrigger value="contracts" className="whitespace-nowrap px-4">Contracts</TabsTrigger>
-              <TabsTrigger value="profile" className="whitespace-nowrap px-4">Profile</TabsTrigger>
-              <TabsTrigger value="settings" className="whitespace-nowrap px-4">Settings</TabsTrigger>
+              <TabsTrigger value="earnings" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Earnings</TabsTrigger>
+              <TabsTrigger value="portfolio" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Portfolio</TabsTrigger>
+              <TabsTrigger value="services" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Services</TabsTrigger>
+              <TabsTrigger value="availability" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Availability</TabsTrigger>
+              <TabsTrigger value="verification" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Verification</TabsTrigger>
+              <TabsTrigger value="contracts" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Contracts</TabsTrigger>
+              <TabsTrigger value="profile" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Profile</TabsTrigger>
+              <TabsTrigger value="settings" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Settings</TabsTrigger>
             </TabsList>
           </div>
 
