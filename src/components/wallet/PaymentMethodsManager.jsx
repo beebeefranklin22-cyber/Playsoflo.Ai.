@@ -233,21 +233,46 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
   const addExternalMutation = useMutation({
     mutationFn: async () => {
-      await base44.entities.PaymentMethod.create({
+      const value = externalUsername.trim();
+      const record = {
         user_email: currentUser.email,
         type: externalType,
-        external_details: { username: externalUsername },
-        is_default: paymentMethods.length === 0
-      });
+        is_default: paymentMethods.length === 0,
+        status: 'active'
+      };
+
+      if (externalType === 'crypto_wallet') {
+        record.crypto_details = { wallet_address: value, network: 'ethereum' };
+      } else {
+        // cashapp / venmo / paypal
+        const isEmail = value.includes('@') && value.includes('.');
+        record.external_details = {
+          username: value,
+          email: isEmail ? value : ''
+        };
+      }
+
+      return await base44.entities.PaymentMethod.create(record);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['payment-methods']);
       setShowAddExternal(false);
       setExternalUsername("");
       setExternalType(null);
-      toast.success("Payment method added!");
+      toast.success("✅ Payment method added!");
+    },
+    onError: (err) => {
+      console.error('Add external payment method error:', err);
+      toast.error(err?.message || "Failed to add payment method");
     }
   });
+
+  const externalLabels = {
+    cashapp: { label: 'Cash App', placeholder: '$cashtag or email', hint: 'Enter your $Cashtag (e.g. $johndoe) or linked email.' },
+    venmo: { label: 'Venmo', placeholder: '@username or email', hint: 'Enter your Venmo @username or linked email.' },
+    paypal: { label: 'PayPal', placeholder: 'PayPal email', hint: 'Enter the email associated with your PayPal account.' },
+    crypto_wallet: { label: 'Crypto Wallet', placeholder: 'Wallet address (0x...)', hint: 'Enter your public wallet address.' }
+  };
 
 
 
@@ -459,12 +484,13 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                   >
                     <Card className="bg-white/5 border-white/10">
                       <CardContent className="p-6">
-                        <h3 className="text-white font-semibold mb-4 capitalize">
-                          Add {externalType?.replace('_', ' ')} Account
+                        <h3 className="text-white font-semibold mb-2">
+                          Add {externalLabels[externalType]?.label || 'Account'}
                         </h3>
+                        <p className="text-gray-400 text-xs mb-4">{externalLabels[externalType]?.hint}</p>
                         <div className="space-y-4">
                           <Input
-                            placeholder={`${externalType === 'crypto_wallet' ? 'Wallet address' : 'Username or email'}`}
+                            placeholder={externalLabels[externalType]?.placeholder || 'Username or email'}
                             value={externalUsername}
                             onChange={(e) => setExternalUsername(e.target.value)}
                             className="bg-white/10 border-white/20 text-white"
@@ -597,10 +623,11 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                                           </Badge>
                                         )}
                                       </div>
-                                      <p className="text-gray-400 text-sm">
+                                      <p className="text-gray-400 text-sm break-all">
                                         {method.card_details && `•••• ${method.card_details.last4}`}
                                         {method.bank_details && `${method.bank_details.bank_name} •••• ${method.bank_details.last4}`}
-                                        {method.external_details && method.external_details.username}
+                                        {method.external_details && (method.external_details.username || method.external_details.email)}
+                                        {method.crypto_details && `${method.crypto_details.wallet_address?.slice(0, 6)}...${method.crypto_details.wallet_address?.slice(-4)}`}
                                       </p>
                                     </div>
                                   </div>

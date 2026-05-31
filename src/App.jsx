@@ -17,6 +17,7 @@ import AmazonOrders from './pages/AmazonOrders'
 import SavedJobs from './pages/SavedJobs'
 import ApplicationTracker from './pages/ApplicationTracker'
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import Discover from './pages/Discover'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -118,6 +119,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <SonnerToaster position="top-center" richColors closeButton />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>

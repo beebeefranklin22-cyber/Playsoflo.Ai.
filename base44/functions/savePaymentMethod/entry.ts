@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.5.0';
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
@@ -37,10 +37,17 @@ Deno.serve(async (req) => {
 
     console.log('Existing payment methods:', existingMethods.length);
 
+    // Map Stripe payment method type to our entity enum
+    const typeMap = {
+      card: 'card',
+      us_bank_account: 'bank_account'
+    };
+    const mappedType = typeMap[paymentMethod.type] || 'card';
+
     // Save to database
     const savedMethod = await base44.entities.PaymentMethod.create({
       user_email: user.email,
-      type: paymentMethod.type,
+      type: mappedType,
       stripe_payment_method_id: paymentMethod.id,
       card_details: paymentMethod.card ? {
         brand: paymentMethod.card.brand,
