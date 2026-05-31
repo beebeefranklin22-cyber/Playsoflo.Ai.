@@ -13,6 +13,7 @@ export default function CDPCryptoWallet() {
   const [sending, setSending] = useState(false);
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
+  const [createMessage, setCreateMessage] = useState(null); // { type: 'error' | 'success', text }
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["cdp-balance"],
@@ -28,19 +29,20 @@ export default function CDPCryptoWallet() {
 
   const handleCreate = async () => {
     setCreating(true);
+    setCreateMessage(null);
     try {
       const res = await cdpCreateWallet({});
       // The function returns 200 even when the provider rejects — surface the real result.
       if (res?.data?.error) {
-        toast.error(res.data.error);
+        setCreateMessage({ type: "error", text: res.data.error });
       } else if (res?.data?.address) {
-        toast.success("Crypto wallet created!");
+        setCreateMessage({ type: "success", text: "Crypto wallet created!" });
         await refetch();
       } else {
-        toast.error("Could not create wallet. Please try again.");
+        setCreateMessage({ type: "error", text: "Could not create wallet. Please try again." });
       }
     } catch (e) {
-      toast.error(e?.response?.data?.error || e?.message || "Failed to create wallet");
+      setCreateMessage({ type: "error", text: e?.response?.data?.error || e?.message || "Failed to create wallet" });
     } finally {
       setCreating(false);
     }
@@ -88,6 +90,15 @@ export default function CDPCryptoWallet() {
           <Button onClick={handleCreate} disabled={creating} className="bg-blue-600 hover:bg-blue-700 font-bold">
             {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Wallet"}
           </Button>
+          {createMessage && (
+            <div className={`mt-4 rounded-xl p-3 text-sm text-left ${
+              createMessage.type === "error"
+                ? "bg-red-500/10 border border-red-500/30 text-red-300"
+                : "bg-green-500/10 border border-green-500/30 text-green-300"
+            }`}>
+              {createMessage.text}
+            </div>
+          )}
         </div>
       ) : (
         <>
