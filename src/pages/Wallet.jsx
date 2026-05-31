@@ -41,6 +41,7 @@ import FinancialAnalytics from "../components/wallet/FinancialAnalytics";
 import PhysicalCardRequest from "../components/wallet/PhysicalCardRequest";
 import RecurringTransfersManager from "../components/wallet/RecurringTransfersManager";
 import CurrencyConverter from "../components/wallet/CurrencyConverter";
+import CDPCryptoWallet from "../components/wallet/CDPCryptoWallet";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -473,6 +474,11 @@ export default function Wallet() {
             </button>
           </div>
         </details>
+      </div>
+
+      {/* On-chain USDC Wallet (Coinbase) */}
+      <div className="px-4 sm:px-6 mb-6">
+        <CDPCryptoWallet />
       </div>
 
       {/* Crypto Wallet Section */}
