@@ -9,7 +9,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { amount, method, bank_account_id, card_id } = await req.json();
+    const body = await req.json();
+    const { amount, method } = body;
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -42,33 +43,40 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // Validate destination based on method
+    // Validate destination using the unified PaymentMethod entity (where users
+    // actually save cards, banks, Cash App, Venmo, PayPal & crypto wallets).
+    const payment_method_id = body.payment_method_id;
+    const savedMethods = await base44.asServiceRole.entities.PaymentMethod.filter({
+      user_email: user.email,
+      status: 'active'
+    });
+
+    if (savedMethods.length === 0) {
+      return Response.json({
+        error: 'No payment method found. Please add a card, bank, or payout account in "Payment Methods" first.'
+      }, { status: 400 });
+    }
+
+    // Pick the chosen method, else the default, else the first one
+    const destination = payment_method_id
+      ? savedMethods.find(m => m.id === payment_method_id)
+      : (savedMethods.find(m => m.is_default) || savedMethods[0]);
+
+    if (!destination) {
+      return Response.json({ error: 'Selected payout method not found.' }, { status: 400 });
+    }
+
     let destinationLabel = '';
-    if (withdrawMethod === 'bank') {
-      const bankAccounts = await base44.asServiceRole.entities.BankAccount.filter({
-        user_email: user.email,
-        is_verified: true
-      });
-      const bankAccount = bank_account_id
-        ? bankAccounts.find(b => b.id === bank_account_id)
-        : (bankAccounts.find(b => b.is_primary) || bankAccounts[0]);
-
-      if (!bankAccount) {
-        return Response.json({ error: 'No verified bank account found. Please add and verify a bank account first.' }, { status: 400 });
-      }
-      destinationLabel = `${bankAccount.bank_name || 'Bank'} ••••${bankAccount.account_number_last4 || ''}`;
+    if (destination.type === 'card' && destination.card_details) {
+      destinationLabel = `${destination.card_details.brand || 'Card'} ••••${destination.card_details.last4 || ''}`;
+    } else if (destination.type === 'bank_account' && destination.bank_details) {
+      destinationLabel = `${destination.bank_details.bank_name || 'Bank'} ••••${destination.bank_details.last4 || ''}`;
+    } else if (destination.crypto_details) {
+      destinationLabel = `Crypto wallet ${destination.crypto_details.wallet_address?.slice(0, 6)}...`;
+    } else if (destination.external_details) {
+      destinationLabel = `${destination.type} (${destination.external_details.username || destination.external_details.email})`;
     } else {
-      const cards = await base44.asServiceRole.entities.PaymentCard.filter({
-        user_email: user.email
-      });
-      const card = card_id
-        ? cards.find(c => c.id === card_id)
-        : (cards.find(c => c.is_primary) || cards[0]);
-
-      if (!card) {
-        return Response.json({ error: 'No debit card found. Please add a debit card first.' }, { status: 400 });
-      }
-      destinationLabel = `${card.brand || 'Card'} ••••${card.last4 || ''}`;
+      destinationLabel = destination.type;
     }
 
     // Deduct the full amount (withdrawal + fee) from balance

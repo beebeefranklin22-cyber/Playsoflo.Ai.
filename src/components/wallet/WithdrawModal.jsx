@@ -1,76 +1,75 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Download, Building, CreditCard, Zap, AlertCircle } from "lucide-react";
+import { X, Download, Building, CreditCard, Zap, AlertCircle, Wallet, Bitcoin, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { processWithdrawal } from "@/functions/processWithdrawal";
 import { toast } from "sonner";
 
+const getMethodIcon = (type) => {
+  switch (type) {
+    case 'card': return CreditCard;
+    case 'bank_account': return Building;
+    case 'crypto_wallet': return Bitcoin;
+    default: return Wallet;
+  }
+};
+
+const getMethodLabel = (m) => {
+  if (m.type === 'card' && m.card_details) return `${m.card_details.brand || 'Card'} •••• ${m.card_details.last4}`;
+  if (m.type === 'bank_account' && m.bank_details) return `${m.bank_details.bank_name || 'Bank'} •••• ${m.bank_details.last4}`;
+  if (m.crypto_details) return `Crypto •••• ${m.crypto_details.wallet_address?.slice(-4)}`;
+  if (m.external_details) return `${m.type} (${m.external_details.username || m.external_details.email})`;
+  return m.type?.replace('_', ' ');
+};
+
 export default function WithdrawModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("instant");
+  const [speed, setSpeed] = useState("standard");
+  const [selectedMethodId, setSelectedMethodId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const { data: bankAccounts = [] } = useQuery({
-    queryKey: ['bank-accounts', currentUser.email],
-    queryFn: () => base44.entities.BankAccount.filter({ user_email: currentUser.email, is_verified: true }),
-    initialData: []
-  });
-
-  const { data: paymentCards = [] } = useQuery({
-    queryKey: ['payment-cards', currentUser.email],
-    queryFn: () => base44.entities.PaymentCard.filter({ user_email: currentUser.email }),
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ['payment-methods', currentUser?.email],
+    queryFn: async () => {
+      const methods = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' });
+      return methods.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+    },
+    enabled: !!currentUser,
     initialData: []
   });
 
   const queryClient = useQueryClient();
   const availableBalance = currentUser?.usd_balance || 0;
 
-  const getFeeAmount = () => {
-    if (method === "instant") return 0.50;
-    if (method === "card") {
-      const stripeFee = parseFloat(amount) * 0.01;
-      return stripeFee + 0.50;
-    }
-    return 0;
-  };
+  const activeMethodId = selectedMethodId || paymentMethods.find(m => m.is_default)?.id || paymentMethods[0]?.id;
 
-  const getTotalAmount = () => {
-    return parseFloat(amount || 0) + getFeeAmount();
-  };
+  const getFeeAmount = () => (speed === "instant" ? 0.50 : 0);
+  const getTotalAmount = () => parseFloat(amount || 0) + getFeeAmount();
 
   const handleWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-
+    if (paymentMethods.length === 0) {
+      toast.error('Add a payout method in "Payment Methods" first.');
+      return;
+    }
     const totalWithFees = getTotalAmount();
     if (totalWithFees > availableBalance) {
       toast.error(`Insufficient balance. You need $${totalWithFees.toFixed(2)} (includes fees)`);
       return;
     }
 
-    if (method === "bank" && bankAccounts.length === 0) {
-      toast.error("Please add a verified bank account first to use Bank Transfer.");
-      return;
-    }
-
-    if ((method === "instant" || method === "card") && paymentCards.length === 0) {
-      toast.error("Please add a debit card first to use this withdrawal method.");
-      return;
-    }
-
     setLoading(true);
     try {
-      // Backend handles balance deduction, fees, payment record and notification
       const { data } = await processWithdrawal({
         amount: parseFloat(amount),
-        method,
-        bank_account_id: bankAccounts[0]?.id,
-        card_id: paymentCards[0]?.id
+        method: speed === "instant" ? "instant" : "bank",
+        payment_method_id: activeMethodId
       });
 
       if (!data.success) {
@@ -82,14 +81,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
 
-      toast.success(`Withdrawal of $${amount} initiated. ${
-        method === "instant" 
-          ? "Funds arrive within minutes." 
-          : method === "card"
-          ? "Funds arrive within 30 minutes."
-          : "Funds arrive in 1-3 business days."
-      }`);
-      
+      toast.success(`Withdrawal of $${amount} initiated. ${speed === "instant" ? "Funds arrive within minutes." : "Funds arrive in 1-3 business days."}`);
       onClose();
     } catch (err) {
       console.error("Withdrawal failed:", err);
@@ -127,9 +119,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
           <div className="p-6 space-y-6 overflow-y-auto flex-1">
             <div className="bg-white/5 rounded-xl p-4">
               <p className="text-gray-400 text-sm mb-1">Available Balance</p>
-              <p className="text-white text-3xl font-bold">
-                ${availableBalance.toFixed(2)}
-              </p>
+              <p className="text-white text-3xl font-bold">${availableBalance.toFixed(2)}</p>
             </div>
 
             <div>
@@ -150,42 +140,52 @@ export default function WithdrawModal({ currentUser, onClose }) {
               </button>
             </div>
 
+            {/* Destination — saved payout methods */}
             <div>
-              <label className="text-white font-semibold mb-3 block">Withdrawal Method</label>
+              <label className="text-white font-semibold mb-3 block">Withdraw To</label>
+              {paymentMethods.length === 0 ? (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-yellow-300 text-sm">No payout method linked. Add a card, bank, Cash App, Venmo, PayPal or crypto wallet under <strong>Payment Methods</strong> first.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {paymentMethods.map((m) => {
+                    const Icon = getMethodIcon(m.type);
+                    const isActive = activeMethodId === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => setSelectedMethodId(m.id)}
+                        className={`w-full p-3 rounded-xl border-2 transition flex items-center justify-between ${
+                          isActive ? "border-blue-500 bg-blue-500/10" : "border-white/20 bg-white/5"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="w-5 h-5 text-white" />
+                          <span className="text-white text-sm capitalize">{getMethodLabel(m)}</span>
+                        </div>
+                        {isActive && <Check className="w-5 h-5 text-blue-400" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Speed */}
+            <div>
+              <label className="text-white font-semibold mb-3 block">Speed</label>
               <div className="space-y-3">
                 <button
-                  onClick={() => setMethod("instant")}
-                  className={`w-full p-4 rounded-xl border-2 transition ${
-                    method === "instant"
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-white/20 bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Zap className="w-6 h-6 text-yellow-400" />
-                      <div className="text-left">
-                        <p className="text-white font-semibold">Instant Payout</p>
-                        <p className="text-gray-400 text-sm">Arrives in minutes</p>
-                      </div>
-                    </div>
-                    <p className="text-yellow-400 text-sm">$0.50 fee</p>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => setMethod("bank")}
-                  className={`w-full p-4 rounded-xl border-2 transition ${
-                    method === "bank"
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-white/20 bg-white/5"
-                  }`}
+                  onClick={() => setSpeed("standard")}
+                  className={`w-full p-4 rounded-xl border-2 transition ${speed === "standard" ? "border-blue-500 bg-blue-500/10" : "border-white/20 bg-white/5"}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Building className="w-6 h-6 text-white" />
                       <div className="text-left">
-                        <p className="text-white font-semibold">Bank Transfer</p>
+                        <p className="text-white font-semibold">Standard</p>
                         <p className="text-gray-400 text-sm">1-3 business days</p>
                       </div>
                     </div>
@@ -194,40 +194,22 @@ export default function WithdrawModal({ currentUser, onClose }) {
                 </button>
 
                 <button
-                  onClick={() => setMethod("card")}
-                  className={`w-full p-4 rounded-xl border-2 transition ${
-                    method === "card"
-                      ? "border-blue-500 bg-blue-500/10"
-                      : "border-white/20 bg-white/5"
-                  }`}
+                  onClick={() => setSpeed("instant")}
+                  className={`w-full p-4 rounded-xl border-2 transition ${speed === "instant" ? "border-blue-500 bg-blue-500/10" : "border-white/20 bg-white/5"}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <CreditCard className="w-6 h-6 text-white" />
+                      <Zap className="w-6 h-6 text-yellow-400" />
                       <div className="text-left">
-                        <p className="text-white font-semibold">Debit Card</p>
-                        <p className="text-gray-400 text-sm">Within 30 minutes</p>
+                        <p className="text-white font-semibold">Instant</p>
+                        <p className="text-gray-400 text-sm">Arrives in minutes</p>
                       </div>
                     </div>
-                    <p className="text-blue-400 text-sm">1% + $0.50 fee</p>
+                    <p className="text-yellow-400 text-sm">$0.50 fee</p>
                   </div>
                 </button>
               </div>
             </div>
-
-            {method === "bank" && bankAccounts.length === 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <p className="text-yellow-300 text-sm">No verified bank account linked. Add one under <strong>Banks</strong> in the Wallet to use this method.</p>
-              </div>
-            )}
-
-            {(method === "instant" || method === "card") && paymentCards.length === 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                <p className="text-yellow-300 text-sm">No debit card linked. Add one under <strong>Cards</strong> in the Wallet to use this method.</p>
-              </div>
-            )}
 
             {amount && parseFloat(amount) > 0 && (
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
@@ -250,7 +232,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
             <Button
               onClick={handleWithdraw}
-              disabled={loading || !amount || parseFloat(amount) <= 0}
+              disabled={loading || !amount || parseFloat(amount) <= 0 || paymentMethods.length === 0}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg"
             >
               <Download className="w-5 h-5 mr-2" />

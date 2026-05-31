@@ -452,7 +452,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                           <Shield className="w-5 h-5 text-green-400" />
                           {addMode === 'bank' ? 'Add Bank Account (Secure)' : 'Add Card (Secure)'}
                         </h3>
-                        <Elements stripe={stripePromise}>
+                        <Elements stripe={stripePromise} options={{ clientSecret }}>
                          <StripePaymentForm
                            clientSecret={clientSecret}
                            mode={addMode}
