@@ -17,6 +17,18 @@ class ErrorBoundary extends React.Component {
     this.setState({ error, errorInfo });
   }
 
+  componentDidUpdate(prevProps) {
+    // Auto-recover when the user navigates to a new page instead of staying
+    // stuck on the error screen and forcing a full app restart.
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null, errorInfo: null });
+    }
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -31,11 +43,11 @@ class ErrorBoundary extends React.Component {
               
               <div className="space-y-3">
                 <Button
-                  onClick={() => window.location.reload()}
+                  onClick={this.handleReset}
                   className="w-full bg-purple-600 hover:bg-purple-700"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Page
+                  Try Again
                 </Button>
                 
                 <Button

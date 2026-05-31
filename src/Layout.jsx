@@ -278,7 +278,7 @@ export default function Layout({ children, currentPageName }) {
                          location.pathname === createPageUrl("explore");
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary resetKey={location.pathname}>
     <ThemeProvider>
     <PlatformDetector>
     <TVNavigationHandler>
