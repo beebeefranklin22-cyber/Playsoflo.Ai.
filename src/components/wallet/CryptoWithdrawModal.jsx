@@ -131,7 +131,7 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
           <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
-            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
+            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-center">
               <CheckCircle className="w-16 h-16 text-white mx-auto mb-3" />
@@ -194,7 +194,7 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
+            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
           >
             <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6">
               <div className="flex items-center justify-between">
@@ -277,7 +277,7 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden"
+          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
         >
           <div className="bg-gradient-to-r from-orange-600 to-red-600 p-6">
             <div className="flex items-center justify-between">

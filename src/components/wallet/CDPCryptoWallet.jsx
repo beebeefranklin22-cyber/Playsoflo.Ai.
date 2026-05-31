@@ -29,11 +29,18 @@ export default function CDPCryptoWallet() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      await cdpCreateWallet({});
-      toast.success("Crypto wallet created!");
-      refetch();
+      const res = await cdpCreateWallet({});
+      // The function returns 200 even when the provider rejects — surface the real result.
+      if (res?.data?.error) {
+        toast.error(res.data.error);
+      } else if (res?.data?.address) {
+        toast.success("Crypto wallet created!");
+        await refetch();
+      } else {
+        toast.error("Could not create wallet. Please try again.");
+      }
     } catch (e) {
-      toast.error(e?.response?.data?.error || "Failed to create wallet");
+      toast.error(e?.response?.data?.error || e?.message || "Failed to create wallet");
     } finally {
       setCreating(false);
     }
