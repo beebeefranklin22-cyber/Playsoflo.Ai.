@@ -3,14 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { X, Loader2, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import SavedPaymentMethodSelector from "@/components/payment/SavedPaymentMethodSelector";
 
 export default function UnifiedCheckoutModal({ items, total, currentUser, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [selectedMethodId, setSelectedMethodId] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = async () => {
-    if (!paymentMethod) {
+    if (!selectedMethodId) {
       toast.error("Please select a payment method");
       return;
     }
@@ -31,7 +32,7 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
           location: item.location
         })),
         total_amount: total,
-        payment_method: paymentMethod,
+        payment_method_id: selectedMethodId,
         status: "processing",
         created_at: new Date().toISOString()
       };
@@ -92,7 +93,7 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
         amount: total,
         currency: "usd",
         status: "succeeded",
-        payment_method: paymentMethod,
+        payment_method: selectedMethodId,
         description: `Unified booking: ${items.map(i => i.type).join(", ")}`
       }).catch(() => {});
 
@@ -158,19 +159,12 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
           {/* Payment Method */}
           <div className="space-y-3">
             <h3 className="text-white font-semibold">Payment Method</h3>
-            {["card", "wallet", "crypto"].map(method => (
-              <label key={method} className="flex items-center gap-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition">
-                <input
-                  type="radio"
-                  name="payment"
-                  value={method}
-                  checked={paymentMethod === method}
-                  onChange={e => setPaymentMethod(e.target.value)}
-                  className="w-4 h-4"
-                />
-                <span className="text-white font-medium capitalize flex-1">{method === "wallet" ? "SoFloCoin" : method}</span>
-              </label>
-            ))}
+            <SavedPaymentMethodSelector
+              currentUser={currentUser}
+              value={selectedMethodId}
+              onChange={setSelectedMethodId}
+              showTabs
+            />
           </div>
 
           {/* Processing Status */}

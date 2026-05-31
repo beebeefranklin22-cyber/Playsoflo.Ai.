@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
     }
 
     // Check if this is the first payment method
-    const existingMethods = await base44.entities.PaymentMethod.filter({
+    const existingMethods = await base44.asServiceRole.entities.PaymentMethod.filter({
       user_email: user.email,
       status: 'active'
     });
@@ -44,8 +44,8 @@ Deno.serve(async (req) => {
     };
     const mappedType = typeMap[paymentMethod.type] || 'card';
 
-    // Save to database
-    const savedMethod = await base44.entities.PaymentMethod.create({
+    // Save to database (service role: user already authenticated above, user_email set explicitly)
+    const savedMethod = await base44.asServiceRole.entities.PaymentMethod.create({
       user_email: user.email,
       type: mappedType,
       stripe_payment_method_id: paymentMethod.id,
