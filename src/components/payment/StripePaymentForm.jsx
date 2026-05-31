@@ -155,6 +155,9 @@ const CheckoutForm = ({ amount, onSuccess, onError }) => {
         <PaymentElement 
           options={{
             layout: "tabs",
+            // Disable Stripe Link & external wallets that redirect users out of the app.
+            // Apple/Google Pay are handled separately by DigitalWalletButton above.
+            wallets: { applePay: 'never', googlePay: 'never' },
           }}
         />
       </div>
@@ -407,6 +410,8 @@ export default function StripePaymentForm({
         stripe={stripePromise} 
         options={{ 
           clientSecret,
+          // Disable Stripe Link so users aren't pulled out of the app to verify
+          loader: 'always',
           appearance: { 
             theme: 'night',
             variables: {

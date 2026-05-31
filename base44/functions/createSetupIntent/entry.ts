@@ -31,7 +31,9 @@ Deno.serve(async (req) => {
       console.log('Stripe customer created:', customerId);
     }
 
-    // Create SetupIntent for in-app payment method collection
+    // Create SetupIntent for in-app payment method collection.
+    // Explicitly limit to card + bank only (NO Stripe Link) so users are
+    // never pulled out of the app to a Link verification screen when saving.
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ['card', 'us_bank_account'],
