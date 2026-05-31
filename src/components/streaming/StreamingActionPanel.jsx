@@ -1,7 +1,7 @@
 import React from "react";
 import { Play, Radio, Upload, Calendar, Film, Sparkles } from "lucide-react";
 
-export default function StreamingActionPanel({ currentUser, onBrowse, onGoLive, onUpload, onSchedule, onMovies }) {
+export default function StreamingActionPanel({ currentUser, onBrowse, onGoLive, onUpload, onSchedule, onMovies, onDiscover }) {
   const actions = [
     { label: "Start watching", note: "Browse videos and live shows", icon: Play, className: "from-purple-600 to-pink-600", action: onBrowse },
     { label: "Go live", note: "Start a stream now", icon: Radio, className: "from-red-600 to-orange-600", action: onGoLive, auth: true },
@@ -21,12 +21,20 @@ export default function StreamingActionPanel({ currentUser, onBrowse, onGoLive, 
             <h2 className="text-2xl font-black text-white md:text-3xl">Watch, stream, and build your audience.</h2>
             <p className="mt-2 max-w-2xl text-sm text-gray-300">Find live creators, discover new videos, host watch parties, or publish your own content from one simple place.</p>
           </div>
-          <button
-            onClick={onMovies}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
-          >
-            <Film className="h-4 w-4" /> Explore TV & Films
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              onClick={onDiscover}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+            >
+              <Film className="h-4 w-4" /> Discover Movies & Shows
+            </button>
+            <button
+              onClick={onMovies}
+              className="flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
+            >
+              <Upload className="h-4 w-4" /> Add TV & Films
+            </button>
+          </div>
         </div>
 
         <div className="relative mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">

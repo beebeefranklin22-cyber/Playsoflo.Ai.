@@ -459,6 +459,7 @@ export default function Streaming() {
         onUpload={() => setShowUpload(true)}
         onSchedule={() => setShowScheduler(true)}
         onMovies={() => setShowContentUpload(true)}
+        onDiscover={() => setShowTMDBBrowser(true)}
       />
 
       {/* Stats Row */}

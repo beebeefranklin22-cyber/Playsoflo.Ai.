@@ -233,14 +233,27 @@ export default function TMDBMovieBrowser({ onClose }) {
                       </div>
                     )}
 
-                    {itemDetails.watch_providers && (
-                      <div className="bg-white/5 rounded-xl p-4 mb-4">
-                        <h3 className="text-white font-bold mb-2">Where to Watch</h3>
-                        <p className="text-gray-400 text-sm">
-                          Check external streaming platforms like Netflix, Hulu, Amazon Prime, etc.
-                        </p>
+                    {/* Watch on streaming services (deep-links) */}
+                    <div className="bg-white/5 rounded-xl p-4 mb-4">
+                      <h3 className="text-white font-bold mb-3">Watch On</h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          onClick={() => window.open(`https://tubitv.com/search/${encodeURIComponent(itemDetails.title)}`, '_blank')}
+                          className="bg-[#ff7900] hover:bg-[#ff8c1a] text-black font-bold"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Tubi
+                        </Button>
+                        <Button
+                          onClick={() => window.open(`https://watchplex.tv/search?q=${encodeURIComponent(itemDetails.title)}`, '_blank')}
+                          className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Watchplex
+                        </Button>
                       </div>
-                    )}
+                      <p className="text-gray-500 text-xs mt-3">Opens the title on the streaming service to watch.</p>
+                    </div>
 
                     {itemDetails.trailer && (
                       <Button
