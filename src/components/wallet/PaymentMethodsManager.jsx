@@ -38,12 +38,21 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
       let setupIntent, error;
 
       if (mode === 'bank') {
-        ({ error, setupIntent } = await stripe.confirmUsBankAccountSetup(clientSecret, {
-          payment_method: {
-            us_bank_account: elements.getElement('usBankAccount'),
-            billing_details: { name: cardholderName, email: currentUser?.email }
-          }
+        // ACH bank accounts use Stripe's hosted collection flow (no card element needed)
+        ({ error, setupIntent } = await stripe.collectBankAccountForSetup({
+          clientSecret,
+          params: {
+            payment_method_type: 'us_bank_account',
+            payment_method_data: {
+              billing_details: { name: cardholderName, email: currentUser?.email }
+            }
+          },
+          expand: ['payment_method']
         }));
+
+        if (!error && setupIntent?.status === 'requires_confirmation') {
+          ({ error, setupIntent } = await stripe.confirmUsBankAccountSetup(clientSecret));
+        }
       } else {
         ({ error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
           payment_method: {
@@ -55,6 +64,10 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      if (!setupIntent?.payment_method) {
+        throw new Error("Could not finalize the payment method. Please try again.");
       }
 
       const response = await base44.functions.invoke('savePaymentMethod', {
@@ -88,29 +101,38 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
           className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
         />
       </div>
-      <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Card Details</label>
-      <div className="bg-white rounded-xl p-4 border border-gray-300">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#000',
-                '::placeholder': { color: '#6b7280' },
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              },
-              invalid: { color: '#ef4444' },
-            },
-            hidePostalCode: false
-          }}
-        />
-      </div>
-      </div>
-      <p className="text-gray-400 text-xs">
-        <Shield className="w-3 h-3 inline mr-1" />
-        Your card details are encrypted and secure. Visa, Mastercard, Amex, Discover supported.
-      </p>
+      {mode === 'bank' ? (
+        <p className="text-gray-400 text-xs">
+          <Shield className="w-3 h-3 inline mr-1" />
+          You'll be securely redirected to connect your bank account. ACH transfers supported.
+        </p>
+      ) : (
+        <>
+          <div>
+            <label className="text-gray-400 text-sm mb-1.5 block">Card Details</label>
+            <div className="bg-white rounded-xl p-4 border border-gray-300">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '16px',
+                      color: '#000',
+                      '::placeholder': { color: '#6b7280' },
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                    },
+                    invalid: { color: '#ef4444' },
+                  },
+                  hidePostalCode: false
+                }}
+              />
+            </div>
+          </div>
+          <p className="text-gray-400 text-xs">
+            <Shield className="w-3 h-3 inline mr-1" />
+            Your card details are encrypted and secure. Visa, Mastercard, Amex, Discover supported.
+          </p>
+        </>
+      )}
       <div className="flex gap-3">
         <Button
           type="button"
@@ -134,7 +156,7 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
           ) : (
             <>
               <Shield className="w-4 h-4 mr-2" />
-              Add Card
+              {mode === 'bank' ? 'Connect Bank' : 'Add Card'}
             </>
           )}
         </Button>
