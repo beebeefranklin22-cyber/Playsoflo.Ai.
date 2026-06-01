@@ -10,8 +10,10 @@ import { Switch } from "@/components/ui/switch";
 import {
   DollarSign, TrendingUp, Clock, Star, Zap, Award,
   MapPin, ArrowUpRight, Activity, Target, Gift,
-  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain, AlertTriangle
+  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain, AlertTriangle,
+  ShieldCheck, Car, Package, ChevronDown, ChevronUp
 } from "lucide-react";
+import DriverModeSelector from "../components/driver/DriverModeSelector";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import RideRequestCard from "../components/driver/RideRequestCard";
@@ -42,6 +44,8 @@ export default function DriverHub() {
   const [disputeRide, setDisputeRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [driverMode, setDriverMode] = useState("rides"); // "rides" | "delivery"
+  const [showStandards, setShowStandards] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -49,6 +53,7 @@ export default function DriverHub() {
       setCurrentUser(user);
       setLoading(false);
       setIsOnline(user.driver_is_online || false);
+      setDriverMode(user.driver_mode || "rides");
       
       // Check if driver profile is complete
       if (user.is_driver && (!user.driver_profile_picture || !user.driver_vehicle_type)) {
@@ -197,6 +202,13 @@ export default function DriverHub() {
     }
   });
 
+  const handleModeChange = async (newMode) => {
+    setDriverMode(newMode);
+    await base44.auth.updateMe({ driver_mode: newMode });
+    queryClient.invalidateQueries(['pending-ride-requests']);
+    toast.success(newMode === "rides" ? "Switched to Ride Hailing mode" : "Switched to Delivery mode");
+  };
+
   const handleCashOut = async () => {
     const amount = todayStats?.pending_payout || 0;
     if (amount <= 0) {
@@ -308,7 +320,7 @@ export default function DriverHub() {
           </div>
 
           {/* Online/Offline Toggle — full width row */}
-          <Card className={`${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
+          <Card className={`mb-3 ${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -318,7 +330,9 @@ export default function DriverHub() {
                       {isOnline ? "You're Online" : "You're Offline"}
                     </div>
                     <div className="text-gray-300 text-xs truncate">
-                      {isOnline ? 'Accepting ride requests' : 'Not accepting rides'}
+                      {isOnline
+                        ? `Accepting ${driverMode === "rides" ? "ride" : "delivery"} requests`
+                        : "Not accepting requests"}
                     </div>
                   </div>
                   {isOnline && pendingRequests.length > 0 && (
@@ -337,6 +351,78 @@ export default function DriverHub() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mode Selector */}
+          <Card className="bg-white/5 border-white/10 mb-3">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-3">
+                {driverMode === "rides"
+                  ? <Car className="w-4 h-4 text-blue-400" />
+                  : <Package className="w-4 h-4 text-orange-400" />
+                }
+                <p className="text-white text-sm font-semibold">What are you available for?</p>
+              </div>
+              <DriverModeSelector
+                mode={driverMode}
+                onChange={handleModeChange}
+                disabled={isOnline}
+              />
+              {isOnline && (
+                <p className="text-amber-400/80 text-xs mt-2 text-center">
+                  Go offline to switch your mode
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Driver Standards Banner */}
+          <button
+            onClick={() => setShowStandards(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 text-left mb-1"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-indigo-300 flex-shrink-0" />
+              <span className="text-white font-semibold text-sm">Driver Standards & Safety Rules</span>
+            </div>
+            {showStandards
+              ? <ChevronUp className="w-4 h-4 text-gray-400" />
+              : <ChevronDown className="w-4 h-4 text-gray-400" />
+            }
+          </button>
+          <AnimatePresence>
+            {showStandards && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Card className="bg-indigo-900/20 border-indigo-500/20 mb-3">
+                  <CardContent className="p-4 space-y-3">
+                    {[
+                      { icon: "🚗", title: "Drive Safe", rule: "Obey all traffic laws. Never use your phone while driving. Your passengers' safety is your #1 priority." },
+                      { icon: "✨", title: "Keep Your Vehicle Clean", rule: "Maintain a tidy interior and exterior. No trash, strong odors, or visible damage." },
+                      { icon: "🗣️", title: "Use Appropriate Language", rule: "Keep conversations professional and respectful. Profanity, harassment, or discriminatory language is strictly prohibited." },
+                      { icon: "📋", title: "Valid Insurance Required", rule: "You must possess valid auto insurance at all times when active on the platform. Expired coverage = immediate deactivation." },
+                      { icon: "🤝", title: "Treat Riders with Respect", rule: "Be courteous, patient, and professional. A positive experience earns better ratings and more rides." },
+                      { icon: "🚫", title: "Ride Hailing: Solo Vehicle Only", rule: "When accepting ride-hail trips, you must be the only person in the vehicle. Passengers need maximum space and privacy." },
+                    ].map(({ icon, title, rule }) => (
+                      <div key={title} className="flex gap-3 p-3 bg-white/5 rounded-xl">
+                        <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>
+                        <div>
+                          <p className="text-white font-semibold text-sm">{title}</p>
+                          <p className="text-gray-300 text-xs mt-0.5 leading-relaxed">{rule}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-indigo-300/70 text-xs text-center pt-1">
+                      Violations may result in account suspension or permanent deactivation.
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Quick Stats Overview */}
@@ -422,7 +508,7 @@ export default function DriverHub() {
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
               <Bell className="w-6 h-6 text-yellow-400 animate-pulse" />
-              New Ride Requests
+              {driverMode === "rides" ? "New Ride Requests" : "New Delivery Orders"}
               <Badge className="bg-red-500 text-white animate-pulse">
                 {pendingRequests.length}
               </Badge>
@@ -482,8 +568,8 @@ export default function DriverHub() {
               <h3 className="text-xl font-bold text-white mb-2">You're Online!</h3>
               <p className="text-gray-400 mb-4">
                 {driverLocation
-                  ? `Waiting for ride requests within ${DEFAULT_DRIVER_RADIUS_MILES} miles of you...`
-                  : "Enable location to receive nearby ride requests."}
+                  ? `Waiting for ${driverMode === "rides" ? "ride" : "delivery"} requests within ${DEFAULT_DRIVER_RADIUS_MILES} miles of you...`
+                  : "Enable location to receive nearby requests."}
               </p>
               <div className="flex items-center justify-center gap-2 text-green-400 text-sm">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
