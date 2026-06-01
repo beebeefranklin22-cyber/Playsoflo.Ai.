@@ -1,29 +1,13 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Download, Building, CreditCard, Zap, AlertCircle, Wallet, Bitcoin, Check } from "lucide-react";
+import { X, Download, Building, Zap, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { processWithdrawal } from "@/functions/processWithdrawal";
 import { toast } from "sonner";
-
-const getMethodIcon = (type) => {
-  switch (type) {
-    case 'card': return CreditCard;
-    case 'bank_account': return Building;
-    case 'crypto_wallet': return Bitcoin;
-    default: return Wallet;
-  }
-};
-
-const getMethodLabel = (m) => {
-  if (m.type === 'card' && m.card_details) return `${m.card_details.brand || 'Card'} •••• ${m.card_details.last4}`;
-  if (m.type === 'bank_account' && m.bank_details) return `${m.bank_details.bank_name || 'Bank'} •••• ${m.bank_details.last4}`;
-  if (m.crypto_details) return `Crypto •••• ${m.crypto_details.wallet_address?.slice(-4)}`;
-  if (m.external_details) return `${m.type} (${m.external_details.username || m.external_details.email})`;
-  return m.type?.replace('_', ' ');
-};
+import CheckoutPaymentSelector from "@/components/payment/CheckoutPaymentSelector";
 
 export default function WithdrawModal({ currentUser, onClose }) {
   const [amount, setAmount] = useState("");
@@ -31,20 +15,8 @@ export default function WithdrawModal({ currentUser, onClose }) {
   const [selectedMethodId, setSelectedMethodId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const { data: paymentMethods = [] } = useQuery({
-    queryKey: ['payment-methods', currentUser?.email],
-    queryFn: async () => {
-      const methods = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' });
-      return methods.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
-    },
-    enabled: !!currentUser,
-    initialData: []
-  });
-
   const queryClient = useQueryClient();
   const availableBalance = currentUser?.usd_balance || 0;
-
-  const activeMethodId = selectedMethodId || paymentMethods.find(m => m.is_default)?.id || paymentMethods[0]?.id;
 
   const getFeeAmount = () => (speed === "instant" ? 0.50 : 0);
   const getTotalAmount = () => parseFloat(amount || 0) + getFeeAmount();
@@ -54,8 +26,8 @@ export default function WithdrawModal({ currentUser, onClose }) {
       toast.error("Please enter a valid amount");
       return;
     }
-    if (paymentMethods.length === 0) {
-      toast.error('Add a payout method in "Payment Methods" first.');
+    if (!selectedMethodId) {
+      toast.error('Please select a payout destination.');
       return;
     }
     const totalWithFees = getTotalAmount();
@@ -69,7 +41,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
       const { data } = await processWithdrawal({
         amount: parseFloat(amount),
         method: speed === "instant" ? "instant" : "bank",
-        payment_method_id: activeMethodId
+        payment_method_id: selectedMethodId
       });
 
       if (!data.success) {
@@ -143,34 +115,12 @@ export default function WithdrawModal({ currentUser, onClose }) {
             {/* Destination — saved payout methods */}
             <div>
               <label className="text-white font-semibold mb-3 block">Withdraw To</label>
-              {paymentMethods.length === 0 ? (
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-yellow-300 text-sm">No payout method linked. Add a card, bank, Cash App, Venmo, PayPal or crypto wallet under <strong>Payment Methods</strong> first.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {paymentMethods.map((m) => {
-                    const Icon = getMethodIcon(m.type);
-                    const isActive = activeMethodId === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelectedMethodId(m.id)}
-                        className={`w-full p-3 rounded-xl border-2 transition flex items-center justify-between ${
-                          isActive ? "border-blue-500 bg-blue-500/10" : "border-white/20 bg-white/5"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-white" />
-                          <span className="text-white text-sm capitalize">{getMethodLabel(m)}</span>
-                        </div>
-                        {isActive && <Check className="w-5 h-5 text-blue-400" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <CheckoutPaymentSelector
+                currentUser={currentUser}
+                value={selectedMethodId}
+                onChange={setSelectedMethodId}
+                compact
+              />
             </div>
 
             {/* Speed */}
@@ -232,7 +182,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
 
             <Button
               onClick={handleWithdraw}
-              disabled={loading || !amount || parseFloat(amount) <= 0 || paymentMethods.length === 0}
+              disabled={loading || !amount || parseFloat(amount) <= 0 || !selectedMethodId}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg"
             >
               <Download className="w-5 h-5 mr-2" />

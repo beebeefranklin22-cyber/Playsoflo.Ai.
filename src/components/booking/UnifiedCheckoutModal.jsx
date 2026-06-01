@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { X, Loader2, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import SavedPaymentMethodSelector from "@/components/payment/SavedPaymentMethodSelector";
+import CheckoutPaymentSelector from "@/components/payment/CheckoutPaymentSelector";
 
 export default function UnifiedCheckoutModal({ items, total, currentUser, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -159,11 +159,10 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
           {/* Payment Method */}
           <div className="space-y-3">
             <h3 className="text-white font-semibold">Payment Method</h3>
-            <SavedPaymentMethodSelector
+            <CheckoutPaymentSelector
               currentUser={currentUser}
               value={selectedMethodId}
               onChange={setSelectedMethodId}
-              showTabs
             />
           </div>
 
