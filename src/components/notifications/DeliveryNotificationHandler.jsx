@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { playRideSound, playSuccessSound } from "./notificationSounds";
 
 // Friendly toast messages for each delivery status the customer cares about.
 const STATUS_TOASTS = {
@@ -30,6 +31,7 @@ export default function DeliveryNotificationHandler({ currentUser }) {
       if (isCustomer && event.type === "update") {
         const msg = STATUS_TOASTS[order.status];
         if (msg) {
+          order.status === 'delivered' ? playSuccessSound() : playRideSound();
           toast.success(msg.title, { description: msg.description, duration: 5000 });
           if ("vibrate" in navigator) navigator.vibrate([150, 80, 150]);
         }

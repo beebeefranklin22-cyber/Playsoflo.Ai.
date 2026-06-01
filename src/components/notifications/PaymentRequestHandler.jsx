@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { X, HandCoins, Undo2 } from "lucide-react";
+import { playPaymentSound, playSuccessSound } from "./notificationSounds";
 
 // Listens for incoming PaymentRequests where the current user is the payer.
 // Shows a real-time popup + toast. User can Pay (instant transfer) or Decline.
@@ -39,6 +40,7 @@ export default function PaymentRequestHandler({ currentUser }) {
 
       if ((event.type === "create" || event.type === "update") && pr.status === "pending") {
         setActiveRequest(pr);
+        playPaymentSound();
         const isRefund = pr.request_type === "refund_request";
         toast(isRefund ? "↩️ Refund Requested" : "💸 Money Requested", {
           description: `${pr.requester_name || pr.requester_email} requested $${Number(pr.amount).toFixed(2)}`,
@@ -56,6 +58,7 @@ export default function PaymentRequestHandler({ currentUser }) {
     try {
       const { data } = await payMoneyRequest({ request_id: activeRequest.id });
       if (data?.success) {
+        playSuccessSound();
         toast.success("Payment sent!", {
           description: `$${Number(activeRequest.amount).toFixed(2)} sent to ${activeRequest.requester_name || activeRequest.requester_email}.`,
           duration: 5000,

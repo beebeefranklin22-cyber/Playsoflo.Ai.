@@ -5,6 +5,7 @@ import { Bell, Calendar, MessageCircle, DollarSign, XCircle, CheckCircle, AlertC
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { playSoundForType } from "./notificationSounds";
 
 const notificationIcons = {
   booking_confirmed: CheckCircle,
@@ -41,7 +42,6 @@ const notificationColors = {
 };
 
 export default function RealtimeNotificationManager({ currentUser }) {
-  const [notificationSound] = useState(new Audio('/notification.mp3'));
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -59,14 +59,8 @@ export default function RealtimeNotificationManager({ currentUser }) {
         if (notification.recipient_email === currentUser.email) {
           showNotificationToast(notification);
           
-          // Play notification sound
-          try {
-            notificationSound.play().catch(() => {
-              // Ignore errors if sound fails
-            });
-          } catch (e) {
-            // Ignore sound errors
-          }
+          // Play contextual notification sound
+          playSoundForType(notification.type);
 
           // Trigger haptic feedback for important notifications
           if (window.NativeAppBridge?.triggerHaptic) {
