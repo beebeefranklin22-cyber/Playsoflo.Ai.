@@ -74,8 +74,11 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
         payment_method_id: setupIntent.payment_method
       });
 
+      if (response?.data?.error) {
+        throw new Error(response.data.error);
+      }
       if (!response?.data?.success) {
-        throw new Error("Failed to save payment method");
+        throw new Error("Failed to save payment method. Please try again.");
       }
 
       toast.dismiss();
