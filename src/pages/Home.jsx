@@ -287,7 +287,7 @@ export default function Home() {
   const quickAccess = [
     { icon: TrendingUp, label: "Discover", bg: "bg-yellow-500/20", iconColor: "text-yellow-400", path: "Discover" },
     { icon: Music, label: "Music", bg: "bg-pink-500/20", iconColor: "text-pink-400", path: "Vibe" },
-    { icon: Sparkles, label: "For You", bg: "bg-blue-500/20", iconColor: "text-blue-400", path: null, isOffers: true },
+    { icon: MessageCircle, label: "DMs", bg: "bg-blue-500/20", iconColor: "text-blue-400", path: "Messages" },
     { icon: Wallet, label: "Wallet", bg: "bg-green-500/20", iconColor: "text-green-400", path: "Wallet" },
     { icon: ShoppingBag, label: "Shop", bg: "bg-orange-500/20", iconColor: "text-orange-400", path: "Marketplace" },
     { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
