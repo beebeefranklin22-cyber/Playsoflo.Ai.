@@ -80,7 +80,8 @@ export default function BankAccountModal({ currentUser, onClose }) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full sm:max-w-lg bg-gray-950 sm:rounded-3xl rounded-t-3xl overflow-hidden max-h-[95vh] overflow-y-auto"
+          className="w-full sm:max-w-lg bg-gray-950 sm:rounded-3xl rounded-t-3xl overflow-hidden max-h-[78vh] overflow-y-auto"
+          style={{ marginBottom: 'var(--safe-area-bottom, 0px)' }}
         >
           {/* Header */}
           <div className="sticky top-0 bg-gray-950 border-b border-white/10 px-5 py-4 flex items-center justify-between z-10">
