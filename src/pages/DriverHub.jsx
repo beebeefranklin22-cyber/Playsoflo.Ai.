@@ -267,70 +267,76 @@ export default function DriverHub() {
   return (
     <PageWrapper showBack={false}>
       <DriverLocationTracker isOnline={isOnline} rideId={activeRide?.id} />
-      <div className="min-h-screen p-6 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950">
+      <div className="min-h-screen px-3 sm:px-6 pb-6 pt-2 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6"
         >
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                <Activity className="w-10 h-10 text-green-400" />
+          {/* Title row */}
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white flex items-center gap-2">
+                <Activity className="w-7 h-7 sm:w-10 sm:h-10 text-green-400 flex-shrink-0" />
                 Driver Hub
               </h1>
-              <p className="text-gray-300 text-lg">
+              <p className="text-gray-300 text-sm sm:text-base mt-1 hidden sm:block">
                 Track your earnings • Get 88-90% of every ride • Cash out instantly
               </p>
             </div>
-            
-            <div className="flex gap-2">
-                              <Button
-                                onClick={() => setShowAIAssistant(true)}
-                                className="bg-purple-600 hover:bg-purple-700"
-                              >
-                                <Brain className="w-4 h-4 mr-2" />
-                                AI Assistant
-                              </Button>
-                              <Button
-                                onClick={() => setShowProfile(true)}
-                                variant="outline"
-                                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-                              >
-                                <User className="w-4 h-4 mr-2" />
-                                Profile
-                              </Button>
-                            </div>
-            
-            {/* Online/Offline Toggle */}
-            <Card className={`${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <div className="text-white font-bold text-lg mb-1">
-                      {isOnline ? 'You\'re Online' : 'You\'re Offline'}
+            <div className="flex gap-2 flex-shrink-0">
+              <Button
+                onClick={() => setShowAIAssistant(true)}
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                <Brain className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">AI Assistant</span>
+              </Button>
+              <Button
+                onClick={() => setShowProfile(true)}
+                size="sm"
+                variant="outline"
+                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              >
+                <User className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Profile</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Online/Offline Toggle — full width row */}
+          <Card className={`${isOnline ? 'bg-green-600/20 border-green-500/30' : 'bg-gray-600/20 border-gray-500/30'}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={`w-3 h-3 rounded-full flex-shrink-0 ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`} />
+                  <div className="min-w-0">
+                    <div className="text-white font-bold text-base leading-tight">
+                      {isOnline ? "You're Online" : "You're Offline"}
                     </div>
-                    <div className="text-gray-300 text-sm">
+                    <div className="text-gray-300 text-xs truncate">
                       {isOnline ? 'Accepting ride requests' : 'Not accepting rides'}
                     </div>
                   </div>
-                  <Switch
-                    checked={isOnline}
-                    onCheckedChange={(checked) => toggleOnlineMutation.mutate(checked)}
-                    className="data-[state=checked]:bg-green-500"
-                  />
+                  {isOnline && pendingRequests.length > 0 && (
+                    <div className="flex items-center gap-1 text-yellow-400 text-sm ml-2 flex-shrink-0">
+                      <Bell className="w-4 h-4 animate-pulse" />
+                      <span className="font-bold">{pendingRequests.length}</span>
+                      <span className="hidden xs:inline">new</span>
+                    </div>
+                  )}
                 </div>
-                {isOnline && pendingRequests.length > 0 && (
-                  <div className="mt-3 flex items-center gap-2 text-yellow-400 text-sm">
-                    <Bell className="w-4 h-4 animate-pulse" />
-                    {pendingRequests.length} new ride request{pendingRequests.length > 1 ? 's' : ''}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                <Switch
+                  checked={isOnline}
+                  onCheckedChange={(checked) => toggleOnlineMutation.mutate(checked)}
+                  className="data-[state=checked]:bg-green-500 flex-shrink-0"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Quick Stats Overview */}
@@ -489,29 +495,27 @@ export default function DriverHub() {
 
         {/* Earnings Card */}
         <Card className="bg-gradient-to-br from-green-600 to-emerald-600 border-0 shadow-2xl mb-6">
-          <CardContent className="p-8">
-            <div className="grid md:grid-cols-4 gap-6">
+          <CardContent className="p-4 sm:p-6">
+            {/* Cash out row */}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div>
-                <div className="text-white/80 text-sm mb-2 flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
+                <div className="text-white/80 text-xs mb-1 flex items-center gap-1">
+                  <DollarSign className="w-3 h-3" />
                   Available to Cash Out
                 </div>
-                <div className="text-5xl font-bold text-white mb-2">
+                <div className="text-4xl sm:text-5xl font-bold text-white">
                   ${(stats?.pending_payout || 0).toFixed(2)}
                 </div>
+              </div>
+              <div className="flex flex-col gap-2 flex-shrink-0">
                 <Button
                   onClick={handleCashOut}
-                  className="w-full bg-white text-green-600 hover:bg-gray-100 font-bold"
+                  className="bg-white text-green-600 hover:bg-gray-100 font-bold"
                   disabled={!stats?.pending_payout || stats.pending_payout <= 0}
                 >
                   <Zap className="w-4 h-4 mr-2" />
                   Instant Cash Out
                 </Button>
-                </div>
-
-                {/* Dispute Resolution Access */}
-                <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-white/80 text-sm mb-2">Need Help?</div>
                 <Button
                   onClick={() => {
                     const lastRide = recentRides.find(r => r.status === 'completed');
@@ -519,44 +523,45 @@ export default function DriverHub() {
                     else toast.error("No completed rides to dispute");
                   }}
                   variant="outline"
-                  className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  size="sm"
+                  className="bg-white/10 border-white/30 text-white hover:bg-white/20"
                 >
                   <AlertTriangle className="w-4 h-4 mr-2" />
                   File a Dispute
                 </Button>
-                </div>
+              </div>
+            </div>
 
-              <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-white/80 text-sm mb-1">Today's Earnings</div>
-                <div className="text-3xl font-bold text-white flex items-baseline gap-2">
+            {/* Stats mini-grid */}
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-white/70 text-xs mb-1">Today's Net</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   ${(stats?.net_earnings || 0).toFixed(2)}
-                  <span className="text-lg text-green-200">
-                    +${(stats?.tips_earned || 0).toFixed(2)} tips
-                  </span>
                 </div>
-                <div className="text-white/70 text-xs mt-1">
-                  ${(stats?.gross_earnings || 0).toFixed(2)} gross • You keep 90%
+                <div className="text-green-200 text-xs">
+                  +${(stats?.tips_earned || 0).toFixed(2)} tips
                 </div>
               </div>
 
-              <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-white/80 text-sm mb-1">Hourly Rate</div>
-                <div className="text-3xl font-bold text-white">
+              <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-white/70 text-xs mb-1">Hourly Rate</div>
+                <div className="text-xl sm:text-2xl font-bold text-white">
                   ${(stats?.hourly_rate || 0).toFixed(2)}/hr
                 </div>
-                <div className="text-white/70 text-xs mt-1">
-                  Guaranteed minimum: ${guaranteedHourly}/hr
+                <div className="text-white/60 text-xs">
+                  Min ${guaranteedHourly}/hr
                 </div>
               </div>
 
-              <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-                <div className="text-white/80 text-sm mb-1">Active Streak</div>
-                <div className="text-3xl font-bold text-white flex items-center gap-2">
-                  <Award className="w-8 h-8 text-yellow-400" />
+              <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm">
+                <div className="text-white/70 text-xs mb-1">Streak</div>
+                <div className="text-xl sm:text-2xl font-bold text-white flex items-center gap-1">
+                  <Award className="w-5 h-5 text-yellow-400" />
                   {stats?.streak_count || 0}
                 </div>
-                <div className="text-white/70 text-xs mt-1">
-                  {stats?.bonuses_earned ? `+$${stats.bonuses_earned.toFixed(2)} bonuses` : 'No bonuses yet'}
+                <div className="text-white/60 text-xs">
+                  {stats?.bonuses_earned ? `+$${stats.bonuses_earned.toFixed(2)}` : 'No bonuses'}
                 </div>
               </div>
             </div>
@@ -566,55 +571,55 @@ export default function DriverHub() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 bg-white/10 backdrop-blur-xl border border-white/20">
-            <TabsTrigger value="today">Today</TabsTrigger>
-            <TabsTrigger value="week">This Week</TabsTrigger>
-            <TabsTrigger value="bonuses">Bonuses</TabsTrigger>
+            <TabsTrigger value="today" className="text-xs sm:text-sm">Today</TabsTrigger>
+            <TabsTrigger value="week" className="text-xs sm:text-sm">This Week</TabsTrigger>
+            <TabsTrigger value="bonuses" className="text-xs sm:text-sm">Bonuses</TabsTrigger>
           </TabsList>
 
-          {/* Today/Week Stats */}
-          <TabsContent value={activeTab === "today" ? "today" : "week"} className="space-y-6">
+          {/* Today Stats */}
+          <TabsContent value="today" className="space-y-6">
             {/* Earnings Chart */}
             <EarningsChart />
             
             {/* Stats Grid */}
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6 text-center">
-                  <MapPin className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-                  <div className="text-3xl font-bold text-white mb-1">
+                <CardContent className="p-4 text-center">
+                  <MapPin className="w-7 h-7 text-blue-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">
                     {stats?.total_rides || 0}
                   </div>
-                  <div className="text-gray-400 text-sm">Completed Rides</div>
+                  <div className="text-gray-400 text-xs">Completed Rides</div>
                 </CardContent>
               </Card>
 
               <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6 text-center">
-                  <Activity className="w-10 h-10 text-purple-400 mx-auto mb-3" />
-                  <div className="text-3xl font-bold text-white mb-1">
+                <CardContent className="p-4 text-center">
+                  <Activity className="w-7 h-7 text-purple-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">
                     {(stats?.miles_driven || 0).toFixed(1)}
                   </div>
-                  <div className="text-gray-400 text-sm">Miles Driven</div>
+                  <div className="text-gray-400 text-xs">Miles Driven</div>
                 </CardContent>
               </Card>
 
               <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6 text-center">
-                  <Clock className="w-10 h-10 text-orange-400 mx-auto mb-3" />
-                  <div className="text-3xl font-bold text-white mb-1">
+                <CardContent className="p-4 text-center">
+                  <Clock className="w-7 h-7 text-orange-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">
                     {(stats?.hours_online || 0).toFixed(1)}
                   </div>
-                  <div className="text-gray-400 text-sm">Hours Online</div>
+                  <div className="text-gray-400 text-xs">Hours Online</div>
                 </CardContent>
               </Card>
 
               <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-6 text-center">
-                  <Star className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
-                  <div className="text-3xl font-bold text-white mb-1">
+                <CardContent className="p-4 text-center">
+                  <Star className="w-7 h-7 text-yellow-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">
                     {averageRating}
                   </div>
-                  <div className="text-gray-400 text-sm">Rating ({myRatings.length} reviews)</div>
+                  <div className="text-gray-400 text-xs">Rating ({myRatings.length})</div>
                 </CardContent>
               </Card>
             </div>
@@ -727,6 +732,41 @@ export default function DriverHub() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Week Stats */}
+          <TabsContent value="week" className="space-y-6">
+            <EarningsChart />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-4 text-center">
+                  <MapPin className="w-7 h-7 text-blue-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">{weeklyStats?.total_rides || 0}</div>
+                  <div className="text-gray-400 text-xs">Rides This Week</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-4 text-center">
+                  <Activity className="w-7 h-7 text-purple-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">{(weeklyStats?.miles_driven || 0).toFixed(1)}</div>
+                  <div className="text-gray-400 text-xs">Miles Driven</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-4 text-center">
+                  <Clock className="w-7 h-7 text-orange-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">{(weeklyStats?.hours_online || 0).toFixed(1)}</div>
+                  <div className="text-gray-400 text-xs">Hours Online</div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-4 text-center">
+                  <DollarSign className="w-7 h-7 text-green-400 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-white mb-0.5">${(weeklyStats?.net_earnings || 0).toFixed(2)}</div>
+                  <div className="text-gray-400 text-xs">Weekly Earnings</div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Bonuses Tab */}
@@ -854,7 +894,7 @@ export default function DriverHub() {
             <CardTitle className="text-white">Why Drive with PlaySoFlo?</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div className="text-center p-4">
                 <DollarSign className="w-12 h-12 text-green-400 mx-auto mb-3" />
                 <h3 className="text-white font-bold mb-2">Keep 88-90%</h3>
