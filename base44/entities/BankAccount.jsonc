@@ -1,0 +1,64 @@
+{
+  "name": "BankAccount",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Account owner email"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "savings",
+        "business"
+      ],
+      "default": "checking"
+    },
+    "account_holder_name": {
+      "type": "string"
+    },
+    "account_number_last4": {
+      "type": "string",
+      "description": "Last 4 digits of account"
+    },
+    "bank_name": {
+      "type": "string"
+    },
+    "routing_number": {
+      "type": "string"
+    },
+    "balance": {
+      "type": "number",
+      "default": 0
+    },
+    "is_primary": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "plaid_access_token": {
+      "type": "string",
+      "description": "Plaid integration token"
+    }
+  },
+  "required": [
+    "user_email",
+    "account_type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

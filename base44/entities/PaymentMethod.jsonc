@@ -1,0 +1,115 @@
+{
+  "name": "PaymentMethod",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who owns this payment method"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "card",
+        "bank_account",
+        "cashapp",
+        "venmo",
+        "paypal",
+        "crypto_wallet"
+      ],
+      "description": "Type of payment method"
+    },
+    "stripe_payment_method_id": {
+      "type": "string",
+      "description": "Stripe payment method ID"
+    },
+    "is_default": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the default payment method"
+    },
+    "card_details": {
+      "type": "object",
+      "properties": {
+        "last4": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "exp_month": {
+          "type": "number"
+        },
+        "exp_year": {
+          "type": "number"
+        }
+      }
+    },
+    "bank_details": {
+      "type": "object",
+      "properties": {
+        "last4": {
+          "type": "string"
+        },
+        "bank_name": {
+          "type": "string"
+        },
+        "account_type": {
+          "type": "string",
+          "enum": [
+            "checking",
+            "savings",
+            "business"
+          ]
+        }
+      }
+    },
+    "external_details": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "description": "For CashApp, Venmo, PayPal"
+    },
+    "crypto_details": {
+      "type": "object",
+      "properties": {
+        "wallet_address": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "expired",
+        "disabled"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "user_email",
+    "type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

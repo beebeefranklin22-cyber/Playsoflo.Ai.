@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
-const COMMON_BANKS = ["Chase", "Bank of America", "Wells Fargo", "Citibank", "US Bank", "PNC", "Capital One", "TD Bank", "Truist", "SunTrust", "Other"];
+const COMMON_BANKS = ["Chase", "Bank of America", "Wells Fargo", "Citibank", "US Bank", "PNC", "Capital One", "TD Bank", "Truist", "SunTrust"];
 
 export default function BankAccountModal({ currentUser, onClose }) {
   const qc = useQueryClient();
@@ -146,23 +146,25 @@ export default function BankAccountModal({ currentUser, onClose }) {
                   {/* Bank Name */}
                   <div>
                     <label className="text-gray-400 text-xs mb-1.5 block">Bank Name</label>
-                    <select
+                    <Input
                       value={form.bank_name}
                       onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                      className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm"
-                    >
-                      <option value="" disabled>Select your bank</option>
+                      placeholder="Type your bank name"
+                      autoComplete="off"
+                      className="bg-white/10 border-white/20 text-white"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {COMMON_BANKS.map((b) => (
-                        <option key={b} value={b} className="bg-gray-900">{b}</option>
+                        <button
+                          key={b}
+                          type="button"
+                          onClick={() => setForm({ ...form, bank_name: b })}
+                          className="px-2.5 py-1 rounded-full bg-white/10 text-gray-300 text-xs hover:bg-white/20"
+                        >
+                          {b}
+                        </button>
                       ))}
-                    </select>
-                    {form.bank_name === "Other" && (
-                      <Input
-                        className="bg-white/10 border-white/20 text-white mt-2"
-                        placeholder="Enter bank name"
-                        onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-                      />
-                    )}
+                    </div>
                   </div>
 
                   {/* Routing Number */}

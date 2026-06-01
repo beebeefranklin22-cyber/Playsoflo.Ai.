@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import ManualBankPaymentForm from "./ManualBankPaymentForm";
 
 function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUser }) {
   const stripe = useStripe();
@@ -179,9 +180,18 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const [externalUsername, setExternalUsername] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [loadingStripe, setLoadingStripe] = useState(false);
+  const [savingBank, setSavingBank] = useState(false);
 
   const handleOpenForm = async (mode) => {
     setAddMode(mode);
+
+    if (mode === 'bank') {
+      setStripePromise(null);
+      setClientSecret(null);
+      setShowAddCard(true);
+      return;
+    }
+
     setLoadingStripe(true);
     toast.loading("Loading payment form...");
     
@@ -204,6 +214,49 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     } finally {
       setLoadingStripe(false);
     }
+  };
+
+  const handleSaveManualBank = async (bankData) => {
+    const bankName = bankData.bank_name.trim();
+    const holderName = bankData.account_holder_name.trim();
+
+    if (!holderName) { toast.error("Enter account holder name"); return; }
+    if (!bankName) { toast.error("Enter bank name"); return; }
+    if (!/^\d{9}$/.test(bankData.routing_number)) { toast.error("Routing number must be exactly 9 digits"); return; }
+    if (bankData.account_number.length < 5 || !/^\d+$/.test(bankData.account_number)) { toast.error("Enter a valid account number"); return; }
+    if (bankData.account_number !== bankData.confirm_account_number) { toast.error("Account numbers do not match"); return; }
+
+    setSavingBank(true);
+    const last4 = bankData.account_number.slice(-4);
+
+    await base44.entities.BankAccount.create({
+      user_email: currentUser.email,
+      account_type: bankData.account_type,
+      bank_name: bankName,
+      account_holder_name: holderName,
+      routing_number: bankData.routing_number,
+      account_number_last4: last4,
+      is_verified: false,
+      is_primary: paymentMethods.length === 0,
+    });
+
+    await base44.entities.PaymentMethod.create({
+      user_email: currentUser.email,
+      type: 'bank_account',
+      bank_details: {
+        bank_name: bankName,
+        last4,
+        account_type: bankData.account_type
+      },
+      is_default: paymentMethods.length === 0,
+      status: 'active'
+    });
+
+    setSavingBank(false);
+    setShowAddCard(false);
+    queryClient.invalidateQueries(['payment-methods']);
+    queryClient.invalidateQueries(['bank-accounts']);
+    toast.success("Bank account saved!");
   };
 
   const { data: paymentMethods = [], isLoading } = useQuery({
@@ -465,7 +518,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
               {/* Add Card Form */}
               <AnimatePresence>
-                {showAddCard && stripePromise && clientSecret && (
+                {showAddCard && (addMode === 'bank' || (stripePromise && clientSecret)) && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -477,23 +530,32 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                           <Shield className="w-5 h-5 text-green-400" />
                           {addMode === 'bank' ? 'Add Bank Account (Secure)' : 'Add Card (Secure)'}
                         </h3>
-                        <Elements stripe={stripePromise} options={{ clientSecret }}>
-                         <StripePaymentForm
-                           clientSecret={clientSecret}
-                           mode={addMode}
-                           currentUser={currentUser}
-                           onSuccess={() => {
-                              setShowAddCard(false);
-                              setClientSecret(null);
-                              queryClient.invalidateQueries(['payment-methods']);
-                            }}
-                            onCancel={() => {
-                              setShowAddCard(false);
-                              setClientSecret(null);
-                            }}
+                        {addMode === 'bank' ? (
+                          <ManualBankPaymentForm
+                            currentUser={currentUser}
+                            saving={savingBank}
+                            onSave={handleSaveManualBank}
+                            onCancel={() => setShowAddCard(false)}
                           />
-                        </Elements>
-                      </CardContent>
+                        ) : (
+                          <Elements stripe={stripePromise} options={{ clientSecret }}>
+                           <StripePaymentForm
+                             clientSecret={clientSecret}
+                             mode={addMode}
+                             currentUser={currentUser}
+                             onSuccess={() => {
+                                setShowAddCard(false);
+                                setClientSecret(null);
+                                queryClient.invalidateQueries(['payment-methods']);
+                              }}
+                              onCancel={() => {
+                                setShowAddCard(false);
+                                setClientSecret(null);
+                              }}
+                            />
+                          </Elements>
+                          )}
+                          </CardContent>
                     </Card>
                   </motion.div>
                 )}
