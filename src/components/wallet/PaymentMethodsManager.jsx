@@ -15,7 +15,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import ManualBankPaymentForm from "./ManualBankPaymentForm";
 
-function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUser }) {
+function StripePaymentForm({ mode, onSuccess, onCancel, currentUser }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -33,46 +33,25 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
     }
 
     setProcessing(true);
-    toast.loading("Securing your payment method...");
+    toast.loading("Saving your card...");
 
     try {
-      let setupIntent, error;
-
-      if (mode === 'bank') {
-        // ACH bank accounts use Stripe's hosted collection flow (no card element needed)
-        ({ error, setupIntent } = await stripe.collectBankAccountForSetup({
-          clientSecret,
-          params: {
-            payment_method_type: 'us_bank_account',
-            payment_method_data: {
-              billing_details: { name: cardholderName, email: currentUser?.email }
-            }
-          },
-          expand: ['payment_method']
-        }));
-
-        if (!error && setupIntent?.status === 'requires_confirmation') {
-          ({ error, setupIntent } = await stripe.confirmUsBankAccountSetup(clientSecret));
-        }
-      } else {
-        ({ error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-          payment_method: {
-            card: elements.getElement(CardElement),
-            billing_details: { name: cardholderName, email: currentUser?.email },
-          }
-        }));
-      }
+      const cardElement = elements.getElement(CardElement);
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+        billing_details: { name: cardholderName, email: currentUser?.email },
+      });
 
       if (error) {
         throw new Error(error.message);
       }
-
-      if (!setupIntent?.payment_method) {
-        throw new Error("Could not finalize the payment method. Please try again.");
+      if (!paymentMethod?.id) {
+        throw new Error("Could not save this card. Please try again.");
       }
 
       const response = await base44.functions.invoke('savePaymentMethod', {
-        payment_method_id: setupIntent.payment_method
+        payment_method_id: paymentMethod.id
       });
 
       if (response?.data?.error) {
@@ -83,12 +62,12 @@ function StripePaymentForm({ clientSecret, mode, onSuccess, onCancel, currentUse
       }
 
       toast.dismiss();
-      toast.success("✅ Payment method added!");
+      toast.success("Card saved!");
       onSuccess();
     } catch (error) {
       console.error('Payment error:', error);
       toast.dismiss();
-      toast.error(error.message || "Failed to add payment method");
+      toast.error(error.message || "Failed to save card");
       setProcessing(false);
     }
   };
@@ -196,15 +175,15 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     toast.loading("Loading payment form...");
     
     try {
-      const { data } = await base44.functions.invoke('createSetupIntent');
+      const { data } = await base44.functions.invoke('createSetupIntent', { card_save_only: true });
       
-      if (!data?.client_secret || !data?.publishable_key) {
+      if (!data?.publishable_key) {
         throw new Error("Invalid response from server");
       }
 
       const stripe = await loadStripe(data.publishable_key);
       setStripePromise(stripe);
-      setClientSecret(data.client_secret);
+      setClientSecret(null);
       setShowAddCard(true);
       toast.dismiss();
     } catch (error) {
@@ -227,35 +206,29 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     if (bankData.account_number !== bankData.confirm_account_number) { toast.error("Account numbers do not match"); return; }
 
     setSavingBank(true);
-    const last4 = bankData.account_number.slice(-4);
-
-    await base44.entities.BankAccount.create({
-      user_email: currentUser.email,
-      account_type: bankData.account_type,
-      bank_name: bankName,
-      account_holder_name: holderName,
-      routing_number: bankData.routing_number,
-      account_number_last4: last4,
-      is_verified: false,
-      is_primary: paymentMethods.length === 0,
-    });
-
-    await base44.entities.PaymentMethod.create({
-      user_email: currentUser.email,
-      type: 'bank_account',
-      bank_details: {
+    const response = await base44.functions.invoke('savePaymentMethod', {
+      manual_bank: {
+        account_type: bankData.account_type,
         bank_name: bankName,
-        last4,
-        account_type: bankData.account_type
-      },
-      is_default: paymentMethods.length === 0,
-      status: 'active'
+        account_holder_name: holderName,
+        routing_number: bankData.routing_number,
+        account_number_last4: bankData.account_number.slice(-4)
+      }
     });
 
+    if (response?.data?.error) {
+      setSavingBank(false);
+      throw new Error(response.data.error);
+    }
+
+    const savedMethod = response?.data?.method;
+    if (savedMethod) {
+      queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) => [savedMethod, ...old]);
+    }
+    queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+    queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
     setSavingBank(false);
     setShowAddCard(false);
-    queryClient.invalidateQueries(['payment-methods']);
-    queryClient.invalidateQueries(['bank-accounts']);
     toast.success("Bank account saved!");
   };
 
@@ -285,7 +258,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
       await base44.entities.PaymentMethod.update(methodId, { is_default: true });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payment-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
       toast.success("Default payment method set");
     },
     onError: () => {
@@ -299,7 +272,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
       await base44.entities.PaymentMethod.update(methodId, { status: 'disabled' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payment-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
       toast.success("Payment method removed");
       setDeletingId(null);
     },
@@ -333,7 +306,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
       return await base44.entities.PaymentMethod.create(record);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payment-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
       setShowAddExternal(false);
       setExternalUsername("");
       setExternalType(null);
@@ -518,7 +491,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
               {/* Add Card Form */}
               <AnimatePresence>
-                {showAddCard && (addMode === 'bank' || (stripePromise && clientSecret)) && (
+                {showAddCard && (addMode === 'bank' || stripePromise) && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
@@ -538,15 +511,14 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                             onCancel={() => setShowAddCard(false)}
                           />
                         ) : (
-                          <Elements stripe={stripePromise} options={{ clientSecret }}>
+                          <Elements stripe={stripePromise}>
                            <StripePaymentForm
-                             clientSecret={clientSecret}
                              mode={addMode}
                              currentUser={currentUser}
                              onSuccess={() => {
                                 setShowAddCard(false);
                                 setClientSecret(null);
-                                queryClient.invalidateQueries(['payment-methods']);
+                                queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
                               }}
                               onCancel={() => {
                                 setShowAddCard(false);

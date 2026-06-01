@@ -14,6 +14,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const payload = await req.json().catch(() => ({}));
+
+    const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY');
+    if (!publishableKey) {
+      throw new Error('Stripe publishable key not configured');
+    }
+
+    if (payload.card_save_only) {
+      return Response.json({ publishable_key: publishableKey });
+    }
+
     console.log('Creating setup intent for user:', user.email);
 
     // Create or get Stripe customer
@@ -41,12 +52,6 @@ Deno.serve(async (req) => {
     });
 
     console.log('Setup intent created:', setupIntent.id);
-
-    const publishableKey = Deno.env.get('STRIPE_PUBLISHABLE_KEY');
-    
-    if (!publishableKey) {
-      throw new Error('Stripe publishable key not configured');
-    }
 
     return Response.json({
       client_secret: setupIntent.client_secret,
