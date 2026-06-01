@@ -1,14 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import Stripe from 'npm:stripe@17.5.0';
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
-  apiVersion: '2024-12-18.acacia',
-});
-
 Deno.serve(async (req) => {
   try {
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY'), {
+      apiVersion: '2024-12-18.acacia',
+    });
+
     const base44 = createClientFromRequest(req);
-    
     const user = await base44.auth.me();
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -16,6 +15,7 @@ Deno.serve(async (req) => {
 
     const { payment_method_id, manual_bank } = await req.json();
 
+    // ── Manual bank account path ──
     if (manual_bank) {
       const existingMethods = await base44.asServiceRole.entities.PaymentMethod.filter({
         user_email: user.email,
@@ -48,39 +48,21 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, method: savedMethod });
     }
 
+    // ── Stripe payment method path (already attached via SetupIntent) ──
     if (!payment_method_id) {
       return Response.json({ error: 'Payment method ID required' }, { status: 400 });
     }
 
     console.log('Saving payment method:', payment_method_id, 'for user:', user.email);
 
-    // Get payment method details from Stripe
+    // Retrieve the payment method from Stripe — it should already be attached
+    // to the customer by confirmCardSetup on the frontend.
     const paymentMethod = await stripe.paymentMethods.retrieve(payment_method_id);
-
     if (!paymentMethod) {
       return Response.json({ error: 'Invalid payment method' }, { status: 400 });
     }
 
-    let customerId = user.stripe_customer_id;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        name: user.full_name,
-        metadata: { user_id: user.id, user_email: user.email }
-      });
-      customerId = customer.id;
-      await base44.auth.updateMe({ stripe_customer_id: customerId });
-    }
-
-    if (paymentMethod.customer && paymentMethod.customer !== customerId) {
-      return Response.json({ error: 'This payment method belongs to another customer.' }, { status: 400 });
-    }
-
-    if (!paymentMethod.customer) {
-      await stripe.paymentMethods.attach(paymentMethod.id, { customer: customerId });
-    }
-
-    // Check if this is the first payment method
+    // Check how many active methods the user already has
     const existingMethods = await base44.asServiceRole.entities.PaymentMethod.filter({
       user_email: user.email,
       status: 'active'
@@ -88,14 +70,9 @@ Deno.serve(async (req) => {
 
     console.log('Existing payment methods:', existingMethods.length);
 
-    // Map Stripe payment method type to our entity enum
-    const typeMap = {
-      card: 'card',
-      us_bank_account: 'bank_account'
-    };
+    const typeMap = { card: 'card', us_bank_account: 'bank_account' };
     const mappedType = typeMap[paymentMethod.type] || 'card';
 
-    // Save to database (service role: user already authenticated above, user_email set explicitly)
     const savedMethod = await base44.asServiceRole.entities.PaymentMethod.create({
       user_email: user.email,
       type: mappedType,
@@ -116,13 +93,12 @@ Deno.serve(async (req) => {
     });
 
     console.log('Payment method saved successfully:', savedMethod.id);
-
     return Response.json({ success: true, method: savedMethod });
 
   } catch (error) {
     console.error('Save payment method error:', error);
-    return Response.json({ 
-      error: error.message || 'Failed to save payment method' 
+    return Response.json({
+      error: error.message || 'Failed to save payment method'
     }, { status: 500 });
   }
 });
