@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { createPageUrl } from "@/utils";
 import {
   CreditCard, CheckCircle, AlertCircle, Loader2, ExternalLink,
-  ArrowRight, ShieldCheck
+  ArrowRight, ShieldCheck, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 import StripeSetupWizard from "./StripeSetupWizard";
+import EarningsSetupWizard from "../onboarding/EarningsSetupWizard";
 
 // A clean, self-contained card that lets any user connect Stripe for payouts
 // directly from their profile — no need to dig into the Business Hub.
@@ -16,6 +17,7 @@ export default function StripePayoutCard({ currentUser }) {
   const [connecting, setConnecting] = useState(false);
   const [openingDashboard, setOpeningDashboard] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showEarningsWizard, setShowEarningsWizard] = useState(false);
 
   const hasAccount = !!currentUser?.stripe_account_id;
 
@@ -95,6 +97,13 @@ export default function StripePayoutCard({ currentUser }) {
           onConnected={() => refetch()}
         />
       )}
+      {showEarningsWizard && (
+        <EarningsSetupWizard
+          currentUser={currentUser}
+          onClose={() => setShowEarningsWizard(false)}
+          onComplete={() => refetch()}
+        />
+      )}
       <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-600/15 to-green-700/10 p-5">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-11 h-11 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
@@ -111,12 +120,22 @@ export default function StripePayoutCard({ currentUser }) {
           <ShieldCheck className="w-4 h-4 flex-shrink-0" />
           Bank-level secure · Takes about 2 minutes · No monthly fees
         </div>
-        <Button
-          onClick={() => setShowWizard(true)}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold min-h-[48px]"
-        >
-          Start Setup<ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowEarningsWizard(true)}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold min-h-[48px]"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Start Earning Setup
+          </Button>
+          <Button
+            onClick={() => setShowWizard(true)}
+            variant="outline"
+            className="bg-white/5 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 min-h-[48px]"
+          >
+            Quick Connect
+          </Button>
+        </div>
       </div>
       </>
     );

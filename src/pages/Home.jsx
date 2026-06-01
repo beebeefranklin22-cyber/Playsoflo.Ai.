@@ -29,6 +29,7 @@ import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 import PostComments from "../components/social/PostComments";
 import PersonalizedOffersWidget from "../components/offers/PersonalizedOffersWidget";
+import EarningsSetupBanner from "../components/onboarding/EarningsSetupBanner";
 import { AnimatePresence } from "framer-motion";
 
 // Simple Badge component for styling, as it's used in the recommendations section
@@ -468,6 +469,9 @@ export default function Home() {
             ))}
         </div>
       </div>
+
+      {/* Earnings Setup Banner for providers/drivers/creators */}
+      {currentUser && <EarningsSetupBanner currentUser={currentUser} />}
 
       {/* Quick Access */}
       <div className="px-4 pt-4 pb-3 border-b border-white/10 bg-gray-900/80 backdrop-blur-xl relative z-20">
