@@ -11,6 +11,7 @@ import DriverStatsOverview from "../driver/DriverStatsOverview";
 import BecomeDriverButton from "../driver/BecomeDriverButton";
 import RidePreferencesModal from "../ride/RidePreferencesModal";
 import VehicleInfoModal from "../ride/VehicleInfoModal";
+import StripePayoutCard from "./StripePayoutCard";
 import { toast } from "sonner";
 
 export default function BusinessHubDriverSection({ currentUser, onUserUpdate }) {
@@ -111,6 +112,9 @@ export default function BusinessHubDriverSection({ currentUser, onUserUpdate }) 
           onComplete={() => { if (onUserUpdate) onUserUpdate(); }}
         />
       </div>
+
+      {/* Payments & Payouts */}
+      <StripePayoutCard currentUser={currentUser} />
 
       {/* Ride Settings */}
       <Card className="bg-white/5 border-white/10">

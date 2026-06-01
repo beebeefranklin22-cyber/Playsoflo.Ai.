@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import StripePayoutCard from "./StripePayoutCard";
 
 // Lazy-load the heavy creator sub-components
 import VODManager from "../creator/VODManager";
@@ -84,6 +85,9 @@ export default function BusinessHubCreatorSection({ currentUser }) {
               </CardContent>
             </Card>
           </div>
+
+          {/* Payments & Payouts */}
+          <StripePayoutCard currentUser={currentUser} />
 
           {/* Quick actions */}
           <div className="grid grid-cols-2 gap-3">
