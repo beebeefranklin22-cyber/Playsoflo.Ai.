@@ -839,10 +839,25 @@ export default function Messages() {
                     </div>
                     <div className="flex items-center justify-between">
                       <p className={`text-sm truncate flex-1 ${isUnread ? 'text-white font-medium' : 'text-gray-400'}`}>
-                        {conv.last_message || "No messages yet"}
+                        {conv.last_message ? (
+                          <>
+                            {conv.last_message_sender && (
+                              <span className="text-gray-500 font-normal">
+                                {conv.last_message_sender === currentUser?.email
+                                  ? "You: "
+                                  : conv.is_group
+                                    ? `${getUserDisplayName(conv.last_message_sender)?.split(' ')[0]}: `
+                                    : ""}
+                              </span>
+                            )}
+                            {conv.last_message}
+                          </>
+                        ) : (
+                          <span className="italic text-gray-500">No messages yet</span>
+                        )}
                       </p>
                       {isUnread && !conv.muted_by?.includes(currentUser?.email) && (
-                        <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold ml-2">
+                        <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold ml-2 flex-shrink-0">
                           {(conv.unread_count?.[currentUser?.email] || 1)}
                         </div>
                       )}
