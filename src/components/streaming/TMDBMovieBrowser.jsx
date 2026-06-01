@@ -48,14 +48,15 @@ export default function TMDBMovieBrowser({ onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl overflow-y-auto"
+      style={{ paddingTop: 'calc(4rem + var(--safe-area-top, 0px))', paddingBottom: 'calc(5rem + var(--safe-area-bottom, 0px))' }}
     >
-      <div className="min-h-screen p-4 md:p-8">
+      <div className="p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-white">Browse Movies & Shows</h2>
-            <button onClick={onClose}>
-              <X className="w-8 h-8 text-white" />
+          <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md -mx-4 px-4 py-3 mb-4 flex items-center justify-between">
+            <h2 className="text-xl sm:text-3xl font-bold text-white">Browse Movies & Shows</h2>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
+              <X className="w-6 h-6 text-white" />
             </button>
           </div>
 
@@ -175,7 +176,7 @@ export default function TMDBMovieBrowser({ onClose }) {
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[75vh] overflow-y-auto"
             >
               {loadingDetails ? (
                 <div className="p-20 text-center">

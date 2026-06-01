@@ -58,7 +58,13 @@ function StripeCardForm({ clientSecret, onSuccess, onCancel, currentUser }) {
     } catch (error) {
       console.error('Card save error:', error);
       toast.dismiss();
-      toast.error(error.message || "Failed to save card");
+      const msg = error.message || "Failed to save card";
+      // Provide helpful guidance for common card declines
+      if (msg.includes("not support") || msg.includes("declined") || msg.includes("transaction_not_allowed")) {
+        toast.error("Your card was declined. Try a different card, or add a bank account or Cash App/Venmo instead.", { duration: 6000 });
+      } else {
+        toast.error(msg);
+      }
       setProcessing(false);
     }
   };
