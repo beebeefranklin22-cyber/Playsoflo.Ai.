@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { type = 'movie', page = 1, query = '' } = await req.json();
+    const { type = 'movie', page = 1, query = '', genre_id = '' } = await req.json();
     const apiKey = Deno.env.get('TMDB_API_KEY');
 
     if (!apiKey) {
@@ -18,17 +18,17 @@ Deno.serve(async (req) => {
 
     let url;
     if (query) {
-      // Search
       url = `https://api.themoviedb.org/3/search/${type}?api_key=${apiKey}&query=${encodeURIComponent(query)}&page=${page}`;
+    } else if (genre_id) {
+      url = `https://api.themoviedb.org/3/discover/${type}?api_key=${apiKey}&with_genres=${genre_id}&sort_by=popularity.desc&page=${page}`;
     } else {
-      // Popular/Trending
       url = `https://api.themoviedb.org/3/${type}/popular?api_key=${apiKey}&page=${page}`;
     }
 
     const response = await fetch(url);
     const data = await response.json();
 
-    const formattedResults = data.results.map(item => ({
+    const formattedResults = (data.results || []).map(item => ({
       tmdb_id: item.id,
       title: item.title || item.name,
       description: item.overview,
@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
         : null,
       rating: item.vote_average,
       release_date: item.release_date || item.first_air_date,
+      genre_ids: item.genre_ids || [],
       type: type === 'movie' ? 'movie' : 'series',
       category: 'entertainment',
       popularity: item.popularity,

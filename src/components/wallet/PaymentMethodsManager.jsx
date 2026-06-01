@@ -221,9 +221,24 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const deleteMutation = useMutation({
     mutationFn: async (methodId) => {
       setDeletingId(methodId);
+      const method = paymentMethods.find(m => m.id === methodId);
+      // Soft-delete the PaymentMethod
       await base44.entities.PaymentMethod.update(methodId, { status: 'disabled' });
+      // Also remove linked BankAccount if it's a bank
+      if (method?.type === 'bank_account' && method?.bank_details?.last4) {
+        const banks = await base44.entities.BankAccount.filter({ user_email: currentUser.email });
+        const matchingBank = banks.find(b => b.account_number_last4 === method.bank_details.last4 && b.bank_name === method.bank_details.bank_name);
+        if (matchingBank) {
+          await base44.entities.BankAccount.delete(matchingBank.id);
+        }
+      }
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] }); toast.success("Payment method removed"); setDeletingId(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      toast.success("Payment method removed");
+      setDeletingId(null);
+    },
     onError: () => { toast.error("Failed to remove payment method"); setDeletingId(null); }
   });
 

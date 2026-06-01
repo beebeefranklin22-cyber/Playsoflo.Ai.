@@ -56,6 +56,7 @@ export default function Streaming() {
   const [ratingFilter, setRatingFilter] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [sortBy, setSortBy] = useState("popularity");
+  const [genreFilter, setGenreFilter] = useState("all");
 
   // Modals
   const [showUpload, setShowUpload] = useState(false);
@@ -258,6 +259,11 @@ export default function Streaming() {
 
     if (ratingFilter) list = list.filter(i => parseFloat(i.rating) >= parseFloat(ratingFilter));
 
+    if (genreFilter !== "all") {
+      const q = genreFilter.toLowerCase();
+      list = list.filter(i => i.tags?.some(t => t.toLowerCase() === q));
+    }
+
     return [...list].sort((a, b) => {
       if (sortBy === "popularity") return (b.views || 0) - (a.views || 0);
       if (sortBy === "release_date") return new Date(b.created_date) - new Date(a.created_date);
@@ -265,7 +271,7 @@ export default function Streaming() {
       if (sortBy === "title") return a.title?.localeCompare(b.title);
       return 0;
     });
-  }, [content, searchQuery, selectedCategory, availabilityFilter, ratingFilter, sortBy]);
+  }, [content, searchQuery, selectedCategory, availabilityFilter, ratingFilter, sortBy, genreFilter]);
 
   const trendingContent = useMemo(() =>
     [...content].filter(i => !i.is_live).sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 8),
@@ -811,7 +817,7 @@ export default function Streaming() {
               exit={{ opacity: 0, height: 0 }}
               className="mt-3 bg-white/5 border border-white/10 rounded-xl p-3 space-y-3"
             >
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="text-gray-500 text-xs mb-1 block">Sort</label>
                   <Select value={sortBy} onValueChange={setSortBy}>
@@ -820,6 +826,29 @@ export default function Streaming() {
                     </SelectTrigger>
                     <SelectContent>
                       {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs mb-1 block">Genre</label>
+                  <Select value={genreFilter} onValueChange={setGenreFilter}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Genres</SelectItem>
+                      <SelectItem value="action">Action</SelectItem>
+                      <SelectItem value="comedy">Comedy</SelectItem>
+                      <SelectItem value="drama">Drama</SelectItem>
+                      <SelectItem value="horror">Horror</SelectItem>
+                      <SelectItem value="sci-fi">Sci-Fi</SelectItem>
+                      <SelectItem value="romance">Romance</SelectItem>
+                      <SelectItem value="documentary">Documentary</SelectItem>
+                      <SelectItem value="thriller">Thriller</SelectItem>
+                      <SelectItem value="animation">Animation</SelectItem>
+                      <SelectItem value="sports">Sports</SelectItem>
+                      <SelectItem value="music">Music</SelectItem>
+                      <SelectItem value="gaming">Gaming</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -846,7 +875,7 @@ export default function Streaming() {
                 </div>
               </div>
               <button
-                onClick={() => { setSortBy("popularity"); setAvailabilityFilter("all"); setRatingFilter(""); setSearchQuery(""); }}
+                onClick={() => { setSortBy("popularity"); setAvailabilityFilter("all"); setRatingFilter(""); setGenreFilter("all"); setSearchQuery(""); }}
                 className="text-xs text-gray-500 hover:text-white transition"
               >
                 Clear all filters

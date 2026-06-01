@@ -402,7 +402,10 @@ export default function ContentUploadModal({ currentUser, onClose }) {
             </label>
           </div>
 
-          {/* Publish Button */}
+        </div>
+
+        {/* Sticky Publish Footer */}
+        <div className="sticky bottom-0 bg-[#18181b] border-t border-white/10 px-5 py-3 z-10">
           <Button
             onClick={handlePublish}
             disabled={publishing || (!data.title) || (videoMode === "url" && !data.video_url) || (videoMode === "file" && !videoFile)}
@@ -415,8 +418,7 @@ export default function ContentUploadModal({ currentUser, onClose }) {
               : <><Film className="w-4 h-4 mr-2" />Publish</>
             }
           </Button>
-
-          <p className="text-gray-700 text-xs text-center pb-2">Content appears in the feed immediately after publishing.</p>
+          <p className="text-gray-700 text-xs text-center mt-1">Content appears in the feed immediately after publishing.</p>
         </div>
       </motion.div>
     </div>

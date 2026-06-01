@@ -7,21 +7,43 @@ import { Search, Star, Play, X, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+const TMDB_GENRES = {
+  movie: [
+    { id: 28, name: "Action" }, { id: 12, name: "Adventure" }, { id: 16, name: "Animation" },
+    { id: 35, name: "Comedy" }, { id: 80, name: "Crime" }, { id: 99, name: "Documentary" },
+    { id: 18, name: "Drama" }, { id: 10751, name: "Family" }, { id: 14, name: "Fantasy" },
+    { id: 36, name: "History" }, { id: 27, name: "Horror" }, { id: 10402, name: "Music" },
+    { id: 9648, name: "Mystery" }, { id: 10749, name: "Romance" }, { id: 878, name: "Sci-Fi" },
+    { id: 53, name: "Thriller" }, { id: 10752, name: "War" }, { id: 37, name: "Western" },
+  ],
+  tv: [
+    { id: 10759, name: "Action" }, { id: 16, name: "Animation" }, { id: 35, name: "Comedy" },
+    { id: 80, name: "Crime" }, { id: 99, name: "Documentary" }, { id: 18, name: "Drama" },
+    { id: 10751, name: "Family" }, { id: 10762, name: "Kids" }, { id: 9648, name: "Mystery" },
+    { id: 10763, name: "News" }, { id: 10764, name: "Reality" }, { id: 10765, name: "Sci-Fi" },
+    { id: 10766, name: "Soap" }, { id: 10768, name: "War" }, { id: 37, name: "Western" },
+  ],
+};
+
 export default function TMDBMovieBrowser({ onClose }) {
   const [contentType, setContentType] = useState("movie");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenre, setSelectedGenre] = useState("");
   const [page, setPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [itemDetails, setItemDetails] = useState(null);
 
+  const genres = TMDB_GENRES[contentType] || [];
+
   const { data, isLoading } = useQuery({
-    queryKey: ['tmdb-content', contentType, searchQuery, page],
+    queryKey: ['tmdb-content', contentType, searchQuery, selectedGenre, page],
     queryFn: async () => {
       const { data } = await base44.functions.invoke('fetchTMDBContent', {
         type: contentType,
         page,
-        query: searchQuery
+        query: searchQuery,
+        genre_id: searchQuery ? '' : selectedGenre
       });
       return data;
     }
@@ -64,13 +86,13 @@ export default function TMDBMovieBrowser({ onClose }) {
           <div className="bg-white/5 rounded-xl p-4 mb-6 space-y-4">
             <div className="flex gap-3 flex-wrap">
               <Button
-                onClick={() => { setContentType("movie"); setPage(1); }}
+                onClick={() => { setContentType("movie"); setSelectedGenre(""); setPage(1); }}
                 className={contentType === "movie" ? "bg-purple-600" : "bg-white/10"}
               >
                 Movies
               </Button>
               <Button
-                onClick={() => { setContentType("tv"); setPage(1); }}
+                onClick={() => { setContentType("tv"); setSelectedGenre(""); setPage(1); }}
                 className={contentType === "tv" ? "bg-purple-600" : "bg-white/10"}
               >
                 TV Shows
@@ -85,6 +107,29 @@ export default function TMDBMovieBrowser({ onClose }) {
                 placeholder={`Search ${contentType === 'movie' ? 'movies' : 'TV shows'}...`}
                 className="pl-12 bg-white/10 border-white/20 text-white h-12"
               />
+            </div>
+
+            {/* Genre Filter Chips */}
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ touchAction: 'pan-x' }}>
+              <button
+                onClick={() => { setSelectedGenre(""); setPage(1); }}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                  !selectedGenre ? "bg-purple-600 text-white" : "bg-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                All
+              </button>
+              {genres.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => { setSelectedGenre(String(g.id)); setPage(1); }}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                    selectedGenre === String(g.id) ? "bg-purple-600 text-white" : "bg-white/10 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {g.name}
+                </button>
+              ))}
             </div>
           </div>
 
