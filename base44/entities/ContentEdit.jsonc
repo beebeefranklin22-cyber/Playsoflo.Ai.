@@ -1,0 +1,50 @@
+{
+  "name": "ContentEdit",
+  "type": "object",
+  "properties": {
+    "content_id": {
+      "type": "string"
+    },
+    "editor_email": {
+      "type": "string"
+    },
+    "edit_type": {
+      "type": "string",
+      "enum": [
+        "trim",
+        "title_change",
+        "description_change",
+        "thumbnail_change",
+        "metadata"
+      ],
+      "description": "Type of edit made"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Details of changes made"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "reviewed_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "content_id",
+    "editor_email",
+    "edit_type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {}
+  }
+}

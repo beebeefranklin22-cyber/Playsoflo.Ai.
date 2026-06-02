@@ -1,0 +1,65 @@
+{
+  "name": "ModerationFlag",
+  "type": "object",
+  "properties": {
+    "content_id": {
+      "type": "string",
+      "description": "ID of flagged content"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "chat_message",
+        "qa_question"
+      ],
+      "description": "Type of content flagged"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User who posted the content"
+    },
+    "flag_reason": {
+      "type": "string",
+      "enum": [
+        "spam",
+        "harassment",
+        "inappropriate",
+        "hate_speech",
+        "other"
+      ]
+    },
+    "ai_confidence": {
+      "type": "number",
+      "description": "AI confidence score 0-100"
+    },
+    "original_content": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewed",
+        "action_taken",
+        "dismissed"
+      ],
+      "default": "pending"
+    },
+    "action_taken": {
+      "type": "string",
+      "description": "Action taken by moderator"
+    }
+  },
+  "required": [
+    "content_id",
+    "content_type",
+    "user_email",
+    "flag_reason"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {}
+  }
+}

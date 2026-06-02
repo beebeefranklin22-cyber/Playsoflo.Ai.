@@ -1,0 +1,74 @@
+{
+  "name": "CollaborativeDocument",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string",
+      "description": "Document content in JSON format"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "document",
+        "whiteboard",
+        "spreadsheet"
+      ],
+      "default": "document"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "collaborators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of collaborator emails with edit access"
+    },
+    "viewers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of viewer emails with read-only access"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false
+    },
+    "share_token": {
+      "type": "string",
+      "description": "Secure token for sharing"
+    },
+    "share_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When share link expires"
+    },
+    "allow_comments": {
+      "type": "boolean",
+      "default": true
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Document version for conflict resolution"
+    },
+    "last_edited_by": {
+      "type": "string"
+    },
+    "last_edited_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "title",
+    "owner_email"
+  ]
+}

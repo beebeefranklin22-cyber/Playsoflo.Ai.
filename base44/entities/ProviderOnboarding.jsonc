@@ -1,0 +1,71 @@
+{
+  "name": "ProviderOnboarding",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Provider's email"
+    },
+    "provider_type": {
+      "type": "string",
+      "enum": [
+        "car_rental",
+        "property",
+        "service",
+        "general"
+      ],
+      "description": "Type of provider"
+    },
+    "steps_completed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of completed onboarding steps"
+    },
+    "current_step": {
+      "type": "string",
+      "default": "welcome"
+    },
+    "onboarding_completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "first_listing_created": {
+      "type": "boolean",
+      "default": false
+    },
+    "verification_started": {
+      "type": "boolean",
+      "default": false
+    },
+    "dashboard_tour_completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "tooltips_dismissed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "user_email",
+    "provider_type"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

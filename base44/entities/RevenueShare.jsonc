@@ -1,0 +1,66 @@
+{
+  "name": "RevenueShare",
+  "type": "object",
+  "properties": {
+    "content_id": {
+      "type": "string",
+      "description": "ID of PPVContent, CreatorMembership, or other monetized content"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "ppv",
+        "membership",
+        "product",
+        "tip"
+      ],
+      "description": "Type of content being shared"
+    },
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the creator receiving share"
+    },
+    "share_percent": {
+      "type": "number",
+      "description": "Percentage of revenue (0-100)"
+    },
+    "total_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount earned from this share"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "ended"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "content_id",
+    "content_type",
+    "creator_email",
+    "share_percent"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "creator_email": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "name": "PayoutRequest",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Creator requesting payout"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payout amount in USD"
+    },
+    "payout_method_id": {
+      "type": "string",
+      "description": "ID of payout method used"
+    },
+    "method_type": {
+      "type": "string",
+      "enum": [
+        "stripe",
+        "bank_transfer",
+        "paypal",
+        "crypto_wallet"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "requested_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "processed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revenue_breakdown": {
+      "type": "object",
+      "properties": {
+        "tips": {
+          "type": "number",
+          "default": 0
+        },
+        "subscriptions": {
+          "type": "number",
+          "default": 0
+        },
+        "ppv": {
+          "type": "number",
+          "default": 0
+        },
+        "products": {
+          "type": "number",
+          "default": 0
+        },
+        "livestream_tickets": {
+          "type": "number",
+          "default": 0
+        },
+        "collaborations": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "platform_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Platform commission"
+    },
+    "processing_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Payment processing fee"
+    },
+    "net_amount": {
+      "type": "number",
+      "description": "Amount after fees"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "External transaction reference"
+    },
+    "failure_reason": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "amount",
+    "method_type"
+  ]
+}

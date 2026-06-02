@@ -1,0 +1,192 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "order_type": {
+      "type": "string",
+      "description": "Type of order (restaurant, inventory, shopify, etc.)"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Customer email"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "ID of product/service ordered"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Name of product/service"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "item_price": {
+      "type": "number",
+      "description": "Price per item"
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Item total before fees"
+    },
+    "shipping_cost": {
+      "type": "number",
+      "default": 0
+    },
+    "handling_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "Store-set handling fee"
+    },
+    "platform_fee": {
+      "type": "number",
+      "description": "Platform commission (5%)"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Final total"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "processing",
+        "ready_for_pickup",
+        "shipped",
+        "out_for_delivery",
+        "delivered",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "fulfillment_method": {
+      "type": "string",
+      "enum": [
+        "pickup",
+        "shipping",
+        "local_delivery"
+      ],
+      "default": "shipping",
+      "description": "How the customer wants to receive the order"
+    },
+    "shipping_carrier": {
+      "type": "string",
+      "enum": [
+        "UPS",
+        "FedEx",
+        "USPS",
+        "DHL",
+        "Amazon",
+        "Other"
+      ],
+      "description": "Carrier chosen by customer for shipping"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Shipment tracking number (store fills in)"
+    },
+    "tracking_url": {
+      "type": "string",
+      "description": "Direct tracking link for the customer"
+    },
+    "shipping_address": {
+      "type": "string",
+      "description": "JSON string of shipping/delivery address"
+    },
+    "pickup_location": {
+      "type": "string",
+      "description": "Store address for pickup orders"
+    },
+    "pickup_notification_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the store notified the customer their order is ready"
+    },
+    "pickup_ready_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the store marked the order as ready for pickup"
+    },
+    "delivery_order_id": {
+      "type": "string",
+      "description": "Linked DeliveryOrder ID for local_delivery fulfillment"
+    },
+    "driver_email": {
+      "type": "string",
+      "description": "Assigned driver for local delivery"
+    },
+    "driver_earnings": {
+      "type": "number",
+      "description": "Amount driver earns for local delivery"
+    },
+    "affiliate_link": {
+      "type": "string",
+      "description": "Affiliate link for commission tracking"
+    },
+    "stripe_session_id": {
+      "type": "string",
+      "description": "Stripe checkout session ID"
+    },
+    "provider_email": {
+      "type": "string",
+      "description": "Provider/seller email"
+    },
+    "customer_notes": {
+      "type": "string",
+      "description": "Special instructions from the customer"
+    }
+  },
+  "required": [
+    "order_type",
+    "product_name",
+    "total_amount"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

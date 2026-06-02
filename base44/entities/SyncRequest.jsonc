@@ -1,0 +1,117 @@
+{
+  "name": "SyncRequest",
+  "type": "object",
+  "properties": {
+    "track_id": {
+      "type": "string",
+      "description": "ID of the track being submitted"
+    },
+    "artist_email": {
+      "type": "string"
+    },
+    "artist_name": {
+      "type": "string"
+    },
+    "track_title": {
+      "type": "string"
+    },
+    "genre": {
+      "type": "string"
+    },
+    "mood": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Moods/vibes of the track"
+    },
+    "usage_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Types of media this track is suitable for"
+    },
+    "tempo": {
+      "type": "string",
+      "enum": [
+        "slow",
+        "medium",
+        "fast",
+        "variable"
+      ]
+    },
+    "instrumental": {
+      "type": "boolean",
+      "default": false
+    },
+    "vocals": {
+      "type": "boolean",
+      "default": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "similar_artists": {
+      "type": "string"
+    },
+    "submission_notes": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "in_negotiation",
+        "licensed",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "license_fee": {
+      "type": "number",
+      "description": "Licensing fee if licensed"
+    },
+    "licensed_to": {
+      "type": "string",
+      "description": "Company/project that licensed the track"
+    },
+    "license_terms": {
+      "type": "string",
+      "description": "Terms of the licensing deal"
+    }
+  },
+  "required": [
+    "track_id",
+    "artist_email",
+    "track_title"
+  ],
+  "rls": {
+    "create": {
+      "artist_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "artist_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

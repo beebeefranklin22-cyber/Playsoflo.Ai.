@@ -1,0 +1,127 @@
+{
+  "name": "UserReview",
+  "type": "object",
+  "properties": {
+    "reviewed_user_email": {
+      "type": "string",
+      "description": "Email of user being reviewed"
+    },
+    "reviewer_email": {
+      "type": "string"
+    },
+    "reviewer_name": {
+      "type": "string"
+    },
+    "reviewer_photo": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "review_text": {
+      "type": "string"
+    },
+    "review_type": {
+      "type": "string",
+      "enum": [
+        "creator",
+        "provider",
+        "seller",
+        "general",
+        "property"
+      ],
+      "default": "general"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Related booking ID"
+    },
+    "property_id": {
+      "type": "string",
+      "description": "Related property ID"
+    },
+    "property_title": {
+      "type": "string",
+      "description": "Property title"
+    },
+    "host_response": {
+      "type": "string",
+      "description": "Host/seller response to review"
+    },
+    "host_response_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "categories": {
+      "type": "object",
+      "properties": {
+        "quality": {
+          "type": "number"
+        },
+        "communication": {
+          "type": "number"
+        },
+        "professionalism": {
+          "type": "number"
+        },
+        "value": {
+          "type": "number"
+        },
+        "cleanliness": {
+          "type": "number"
+        },
+        "accuracy": {
+          "type": "number"
+        },
+        "location": {
+          "type": "number"
+        }
+      }
+    },
+    "helpful_count": {
+      "type": "number",
+      "default": 0
+    },
+    "verified_transaction": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "reviewed_user_email",
+    "rating"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "reviewed_user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

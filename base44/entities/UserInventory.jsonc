@@ -1,0 +1,39 @@
+{
+  "name": "UserInventory",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "item_id": {
+      "type": "string",
+      "description": "ID of the GameItem"
+    },
+    "game_name": {
+      "type": "string"
+    },
+    "item_name": {
+      "type": "string"
+    },
+    "item_type": {
+      "type": "string"
+    },
+    "is_equipped": {
+      "type": "boolean",
+      "default": false
+    },
+    "purchase_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "uses_remaining": {
+      "type": "number",
+      "description": "For consumable items like boosts"
+    }
+  },
+  "required": [
+    "user_email",
+    "item_id",
+    "game_name"
+  ]
+}

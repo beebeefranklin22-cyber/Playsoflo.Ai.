@@ -1,0 +1,64 @@
+{
+  "name": "LivestreamPricingTier",
+  "type": "object",
+  "properties": {
+    "stream_id": {
+      "type": "string",
+      "description": "ID of the livestream"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "tier_name": {
+      "type": "string",
+      "description": "e.g., Basic Access, Premium, VIP"
+    },
+    "price_usd": {
+      "type": "number"
+    },
+    "price_soflo": {
+      "type": "number",
+      "default": 0
+    },
+    "perks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of perks for this tier"
+    },
+    "chat_priority": {
+      "type": "boolean",
+      "default": false,
+      "description": "Messages appear at top of chat"
+    },
+    "exclusive_badge": {
+      "type": "string",
+      "description": "Badge name to display"
+    },
+    "badge_color": {
+      "type": "string",
+      "default": "#FFD700"
+    },
+    "early_access_minutes": {
+      "type": "number",
+      "default": 0,
+      "description": "Minutes before stream starts"
+    },
+    "max_purchases": {
+      "type": "number",
+      "description": "Limited availability"
+    },
+    "current_purchases": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "stream_id",
+    "creator_email",
+    "tier_name",
+    "price_usd"
+  ]
+}

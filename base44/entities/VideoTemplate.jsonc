@@ -1,0 +1,123 @@
+{
+  "name": "VideoTemplate",
+  "type": "object",
+  "properties": {
+    "template_name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "social_media",
+        "vlog",
+        "promo",
+        "tutorial",
+        "cinematic",
+        "documentary",
+        "music_video",
+        "product_demo"
+      ]
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true
+    },
+    "uses_count": {
+      "type": "number",
+      "default": 0
+    },
+    "color_grade": {
+      "type": "object",
+      "properties": {
+        "lut": {
+          "type": "string"
+        },
+        "brightness": {
+          "type": "number"
+        },
+        "contrast": {
+          "type": "number"
+        },
+        "saturation": {
+          "type": "number"
+        },
+        "filter": {
+          "type": "string"
+        }
+      }
+    },
+    "text_overlays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "preset_name": {
+            "type": "string"
+          },
+          "fontSize": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          },
+          "fontFamily": {
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "animation": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "audio_settings": {
+      "type": "object",
+      "properties": {
+        "music_volume": {
+          "type": "number"
+        },
+        "voiceover_volume": {
+          "type": "number"
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "speed_preset": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "required": [
+    "template_name",
+    "category"
+  ]
+}

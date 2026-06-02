@@ -307,15 +307,6 @@ export default function DriverHub() {
                 <Brain className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">AI Assistant</span>
               </Button>
-              <Button
-                onClick={() => setShowProfile(true)}
-                size="sm"
-                variant="outline"
-                className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-              >
-                <User className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Profile</span>
-              </Button>
             </div>
           </div>
 
@@ -374,6 +365,16 @@ export default function DriverHub() {
               )}
             </CardContent>
           </Card>
+
+          {/* Manage Driver Profile Button */}
+          <Button
+            onClick={() => setShowProfile(true)}
+            variant="outline"
+            className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10 mb-3 h-12"
+          >
+            <User className="w-5 h-5 mr-2" />
+            Manage Driver Profile
+          </Button>
 
           {/* Driver Standards Banner */}
           <button

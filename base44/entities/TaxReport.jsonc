@@ -1,0 +1,115 @@
+{
+  "name": "TaxReport",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user generating report"
+    },
+    "tax_year": {
+      "type": "number",
+      "description": "Tax year for report"
+    },
+    "report_type": {
+      "type": "string",
+      "enum": [
+        "capital_gains",
+        "income",
+        "comprehensive"
+      ],
+      "default": "comprehensive",
+      "description": "Type of tax report"
+    },
+    "total_capital_gains": {
+      "type": "number",
+      "default": 0,
+      "description": "Total capital gains in USD"
+    },
+    "total_capital_losses": {
+      "type": "number",
+      "default": 0,
+      "description": "Total capital losses in USD"
+    },
+    "total_income": {
+      "type": "number",
+      "default": 0,
+      "description": "Total crypto income (staking, mining, etc.)"
+    },
+    "transactions_analyzed": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of transactions in report"
+    },
+    "transaction_details": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": [],
+      "description": "Detailed transaction list with cost basis"
+    },
+    "form_8949_data": {
+      "type": "object",
+      "description": "IRS Form 8949 formatted data"
+    },
+    "schedule_d_data": {
+      "type": "object",
+      "description": "Schedule D formatted data"
+    },
+    "pdf_url": {
+      "type": "string",
+      "description": "URL to generated PDF report"
+    },
+    "csv_url": {
+      "type": "string",
+      "description": "URL to CSV export"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "generating",
+        "completed",
+        "failed"
+      ],
+      "default": "generating"
+    }
+  },
+  "required": [
+    "user_email",
+    "tax_year"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

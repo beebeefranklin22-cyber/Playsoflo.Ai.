@@ -1,0 +1,238 @@
+{
+  "name": "MusicDealApplication",
+  "type": "object",
+  "properties": {
+    "artist_email": {
+      "type": "string",
+      "description": "Email of the applying artist"
+    },
+    "artist_name": {
+      "type": "string",
+      "description": "Artist/band name"
+    },
+    "deal_type": {
+      "type": "string",
+      "enum": [
+        "record_label",
+        "distribution",
+        "management",
+        "publishing",
+        "sponsorship",
+        "360_deal",
+        "licensing",
+        "sync_licensing",
+        "producer_deal",
+        "feature_collaboration"
+      ],
+      "description": "Type of deal being applied for"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company/label being applied to (optional)"
+    },
+    "bio": {
+      "type": "string",
+      "description": "Artist biography"
+    },
+    "genre": {
+      "type": "string",
+      "description": "Primary genre"
+    },
+    "instagram_handle": {
+      "type": "string"
+    },
+    "youtube_channel": {
+      "type": "string"
+    },
+    "monthly_listeners": {
+      "type": "number",
+      "description": "Average monthly listeners/streams"
+    },
+    "career_goals": {
+      "type": "string"
+    },
+    "additional_info": {
+      "type": "string"
+    },
+    "years_active": {
+      "type": "number",
+      "description": "Years of experience"
+    },
+    "social_media": {
+      "type": "object",
+      "properties": {
+        "instagram": {
+          "type": "string"
+        },
+        "twitter": {
+          "type": "string"
+        },
+        "tiktok": {
+          "type": "string"
+        },
+        "youtube": {
+          "type": "string"
+        },
+        "spotify": {
+          "type": "string"
+        }
+      },
+      "description": "Social media handles"
+    },
+    "follower_count": {
+      "type": "number",
+      "description": "Total social media followers"
+    },
+    "portfolio_tracks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of tracks to showcase"
+    },
+    "press_kit_url": {
+      "type": "string",
+      "description": "Link to electronic press kit (EPK)"
+    },
+    "demo_reel_url": {
+      "type": "string",
+      "description": "Demo reel video URL"
+    },
+    "notable_achievements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Awards, chart positions, notable performances"
+    },
+    "previous_deals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "company": {
+            "type": "string"
+          },
+          "deal_type": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Previous industry deals"
+    },
+    "revenue_expectations": {
+      "type": "string",
+      "description": "Expected advance or revenue share"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "under_review",
+        "shortlisted",
+        "offer_made",
+        "negotiating",
+        "accepted",
+        "rejected",
+        "withdrawn"
+      ],
+      "default": "pending_review"
+    },
+    "submitted_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Email of reviewer (label A&R, manager, etc.)"
+    },
+    "review_notes": {
+      "type": "string",
+      "description": "Internal notes from reviewer"
+    },
+    "offer_details": {
+      "type": "object",
+      "properties": {
+        "advance_amount": {
+          "type": "number"
+        },
+        "royalty_percentage": {
+          "type": "number"
+        },
+        "contract_duration_years": {
+          "type": "number"
+        },
+        "terms": {
+          "type": "string"
+        }
+      },
+      "description": "Offer details if status is offer_made"
+    },
+    "ai_score": {
+      "type": "number",
+      "description": "AI-generated potential score (0-100)"
+    },
+    "ai_analysis": {
+      "type": "string",
+      "description": "AI analysis of the artist's potential"
+    }
+  },
+  "required": [
+    "artist_email",
+    "artist_name",
+    "deal_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "artist_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "artist_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "artist_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "artist_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

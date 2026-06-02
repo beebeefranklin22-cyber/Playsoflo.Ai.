@@ -1,0 +1,47 @@
+{
+  "name": "QAQuestion",
+  "type": "object",
+  "properties": {
+    "stream_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "upvotes": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "answered",
+        "pinned"
+      ],
+      "default": "pending"
+    },
+    "answer": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "stream_id",
+    "user_email",
+    "question"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {},
+    "update": {},
+    "delete": {}
+  }
+}

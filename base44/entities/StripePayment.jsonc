@@ -1,0 +1,100 @@
+{
+  "name": "StripePayment",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string",
+      "description": "Stripe PaymentIntent ID"
+    },
+    "stripe_customer_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount in USD"
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "payment_method_type": {
+      "type": "string",
+      "description": "Type of payment method used (card, bank_account, etc.)"
+    },
+    "reference_type": {
+      "type": "string",
+      "enum": [
+        "booking",
+        "subscription",
+        "order",
+        "car_rental",
+        "utility",
+        "other"
+      ]
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "ID of related entity"
+    },
+    "description": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional payment metadata"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if payment failed"
+    }
+  },
+  "required": [
+    "user_email",
+    "amount",
+    "reference_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

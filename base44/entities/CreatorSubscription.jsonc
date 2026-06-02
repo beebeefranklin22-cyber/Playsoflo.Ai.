@@ -1,0 +1,126 @@
+{
+  "name": "CreatorSubscription",
+  "type": "object",
+  "properties": {
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the creator"
+    },
+    "tier_name": {
+      "type": "string",
+      "description": "Name of subscription tier (e.g., Bronze, Silver, Gold)"
+    },
+    "tier_level": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Tier level for ordering (1 = lowest, 5 = highest)"
+    },
+    "monthly_price_usd": {
+      "type": "number"
+    },
+    "monthly_price_soflo": {
+      "type": "number"
+    },
+    "description": {
+      "type": "string"
+    },
+    "benefits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of benefits for this tier"
+    },
+    "subscriber_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "exclusive_content_access": {
+      "type": "boolean",
+      "default": true
+    },
+    "custom_badge": {
+      "type": "string",
+      "description": "Custom badge/emoji for subscribers"
+    },
+    "perks": {
+      "type": "object",
+      "properties": {
+        "early_access": {
+          "type": "boolean",
+          "default": false
+        },
+        "exclusive_posts": {
+          "type": "boolean",
+          "default": false
+        },
+        "direct_messaging": {
+          "type": "boolean",
+          "default": false
+        },
+        "monthly_shoutout": {
+          "type": "boolean",
+          "default": false
+        },
+        "behind_the_scenes": {
+          "type": "boolean",
+          "default": false
+        },
+        "merchandise_discount": {
+          "type": "number",
+          "description": "Discount percentage on merch"
+        }
+      }
+    }
+  },
+  "required": [
+    "creator_email",
+    "tier_name",
+    "tier_level",
+    "monthly_price_usd"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

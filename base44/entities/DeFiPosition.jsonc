@@ -1,0 +1,165 @@
+{
+  "name": "DeFiPosition",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of position owner"
+    },
+    "protocol": {
+      "type": "string",
+      "enum": [
+        "uniswap",
+        "aave",
+        "compound",
+        "curve",
+        "yearn",
+        "pancakeswap",
+        "sushiswap",
+        "balancer"
+      ],
+      "description": "DeFi protocol name"
+    },
+    "position_type": {
+      "type": "string",
+      "enum": [
+        "liquidity_pool",
+        "yield_farm",
+        "lending",
+        "staking",
+        "vault"
+      ],
+      "description": "Type of DeFi position"
+    },
+    "pool_name": {
+      "type": "string",
+      "description": "Name of pool or vault"
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "symbol": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "value_usd": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Tokens in position"
+    },
+    "total_value_usd": {
+      "type": "number",
+      "description": "Total position value in USD"
+    },
+    "initial_investment_usd": {
+      "type": "number",
+      "description": "Initial investment amount"
+    },
+    "current_apy": {
+      "type": "number",
+      "description": "Current APY percentage"
+    },
+    "rewards_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "Total rewards earned"
+    },
+    "impermanent_loss": {
+      "type": "number",
+      "default": 0,
+      "description": "Estimated impermanent loss"
+    },
+    "entry_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When position was entered"
+    },
+    "last_apy_update": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time APY was updated"
+    },
+    "apy_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "apy": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Historical APY data"
+    },
+    "alert_threshold": {
+      "type": "number",
+      "default": 5,
+      "description": "Alert if APY changes by this percentage"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "closed",
+        "pending"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "user_email",
+    "protocol",
+    "position_type"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

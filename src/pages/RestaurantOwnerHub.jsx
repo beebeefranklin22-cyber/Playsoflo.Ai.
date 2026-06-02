@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -114,27 +114,26 @@ export default function RestaurantOwnerHub() {
 
   const createRestaurantMutation = useMutation({
     mutationFn: async (data) => {
-      try {
-        return await base44.entities.Restaurant.create(data);
-      } catch (error) {
-        console.error('Error creating restaurant:', error);
-        throw error;
-      }
+      const restaurant = await base44.entities.Restaurant.create(data);
+      // Mark user as restaurant owner so it shows up in Food Delivery
+      await base44.auth.updateMe({ is_restaurant_owner: true });
+      return restaurant;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-restaurant']);
+      queryClient.invalidateQueries({ queryKey: ['my-restaurant'] });
+      queryClient.invalidateQueries({ queryKey: ['current-user'] });
       setShowRestaurantModal(false);
-      toast.success('Restaurant created!');
+      toast.success('Restaurant created! It is now live in Food Delivery.');
     },
     onError: (error) => {
-      toast.error('Failed to create restaurant. Please try again.');
+      toast.error('Failed to create restaurant: ' + (error.message || 'Please try again.'));
     }
   });
 
   const updateRestaurantMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Restaurant.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-restaurant']);
+      queryClient.invalidateQueries({ queryKey: ['my-restaurant'] });
       setShowRestaurantModal(false);
       toast.success('Restaurant updated!');
     }

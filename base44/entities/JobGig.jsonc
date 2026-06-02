@@ -1,0 +1,146 @@
+{
+  "name": "JobGig",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "full_time",
+        "part_time",
+        "contract",
+        "gig",
+        "freelance",
+        "internship"
+      ],
+      "default": "gig"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "creative",
+        "tech",
+        "service",
+        "sales",
+        "manual_labor",
+        "hospitality",
+        "healthcare",
+        "education",
+        "remote",
+        "other"
+      ],
+      "default": "other"
+    },
+    "poster_email": {
+      "type": "string"
+    },
+    "poster_name": {
+      "type": "string"
+    },
+    "poster_photo": {
+      "type": "string"
+    },
+    "company_name": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "remote_ok": {
+      "type": "boolean",
+      "default": false
+    },
+    "pay_rate": {
+      "type": "string"
+    },
+    "pay_type": {
+      "type": "string",
+      "enum": [
+        "hourly",
+        "daily",
+        "weekly",
+        "monthly",
+        "per_project",
+        "negotiable"
+      ],
+      "default": "negotiable"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "application_url": {
+      "type": "string"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "benefits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "views": {
+      "type": "number",
+      "default": 0
+    },
+    "applications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "filled",
+        "closed"
+      ],
+      "default": "active"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "poster_email"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

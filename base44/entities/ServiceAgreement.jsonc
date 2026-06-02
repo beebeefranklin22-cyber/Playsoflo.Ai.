@@ -1,0 +1,61 @@
+{
+  "name": "ServiceAgreement",
+  "type": "object",
+  "properties": {
+    "contract_id": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string"
+    },
+    "service_id": {
+      "type": "string"
+    },
+    "provider_email": {
+      "type": "string"
+    },
+    "customer_email": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "agreement_text": {
+      "type": "string",
+      "description": "Full contract text at time of signing"
+    },
+    "customer_signature": {
+      "type": "string",
+      "description": "Base64 signature data"
+    },
+    "customer_ip_address": {
+      "type": "string"
+    },
+    "signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "signed",
+        "declined"
+      ],
+      "default": "pending"
+    },
+    "acceptance_method": {
+      "type": "string",
+      "enum": [
+        "signature",
+        "checkbox"
+      ],
+      "default": "signature"
+    }
+  },
+  "required": [
+    "contract_id",
+    "provider_email",
+    "customer_email"
+  ]
+}

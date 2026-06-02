@@ -1,0 +1,83 @@
+{
+  "name": "ViewerAnalytics",
+  "type": "object",
+  "properties": {
+    "stream_id": {
+      "type": "string",
+      "description": "ID of the stream/content"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "livestream",
+        "vod",
+        "ppv"
+      ],
+      "description": "Type of content viewed"
+    },
+    "viewer_email": {
+      "type": "string"
+    },
+    "watch_duration_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "total_duration_seconds": {
+      "type": "number",
+      "description": "Total content duration"
+    },
+    "retention_rate": {
+      "type": "number",
+      "description": "Percentage watched"
+    },
+    "viewer_location": {
+      "type": "object",
+      "properties": {
+        "country": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        }
+      }
+    },
+    "viewer_demographics": {
+      "type": "object",
+      "properties": {
+        "age_range": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        }
+      }
+    },
+    "device_type": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "desktop",
+        "tablet"
+      ]
+    },
+    "engagement_score": {
+      "type": "number",
+      "description": "Based on interactions during viewing"
+    }
+  },
+  "required": [
+    "stream_id",
+    "viewer_email"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {},
+    "delete": {}
+  }
+}

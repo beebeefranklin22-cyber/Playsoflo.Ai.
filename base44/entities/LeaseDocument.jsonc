@@ -1,0 +1,51 @@
+{
+  "name": "LeaseDocument",
+  "type": "object",
+  "properties": {
+    "lease_id": {
+      "type": "string"
+    },
+    "property_id": {
+      "type": "string"
+    },
+    "document_type": {
+      "type": "string",
+      "enum": [
+        "lease_agreement",
+        "addendum",
+        "inspection_report",
+        "insurance_certificate",
+        "utility_bill",
+        "repair_invoice",
+        "other"
+      ]
+    },
+    "document_name": {
+      "type": "string"
+    },
+    "document_url": {
+      "type": "string"
+    },
+    "uploaded_by": {
+      "type": "string"
+    },
+    "file_size": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "property_id",
+    "document_type",
+    "document_name",
+    "document_url"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {},
+    "delete": {}
+  }
+}

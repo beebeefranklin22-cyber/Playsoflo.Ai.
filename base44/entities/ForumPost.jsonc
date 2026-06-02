@@ -1,0 +1,104 @@
+{
+  "name": "ForumPost",
+  "type": "object",
+  "properties": {
+    "hub_type": {
+      "type": "string",
+      "enum": [
+        "driver_lounge",
+        "provider_network",
+        "creator_corner",
+        "general"
+      ],
+      "description": "Which hub this post belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "Post title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Post content"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "question",
+        "tip",
+        "story",
+        "discussion",
+        "announcement"
+      ],
+      "default": "discussion"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "author_photo": {
+      "type": "string"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0
+    },
+    "replies_count": {
+      "type": "number",
+      "default": 0
+    },
+    "views_count": {
+      "type": "number",
+      "default": 0
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false,
+      "description": "Featured as success story"
+    },
+    "featured_metrics": {
+      "type": "object",
+      "properties": {
+        "earnings": {
+          "type": "number"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "total_jobs": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "required": [
+    "hub_type",
+    "title",
+    "content"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {},
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

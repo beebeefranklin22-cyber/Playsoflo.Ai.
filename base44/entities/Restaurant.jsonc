@@ -1,0 +1,106 @@
+{
+  "name": "Restaurant",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "cuisine_type": {
+      "type": "string",
+      "enum": [
+        "american",
+        "italian",
+        "chinese",
+        "mexican",
+        "japanese",
+        "thai",
+        "indian",
+        "mediterranean",
+        "fast_food",
+        "seafood",
+        "vegan",
+        "bbq"
+      ]
+    },
+    "rating": {
+      "type": "number",
+      "default": 4
+    },
+    "delivery_fee": {
+      "type": "number",
+      "default": 3.99
+    },
+    "commission_rate": {
+      "type": "number",
+      "default": 0.12,
+      "description": "Commission rate (0.10 = 10%, 0.15 = 15%)"
+    },
+    "estimated_delivery_time": {
+      "type": "string",
+      "default": "25-35 min"
+    },
+    "min_order": {
+      "type": "number",
+      "default": 10
+    },
+    "is_open": {
+      "type": "boolean",
+      "default": true
+    },
+    "address": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "cuisine_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

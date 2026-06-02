@@ -1,0 +1,88 @@
+{
+  "name": "AIRecommendation",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "recommendation_type": {
+      "type": "string",
+      "enum": [
+        "experience",
+        "service",
+        "creator",
+        "product",
+        "property"
+      ],
+      "description": "Type of recommendation"
+    },
+    "content_id": {
+      "type": "string",
+      "description": "ID of recommended content"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "AI confidence score"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why this was recommended"
+    },
+    "ai_summary": {
+      "type": "string",
+      "description": "AI-generated summary of the content"
+    },
+    "based_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of factors influencing recommendation"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When recommendation becomes stale"
+    },
+    "interacted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user interacted with this recommendation"
+    }
+  },
+  "required": [
+    "user_email",
+    "recommendation_type",
+    "content_id",
+    "score"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

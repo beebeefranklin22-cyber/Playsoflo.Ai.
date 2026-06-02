@@ -1,0 +1,102 @@
+{
+  "name": "P2PTransaction",
+  "type": "object",
+  "properties": {
+    "sender_email": {
+      "type": "string",
+      "description": "Sender email"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Recipient email"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount in USD"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "USD",
+        "SoFloCoin",
+        "BTC",
+        "ETH"
+      ],
+      "default": "USD"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "message": {
+      "type": "string",
+      "description": "Optional message with payment"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "send",
+        "request"
+      ],
+      "default": "send"
+    }
+  },
+  "required": [
+    "sender_email",
+    "recipient_email",
+    "amount"
+  ],
+  "rls": {
+    "create": {
+      "sender_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

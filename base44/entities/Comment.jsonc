@@ -7,7 +7,8 @@
       "description": "ID of the post being commented on"
     },
     "parent_comment_id": {
-      "type": "string"
+      "type": "string",
+      "description": "ID of parent comment if this is a reply"
     },
     "author_email": {
       "type": "string"
@@ -47,7 +48,18 @@
       "author_email": "{{user.email}}"
     },
     "read": {},
-    "update": {},
+    "update": {
+      "$or": [
+        {
+          "author_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
     "delete": {
       "$or": [
         {

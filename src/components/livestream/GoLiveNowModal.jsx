@@ -117,19 +117,21 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-2xl bg-gradient-to-br from-red-900 to-pink-900 rounded-3xl p-6"
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="w-full max-w-2xl bg-gradient-to-br from-red-900 to-pink-900 rounded-t-3xl sm:rounded-3xl overflow-y-auto"
+        style={{ maxHeight: '95vh' }}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="p-5 sm:p-6">
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Radio className="w-8 h-8 text-red-400 animate-pulse" />
+            <h2 className="text-xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+              <Radio className="w-6 h-6 sm:w-8 sm:h-8 text-red-400 animate-pulse" />
               Go Live Now
             </h2>
-            <p className="text-gray-300 mt-1">Start broadcasting instantly</p>
+            <p className="text-gray-300 text-sm mt-0.5">Start broadcasting instantly</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
             <X className="w-6 h-6 text-white" />
@@ -254,33 +256,28 @@ export default function GoLiveNowModal({ isOpen, onClose, currentUser }) {
             )}
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 pb-2">
             <Button
               onClick={handleGoLive}
               disabled={uploading || !liveData.title}
-              className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold py-6 text-lg"
+              className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold h-12 sm:h-14 text-base sm:text-lg"
             >
               {uploading ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Starting...
-                </>
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Starting...</>
               ) : (
-                <>
-                  <Radio className="w-5 h-5 mr-2" />
-                  Go Live Now
-                </>
+                <><Radio className="w-5 h-5 mr-2" />Go Live Now</>
               )}
             </Button>
             <Button
               onClick={onClose}
               disabled={uploading}
               variant="outline"
-              className="bg-white/5 border-white/20 hover:bg-white/10"
+              className="bg-white/5 border-white/20 hover:bg-white/10 h-12 sm:h-14"
             >
               Cancel
             </Button>
           </div>
+        </div>
         </div>
       </motion.div>
     </div>

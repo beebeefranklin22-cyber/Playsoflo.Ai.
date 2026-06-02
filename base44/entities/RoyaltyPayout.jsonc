@@ -1,0 +1,63 @@
+{
+  "name": "RoyaltyPayout",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "amount_usd": {
+      "type": "number"
+    },
+    "track_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tracks included in this payout"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "paid",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "stripe_transfer_id": {
+      "type": "string"
+    },
+    "stripe_connect_account_id": {
+      "type": "string"
+    },
+    "payout_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "amount_usd"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {},
+    "delete": {}
+  }
+}

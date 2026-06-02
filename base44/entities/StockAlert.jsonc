@@ -1,0 +1,41 @@
+{
+  "name": "StockAlert",
+  "type": "object",
+  "properties": {
+    "item_id": {
+      "type": "string"
+    },
+    "item_name": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "current_stock": {
+      "type": "number"
+    },
+    "threshold": {
+      "type": "number"
+    },
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "low_stock",
+        "out_of_stock"
+      ],
+      "default": "low_stock"
+    },
+    "is_resolved": {
+      "type": "boolean",
+      "default": false
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "item_id",
+    "owner_email"
+  ]
+}

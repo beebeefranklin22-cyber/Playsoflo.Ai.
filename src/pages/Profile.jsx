@@ -261,10 +261,6 @@ export default function Profile() {
     }
   };
 
-  const connectSpotify = async () => {
-    toast.info('Spotify integration coming soon!');
-  };
-
   // Show skeleton while loading
   if (!currentUser && !loadError) return <ProfileSkeleton />;
 
@@ -477,17 +473,6 @@ export default function Profile() {
               }}
             />
           </div>
-        )}
-
-        {/* Spotify Connection */}
-        {!currentUser?.spotify_access_token && (
-          <Button
-            onClick={connectSpotify}
-            className="bg-green-600 hover:bg-green-700 mb-6"
-          >
-            <Music className="w-4 h-4 mr-2" />
-            Connect Spotify for Music Streaming
-          </Button>
         )}
 
         {/* Tabs */}

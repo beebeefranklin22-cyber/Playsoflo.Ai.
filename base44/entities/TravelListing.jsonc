@@ -1,0 +1,135 @@
+{
+  "name": "TravelListing",
+  "type": "object",
+  "properties": {
+    "provider_email": {
+      "type": "string"
+    },
+    "provider_name": {
+      "type": "string"
+    },
+    "provider_phone": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "private_jets",
+        "yachts",
+        "helicopter_rides",
+        "motorcycle_rides",
+        "chauffeur_services",
+        "luxury_concierge"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price": {
+      "type": "number"
+    },
+    "price_type": {
+      "type": "string",
+      "enum": [
+        "per_hour",
+        "per_day",
+        "per_trip",
+        "negotiable"
+      ],
+      "default": "per_hour"
+    },
+    "add_ons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "location": {
+      "type": "string"
+    },
+    "capacity": {
+      "type": "number"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "available",
+        "limited",
+        "booked"
+      ],
+      "default": "available"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "rating": {
+      "type": "number",
+      "default": 5.0
+    },
+    "reviews_count": {
+      "type": "number",
+      "default": 0
+    },
+    "specs": {
+      "type": "string",
+      "description": "Key specs / details about the vehicle or service"
+    }
+  },
+  "required": [
+    "provider_email",
+    "category",
+    "title",
+    "price"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

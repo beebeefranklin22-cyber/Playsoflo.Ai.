@@ -1,0 +1,346 @@
+{
+  "name": "CarRental",
+  "type": "object",
+  "properties": {
+    "renter_email": {
+      "type": "string",
+      "description": "Email of the person renting"
+    },
+    "provider_email": {
+      "type": "string",
+      "description": "Email of the car owner/provider"
+    },
+    "car_make": {
+      "type": "string",
+      "description": "Car manufacturer (e.g., Ferrari, Lamborghini)"
+    },
+    "car_model": {
+      "type": "string",
+      "description": "Car model"
+    },
+    "car_year": {
+      "type": "number"
+    },
+    "car_image": {
+      "type": "string"
+    },
+    "license_plate": {
+      "type": "string"
+    },
+    "vin": {
+      "type": "string",
+      "description": "Vehicle Identification Number"
+    },
+    "rental_type": {
+      "type": "string",
+      "enum": [
+        "hourly",
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "daily"
+    },
+    "price_per_unit": {
+      "type": "number",
+      "description": "Price per rental unit (hour/day/week/month)"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_amount": {
+      "type": "number"
+    },
+    "platform_commission_rate": {
+      "type": "number",
+      "default": 0.19,
+      "description": "Platform commission rate (16%-22%, default 19%)"
+    },
+    "platform_commission_amount": {
+      "type": "number",
+      "description": "Commission amount earned by platform"
+    },
+    "provider_earnings": {
+      "type": "number",
+      "description": "Amount provider receives after commission"
+    },
+    "insurance_included": {
+      "type": "boolean",
+      "default": true,
+      "description": "Full coverage insurance included"
+    },
+    "insurance_amount": {
+      "type": "number",
+      "description": "Insurance cost"
+    },
+    "delivery_option": {
+      "type": "string",
+      "enum": [
+        "pickup",
+        "delivery_to_renter",
+        "delivery_both_ways"
+      ],
+      "default": "pickup"
+    },
+    "pickup_location": {
+      "type": "string"
+    },
+    "delivery_address": {
+      "type": "string"
+    },
+    "delivery_fee": {
+      "type": "number",
+      "default": 0
+    },
+    "unlock_method": {
+      "type": "string",
+      "enum": [
+        "app_unlock",
+        "key_exchange",
+        "keyless_code"
+      ],
+      "default": "key_exchange"
+    },
+    "unlock_code": {
+      "type": "string",
+      "description": "Digital unlock code if using app unlock"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "active",
+        "completed",
+        "cancelled",
+        "disputed"
+      ],
+      "default": "pending"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "deposit_paid",
+        "fully_paid",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "security_deposit": {
+      "type": "number",
+      "description": "Refundable security deposit"
+    },
+    "deposit_status": {
+      "type": "string",
+      "enum": [
+        "held",
+        "released",
+        "forfeited"
+      ],
+      "default": "held"
+    },
+    "verification_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Requires driver license and ID verification"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "driver_license_url": {
+      "type": "string",
+      "description": "Uploaded driver's license image"
+    },
+    "id_verification_url": {
+      "type": "string",
+      "description": "Government ID image"
+    },
+    "pre_rental_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photos of car before rental"
+    },
+    "post_rental_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photos of car after rental"
+    },
+    "damages_reported": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "photos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "estimated_cost": {
+            "type": "number"
+          },
+          "reported_by": {
+            "type": "string"
+          },
+          "reported_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": []
+    },
+    "odometer_start": {
+      "type": "number",
+      "description": "Starting odometer reading"
+    },
+    "odometer_end": {
+      "type": "number",
+      "description": "Ending odometer reading"
+    },
+    "mileage_limit": {
+      "type": "number",
+      "description": "Daily mileage limit"
+    },
+    "excess_mileage_fee": {
+      "type": "number",
+      "description": "Fee per mile over limit"
+    },
+    "fuel_policy": {
+      "type": "string",
+      "enum": [
+        "full_to_full",
+        "same_to_same",
+        "prepaid"
+      ],
+      "default": "full_to_full"
+    },
+    "special_instructions": {
+      "type": "string"
+    },
+    "fraud_check_passed": {
+      "type": "boolean",
+      "default": false,
+      "description": "AI fraud detection passed"
+    },
+    "fraud_score": {
+      "type": "number",
+      "description": "Fraud risk score (0-100, lower is better)"
+    },
+    "cancellation_policy": {
+      "type": "string",
+      "enum": [
+        "flexible",
+        "moderate",
+        "strict"
+      ],
+      "default": "moderate"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Chat conversation ID between renter and provider"
+    },
+    "selected_add_ons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number"
+          },
+          "quantity": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Add-ons selected by customer"
+    },
+    "add_ons_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total cost of selected add-ons"
+    }
+  },
+  "required": [
+    "renter_email",
+    "provider_email",
+    "car_make",
+    "car_model",
+    "start_date",
+    "end_date",
+    "total_amount"
+  ],
+  "rls": {
+    "create": {
+      "renter_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "renter_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "renter_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "renter_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

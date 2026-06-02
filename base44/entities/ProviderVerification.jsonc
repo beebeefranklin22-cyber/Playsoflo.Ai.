@@ -1,0 +1,140 @@
+{
+  "name": "ProviderVerification",
+  "type": "object",
+  "properties": {
+    "provider_email": {
+      "type": "string",
+      "description": "Email of the provider being verified"
+    },
+    "verification_type": {
+      "type": "string",
+      "enum": [
+        "background_check",
+        "license_validation",
+        "insurance_license",
+        "bail_bondsman_license",
+        "driver_license",
+        "business_registration",
+        "professional_certification",
+        "health_permit",
+        "contractor_license",
+        "food_handler_permit"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified",
+        "rejected",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "verification_level": {
+      "type": "string",
+      "enum": [
+        "basic",
+        "standard",
+        "premium",
+        "elite"
+      ],
+      "default": "basic",
+      "description": "Level of verification thoroughness"
+    },
+    "document_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Uploaded verification documents"
+    },
+    "license_number": {
+      "type": "string"
+    },
+    "issuing_authority": {
+      "type": "string"
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "expiration_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "verified_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "Admin who approved verification"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "trust_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Calculated trust score based on verification"
+    },
+    "background_check_results": {
+      "type": "object",
+      "properties": {
+        "criminal_record": {
+          "type": "boolean"
+        },
+        "credit_check": {
+          "type": "boolean"
+        },
+        "reference_check": {
+          "type": "boolean"
+        }
+      }
+    },
+    "auto_renewal": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider_email",
+    "verification_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

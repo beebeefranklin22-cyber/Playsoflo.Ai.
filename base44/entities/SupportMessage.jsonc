@@ -1,0 +1,82 @@
+{
+  "name": "SupportMessage",
+  "type": "object",
+  "properties": {
+    "ticket_id": {
+      "type": "string",
+      "description": "Related support ticket"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Message sender"
+    },
+    "sender_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "agent",
+        "ai"
+      ],
+      "description": "Type of sender"
+    },
+    "message": {
+      "type": "string",
+      "description": "Message content"
+    },
+    "is_internal": {
+      "type": "boolean",
+      "default": false,
+      "description": "Internal note not visible to user"
+    },
+    "ai_generated": {
+      "type": "boolean",
+      "default": false
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "read_by_user": {
+      "type": "boolean",
+      "default": false
+    },
+    "read_by_agent": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "ticket_id",
+    "sender_email",
+    "sender_type",
+    "message"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

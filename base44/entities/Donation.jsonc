@@ -1,0 +1,107 @@
+{
+  "name": "Donation",
+  "type": "object",
+  "properties": {
+    "cause_type": {
+      "type": "string",
+      "enum": [
+        "single_mothers",
+        "families_in_need",
+        "charities",
+        "churches",
+        "community_projects",
+        "rehab_shelter",
+        "senior_care",
+        "restoration_services",
+        "job_creation",
+        "infrastructure",
+        "community_assets",
+        "humanitarian_aid",
+        "education_scholarships",
+        "disaster_relief",
+        "food_banks",
+        "homeless_support",
+        "veterans_support",
+        "youth_programs",
+        "environmental_conservation",
+        "community_health"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "goal_usd": {
+      "type": "number"
+    },
+    "raised_usd": {
+      "type": "number",
+      "default": 0
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "beneficiary_count": {
+      "type": "number",
+      "description": "Number of people/families helped"
+    },
+    "impact_metrics": {
+      "type": "object",
+      "description": "Measurable impact data"
+    },
+    "long_term_initiative": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is an ongoing initiative"
+    },
+    "community_owned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Fractional community ownership model"
+    }
+  },
+  "required": [
+    "cause_type",
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

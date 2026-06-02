@@ -1,0 +1,119 @@
+{
+  "name": "DeliveryFranchise",
+  "type": "object",
+  "properties": {
+    "franchise_name": {
+      "type": "string",
+      "description": "Name of the franchise"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Franchise owner email"
+    },
+    "location_address": {
+      "type": "string",
+      "description": "Franchise hub address"
+    },
+    "location_coords": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Hub location [lat, lng]"
+    },
+    "service_radius_miles": {
+      "type": "number",
+      "default": 10,
+      "description": "Delivery service radius"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Franchise logo"
+    },
+    "brand_color": {
+      "type": "string",
+      "description": "Primary brand color hex"
+    },
+    "contact_phone": {
+      "type": "string"
+    },
+    "contact_email": {
+      "type": "string"
+    },
+    "operating_hours": {
+      "type": "object",
+      "properties": {
+        "monday": {
+          "type": "string"
+        },
+        "tuesday": {
+          "type": "string"
+        },
+        "wednesday": {
+          "type": "string"
+        },
+        "thursday": {
+          "type": "string"
+        },
+        "friday": {
+          "type": "string"
+        },
+        "saturday": {
+          "type": "string"
+        },
+        "sunday": {
+          "type": "string"
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "total_deliveries": {
+      "type": "number",
+      "default": 0
+    },
+    "average_rating": {
+      "type": "number",
+      "default": 5.0
+    },
+    "total_drivers": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "franchise_name",
+    "owner_email",
+    "location_address"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

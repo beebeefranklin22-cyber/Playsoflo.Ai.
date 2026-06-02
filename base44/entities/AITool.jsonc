@@ -1,0 +1,72 @@
+{
+  "name": "AITool",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "image_generation",
+        "video_editing",
+        "music_creation",
+        "code_development",
+        "writing",
+        "design",
+        "3d_modeling",
+        "voice_synthesis"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "icon_url": {
+      "type": "string"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tier_required": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "premium",
+        "elite",
+        "centurion"
+      ]
+    },
+    "monthly_price": {
+      "type": "number"
+    },
+    "is_beta": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

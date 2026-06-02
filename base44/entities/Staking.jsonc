@@ -1,0 +1,111 @@
+{
+  "name": "Staking",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user staking crypto"
+    },
+    "currency": {
+      "type": "string",
+      "enum": [
+        "ETH",
+        "SOL",
+        "SoFloCoin",
+        "BTC"
+      ],
+      "description": "Cryptocurrency being staked"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount of crypto staked"
+    },
+    "apy": {
+      "type": "number",
+      "description": "Annual percentage yield"
+    },
+    "lock_period_days": {
+      "type": "number",
+      "description": "Lock-up period in days"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When staking started"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When staking ends"
+    },
+    "earned_rewards": {
+      "type": "number",
+      "default": 0,
+      "description": "Accumulated rewards"
+    },
+    "last_reward_calculation": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time rewards were calculated"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "unstaking",
+        "completed",
+        "cancelled"
+      ],
+      "default": "active",
+      "description": "Current staking status"
+    },
+    "auto_restake": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to automatically restake after unlock"
+    }
+  },
+  "required": [
+    "user_email",
+    "currency",
+    "amount",
+    "apy",
+    "lock_period_days",
+    "start_date",
+    "end_date"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

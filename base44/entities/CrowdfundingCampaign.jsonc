@@ -1,0 +1,97 @@
+{
+  "name": "CrowdfundingCampaign",
+  "type": "object",
+  "properties": {
+    "creator_email": {
+      "type": "string"
+    },
+    "campaign_name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "campaign_type": {
+      "type": "string",
+      "enum": [
+        "one_time",
+        "ongoing"
+      ],
+      "default": "one_time"
+    },
+    "goal_amount": {
+      "type": "number"
+    },
+    "current_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "reward_tiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tier_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limited_quantity": {
+            "type": "number"
+          },
+          "claimed": {
+            "type": "number"
+          }
+        }
+      },
+      "default": []
+    },
+    "backers_count": {
+      "type": "number",
+      "default": 0
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "funded",
+        "ended",
+        "cancelled"
+      ],
+      "default": "draft"
+    }
+  },
+  "required": [
+    "creator_email",
+    "campaign_name",
+    "goal_amount"
+  ]
+}

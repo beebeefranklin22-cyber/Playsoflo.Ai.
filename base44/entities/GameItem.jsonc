@@ -1,0 +1,69 @@
+{
+  "name": "GameItem",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string"
+    },
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "skin",
+        "trail",
+        "boost",
+        "power_up",
+        "character",
+        "environment"
+      ],
+      "description": "Type of in-game item"
+    },
+    "game_name": {
+      "type": "string",
+      "description": "Which game this item belongs to"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price_usd": {
+      "type": "number",
+      "default": 0
+    },
+    "price_soflo": {
+      "type": "number",
+      "default": 0
+    },
+    "is_premium_only": {
+      "type": "boolean",
+      "default": false
+    },
+    "effect_data": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string"
+        },
+        "speed_multiplier": {
+          "type": "number"
+        },
+        "duration_seconds": {
+          "type": "number"
+        },
+        "score_multiplier": {
+          "type": "number"
+        }
+      }
+    },
+    "preview_image": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "item_name",
+    "item_type",
+    "game_name"
+  ]
+}

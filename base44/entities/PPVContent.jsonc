@@ -1,0 +1,82 @@
+{
+  "name": "PPVContent",
+  "type": "object",
+  "properties": {
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the creator"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "livestream",
+        "video",
+        "series",
+        "event"
+      ],
+      "default": "video"
+    },
+    "price_usd": {
+      "type": "number",
+      "description": "One-time access price"
+    },
+    "price_rri": {
+      "type": "number",
+      "description": "Price in SoFloCoin"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "content_url": {
+      "type": "string",
+      "description": "URL to the content or stream ID"
+    },
+    "stream_id": {
+      "type": "string",
+      "description": "Reference to StreamingContent"
+    },
+    "duration_minutes": {
+      "type": "number"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "total_purchases": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_generated": {
+      "type": "number",
+      "default": 0
+    },
+    "access_duration_hours": {
+      "type": "number",
+      "default": 48,
+      "description": "How long access lasts after purchase"
+    }
+  },
+  "required": [
+    "creator_email",
+    "title",
+    "price_usd"
+  ],
+  "rls": {
+    "create": {
+      "creator_email": "{{user.email}}"
+    },
+    "read": {},
+    "update": {
+      "creator_email": "{{user.email}}"
+    },
+    "delete": {
+      "creator_email": "{{user.email}}"
+    }
+  }
+}

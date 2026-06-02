@@ -1,0 +1,76 @@
+{
+  "name": "Challenge",
+  "type": "object",
+  "properties": {
+    "challenge_name": {
+      "type": "string"
+    },
+    "hashtag": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "banner_url": {
+      "type": "string"
+    },
+    "sound_url": {
+      "type": "string"
+    },
+    "sound_name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "dance",
+        "comedy",
+        "fitness",
+        "cooking",
+        "beauty",
+        "music",
+        "art",
+        "education",
+        "trending"
+      ]
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "total_videos": {
+      "type": "number",
+      "default": 0
+    },
+    "total_views": {
+      "type": "number",
+      "default": 0
+    },
+    "prize_description": {
+      "type": "string"
+    },
+    "is_sponsored": {
+      "type": "boolean",
+      "default": false
+    },
+    "sponsor_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "challenge_name",
+    "hashtag",
+    "category"
+  ]
+}

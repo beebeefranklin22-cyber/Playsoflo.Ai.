@@ -1,0 +1,80 @@
+{
+  "name": "BillPayment",
+  "type": "object",
+  "properties": {
+    "utility_account_id": {
+      "type": "string",
+      "description": "ID of the utility account"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the payment was made"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Original due date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "wallet_balance",
+        "bank_account",
+        "card"
+      ],
+      "description": "Method used for payment"
+    },
+    "payment_method_id": {
+      "type": "string",
+      "description": "ID of the payment method used"
+    },
+    "is_automatic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this was an automated payment"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "Reference to Payment entity"
+    },
+    "confirmation_number": {
+      "type": "string"
+    },
+    "error_message": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "utility_account_id",
+    "amount",
+    "due_date"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

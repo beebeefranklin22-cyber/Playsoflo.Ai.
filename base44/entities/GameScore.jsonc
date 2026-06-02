@@ -1,0 +1,41 @@
+{
+  "name": "GameScore",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Player's email"
+    },
+    "game_name": {
+      "type": "string",
+      "description": "Name of the game"
+    },
+    "score": {
+      "type": "number",
+      "description": "Score achieved"
+    },
+    "level_reached": {
+      "type": "number",
+      "default": 1,
+      "description": "Highest level reached"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Game duration in seconds"
+    },
+    "reward_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "SoFloCoin reward earned"
+    },
+    "multiplayer_session_id": {
+      "type": "string",
+      "description": "ID of multiplayer session if applicable"
+    }
+  },
+  "required": [
+    "user_email",
+    "game_name",
+    "score"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "ContentAnalytics",
+  "type": "object",
+  "properties": {
+    "content_id": {
+      "type": "string",
+      "description": "ID of content (stream, video, etc.)"
+    },
+    "content_type": {
+      "type": "string",
+      "enum": [
+        "livestream",
+        "video",
+        "ppv_stream",
+        "vod"
+      ]
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "viewer_email": {
+      "type": "string"
+    },
+    "watch_time_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "total_duration_seconds": {
+      "type": "number"
+    },
+    "completion_rate": {
+      "type": "number",
+      "description": "Percentage completed"
+    },
+    "viewer_location": {
+      "type": "string"
+    },
+    "viewer_country": {
+      "type": "string"
+    },
+    "is_new_viewer": {
+      "type": "boolean",
+      "default": true
+    },
+    "session_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "content_id",
+    "content_type",
+    "creator_email"
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "name": "DeliveryVehicle",
+  "type": "object",
+  "properties": {
+    "driver_email": {
+      "type": "string",
+      "description": "Driver's email"
+    },
+    "vehicle_type": {
+      "type": "string",
+      "enum": [
+        "car",
+        "van",
+        "truck",
+        "motorcycle",
+        "bike"
+      ],
+      "default": "car"
+    },
+    "make": {
+      "type": "string",
+      "description": "Vehicle manufacturer"
+    },
+    "model": {
+      "type": "string",
+      "description": "Vehicle model"
+    },
+    "year": {
+      "type": "number"
+    },
+    "color": {
+      "type": "string"
+    },
+    "license_plate": {
+      "type": "string"
+    },
+    "max_capacity_lbs": {
+      "type": "number",
+      "description": "Maximum weight capacity"
+    },
+    "cargo_space_cubic_ft": {
+      "type": "number",
+      "description": "Cargo space in cubic feet"
+    },
+    "can_transport": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "envelope",
+          "small_box",
+          "medium_box",
+          "large_box",
+          "fragile",
+          "food",
+          "documents",
+          "custom"
+        ]
+      },
+      "description": "Package types this vehicle can handle"
+    },
+    "insurance_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "registration_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "vehicle_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photos of the vehicle"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether vehicle is currently available for deliveries"
+    },
+    "total_deliveries": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "driver_email",
+    "vehicle_type",
+    "license_plate"
+  ]
+}

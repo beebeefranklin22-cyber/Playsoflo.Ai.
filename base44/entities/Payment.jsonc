@@ -1,0 +1,107 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "amount_usd": {
+      "type": "number"
+    },
+    "amount_rri": {
+      "type": "number"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "card",
+        "bank",
+        "rri",
+        "internal_transfer",
+        "stripe",
+        "crypto"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "failed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "reference_type": {
+      "type": "string",
+      "enum": [
+        "utility",
+        "escrow",
+        "order",
+        "deposit",
+        "sent",
+        "received",
+        "withdrawal",
+        "other"
+      ]
+    },
+    "reference_id": {
+      "type": "string"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of sender for transfers"
+    },
+    "recipient_email": {
+      "type": "string",
+      "description": "Email of recipient for transfers"
+    },
+    "memo": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "amount_usd",
+    "method",
+    "reference_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "sender_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

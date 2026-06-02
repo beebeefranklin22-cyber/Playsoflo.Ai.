@@ -1,0 +1,73 @@
+{
+  "name": "CreatorMetrics",
+  "type": "object",
+  "properties": {
+    "creator_email": {
+      "type": "string"
+    },
+    "metric_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "total_views": {
+      "type": "number",
+      "default": 0
+    },
+    "total_watch_time_hours": {
+      "type": "number",
+      "default": 0
+    },
+    "avg_view_duration_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "unique_viewers": {
+      "type": "number",
+      "default": 0
+    },
+    "new_followers": {
+      "type": "number",
+      "default": 0
+    },
+    "total_followers": {
+      "type": "number",
+      "default": 0
+    },
+    "total_likes": {
+      "type": "number",
+      "default": 0
+    },
+    "total_comments": {
+      "type": "number",
+      "default": 0
+    },
+    "total_shares": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_usd": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_tips": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_ppv": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_subscriptions": {
+      "type": "number",
+      "default": 0
+    },
+    "revenue_tickets": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "creator_email",
+    "metric_date"
+  ]
+}

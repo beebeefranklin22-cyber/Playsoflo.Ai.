@@ -1,0 +1,152 @@
+{
+  "name": "RentPayment",
+  "type": "object",
+  "properties": {
+    "lease_id": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "property_title": {
+      "type": "string"
+    },
+    "tenant_email": {
+      "type": "string"
+    },
+    "landlord_email": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Base rent or fee amount"
+    },
+    "late_fee_applied": {
+      "type": "number",
+      "default": 0,
+      "description": "Late fee amount added"
+    },
+    "late_fee_waived": {
+      "type": "boolean",
+      "default": false
+    },
+    "late_fee_waived_reason": {
+      "type": "string"
+    },
+    "late_fee_waived_by": {
+      "type": "string"
+    },
+    "late_fee_waive_condition": {
+      "type": "string",
+      "description": "E.g. 'paid_original_amount' or 'paid_certain_amount'"
+    },
+    "total_amount_due": {
+      "type": "number",
+      "description": "amount + late_fee_applied (after any waivers)"
+    },
+    "payment_type": {
+      "type": "string",
+      "enum": [
+        "rent",
+        "security_deposit",
+        "move_in_fee",
+        "pet_deposit",
+        "late_fee",
+        "utilities",
+        "other"
+      ],
+      "default": "rent"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "paid",
+        "late",
+        "failed",
+        "refunded",
+        "waived"
+      ],
+      "default": "pending"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "card",
+        "bank_transfer",
+        "crypto",
+        "cash",
+        "check"
+      ],
+      "default": "card"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string"
+    },
+    "receipt_url": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "lease_id",
+    "tenant_email",
+    "landlord_email",
+    "amount",
+    "due_date"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "tenant_email": "{{user.email}}"
+        },
+        {
+          "landlord_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "tenant_email": "{{user.email}}"
+        },
+        {
+          "landlord_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

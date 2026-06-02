@@ -1,0 +1,55 @@
+{
+  "name": "DocumentComment",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string"
+    },
+    "author_email": {
+      "type": "string"
+    },
+    "author_name": {
+      "type": "string"
+    },
+    "content": {
+      "type": "string"
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "selection_start": {
+          "type": "number"
+        },
+        "selection_end": {
+          "type": "number"
+        }
+      }
+    },
+    "parent_comment_id": {
+      "type": "string",
+      "description": "For threaded replies"
+    },
+    "is_resolved": {
+      "type": "boolean",
+      "default": false
+    },
+    "resolved_by": {
+      "type": "string"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "document_id",
+    "author_email",
+    "content"
+  ]
+}

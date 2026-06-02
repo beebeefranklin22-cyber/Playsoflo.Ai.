@@ -1,0 +1,74 @@
+{
+  "name": "LivestreamTicket",
+  "type": "object",
+  "properties": {
+    "stream_id": {
+      "type": "string"
+    },
+    "tier_id": {
+      "type": "string",
+      "description": "ID of pricing tier purchased"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "tier_name": {
+      "type": "string"
+    },
+    "amount_paid_usd": {
+      "type": "number"
+    },
+    "amount_paid_soflo": {
+      "type": "number",
+      "default": 0
+    },
+    "perks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "chat_priority": {
+      "type": "boolean",
+      "default": false
+    },
+    "exclusive_badge": {
+      "type": "string"
+    },
+    "badge_color": {
+      "type": "string"
+    },
+    "access_granted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "card",
+        "soflo",
+        "wallet"
+      ]
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "refunded"
+      ],
+      "default": "completed"
+    }
+  },
+  "required": [
+    "stream_id",
+    "user_email",
+    "creator_email",
+    "tier_name",
+    "amount_paid_usd"
+  ]
+}

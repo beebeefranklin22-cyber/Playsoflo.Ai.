@@ -1,0 +1,102 @@
+{
+  "name": "CryptoReward",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "User earning the reward"
+    },
+    "reward_type": {
+      "type": "string",
+      "enum": [
+        "referral",
+        "defi_participation",
+        "asset_holding",
+        "trading_volume",
+        "staking",
+        "liquidity_provision",
+        "daily_login",
+        "first_trade",
+        "milestone"
+      ],
+      "description": "Type of reward earned"
+    },
+    "action_description": {
+      "type": "string",
+      "description": "What action earned the reward"
+    },
+    "reward_currency": {
+      "type": "string",
+      "enum": [
+        "BTC",
+        "ETH",
+        "SoFloCoin",
+        "USDT",
+        "SOL"
+      ],
+      "default": "SoFloCoin"
+    },
+    "reward_amount": {
+      "type": "number",
+      "description": "Amount of crypto rewarded"
+    },
+    "reward_value_usd": {
+      "type": "number",
+      "description": "USD value at time of reward"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "distributed",
+        "claimed",
+        "expired"
+      ],
+      "default": "pending"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Reference to related action (trade, referral, etc)"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When reward expires if not claimed"
+    },
+    "distributed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_email",
+    "reward_type",
+    "reward_currency",
+    "reward_amount"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "name": "Dispute",
+  "type": "object",
+  "properties": {
+    "reference_type": {
+      "type": "string",
+      "enum": [
+        "booking",
+        "order",
+        "escrow",
+        "payment"
+      ]
+    },
+    "reference_id": {
+      "type": "string"
+    },
+    "complainant_email": {
+      "type": "string",
+      "description": "Email of person filing dispute"
+    },
+    "respondent_email": {
+      "type": "string",
+      "description": "Email of other party"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "service_not_provided",
+        "incomplete_service",
+        "quality_issue",
+        "payment_issue",
+        "cancellation_dispute",
+        "other"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "evidence_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photos, documents, etc."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "under_review",
+        "resolved",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "resolution": {
+      "type": "string",
+      "description": "Final resolution details"
+    },
+    "resolved_by": {
+      "type": "string",
+      "description": "Email of admin who resolved"
+    },
+    "resolved_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "amount_disputed": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "reference_type",
+    "reference_id",
+    "complainant_email",
+    "respondent_email",
+    "reason",
+    "description"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "complainant_email": "{{user.email}}"
+        },
+        {
+          "respondent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

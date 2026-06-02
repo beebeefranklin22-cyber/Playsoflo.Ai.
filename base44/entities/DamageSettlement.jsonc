@@ -1,0 +1,179 @@
+{
+  "name": "DamageSettlement",
+  "type": "object",
+  "properties": {
+    "rental_id": {
+      "type": "string",
+      "description": "ID of the car rental"
+    },
+    "damage_report_index": {
+      "type": "number",
+      "description": "Index of damage in damages_reported array"
+    },
+    "renter_email": {
+      "type": "string"
+    },
+    "provider_email": {
+      "type": "string"
+    },
+    "damage_description": {
+      "type": "string"
+    },
+    "ai_analysis": {
+      "type": "object",
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": [
+            "minor",
+            "moderate",
+            "major"
+          ]
+        },
+        "estimated_repair_cost": {
+          "type": "number"
+        },
+        "confidence_score": {
+          "type": "number"
+        },
+        "similar_cases_found": {
+          "type": "number"
+        },
+        "reasoning": {
+          "type": "string"
+        }
+      },
+      "description": "AI analysis of the damage"
+    },
+    "suggested_settlement": {
+      "type": "number",
+      "description": "AI-suggested fair settlement amount"
+    },
+    "settlement_breakdown": {
+      "type": "object",
+      "properties": {
+        "repair_cost": {
+          "type": "number"
+        },
+        "depreciation": {
+          "type": "number"
+        },
+        "administrative_fee": {
+          "type": "number"
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "renter_accepted",
+        "provider_accepted",
+        "both_accepted",
+        "renter_disputed",
+        "provider_disputed",
+        "escalated",
+        "resolved"
+      ],
+      "default": "proposed"
+    },
+    "renter_response": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "disputed"
+      ],
+      "default": "pending"
+    },
+    "provider_response": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "disputed"
+      ],
+      "default": "pending"
+    },
+    "renter_counter_offer": {
+      "type": "number"
+    },
+    "provider_counter_offer": {
+      "type": "number"
+    },
+    "final_settlement_amount": {
+      "type": "number"
+    },
+    "auto_resolve_deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deadline for responses before auto-escalation"
+    },
+    "resolution_method": {
+      "type": "string",
+      "enum": [
+        "ai_automated",
+        "mutual_agreement",
+        "admin_decision",
+        "insurance_claim"
+      ],
+      "description": "How the settlement was resolved"
+    },
+    "escalated_reason": {
+      "type": "string"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "rental_id",
+    "renter_email",
+    "provider_email",
+    "damage_description",
+    "suggested_settlement"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "renter_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "renter_email": "{{user.email}}"
+        },
+        {
+          "provider_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

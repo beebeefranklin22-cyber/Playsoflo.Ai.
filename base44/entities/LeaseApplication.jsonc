@@ -1,0 +1,141 @@
+{
+  "name": "LeaseApplication",
+  "type": "object",
+  "properties": {
+    "property_id": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "applicant_email": {
+      "type": "string"
+    },
+    "applicant_name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "employment_status": {
+      "type": "string",
+      "enum": [
+        "employed",
+        "self_employed",
+        "student",
+        "retired",
+        "unemployed"
+      ]
+    },
+    "monthly_income": {
+      "type": "number"
+    },
+    "employer_name": {
+      "type": "string"
+    },
+    "current_address": {
+      "type": "string"
+    },
+    "move_in_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "num_occupants": {
+      "type": "number",
+      "default": 1
+    },
+    "has_pets": {
+      "type": "boolean",
+      "default": false
+    },
+    "pet_details": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "under_review",
+        "approved",
+        "rejected",
+        "withdrawn"
+      ],
+      "default": "pending"
+    },
+    "credit_score": {
+      "type": "number"
+    },
+    "background_check_status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "default": "not_started"
+    },
+    "landlord_notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "property_id",
+    "applicant_email",
+    "applicant_name",
+    "monthly_income"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "applicant_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "applicant_email": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

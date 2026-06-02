@@ -1,0 +1,137 @@
+{
+  "name": "Collaboration",
+  "type": "object",
+  "properties": {
+    "collaboration_type": {
+      "type": "string",
+      "enum": [
+        "co_host_experience",
+        "bundled_offer",
+        "content_creation",
+        "shoutout",
+        "cross_promotion",
+        "joint_event"
+      ],
+      "description": "Type of collaboration"
+    },
+    "title": {
+      "type": "string",
+      "description": "Collaboration title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed collaboration description"
+    },
+    "initiator_email": {
+      "type": "string",
+      "description": "Creator who initiated the collaboration"
+    },
+    "collaborator_email": {
+      "type": "string",
+      "description": "Creator being invited to collaborate"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "accepted",
+        "declined",
+        "active",
+        "completed",
+        "cancelled"
+      ],
+      "default": "proposed"
+    },
+    "revenue_split": {
+      "type": "object",
+      "properties": {
+        "initiator_percentage": {
+          "type": "number"
+        },
+        "collaborator_percentage": {
+          "type": "number"
+        }
+      },
+      "description": "Revenue sharing arrangement"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "terms": {
+      "type": "string",
+      "description": "Collaboration terms and conditions"
+    },
+    "product_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Related product IDs"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "collaboration_type",
+    "title",
+    "initiator_email",
+    "collaborator_email"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "initiator_email": "{{user.email}}"
+        },
+        {
+          "collaborator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "initiator_email": "{{user.email}}"
+        },
+        {
+          "collaborator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

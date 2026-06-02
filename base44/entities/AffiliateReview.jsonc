@@ -1,0 +1,62 @@
+{
+  "name": "AffiliateReview",
+  "type": "object",
+  "properties": {
+    "listing_id": {
+      "type": "string",
+      "description": "ID of the affiliate listing being reviewed"
+    },
+    "reviewer_email": {
+      "type": "string"
+    },
+    "reviewer_name": {
+      "type": "string"
+    },
+    "reviewer_photo": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Rating from 1 to 5 stars"
+    },
+    "review_text": {
+      "type": "string"
+    },
+    "verified_purchase": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the reviewer made a verified purchase"
+    },
+    "helpful_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of users who found this helpful"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Review images uploaded by user"
+    }
+  },
+  "required": [
+    "listing_id",
+    "reviewer_email",
+    "rating",
+    "review_text"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

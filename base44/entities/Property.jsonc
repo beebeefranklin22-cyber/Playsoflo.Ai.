@@ -1,0 +1,211 @@
+{
+  "name": "Property",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "short_term_rental",
+        "hotel",
+        "apartment",
+        "condo",
+        "house",
+        "villa",
+        "penthouse",
+        "commercial"
+      ],
+      "description": "Type of property"
+    },
+    "listing_type": {
+      "type": "string",
+      "enum": [
+        "for_sale",
+        "for_rent",
+        "short_term"
+      ],
+      "description": "Whether property is for sale, rent, or short-term booking"
+    },
+    "description": {
+      "type": "string"
+    },
+    "price_per_night": {
+      "type": "number",
+      "description": "For short-term rentals and hotels"
+    },
+    "price_per_month": {
+      "type": "number",
+      "description": "For long-term rentals"
+    },
+    "sale_price": {
+      "type": "number",
+      "description": "For properties for sale"
+    },
+    "price_in_soflo": {
+      "type": "number",
+      "description": "Price in SoFloCoin"
+    },
+    "bedrooms": {
+      "type": "number"
+    },
+    "bathrooms": {
+      "type": "number"
+    },
+    "square_feet": {
+      "type": "number"
+    },
+    "lot_size": {
+      "type": "number",
+      "description": "Lot size in square feet"
+    },
+    "year_built": {
+      "type": "number"
+    },
+    "parcel_number": {
+      "type": "string"
+    },
+    "owner_name": {
+      "type": "string"
+    },
+    "zoning": {
+      "type": "string"
+    },
+    "county": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip_code": {
+      "type": "string"
+    },
+    "amenities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of amenities like pool, gym, wifi, etc."
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of image URLs"
+    },
+    "main_image": {
+      "type": "string"
+    },
+    "virtual_tour_url": {
+      "type": "string",
+      "description": "URL to embedded virtual tour (360 view, Matterport, etc.)"
+    },
+    "floor_plan_url": {
+      "type": "string",
+      "description": "URL to floor plan image or PDF"
+    },
+    "walkthrough_video_url": {
+      "type": "string",
+      "description": "URL to walkthrough/tour video (MP4 or YouTube embed)"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "reviews_count": {
+      "type": "number",
+      "default": 0
+    },
+    "instant_book": {
+      "type": "boolean",
+      "default": false
+    },
+    "minimum_stay": {
+      "type": "number",
+      "description": "Minimum nights for short-term rentals"
+    },
+    "host_name": {
+      "type": "string"
+    },
+    "verified_host": {
+      "type": "boolean",
+      "default": false
+    },
+    "cancellation_policy": {
+      "type": "string",
+      "enum": [
+        "flexible",
+        "moderate",
+        "strict",
+        "non_refundable"
+      ],
+      "default": "moderate"
+    },
+    "grace_period_hours": {
+      "type": "number",
+      "default": 24
+    },
+    "data_source": {
+      "type": "string"
+    },
+    "accepts_applications": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the property accepts online lease applications"
+    },
+    "security_deposit_months": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of months rent required as security deposit"
+    },
+    "move_in_fee": {
+      "type": "number",
+      "default": 0,
+      "description": "One-time move-in fee"
+    }
+  },
+  "required": [
+    "title",
+    "property_type",
+    "listing_type",
+    "location"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

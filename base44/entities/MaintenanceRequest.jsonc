@@ -1,0 +1,139 @@
+{
+  "name": "MaintenanceRequest",
+  "type": "object",
+  "properties": {
+    "property_id": {
+      "type": "string"
+    },
+    "lease_id": {
+      "type": "string"
+    },
+    "tenant_email": {
+      "type": "string"
+    },
+    "tenant_name": {
+      "type": "string"
+    },
+    "landlord_email": {
+      "type": "string"
+    },
+    "property_address": {
+      "type": "string"
+    },
+    "issue_title": {
+      "type": "string"
+    },
+    "issue_description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "plumbing",
+        "electrical",
+        "hvac",
+        "appliance",
+        "structural",
+        "pest_control",
+        "other"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "emergency"
+      ],
+      "default": "medium"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "acknowledged",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "submitted"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "landlord_notes": {
+      "type": "string"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "estimated_cost": {
+      "type": "number"
+    },
+    "actual_cost": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "property_id",
+    "tenant_email",
+    "landlord_email",
+    "issue_title",
+    "category"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "tenant_email": "{{user.email}}"
+        },
+        {
+          "landlord_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "landlord_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "tenant_email": "{{user.email}}"
+        },
+        {
+          "landlord_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

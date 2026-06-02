@@ -1,0 +1,28 @@
+{
+  "name": "ForumLike",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string"
+    },
+    "reply_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {},
+    "update": {},
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

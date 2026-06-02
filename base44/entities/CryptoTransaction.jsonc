@@ -1,0 +1,98 @@
+{
+  "name": "CryptoTransaction",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "buy",
+        "sell",
+        "exchange",
+        "send",
+        "receive"
+      ],
+      "description": "Type of crypto transaction"
+    },
+    "from_currency": {
+      "type": "string",
+      "description": "Currency being sold/sent"
+    },
+    "to_currency": {
+      "type": "string",
+      "description": "Currency being bought/received"
+    },
+    "from_amount": {
+      "type": "number"
+    },
+    "to_amount": {
+      "type": "number"
+    },
+    "exchange_rate": {
+      "type": "number",
+      "description": "Rate at time of transaction"
+    },
+    "fee": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "completed",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "blockchain_tx_hash": {
+      "type": "string",
+      "description": "Blockchain transaction ID"
+    },
+    "recipient_address": {
+      "type": "string",
+      "description": "For send transactions"
+    }
+  },
+  "required": [
+    "user_email",
+    "transaction_type",
+    "from_currency",
+    "to_currency",
+    "from_amount"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$ne": "guest"
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

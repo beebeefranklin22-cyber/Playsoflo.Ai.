@@ -1,0 +1,64 @@
+{
+  "name": "UserInterests",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "favorite_creators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "content_preferences": {
+      "type": "object",
+      "properties": {
+        "livestream": {
+          "type": "number",
+          "default": 0
+        },
+        "vod": {
+          "type": "number",
+          "default": 0
+        },
+        "ppv": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "watch_time_by_category": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "default": {}
+    }
+  },
+  "required": [
+    "user_email"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

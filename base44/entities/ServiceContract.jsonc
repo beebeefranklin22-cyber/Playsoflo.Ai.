@@ -1,0 +1,86 @@
+{
+  "name": "ServiceContract",
+  "type": "object",
+  "properties": {
+    "provider_email": {
+      "type": "string"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "Optional - link to specific service"
+    },
+    "template_name": {
+      "type": "string"
+    },
+    "terms_and_conditions": {
+      "type": "string",
+      "description": "Main terms of service"
+    },
+    "cancellation_policy": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "flexible",
+            "moderate",
+            "strict",
+            "non_refundable",
+            "custom"
+          ]
+        },
+        "hours_before": {
+          "type": "number"
+        },
+        "refund_percentage": {
+          "type": "number"
+        },
+        "custom_text": {
+          "type": "string"
+        }
+      }
+    },
+    "liability_clauses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "custom_clauses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "default": []
+    },
+    "requires_signature": {
+      "type": "boolean",
+      "default": true
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "applies_to_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "provider_email",
+    "template_name",
+    "terms_and_conditions"
+  ]
+}

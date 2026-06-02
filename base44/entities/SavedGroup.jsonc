@@ -1,0 +1,35 @@
+{
+  "name": "SavedGroup",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of user who saved the group"
+    },
+    "group_id": {
+      "type": "string",
+      "description": "ID of the saved group"
+    },
+    "group_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "group_id"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

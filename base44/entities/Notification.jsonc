@@ -1,0 +1,121 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "recipient_email": {
+      "type": "string",
+      "description": "Email of the notification recipient"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "booking_confirmed",
+        "payment_received",
+        "order_update",
+        "new_follower",
+        "new_message",
+        "dispute_opened",
+        "dispute_resolved",
+        "tip_received",
+        "escrow_released",
+        "system_alert",
+        "new_comment",
+        "comment_reply",
+        "comment_like",
+        "post_like",
+        "follow_request",
+        "direct_message",
+        "ride_request",
+        "ride_update",
+        "booking_request",
+        "message"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "message": {
+      "type": "string"
+    },
+    "reference_type": {
+      "type": "string",
+      "enum": [
+        "booking",
+        "order",
+        "payment",
+        "user",
+        "message",
+        "dispute",
+        "escrow",
+        "post",
+        "comment",
+        "direct_message",
+        "ride",
+        "follow_request"
+      ]
+    },
+    "reference_id": {
+      "type": "string"
+    },
+    "sender_email": {
+      "type": "string",
+      "description": "Email of who triggered the notification"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "sender_photo": {
+      "type": "string"
+    },
+    "read": {
+      "type": "boolean",
+      "default": false
+    },
+    "action_url": {
+      "type": "string",
+      "description": "URL to navigate when notification is clicked"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional data for actionable notifications",
+      "properties": {
+        "follow_request_id": {
+          "type": "string"
+        },
+        "ride_id": {
+          "type": "string"
+        },
+        "booking_id": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        },
+        "sender_email": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "recipient_email",
+    "type",
+    "title",
+    "message"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "recipient_email": "{{user.email}}"
+    },
+    "update": {
+      "recipient_email": "{{user.email}}"
+    },
+    "delete": {
+      "recipient_email": "{{user.email}}"
+    }
+  }
+}

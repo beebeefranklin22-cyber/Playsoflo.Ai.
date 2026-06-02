@@ -295,11 +295,26 @@ export default function LivestreamViewer() {
                 </div>
               )}
             </>
+          ) : stream.video_url ? (
+            /* VOD playback — uploaded video */
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
+              <video
+                src={stream.video_url}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+                style={{ maxHeight: '100%' }}
+                onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+              />
+            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-6">
                 <Video className="w-12 h-12 text-white/30 mx-auto mb-3" />
-                <p className="text-white font-bold mb-1">Stream Ended</p>
+                <p className="text-white font-bold mb-1">
+                  {stream.status === 'ended' ? 'Stream Ended — No Recording Available' : 'Video Not Available'}
+                </p>
                 <Button onClick={() => navigate(-1)} size="sm" className="bg-purple-600 hover:bg-purple-700 mt-2">Back</Button>
               </div>
             </div>
@@ -336,11 +351,31 @@ export default function LivestreamViewer() {
                 </div>
               )}
             </>
+          ) : stream.video_url ? (
+            /* VOD playback — uploaded video */
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <video
+                src={stream.video_url}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+                style={{ maxHeight: '100%' }}
+                onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+              />
+              <button
+                onClick={() => setIsTheaterMode(v => !v)}
+                className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition z-10"
+              >
+                {isTheaterMode ? <Minimize2 className="w-4 h-4 text-white" /> : <Maximize2 className="w-4 h-4 text-white" />}
+              </button>
+            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center p-8">
                 <Video className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                <p className="text-white text-xl font-bold mb-2">Stream Ended</p>
+                <p className="text-white text-xl font-bold mb-2">
+                  {stream.status === 'ended' ? 'Stream Ended — No Recording Available' : 'Video Not Available'}
+                </p>
                 <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">Back to Browse</Button>
               </div>
             </div>

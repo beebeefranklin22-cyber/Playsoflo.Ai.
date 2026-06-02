@@ -1,0 +1,51 @@
+{
+  "name": "UserInteraction",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "content_id": {
+      "type": "string"
+    },
+    "interaction_type": {
+      "type": "string",
+      "enum": [
+        "view",
+        "like",
+        "share",
+        "feedback_positive",
+        "feedback_negative",
+        "not_interested"
+      ],
+      "description": "Type of interaction"
+    },
+    "watch_duration_seconds": {
+      "type": "number",
+      "default": 0
+    },
+    "feedback_reason": {
+      "type": "string",
+      "description": "Why user liked/disliked"
+    }
+  },
+  "required": [
+    "user_email",
+    "content_id",
+    "interaction_type"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "user_email": "{{user.email}}"
+    },
+    "update": {
+      "user_email": "{{user.email}}"
+    },
+    "delete": {
+      "user_email": "{{user.email}}"
+    }
+  }
+}

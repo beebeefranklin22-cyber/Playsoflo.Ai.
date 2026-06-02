@@ -78,7 +78,16 @@ export default function StripePayoutCard({ currentUser }) {
       const res = await base44.functions.invoke("createStripeDashboardLink", {
         account_id: currentUser.stripe_account_id,
       });
-      if (res.data?.url) window.open(res.data.url, "_blank");
+      const url = res.data?.url;
+      if (url) {
+        // Try opening in new tab; if popup blocked, navigate current window
+        const newWin = window.open(url, "_blank", "noopener,noreferrer");
+        if (!newWin || newWin.closed || typeof newWin.closed === "undefined") {
+          window.location.href = url;
+        }
+      } else {
+        toast.error("No dashboard URL received. Please try again.");
+      }
     } catch (e) {
       toast.error("Couldn't open dashboard: " + (e?.message || "Try again"));
     } finally {

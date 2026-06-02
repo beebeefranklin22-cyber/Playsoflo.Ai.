@@ -1,0 +1,101 @@
+{
+  "name": "UserSubscription",
+  "type": "object",
+  "properties": {
+    "subscriber_email": {
+      "type": "string",
+      "description": "Email of the subscriber"
+    },
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the creator being subscribed to"
+    },
+    "subscription_tier_id": {
+      "type": "string",
+      "description": "ID of the subscription tier"
+    },
+    "tier_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "cancelled",
+        "expired",
+        "paused"
+      ],
+      "default": "active"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "next_billing_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "auto_renew": {
+      "type": "boolean",
+      "default": true
+    },
+    "monthly_amount_usd": {
+      "type": "number"
+    },
+    "total_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Total amount paid over time"
+    }
+  },
+  "required": [
+    "subscriber_email",
+    "creator_email",
+    "subscription_tier_id",
+    "monthly_amount_usd"
+  ],
+  "rls": {
+    "create": {
+      "subscriber_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "subscriber_email": "{{user.email}}"
+        },
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "subscriber_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "subscriber_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

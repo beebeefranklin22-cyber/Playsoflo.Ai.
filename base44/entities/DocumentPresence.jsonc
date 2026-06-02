@@ -1,0 +1,45 @@
+{
+  "name": "DocumentPresence",
+  "type": "object",
+  "properties": {
+    "document_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "cursor_position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "selection": {
+          "type": "object"
+        }
+      }
+    },
+    "color": {
+      "type": "string",
+      "description": "User's cursor color"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_editing": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "document_id",
+    "user_email"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "ProviderAvailability",
+  "type": "object",
+  "properties": {
+    "provider_email": {
+      "type": "string",
+      "description": "Email of service provider"
+    },
+    "day_of_week": {
+      "type": "string",
+      "enum": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ],
+      "description": "Day of the week"
+    },
+    "is_available": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether provider works this day"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time (e.g., '09:00')"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time (e.g., '17:00')"
+    },
+    "break_start": {
+      "type": "string",
+      "description": "Break start time"
+    },
+    "break_end": {
+      "type": "string",
+      "description": "Break end time"
+    },
+    "slot_duration_minutes": {
+      "type": "number",
+      "default": 60,
+      "description": "Default appointment duration in minutes"
+    }
+  },
+  "required": [
+    "provider_email",
+    "day_of_week"
+  ],
+  "rls": {
+    "create": {
+      "provider_email": "{{user.email}}"
+    },
+    "read": {},
+    "update": {
+      "provider_email": "{{user.email}}"
+    },
+    "delete": {
+      "provider_email": "{{user.email}}"
+    }
+  }
+}

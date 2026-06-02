@@ -1,0 +1,28 @@
+{
+  "name": "PollVote",
+  "type": "object",
+  "properties": {
+    "poll_id": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "option_id": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "poll_id",
+    "user_email",
+    "option_id"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {},
+    "update": {},
+    "delete": {}
+  }
+}

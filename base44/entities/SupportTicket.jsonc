@@ -1,0 +1,146 @@
+{
+  "name": "SupportTicket",
+  "type": "object",
+  "properties": {
+    "ticket_number": {
+      "type": "string",
+      "description": "Unique ticket identifier"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "User requesting support"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "ai_handling",
+        "escalated",
+        "assigned",
+        "resolved",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "rental",
+        "delivery",
+        "payment",
+        "technical",
+        "account"
+      ],
+      "default": "general"
+    },
+    "assigned_agent_email": {
+      "type": "string",
+      "description": "Support agent handling the ticket"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "user_context": {
+      "type": "object",
+      "properties": {
+        "active_rentals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "active_deliveries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recent_orders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "account_age_days": {
+          "type": "number"
+        },
+        "total_transactions": {
+          "type": "number"
+        }
+      },
+      "description": "User context for support agents"
+    },
+    "ai_assisted": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether AI is helping with responses"
+    },
+    "escalation_reason": {
+      "type": "string",
+      "description": "Why ticket was escalated to human"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rating": {
+      "type": "number",
+      "description": "User rating of support 1-5"
+    },
+    "feedback": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "user_email",
+    "subject"
+  ],
+  "rls": {
+    "create": {
+      "user_email": "{{user.email}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "user_email": "{{user.email}}"
+        },
+        {
+          "assigned_agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "assigned_agent_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
