@@ -136,7 +136,6 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
     }
 
     if (paymentMethod === "card" && !defaultCard) {
-      // Need to show card entry
       await loadStripeForm();
       return;
     }
@@ -161,11 +160,11 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
         memo: `Ride from ${rideDetails.pickup} to ${rideDetails.dropoff}`
       });
 
-      toast.success("Payment confirmed!");
-      await onConfirm();
-      onClose();
+      toast.success("✅ Payment confirmed! Finding your driver...", { position: "bottom-center", duration: 4000 });
+      onClose(); // close payment modal first
+      await onConfirm(); // then trigger ride creation
     } catch (error) {
-      toast.error("Payment failed: " + (error.message || "Unknown error"));
+      toast.error("Payment failed: " + (error.message || "Unknown error"), { position: "bottom-center" });
     } finally {
       setProcessing(false);
     }
@@ -211,8 +210,8 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
                 totalFare={rideDetails?.totalFare || 0}
                 onSuccess={async () => {
                   setShowCardForm(false);
-                  await onConfirm();
-                  onClose();
+                  onClose(); // close payment modal first
+                  await onConfirm(); // then trigger ride creation
                 }}
                 onBack={() => setShowCardForm(false)}
               />

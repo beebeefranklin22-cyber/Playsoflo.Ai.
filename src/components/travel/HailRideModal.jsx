@@ -264,7 +264,7 @@ export default function HailRideModal({ open, onClose }) {
         ride_id: ride.id
       });
       
-      toast.success("Ride requested! Finding you a driver...");
+      toast.success("🚗 Ride requested! Finding you a driver...", { position: "bottom-center", duration: 5000 });
     } catch (error) {
       toast.error(error.message || 'Failed to request ride');
     }

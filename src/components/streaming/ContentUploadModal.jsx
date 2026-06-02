@@ -1,10 +1,10 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Film, Tv, Upload, DollarSign, Star, Loader2, CheckCircle, Link, CloudUpload, Play, BookOpen } from "lucide-react";
+import { X, Film, Tv, Upload, DollarSign, Star, Loader2, CheckCircle, Link, CloudUpload, Play } from "lucide-react";
 import ChapterEditor from "./ChapterEditor";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -34,28 +34,50 @@ export default function ContentUploadModal({ currentUser, onClose }) {
   const [videoFile, setVideoFile] = useState(null);
   const [videoLocalUrl, setVideoLocalUrl] = useState(null);
   const [videoUploadState, setVideoUploadState] = useState("idle"); // idle | uploading | done | error
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [thumbUploading, setThumbUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const uploadedVideoUrlRef = useRef(null);
   const videoInputRef = useRef(null);
+  const progressIntervalRef = useRef(null);
 
   const set = (field, value) => setData(p => ({ ...p, [field]: value }));
   const inputCls = "bg-white/8 border-white/15 text-white placeholder-gray-500";
   const inputStyle = { background: "rgba(255,255,255,0.06)" };
 
-  // Background video upload — non-blocking
+  // Background video upload — non-blocking with simulated progress
   const startBackgroundUpload = useCallback(async (file) => {
     setVideoUploadState("uploading");
+    setUploadProgress(0);
+    uploadedVideoUrlRef.current = null;
+
+    // Simulate progress based on file size (real upload has no progress events via this API)
+    const fileSizeMB = file.size / (1024 * 1024);
+    const estimatedSeconds = Math.max(10, Math.min(fileSizeMB * 0.4, 180)); // ~0.4s per MB, cap 3min
+    const intervalMs = 500;
+    const incrementPerTick = 90 / (estimatedSeconds * (1000 / intervalMs)); // goes to 90%, then jumps to 100 on done
+
+    progressIntervalRef.current = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + incrementPerTick, 90));
+    }, intervalMs);
+
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      clearInterval(progressIntervalRef.current);
+      setUploadProgress(100);
       uploadedVideoUrlRef.current = file_url;
       setVideoUploadState("done");
-      toast.success("Video upload complete!");
+      toast.success("✅ Video upload complete!", { position: "bottom-center" });
     } catch {
+      clearInterval(progressIntervalRef.current);
+      setUploadProgress(0);
       setVideoUploadState("error");
-      toast.error("Video upload failed — you can try again or use a URL instead.");
+      toast.error("Video upload failed — try a URL instead.", { position: "bottom-center" });
     }
   }, []);
+
+  // Cleanup interval on unmount
+  useEffect(() => () => clearInterval(progressIntervalRef.current), []);
 
   const handleVideoFileSelect = (file) => {
     if (!file) return;
@@ -254,22 +276,36 @@ export default function ContentUploadModal({ currentUser, onClose }) {
                       </button>
                     </div>
                     {/* Upload status bar */}
-                    <div className={`px-3 py-2 flex items-center gap-2 text-xs ${
+                    <div className={`px-3 py-2 text-xs ${
                       videoUploadState === "done" ? "bg-green-500/10" :
                       videoUploadState === "error" ? "bg-red-500/10" : "bg-blue-500/10"
                     }`}>
                       {videoUploadState === "uploading" && (
-                        <><Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0" />
-                        <span className="text-blue-300">Uploading in background — fill out details below while it uploads</span></>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0" />
+                            <span className="text-blue-300">Uploading… {Math.round(uploadProgress)}% — fill details below while you wait</span>
+                          </div>
+                          <div className="w-full bg-white/10 rounded-full h-1.5">
+                            <div
+                              className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
                       )}
                       {videoUploadState === "done" && (
-                        <><CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                        <span className="text-green-300">Upload complete — ready to publish</span></>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                          <span className="text-green-300">Upload complete — ready to publish</span>
+                        </div>
                       )}
                       {videoUploadState === "error" && (
-                        <><X className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                        <span className="text-red-300">Upload failed</span>
-                        <button onClick={() => startBackgroundUpload(videoFile)} className="ml-auto text-red-400 underline">Retry</button></>
+                        <div className="flex items-center gap-2">
+                          <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                          <span className="text-red-300">Upload failed</span>
+                          <button onClick={() => startBackgroundUpload(videoFile)} className="ml-auto text-red-400 underline">Retry</button>
+                        </div>
                       )}
                     </div>
                   </div>

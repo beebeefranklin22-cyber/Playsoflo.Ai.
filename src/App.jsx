@@ -119,7 +119,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
-        <SonnerToaster position="top-center" richColors closeButton />
+        <SonnerToaster position="bottom-center" richColors closeButton />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>
