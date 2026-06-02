@@ -110,7 +110,7 @@ function UsernameStep({ user, onComplete }) {
 }
 
 // Step 2: Profile photo
-function PhotoStep({ user, onComplete }) {
+function PhotoStep({ user, onComplete, onSkip }) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [uploadedUrl, setUploadedUrl] = useState(null);
@@ -216,21 +216,48 @@ function PhotoStep({ user, onComplete }) {
           )}
         </div>
       </label>
+
+      {!isLoading && (
+        <button
+          onClick={onSkip}
+          className="w-full text-gray-500 hover:text-gray-300 text-sm py-2 transition"
+        >
+          Skip for now
+        </button>
+      )}
     </motion.div>
   );
 }
 
 // Main gate — shows username step first, then photo step
 export default function ProfilePictureGate({ user, onComplete }) {
-  const [step, setStep] = useState(user?.username ? "photo" : "username");
+  // If user already has username, only show photo step if they also don't have a photo
+  // If user has both, just call onComplete (shouldn't happen but safety net)
+  const needsUsername = !user?.username;
+  const needsPhoto = !user?.profile_picture;
+
+  const [step, setStep] = useState(needsUsername ? "username" : "photo");
+
+  // If nothing is needed, skip straight through
+  if (!needsUsername && !needsPhoto) {
+    onComplete();
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 flex items-center justify-center p-6">
       <AnimatePresence mode="wait">
         {step === "username" ? (
-          <UsernameStep key="username" user={user} onComplete={() => setStep("photo")} />
+          <UsernameStep
+            key="username"
+            user={user}
+            onComplete={() => {
+              if (needsPhoto) setStep("photo");
+              else onComplete();
+            }}
+          />
         ) : (
-          <PhotoStep key="photo" user={user} onComplete={onComplete} />
+          <PhotoStep key="photo" user={user} onComplete={onComplete} onSkip={onComplete} />
         )}
       </AnimatePresence>
     </div>

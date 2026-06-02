@@ -106,7 +106,7 @@ export default function RestaurantOwnerHub() {
     refetchInterval: 5000
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (myRestaurant) {
       setRestaurantForm(myRestaurant);
     }
