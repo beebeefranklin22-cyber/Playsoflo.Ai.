@@ -61,8 +61,9 @@ const AuthenticatedApp = () => {
     }
   }
 
-  // Show onboarding gate for new users who haven't set a username or profile picture
-  if (isAuthenticated && user && (!user.username || !user.profile_picture)) {
+  // Show onboarding gate only for users who haven't set a username yet
+  // Profile picture is optional (skippable), so don't block on it
+  if (isAuthenticated && user && !user.username) {
     return <ProfilePictureGate user={user} onComplete={refreshUser} />;
   }
 

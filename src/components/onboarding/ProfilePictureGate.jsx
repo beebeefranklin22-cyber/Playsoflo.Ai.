@@ -231,18 +231,10 @@ function PhotoStep({ user, onComplete, onSkip }) {
 
 // Main gate — shows username step first, then photo step
 export default function ProfilePictureGate({ user, onComplete }) {
-  // If user already has username, only show photo step if they also don't have a photo
-  // If user has both, just call onComplete (shouldn't happen but safety net)
-  const needsUsername = !user?.username;
+  // Gate is only shown when username is missing (enforced in App.jsx)
+  // Photo step is always optional — user can skip
   const needsPhoto = !user?.profile_picture;
-
-  const [step, setStep] = useState(needsUsername ? "username" : "photo");
-
-  // If nothing is needed, skip straight through
-  if (!needsUsername && !needsPhoto) {
-    onComplete();
-    return null;
-  }
+  const [step, setStep] = useState("username");
 
   return (
     <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-purple-950 via-gray-950 to-blue-950 flex items-center justify-center p-6">
@@ -251,10 +243,7 @@ export default function ProfilePictureGate({ user, onComplete }) {
           <UsernameStep
             key="username"
             user={user}
-            onComplete={() => {
-              if (needsPhoto) setStep("photo");
-              else onComplete();
-            }}
+            onComplete={() => setStep("photo")}
           />
         ) : (
           <PhotoStep key="photo" user={user} onComplete={onComplete} onSkip={onComplete} />

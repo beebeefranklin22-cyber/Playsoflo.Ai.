@@ -53,8 +53,8 @@ function StripeCardForm({ clientSecret, onSuccess, onCancel, currentUser }) {
       if (!response?.data?.success) throw new Error("Failed to save payment method.");
 
       toast.dismiss();
-      toast.success("Card saved!");
-      onSuccess();
+      toast.success("Card saved successfully!");
+      onSuccess(response?.data?.method);
     } catch (error) {
       console.error('Card save error:', error);
       toast.dismiss();
@@ -206,7 +206,9 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         return new Date(b.created_date) - new Date(a.created_date);
       });
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    staleTime: 0,
+    refetchOnMount: 'always'
   });
 
   const setDefaultMutation = useMutation({
@@ -343,16 +345,22 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                           <ManualBankPaymentForm currentUser={currentUser} saving={savingBank} onSave={handleSaveManualBank} onCancel={() => setShowAddCard(false)} />
                         ) : (
                           <Elements stripe={stripePromise} options={{ clientSecret }}>
-                            <StripeCardForm
-                              clientSecret={clientSecret}
-                              currentUser={currentUser}
-                              onSuccess={() => {
-                                setShowAddCard(false);
-                                setClientSecret(null);
-                                queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
-                              }}
-                              onCancel={() => { setShowAddCard(false); setClientSecret(null); }}
-                            />
+                           <StripeCardForm
+                             clientSecret={clientSecret}
+                             currentUser={currentUser}
+                             onSuccess={(savedMethod) => {
+                               setShowAddCard(false);
+                               setClientSecret(null);
+                               // Optimistically add to cache immediately, then re-fetch
+                               if (savedMethod) {
+                                 queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) => 
+                                   [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
+                                 );
+                               }
+                               queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+                             }}
+                             onCancel={() => { setShowAddCard(false); setClientSecret(null); }}
+                           />
                           </Elements>
                         )}
                       </CardContent>
