@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { CreditCard, Building, Wallet, Bitcoin, Check, Plus } from "lucide-react";
 
@@ -50,6 +50,14 @@ const TABS = [
 
 export default function SavedPaymentMethodSelector({ currentUser, value, onChange, onAddNew, showTabs = false }) {
   const [activeTab, setActiveTab] = useState(null);
+  const queryClient = useQueryClient();
+
+  // Force a fresh fetch every time this selector mounts (e.g. at checkout)
+  useEffect(() => {
+    if (currentUser) {
+      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser.email] });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],

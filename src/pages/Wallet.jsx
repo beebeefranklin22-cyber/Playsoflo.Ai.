@@ -42,6 +42,7 @@ import PhysicalCardRequest from "../components/wallet/PhysicalCardRequest";
 import RecurringTransfersManager from "../components/wallet/RecurringTransfersManager";
 import CurrencyConverter from "../components/wallet/CurrencyConverter";
 import CDPCryptoWallet from "../components/wallet/CDPCryptoWallet";
+import PaymentMethodStatusChecker from "../components/wallet/PaymentMethodStatusChecker";
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('en-US', {
@@ -475,6 +476,13 @@ export default function Wallet() {
           </div>
         </details>
       </div>
+
+      {/* Payment Method Status Dashboard */}
+      {currentUser && (
+        <div className="px-4 sm:px-6 mt-4">
+          <PaymentMethodStatusChecker currentUser={currentUser} />
+        </div>
+      )}
 
       {/* On-chain USDC Wallet (Coinbase) */}
       <div className="px-4 sm:px-6 mb-6">
