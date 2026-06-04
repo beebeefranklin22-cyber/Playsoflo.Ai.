@@ -149,9 +149,10 @@ export default function EntertainmentExperiences() {
   const filteredExperiences = experiences.filter(exp => {
     // Location filter
     if (locationCity) {
-      const q = locationCity.toLowerCase();
-      const hay = [exp.venue_city, exp.venue_address, exp.venue_state, exp.location].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+      const q = locationCity.toLowerCase().trim();
+      const hay = [exp.venue_city, exp.venue_address, exp.venue_state, exp.location, exp.city, exp.address].filter(Boolean).join(" ").toLowerCase();
+      // Experiences with no location data always pass through
+      if (hay && !hay.includes(q)) return false;
     }
     const searchMatch = searchQuery ? exp.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     

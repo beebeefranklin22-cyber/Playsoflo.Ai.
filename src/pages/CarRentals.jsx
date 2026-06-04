@@ -71,9 +71,18 @@ export default function CarRentals() {
 
   const filteredCars = (availableCars) => {
     if (!locationCity) return availableCars;
-    const q = locationCity.toLowerCase();
+    const q = locationCity.toLowerCase().trim();
     return availableCars.filter(car => {
-      const hay = [car.rental_details?.pickup_location, car.location, car.service_area].filter(Boolean).join(" ").toLowerCase();
+      const hay = [
+        car.rental_details?.pickup_location,
+        car.location,
+        car.service_area,
+        car.city,
+        car.state,
+        car.address,
+      ].filter(Boolean).join(" ").toLowerCase();
+      // Cars with no location data always pass through
+      if (!hay) return true;
       return hay.includes(q);
     });
   };
