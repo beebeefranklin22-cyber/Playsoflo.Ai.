@@ -1,21 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { ChevronLeft, Star, Clock, Shield, Check, Users, MessageSquare, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, Star, Clock, Shield, Check, Users, MessageSquare, SlidersHorizontal, MapPin } from "lucide-react";
 import BookingModal from "../components/BookingModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
+import LocationFilter from "../components/location/LocationFilter";
+import CitySelector from "../components/location/CitySelector";
+import { useUserLocation } from "../hooks/useUserLocation";
 import { motion } from "framer-motion";
 
 export default function ServiceProviders() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { userCity, refreshLocation } = useUserLocation();
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [locationCity, setLocationCity] = useState("");
+  const [locationRadius, setLocationRadius] = useState(null);
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [filters, setFilters] = useState({
     priceRange: [0, 10000],
     minRating: null,
@@ -28,7 +35,7 @@ export default function ServiceProviders() {
   
   const serviceName = new URLSearchParams(location.search).get('service');
 
-  React.useEffect(() => {
+  useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
 
@@ -41,57 +48,7 @@ export default function ServiceProviders() {
     enabled: !!serviceName
   });
 
-  // Apply advanced filters
-  const providers = allProviders.filter(provider => {
-    // Price range
-    const itemPrice = provider.price || 0;
-    const matchesPrice = itemPrice >= filters.priceRange[0] && itemPrice <= filters.priceRange[1];
-
-    // Rating
-    const itemRating = provider.rating || 0;
-    const matchesRating = !filters.minRating || itemRating >= filters.minRating;
-
-    // Availability
-    let matchesAvailability = true;
-    if (filters.availability === 'available_today') {
-      matchesAvailability = provider.availability === 'available';
-    } else if (filters.availability === 'instant_booking') {
-      matchesAvailability = provider.instant_booking === true;
-    } else if (filters.availability && filters.availability !== 'all') {
-      matchesAvailability = provider.availability === filters.availability;
-    }
-
-    // Verification
-    let matchesVerification = true;
-    if (filters.verification === 'verified_only') {
-      matchesVerification = provider.verified_provider === true;
-    } else if (filters.verification === 'multi_credential') {
-      const providerVers = providerVerifications[provider.created_by] || [];
-      matchesVerification = providerVers.length >= 3;
-    } else if (filters.verification === 'highly_verified') {
-      const providerVers = providerVerifications[provider.created_by] || [];
-      matchesVerification = providerVers.length >= 5;
-    }
-
-    // Service area
-    let matchesServiceArea = true;
-    if (filters.serviceArea && filters.serviceArea !== 'all') {
-      const itemServiceArea = (provider.service_area || provider.location || '').toLowerCase();
-      const searchArea = filters.serviceArea.replace('_', ' ').toLowerCase();
-      matchesServiceArea = itemServiceArea.includes(searchArea) || 
-                          itemServiceArea.includes('nationwide') ||
-                          filters.serviceArea === 'online' && itemServiceArea.includes('remote');
-    }
-
-    // Special features
-    const matchesInstantBooking = !filters.instantBooking || provider.instant_booking === true;
-    const matchesEscrow = !filters.escrowProtected || provider.escrow_required === true;
-
-    return matchesPrice && matchesRating && matchesAvailability && 
-           matchesVerification && matchesServiceArea && matchesInstantBooking && matchesEscrow;
-  });
-
-  // Fetch provider verifications
+  // Fetch provider verifications — must be BEFORE filter logic that uses it
   const { data: providerVerifications = {} } = useQuery({
     queryKey: ['provider-verifications-map'],
     queryFn: async () => {
@@ -111,6 +68,57 @@ export default function ServiceProviders() {
         return {};
       }
     }
+  });
+
+  // Apply all filters (declared after providerVerifications query)
+  const providers = allProviders.filter(provider => {
+    // Location filter
+    if (locationCity) {
+      const q = locationCity.toLowerCase().trim();
+      const hay = [provider.location, provider.service_area, provider.city]
+        .filter(Boolean).join(" ").toLowerCase();
+      // Only exclude if item has location data that doesn't match
+      if (hay.length > 0 && !hay.includes(q)) return false;
+    }
+
+    const itemPrice = provider.price || 0;
+    const matchesPrice = itemPrice >= filters.priceRange[0] && itemPrice <= filters.priceRange[1];
+
+    const itemRating = provider.rating || 0;
+    const matchesRating = !filters.minRating || itemRating >= filters.minRating;
+
+    let matchesAvailability = true;
+    if (filters.availability === 'available_today') {
+      matchesAvailability = provider.availability === 'available';
+    } else if (filters.availability === 'instant_booking') {
+      matchesAvailability = provider.instant_booking === true;
+    } else if (filters.availability && filters.availability !== 'all') {
+      matchesAvailability = provider.availability === filters.availability;
+    }
+
+    let matchesVerification = true;
+    if (filters.verification === 'verified_only') {
+      matchesVerification = provider.verified_provider === true;
+    } else if (filters.verification === 'multi_credential') {
+      matchesVerification = (providerVerifications[provider.created_by] || []).length >= 3;
+    } else if (filters.verification === 'highly_verified') {
+      matchesVerification = (providerVerifications[provider.created_by] || []).length >= 5;
+    }
+
+    let matchesServiceArea = true;
+    if (filters.serviceArea && filters.serviceArea !== 'all') {
+      const itemServiceArea = (provider.service_area || provider.location || '').toLowerCase();
+      const searchArea = filters.serviceArea.replace('_', ' ').toLowerCase();
+      matchesServiceArea = itemServiceArea.includes(searchArea) ||
+                          itemServiceArea.includes('nationwide') ||
+                          (filters.serviceArea === 'online' && itemServiceArea.includes('remote'));
+    }
+
+    const matchesInstantBooking = !filters.instantBooking || provider.instant_booking === true;
+    const matchesEscrow = !filters.escrowProtected || provider.escrow_required === true;
+
+    return matchesPrice && matchesRating && matchesAvailability &&
+           matchesVerification && matchesServiceArea && matchesInstantBooking && matchesEscrow;
   });
 
   if (isLoading) {
@@ -156,6 +164,19 @@ export default function ServiceProviders() {
         </div>
       </div>
 
+      {/* Location Filter */}
+      <div className="px-6 pt-4">
+        <LocationFilter
+          cityValue={locationCity}
+          onCityChange={setLocationCity}
+          radiusValue={locationRadius}
+          onRadiusChange={setLocationRadius}
+          userCity={userCity}
+          accentColor="orange"
+          onOpenCitySettings={() => setShowCitySelector(true)}
+        />
+      </div>
+
       {/* Advanced Filters */}
       {showFilters && (
         <div className="px-6">
@@ -173,6 +194,13 @@ export default function ServiceProviders() {
             })}
           />
         </div>
+      )}
+      {showCitySelector && (
+        <CitySelector
+          user={{ city: userCity }}
+          onClose={() => setShowCitySelector(false)}
+          onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
+        />
       )}
 
       <div className="px-6 py-8">

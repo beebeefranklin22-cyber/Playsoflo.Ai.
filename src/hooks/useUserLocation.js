@@ -43,10 +43,16 @@ export function filterByLocation(items, cityFilter, radiusFilter) {
       item.venue_state,
       item.pickup_location,
       item.city,
+      item.state,
+      item.address,
+      item.zip_code,
+      item.county,
     ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
+    // Items with no location data always pass (don't hide un-located listings)
+    if (!haystack) return true;
     return haystack.includes(q);
   });
 }

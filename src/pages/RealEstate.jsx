@@ -138,7 +138,10 @@ export default function RealEstate() {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (searchLocation.trim()) {
-      // Geocode the location
+      // Sync search bar input with the location filter so grid results update immediately
+      setLocationCity(searchLocation.trim());
+
+      // Geocode for map view
       try {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchLocation)}`
@@ -160,11 +163,13 @@ export default function RealEstate() {
     const categoryMatch = selectedCategory === "all" || prop.property_type === selectedCategory;
     const listingMatch = selectedListingType === "all" || prop.listing_type === selectedListingType;
 
-    // Location filter (in addition to the search bar)
+    // Location filter — check all location-related fields
+    // Items with NO location data always show (consistent with marketplace)
     if (locationCity) {
-      const q = locationCity.toLowerCase();
-      const hay = [prop.location, prop.city, prop.county].filter(Boolean).join(" ").toLowerCase();
-      if (!hay.includes(q)) return false;
+      const q = locationCity.toLowerCase().trim();
+      const hay = [prop.location, prop.city, prop.county, prop.state, prop.address, prop.zip_code]
+        .filter(Boolean).join(" ").toLowerCase();
+      if (hay.length > 0 && !hay.includes(q)) return false;
     }
     
     // Map bounds filter (only when in map view and bounds are set)

@@ -361,11 +361,12 @@ export default function Marketplace() {
       return false;
     }
 
-    // Location filter — only filter out items that have a location set AND it doesn't match
+    // Location filter — check location, service_area, city, state, address fields
+    // Items with NO location data always show (don't hide newly listed services)
     if (locationCity) {
-      const q = locationCity.toLowerCase();
-      const hay = [item.location, item.service_area].filter(Boolean).join(" ").toLowerCase();
-      // If item has no location set, always show it (don't hide newly listed items)
+      const q = locationCity.toLowerCase().trim();
+      const hay = [item.location, item.service_area, item.city, item.state, item.address]
+        .filter(Boolean).join(" ").toLowerCase();
       if (hay.length > 0 && !hay.includes(q)) return false;
     }
 
