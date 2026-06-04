@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Eye, Calendar, MessageCircle, Clock,
-  Play, Users, User, BookOpen, ListVideo, SkipForward
+  Play, Users, User, BookOpen, ListVideo, SkipForward, Heart, Share2
 } from "lucide-react";
 import TippingIntegration from "../components/creator/TippingIntegration";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import VideoComments from "../components/streaming/VideoComments";
 import ChapterList from "../components/streaming/ChapterList";
 import PlaylistManager from "../components/streaming/PlaylistManager";
+import VODControls from "../components/streaming/VODControls";
 import { createPageUrl } from "@/utils";
 
 export default function VODPlayer() {
@@ -119,6 +120,34 @@ export default function VODPlayer() {
     if (videoRef.current) setVideoTime(videoRef.current.currentTime);
   };
 
+  // Like/unlike video
+  const liked = vod?.liked_by?.includes(currentUser?.email);
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUser) { base44.auth.redirectToLogin(); return; }
+      const alreadyLiked = vod.liked_by?.includes(currentUser.email);
+      const newLikedBy = alreadyLiked
+        ? (vod.liked_by || []).filter(e => e !== currentUser.email)
+        : [...(vod.liked_by || []), currentUser.email];
+      await base44.entities.StreamingContent.update(vod.id, {
+        liked_by: newLikedBy,
+        likes_count: newLikedBy.length,
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vod", vodId] }),
+    onError: (e) => toast.error("Failed to like: " + e.message),
+  });
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${createPageUrl("VODPlayer")}?id=${vodId}`;
+    if (navigator.share) {
+      await navigator.share({ title: vod.title, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied!");
+    }
+  };
+
   const handleSeekToChapter = (seconds) => {
     if (videoRef.current) {
       videoRef.current.currentTime = seconds;
@@ -203,7 +232,7 @@ export default function VODPlayer() {
       <div className="flex flex-col lg:flex-row">
         {/* Video Player */}
         <div className="flex-1 lg:max-w-[calc(100%-380px)]">
-          <div className="relative bg-black aspect-video w-full">
+          <div className="relative bg-black aspect-video w-full vod-fullscreen-container">
             {vod.video_url ? (
               getYouTubeEmbedUrl(vod.video_url) ? (
                 <iframe
@@ -214,20 +243,21 @@ export default function VODPlayer() {
                   style={{ border: 'none' }}
                 />
               ) : (
-                <video
-                  ref={videoRef}
-                  src={vod.video_url}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="w-full h-full"
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onEnded={handleVideoEnded}
-                  onError={(e) => { console.error('Video error:', e); }}
-                />
+                <>
+                  <video
+                    ref={videoRef}
+                    src={vod.video_url}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full"
+                    onTimeUpdate={handleTimeUpdate}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
+                    onError={(e) => { console.error('Video error:', e); }}
+                  />
+                  <VODControls videoRef={videoRef} onEnded={handleVideoEnded} />
+                </>
               )
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -239,7 +269,7 @@ export default function VODPlayer() {
             )}
             {/* Play Next overlay */}
             {playNextCountdown !== null && nextVod && (
-              <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
                 <div className="text-center p-6 max-w-sm">
                   <SkipForward className="w-10 h-10 text-purple-400 mx-auto mb-3" />
                   <p className="text-gray-400 text-sm mb-1">Up next</p>
@@ -263,18 +293,45 @@ export default function VODPlayer() {
 
           {/* Info + Description */}
           <div className="p-4 border-b border-white/10">
-            <h1 className="text-xl font-bold text-white mb-2">{vod.title}</h1>
-            {/* Tip button — only show if viewer is not the creator */}
-            {currentUser && vod.creator_email && currentUser.email !== vod.creator_email && (
-              <div className="mb-3">
+            <h1 className="text-xl font-bold text-white mb-3">{vod.title}</h1>
+
+            {/* Action row: Like, Share, Tip */}
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={() => currentUser ? likeMutation.mutate() : base44.auth.redirectToLogin()}
+                disabled={likeMutation.isPending}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition border ${
+                  liked
+                    ? "bg-red-500/20 border-red-500/40 text-red-400"
+                    : "bg-white/8 border-white/15 text-gray-300 hover:text-white hover:border-white/30"
+                }`}
+                style={{ background: liked ? undefined : 'rgba(255,255,255,0.06)' }}
+              >
+                <Heart className={`w-4 h-4 ${liked ? "fill-red-400" : ""}`} />
+                {(vod.likes_count || vod.liked_by?.length || 0) > 0
+                  ? (vod.likes_count || vod.liked_by?.length)
+                  : "Like"}
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold border border-white/15 text-gray-300 hover:text-white hover:border-white/30 transition"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <Share2 className="w-4 h-4" />
+                Share
+              </button>
+
+              {currentUser && vod.creator_email && currentUser.email !== vod.creator_email && (
                 <TippingIntegration
                   creatorEmail={vod.creator_email}
                   contentId={vodId}
                   currentUser={currentUser}
                   variant="button"
                 />
-              </div>
-            )}
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center gap-3 text-sm text-gray-400 mb-3">
               <span className="flex items-center gap-1"><Users className="w-4 h-4" />@{vod.creator_username || vod.creator_email}</span>
               <Badge className="bg-white/10 text-gray-300 capitalize">{vod.category}</Badge>
