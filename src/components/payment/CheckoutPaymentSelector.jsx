@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { CreditCard, Building, Wallet, Bitcoin, Check, Plus, ChevronRight, Shield, Star } from "lucide-react";
 
@@ -93,6 +93,14 @@ export default function CheckoutPaymentSelector({
   compact = false,
 }) {
   const [filter, setFilter] = useState("all");
+  const queryClient = useQueryClient();
+
+  // Always invalidate on mount so checkout sees the latest saved methods
+  useEffect(() => {
+    if (currentUser?.email) {
+      queryClient.invalidateQueries({ queryKey: ["payment-methods", currentUser.email] });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ["payment-methods", currentUser?.email],
@@ -108,7 +116,8 @@ export default function CheckoutPaymentSelector({
       });
     },
     enabled: !!currentUser,
-    initialData: [],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Filter tabs that have methods

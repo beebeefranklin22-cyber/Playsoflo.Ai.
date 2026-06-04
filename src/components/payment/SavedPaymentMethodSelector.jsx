@@ -66,7 +66,8 @@ export default function SavedPaymentMethodSelector({ currentUser, value, onChang
       return list.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
     },
     enabled: !!currentUser,
-    staleTime: 0
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Only show tabs that actually have saved methods
