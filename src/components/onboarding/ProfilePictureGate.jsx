@@ -19,19 +19,29 @@ function UsernameStep({ user, onComplete }) {
     setError(null);
     setSaving(true);
 
-    try {
-      await base44.auth.updateMe({ username: username.toLowerCase() });
-      onComplete();
-    } catch (err) {
-      const msg = err?.message || "";
-      if (msg.toLowerCase().includes("unique") || msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("duplicate")) {
-        setError("That username is already taken. Try another one.");
-      } else {
-        setError("Something went wrong. Please try again.");
+    // Retry up to 3 times in case of transient network errors
+    let lastErr = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await base44.auth.updateMe({ username: username.toLowerCase() });
+        onComplete();
+        return;
+      } catch (err) {
+        lastErr = err;
+        const msg = (err?.message || "").toLowerCase();
+        // Don't retry on "taken" errors
+        if (msg.includes("unique") || msg.includes("taken") || msg.includes("duplicate")) {
+          setError("That username is already taken. Try another one.");
+          setSaving(false);
+          return;
+        }
+        // Wait a bit before retrying
+        if (attempt < 2) await new Promise(r => setTimeout(r, 800));
       }
-    } finally {
-      setSaving(false);
     }
+    // All retries exhausted
+    setError("Unable to save username. Please check your connection and try again.");
+    setSaving(false);
   };
 
   const isLoading = saving;

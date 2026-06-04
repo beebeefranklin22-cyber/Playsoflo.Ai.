@@ -282,7 +282,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onClick={onClose}>
-      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden max-h-[92vh] flex flex-col" style={{ maxHeight: 'min(92vh, 700px)' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
           <div className="flex items-center justify-between">
@@ -298,7 +298,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 pb-10">
           {isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-purple-500 animate-spin" /></div>
           ) : (
