@@ -451,13 +451,7 @@ export default function Wallet() {
               <Sparkles className="w-4 h-4 text-purple-400" />
               <span className="text-white text-xs font-semibold">Rewards</span>
             </button>
-            <button 
-              onClick={() => setActiveModal('rewards')}
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/20 hover:to-pink-500/20 transition text-left"
-            >
-              <Gift className="w-4 h-4 text-purple-400" />
-              <span className="text-white text-xs font-semibold">Rewards</span>
-            </button>
+
             <button 
               onClick={() => setActiveModal('p2p-trading')}
               className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg hover:from-green-500/20 hover:to-emerald-500/20 transition text-left"

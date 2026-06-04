@@ -21,9 +21,14 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
   const [generatedTickets, setGeneratedTickets] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState(null);
 
-  const totalPrice = isPurchasingPass 
-    ? (selectedPass ? selectedPass.price * quantity : 0)
-    : (selectedTicketType ? selectedTicketType.price * quantity : 0);
+  // Non-ticket (direct booking) mode: no ticket types defined
+  const isDirectBooking = !experience?.requires_tickets || !experience?.ticket_types?.length;
+
+  const totalPrice = isDirectBooking
+    ? (experience?.price || 0) * quantity
+    : isPurchasingPass 
+      ? (selectedPass ? selectedPass.price * quantity : 0)
+      : (selectedTicketType ? selectedTicketType.price * quantity : 0);
 
   const generateBatchId = () => {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -271,9 +276,33 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
               </div>
 
               <div className="space-y-6">
-                {step === 1 && (
+                {step === 1 && isDirectBooking && (
                   <>
-                    {/* Toggle between tickets and passes */}
+                    <p className="text-gray-300 text-sm mb-4">Book <strong className="text-white">{experience.title}</strong> directly for ${experience?.price}/person.</p>
+                    <div>
+                      <h3 className="text-white font-semibold mb-2">Guests</h3>
+                      <Input
+                        type="number" min="1" max="20"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                        className="bg-white/10 border-white/20 text-white"
+                      />
+                    </div>
+                    <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-bold text-lg">Total</span>
+                        <span className="text-green-400 font-bold text-2xl">${totalPrice.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    <Button onClick={() => setStep(2)} disabled={totalPrice <= 0} className="w-full bg-purple-600 hover:bg-purple-700">
+                      Continue to Payment
+                    </Button>
+                  </>
+                )}
+
+                {step === 1 && !isDirectBooking && (
+                   <>
+                     {/* Toggle between tickets and passes */}
                     {experience.pass_types?.length > 0 && (
                       <div className="flex gap-2 mb-4">
                         <Button
@@ -450,7 +479,7 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
 
                     <Button
                       onClick={() => setStep(2)}
-                      disabled={isPurchasingPass ? !selectedPass : (!selectedTicketType || !selectedDate)}
+                      disabled={isPurchasingPass ? !selectedPass : (!selectedTicketType || (!selectedDate && experience.event_dates?.length > 0))}
                       className="w-full bg-purple-600 hover:bg-purple-700"
                     >
                       Continue to Payment
@@ -518,7 +547,7 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
 
                     <StripePaymentForm
                       amount={totalPrice}
-                      description={`${quantity}x ${selectedTicketType.type} - ${experience.title}`}
+                      description={isDirectBooking ? `${quantity} guest(s) - ${experience.title}` : `${quantity}x ${selectedTicketType?.type} - ${experience.title}`}
                       onSuccess={handlePaymentSuccess}
                       onCancel={() => setStep(1)}
                     />

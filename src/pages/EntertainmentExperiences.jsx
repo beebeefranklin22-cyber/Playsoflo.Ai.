@@ -668,12 +668,8 @@ Return as JSON array with this structure:
                             </div>
                             <Button 
                               onClick={() => {
-                                if (exp.requires_tickets) {
-                                  setSelectedExperience(exp);
-                                  setShowTicketModal(true);
-                                } else {
-                                  toast.info('Direct booking coming soon!');
-                                }
+                                setSelectedExperience(exp);
+                                setShowTicketModal(true);
                               }}
                               className="bg-purple-600 hover:bg-purple-700"
                             >

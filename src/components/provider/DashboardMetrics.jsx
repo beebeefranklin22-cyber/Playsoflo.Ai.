@@ -146,7 +146,7 @@ export default function DashboardMetrics({ currentUser }) {
     },
     {
       label: "Services Listed",
-      value: currentUser?.provider_services_count || 0,
+      value: allBookings.length > 0 ? allBookings.filter(b => b.status !== 'cancelled').length : 0,
       icon: Package,
       bgColor: "from-violet-600/20 to-purple-600/20",
       iconColor: "text-violet-400",

@@ -32,6 +32,7 @@ import OrderTrackerBridge from "./components/tracking/OrderTrackerBridge";
 import AIErrorReporter from "./components/errors/AIErrorReporter";
 import LanguageSwitcher from "./components/i18n/LanguageSwitcher";
 import ExperienceBookingsStatus from "./components/profile/ExperienceBookingsStatus";
+import SidebarQuickStats from "./components/provider/SidebarQuickStats";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -607,16 +608,7 @@ export default function Layout({ children, currentPageName }) {
                 <div className="mt-8 pt-6 border-t border-white/10">
                   <div className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl p-4">
                     <h3 className="text-white font-semibold mb-2">Quick Stats</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between text-gray-300">
-                        <span>Today's Orders</span>
-                        <span className="font-bold text-white">0</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>Revenue</span>
-                        <span className="font-bold text-green-400">$0</span>
-                      </div>
-                    </div>
+                    <SidebarQuickStats currentUser={currentUser} />
                   </div>
                 </div>
               )}
