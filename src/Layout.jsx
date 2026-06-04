@@ -31,6 +31,7 @@ import LiveOrderTracker from "./components/tracking/LiveOrderTracker";
 import OrderTrackerBridge from "./components/tracking/OrderTrackerBridge";
 import AIErrorReporter from "./components/errors/AIErrorReporter";
 import LanguageSwitcher from "./components/i18n/LanguageSwitcher";
+import ExperienceBookingsStatus from "./components/profile/ExperienceBookingsStatus";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -590,6 +591,17 @@ export default function Layout({ children, currentPageName }) {
                   <span className="font-medium">Delete Account</span>
                 </button>
               </nav>
+
+              {/* Experience Bookings Status */}
+              {currentUser && (
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <h3 className="text-white font-semibold mb-3 flex items-center gap-2 px-1">
+                    <Ticket className="w-4 h-4 text-purple-400" />
+                    My Bookings
+                  </h3>
+                  <ExperienceBookingsStatus currentUser={currentUser} compact />
+                </div>
+              )}
 
               {currentUser && (currentUser.is_restaurant_owner || currentUser.is_driver || currentUser.is_provider) && (
                 <div className="mt-8 pt-6 border-t border-white/10">

@@ -49,7 +49,7 @@ function StatusBadge({ status }) {
   );
 }
 
-export default function ExperienceBookingsStatus({ currentUser }) {
+export default function ExperienceBookingsStatus({ currentUser, compact = false }) {
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["my-experience-bookings", currentUser?.email],
     queryFn: () => base44.entities.Booking.filter(
@@ -66,21 +66,15 @@ export default function ExperienceBookingsStatus({ currentUser }) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+      <div className="flex items-center justify-center py-4">
+        <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
       </div>
     );
   }
 
   if (experienceBookings.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Ticket className="w-8 h-8 text-purple-400" />
-        </div>
-        <p className="text-white font-semibold mb-1">No bookings yet</p>
-        <p className="text-gray-400 text-sm">Your experience bookings will appear here</p>
-      </div>
+      <p className="text-gray-500 text-xs px-1">No experience bookings yet.</p>
     );
   }
 
@@ -90,6 +84,43 @@ export default function ExperienceBookingsStatus({ currentUser }) {
     acc[s] = (acc[s] || 0) + 1;
     return acc;
   }, {});
+
+  // Compact sidebar view
+  if (compact) {
+    return (
+      <div className="space-y-2">
+        {/* Mini summary */}
+        <div className="grid grid-cols-2 gap-1.5 mb-3">
+          {Object.entries(STATUS_CONFIG).map(([key, config]) => counts[key] ? (
+            <div key={key} className={`rounded-lg px-2 py-1.5 border text-center ${config.color}`}>
+              <p className="text-sm font-bold">{counts[key]}</p>
+              <p className="text-xs opacity-80">{config.label}</p>
+            </div>
+          ) : null)}
+        </div>
+        {/* Recent bookings */}
+        {experienceBookings.slice(0, 4).map((booking) => {
+          const status = booking.booking_status || "pending";
+          const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+          return (
+            <div key={booking.id} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/8 transition">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${config.dot}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-xs font-medium truncate">{booking.experience_title}</p>
+                <p className="text-gray-500 text-xs">{booking.booking_date ? format(new Date(booking.booking_date), "MMM d") : "TBD"}</p>
+              </div>
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full border ${config.color}`}>
+                {config.label}
+              </span>
+            </div>
+          );
+        })}
+        {experienceBookings.length > 4 && (
+          <p className="text-gray-500 text-xs text-center pt-1">+{experienceBookings.length - 4} more</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
