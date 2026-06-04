@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Car, Clock, MapPin, Navigation, X, Users } from "lucide-react";
+import { Clock, MapPin, Navigation, X, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import CancelRideModal from "./CancelRideModal";
 import RideChatModal from "../chat/RideChatModal";
 import DriverMatchedCard from "./DriverMatchedCard";
 import { PassengerPinDisplay } from "@/components/ride/DriverPinVerification";
+import RideStatusTracker from "@/components/ride/RideStatusTracker";
 
 export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -57,23 +58,12 @@ export default function RideWaitScreen({ rideRequest, onOpenTracking }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-purple-950 p-6 flex items-center justify-center">
       <div className="max-w-md w-full space-y-6">
-        {/* Status Animation */}
-        <div className="text-center">
-          <motion.div
-            animate={{ scale: [1, 1.1, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-            className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4"
-          >
-            <Car className="w-16 h-16 text-white" />
-          </motion.div>
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {statusMessages[currentStatus]}
-          </h2>
-          <p className="text-gray-400">Please wait while we connect you with a driver</p>
-        </div>
 
-        {/* Wait Time */}
-        <div className="bg-white/10 rounded-2xl p-6 backdrop-blur-xl border border-white/20">
+        {/* Real-time status tracker */}
+        <RideStatusTracker rideId={rideRequest.id} initialStatus={currentStatus} />
+
+        {/* Wait Time + Route Summary */}
+        <div className="bg-white/10 rounded-2xl p-5 backdrop-blur-xl border border-white/20">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-blue-400" />
