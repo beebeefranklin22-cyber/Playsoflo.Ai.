@@ -224,26 +224,25 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           exit={{ y: "100%", scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-4xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col my-0 sm:my-8"
-          style={{ maxHeight: '92vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col my-0 sm:my-4"
+          style={{ maxHeight: '90vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="flex items-center justify-between p-6 sm:p-8 pb-0 flex-shrink-0">
-
-            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
-              <Sparkles className="w-8 h-8 text-purple-400" />
+          <div className="flex items-center justify-between px-5 pt-5 pb-0 flex-shrink-0">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-400" />
               List Your Experience
             </h2>
-            <button onClick={onClose}>
-              <X className="w-6 h-6 text-gray-400" />
+            <button onClick={onClose} className="p-1">
+              <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
 
           {/* Step Indicator */}
-          <div className="flex items-center justify-center gap-2 py-4 px-6 sm:px-8 flex-shrink-0">
+          <div className="flex items-center justify-center gap-2 py-3 px-5 flex-shrink-0">
             {[1, 2, 3, 4, 5].map((s) => (
               <div
                 key={s}
-                className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition ${
+                className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition ${
                   s === step ? 'bg-purple-600 text-white' : s < step ? 'bg-green-600 text-white' : 'bg-white/10 text-gray-400'
                 }`}
               >
@@ -252,7 +251,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             ))}
           </div>
 
-          <div className="space-y-6 overflow-y-auto flex-1 px-6 sm:px-8 pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-4 overflow-y-auto flex-1 px-5 pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
             {step === 1 && (
               <>
                 <div>
@@ -321,7 +320,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-white font-semibold mb-2 block">Base Price (USD) *</label>
                     <Input
@@ -442,9 +441,9 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-white font-semibold mb-2 block">City</label>
+                    <label className="text-white font-semibold mb-1 block text-sm">City</label>
                     <Input
                       value={experience.venue_city}
                       onChange={(e) => setExperience({ ...experience, venue_city: e.target.value })}
@@ -1153,7 +1152,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             )}
           </div>
 
-          <div className="flex gap-3 p-6 sm:p-8 pt-4 flex-shrink-0 border-t border-white/10">
+          <div className="flex gap-3 px-5 py-4 flex-shrink-0 border-t border-white/10">
             {step > 1 && (
               <Button 
                 variant="outline" 
