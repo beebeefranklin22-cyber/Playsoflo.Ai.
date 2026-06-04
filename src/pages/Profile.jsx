@@ -30,6 +30,7 @@ import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import StripePayoutCard from "../components/profile/StripePayoutCard";
+import ExperienceBookingsStatus from "../components/profile/ExperienceBookingsStatus";
 
 // Skeleton shimmer for fast perceived loading
 function ProfileSkeleton() {
@@ -479,6 +480,7 @@ export default function Profile() {
         <Tabs defaultValue="overview" className="mt-6">
           <TabsList className="bg-white/10 border border-white/20 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="bookings">My Bookings</TabsTrigger>
             <TabsTrigger value="business">Business Hub</TabsTrigger>
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="gallery">Gallery</TabsTrigger>
@@ -643,6 +645,10 @@ export default function Profile() {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="bookings" className="space-y-4 mt-6">
+            <ExperienceBookingsStatus currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="business" className="space-y-4">
