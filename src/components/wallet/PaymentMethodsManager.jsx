@@ -172,7 +172,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     if (savedMethod) {
       queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) => [savedMethod, ...old]);
     }
-    queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+    queryClient.refetchQueries({ queryKey: ['payment-methods', currentUser?.email] });
     queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
     setSavingBank(false);
     setShowAddCard(false);
@@ -328,17 +328,17 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                           <ManualBankPaymentForm currentUser={currentUser} saving={savingBank} onSave={handleSaveManualBank} onCancel={() => setShowAddCard(false)} />
                         ) : (
                           <DirectCardForm
-                            currentUser={currentUser}
-                            onSuccess={(savedMethod) => {
-                              setShowAddCard(false);
-                              if (savedMethod) {
-                                queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>
-                                  [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
-                                );
-                              }
-                              queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
-                            }}
-                            onCancel={() => setShowAddCard(false)}
+                           currentUser={currentUser}
+                           onSuccess={(savedMethod) => {
+                             setShowAddCard(false);
+                             if (savedMethod) {
+                               queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>
+                                 [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
+                               );
+                             }
+                             queryClient.refetchQueries({ queryKey: ['payment-methods', currentUser?.email] });
+                           }}
+                           onCancel={() => setShowAddCard(false)}
                           />
                         )}
                       </CardContent>
