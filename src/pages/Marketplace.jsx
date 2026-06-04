@@ -27,6 +27,7 @@ import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 import ListItemModal from "../components/marketplace/ListItemModal";
+import MessageProviderButton from "../components/provider/MessageProviderButton";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -882,6 +883,16 @@ export default function Marketplace() {
                           )}
                         </div>
 
+                        {currentUser && (item.created_by || item.provider_email) && currentUser.email !== (item.created_by || item.provider_email) && (
+                          <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+                            <MessageProviderButton
+                              providerEmail={item.created_by || item.provider_email}
+                              providerName={item.provider_name || 'Provider'}
+                              currentUser={currentUser}
+                              className="w-full text-sm"
+                            />
+                          </div>
+                        )}
                         {isInventoryProduct ? (
                           <button
                             className="px-6 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"

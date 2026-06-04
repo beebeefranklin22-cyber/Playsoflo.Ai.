@@ -24,6 +24,7 @@ import StripePaymentForm from "../components/payment/StripePaymentForm";
 import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 import RonronVehicleRecommendations from "../components/car/RonronVehicleRecommendations";
 import ListCarModal from "../components/car/ListCarModal";
+import MessageProviderButton from "../components/provider/MessageProviderButton";
 
 export default function CarRentals() {
   const navigate = useNavigate();
@@ -488,25 +489,35 @@ export default function CarRentals() {
                         )}
                       </div>
 
-                      <Button
-                        onClick={() => {
-                          setSelectedCar(car);
-                          setBookingForm({
-                            start_date: "",
-                            end_date: "",
-                            delivery_option: "pickup",
-                            delivery_address: "",
-                            unlock_method: "app_unlock",
-                            driver_license_url: "",
-                            id_verification_url: "",
-                            selected_add_ons: []
-                          });
-                          setShowBookingModal(true);
-                        }}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                      >
-                        Book Now
-                      </Button>
+                      <div className="flex flex-col gap-2">
+                        {currentUser && (car.provider_email || car.created_by) && currentUser.email !== (car.provider_email || car.created_by) && (
+                          <MessageProviderButton
+                            providerEmail={car.provider_email || car.created_by}
+                            providerName={car.provider_name || car.title}
+                            currentUser={currentUser}
+                            className="w-full"
+                          />
+                        )}
+                        <Button
+                          onClick={() => {
+                            setSelectedCar(car);
+                            setBookingForm({
+                              start_date: "",
+                              end_date: "",
+                              delivery_option: "pickup",
+                              delivery_address: "",
+                              unlock_method: "app_unlock",
+                              driver_license_url: "",
+                              id_verification_url: "",
+                              selected_add_ons: []
+                            });
+                            setShowBookingModal(true);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                        >
+                          Book Now
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -589,15 +600,12 @@ export default function CarRentals() {
                         )}
 
                         <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => navigate(createPageUrl("Messages"))}
-                            className="bg-white/5"
-                          >
-                            <MessageCircle className="w-4 h-4 mr-2" />
-                            Message Provider
-                          </Button>
+                          <MessageProviderButton
+                            providerEmail={rental.provider_email}
+                            providerName={`${rental.car_make} ${rental.car_model} Host`}
+                            currentUser={currentUser}
+                            className="bg-white/5 text-sm"
+                          />
                           {rental.status === 'active' && (
                             <Button
                               size="sm"
