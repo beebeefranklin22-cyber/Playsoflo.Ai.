@@ -225,7 +225,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-2xl flex flex-col"
-          style={{ maxHeight: '90vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          style={{ height: '90vh', maxHeight: '90vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex items-center justify-between px-5 pt-5 pb-0 flex-shrink-0">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             ))}
           </div>
 
-          <div className="space-y-3 overflow-y-auto flex-1 px-4 pb-3 text-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-3 overflow-y-auto flex-1 px-4 pb-3 text-sm" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'scroll', minHeight: 0 }}>
             {step === 1 && (
               <>
                 <div>
