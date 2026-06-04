@@ -7,7 +7,6 @@ import { toast } from "sonner";
 // Step 1: Username setup
 function UsernameStep({ user, onComplete }) {
   const [username, setUsername] = useState("");
-  const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -18,34 +17,24 @@ function UsernameStep({ user, onComplete }) {
     if (!isValid) return;
 
     setError(null);
-    setChecking(true);
+    setSaving(true);
 
     try {
-      // Check uniqueness
-      const allUsers = await base44.entities.User.list();
-      const taken = allUsers.some(
-        (u) => u.username?.toLowerCase() === username.toLowerCase() && u.id !== user.id
-      );
-
-      if (taken) {
-        setError("That username is already taken. Try another one.");
-        setChecking(false);
-        return;
-      }
-
-      setChecking(false);
-      setSaving(true);
       await base44.auth.updateMe({ username: username.toLowerCase() });
       onComplete();
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      const msg = err?.message || "";
+      if (msg.toLowerCase().includes("unique") || msg.toLowerCase().includes("taken") || msg.toLowerCase().includes("duplicate")) {
+        setError("That username is already taken. Try another one.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     } finally {
-      setChecking(false);
       setSaving(false);
     }
   };
 
-  const isLoading = checking || saving;
+  const isLoading = saving;
 
   return (
     <motion.div
