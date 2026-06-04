@@ -308,7 +308,8 @@ export default function Streaming() {
   };
 
   const handleShare = async (item) => {
-    const url = `${window.location.origin}${createPageUrl("LivestreamViewer")}?id=${item.id}`;
+    const page = (item.is_live || item.status === "live") ? "LivestreamViewer" : "VODPlayer";
+    const url = `${window.location.origin}${createPageUrl(page)}?id=${item.id}`;
     const text = `Watch ${item.title} on Streaming`;
 
     if (navigator.share) {
@@ -387,7 +388,12 @@ export default function Streaming() {
       const isOwner = currentUser?.email === item.creator_email || currentUser?.email === item.created_by;
       if (!hasPurchase && !isOwner) { setSelectedContent(item); setShowPurchaseModal(true); return; }
     }
-    navigate(createPageUrl("LivestreamViewer") + `?id=${item.id}`);
+    // Route live streams to LivestreamViewer, VOD content to VODPlayer
+    if (item.is_live || item.status === "live") {
+      navigate(createPageUrl("LivestreamViewer") + `?id=${item.id}`);
+    } else {
+      navigate(createPageUrl("VODPlayer") + `?id=${item.id}`);
+    }
   };
 
   const handleImageUpload = async (file) => {

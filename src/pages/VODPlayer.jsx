@@ -126,6 +126,25 @@ export default function VODPlayer() {
     }
   };
 
+  // Detect YouTube URLs and return embed URL
+  const getYouTubeEmbedUrl = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0` : null;
+  };
+
+  if (!vodId) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <Play className="w-16 h-16 text-white/20 mx-auto mb-3" />
+          <p className="text-gray-400">No video selected</p>
+          <button onClick={() => navigate(-1)} className="mt-4 text-purple-400 hover:text-purple-300 text-sm">Go Back</button>
+        </div>
+      </div>
+    );
+  }
+
   if (!vod) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -186,17 +205,30 @@ export default function VODPlayer() {
         <div className="flex-1 lg:max-w-[calc(100%-380px)]">
           <div className="relative bg-black aspect-video w-full">
             {vod.video_url ? (
-              <video
-              ref={videoRef}
-              src={vod.video_url}
-              controls
-              className="w-full h-full"
-              onTimeUpdate={handleTimeUpdate}
-              onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={handleVideoEnded}
-              />
+              getYouTubeEmbedUrl(vod.video_url) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(vod.video_url)}
+                  className="w-full h-full"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  style={{ border: 'none' }}
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={vod.video_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full"
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={() => { if (videoRef.current) setVideoDuration(videoRef.current.duration); }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={handleVideoEnded}
+                  onError={(e) => { console.error('Video error:', e); }}
+                />
+              )
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
