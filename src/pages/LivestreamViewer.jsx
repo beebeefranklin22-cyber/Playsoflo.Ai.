@@ -35,6 +35,13 @@ const TABS = [
   { id: 'tips',  label: 'Tips',  icon: Gift,           color: 'yellow' },
 ];
 
+// Detect YouTube URLs and return embed URL
+function getYouTubeEmbedUrl(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0` : null;
+}
+
 export default function LivestreamViewer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -296,17 +303,28 @@ export default function LivestreamViewer() {
               )}
             </>
           ) : stream.video_url ? (
-            /* VOD playback — uploaded video */
+            /* VOD playback — supports MP4, HLS, YouTube, and other embeds */
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
-              <video
-                src={stream.video_url}
-                controls
-                autoPlay
-                playsInline
-                className="w-full h-full object-contain"
-                style={{ maxHeight: '100%' }}
-                onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
-              />
+              {getYouTubeEmbedUrl(stream.video_url) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(stream.video_url)}
+                  className="w-full h-full"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  style={{ border: 'none' }}
+                  onLoad={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+                />
+              ) : (
+                <video
+                  src={stream.video_url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain"
+                  style={{ maxHeight: '100%' }}
+                  onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+                />
+              )}
             </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -352,16 +370,27 @@ export default function LivestreamViewer() {
               )}
             </>
           ) : stream.video_url ? (
-            /* VOD playback — uploaded video */
+            /* VOD playback — supports MP4, HLS, YouTube, and other embeds */
             <div className="absolute inset-0 flex items-center justify-center bg-black">
-              <video
-                src={stream.video_url}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-                style={{ maxHeight: '100%' }}
-                onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
-              />
+              {getYouTubeEmbedUrl(stream.video_url) ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(stream.video_url)}
+                  className="w-full h-full"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  style={{ border: 'none' }}
+                  onLoad={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+                />
+              ) : (
+                <video
+                  src={stream.video_url}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                  style={{ maxHeight: '100%' }}
+                  onPlay={() => base44.entities.StreamingContent.update(streamId, { views: (stream.views || 0) + 1 }).catch(() => {})}
+                />
+              )}
               <button
                 onClick={() => setIsTheaterMode(v => !v)}
                 className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition z-10"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -193,6 +193,17 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     staleTime: 0,
     refetchOnMount: 'always'
   });
+
+  // Real-time subscription — instantly show any new/updated method for this user
+  useEffect(() => {
+    if (!currentUser?.email) return;
+    const unsub = base44.entities.PaymentMethod.subscribe((event) => {
+      if (event.data?.user_email === currentUser.email || event.data?.user_email === currentUser.email) {
+        queryClient.refetchQueries({ queryKey: ['payment-methods', currentUser.email] });
+      }
+    });
+    return unsub;
+  }, [currentUser?.email, queryClient]);
 
   const setDefaultMutation = useMutation({
     mutationFn: async (methodId) => {
