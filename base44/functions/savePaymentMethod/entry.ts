@@ -14,7 +14,30 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { payment_method_id, manual_bank } = body;
+    const { payment_method_id, manual_bank, direct_card } = body;
+
+    // ── Direct card save (no Stripe verification required) ──
+    if (direct_card) {
+      const existingMethods = await base44.asServiceRole.entities.PaymentMethod.filter({
+        user_email: user.email,
+        status: 'active'
+      });
+
+      const savedMethod = await base44.asServiceRole.entities.PaymentMethod.create({
+        user_email: user.email,
+        type: 'card',
+        card_details: {
+          brand: direct_card.brand || 'card',
+          last4: direct_card.last4,
+          exp_month: direct_card.exp_month,
+          exp_year: direct_card.exp_year
+        },
+        is_default: existingMethods.length === 0,
+        status: 'active'
+      });
+
+      return Response.json({ success: true, method: savedMethod });
+    }
 
     // ── Manual bank account path ──
     if (manual_bank) {

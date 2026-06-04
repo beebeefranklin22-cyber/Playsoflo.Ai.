@@ -104,22 +104,11 @@
         "type": "string"
       },
       "default": []
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "description": "Stripe customer ID"
     }
   },
-  "required": [
-    "city",
-    "timezone",
-    "profile_picture",
-    "username",
-    "bio",
-    "cover_photo",
-    "cover_image_url",
-    "cover_video_url",
-    "website",
-    "link_in_bio",
-    "social_links",
-    "privacy_settings",
-    "profile_customization",
-    "current_music"
-  ]
+  "required": []
 }

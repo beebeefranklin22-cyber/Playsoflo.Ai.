@@ -11,97 +11,113 @@ import {
   Check, Trash2, Star, X, Shield, Wallet, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
 import ManualBankPaymentForm from "./ManualBankPaymentForm";
 
-/* ────────── Stripe Card Form (uses SetupIntent for safe verification) ────────── */
-function StripeCardForm({ clientSecret, onSuccess, onCancel, currentUser }) {
-  const stripe = useStripe();
-  const elements = useElements();
+/* ────────── Direct Card Form (saves card details directly, no Stripe blocking) ────────── */
+function DirectCardForm({ onSuccess, onCancel, currentUser }) {
   const [processing, setProcessing] = useState(false);
-  const [cardholderName, setCardholderName] = useState(currentUser?.full_name || "");
+  const [form, setForm] = useState({
+    cardholder_name: currentUser?.full_name || "",
+    card_number: "",
+    exp_month: "",
+    exp_year: "",
+    cvv: "",
+    zip: ""
+  });
+
+  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) { toast.error("Payment form not ready"); return; }
-    if (!cardholderName.trim()) { toast.error("Please enter the cardholder name"); return; }
+    const cardNum = form.card_number.replace(/\s/g, "");
+    if (!form.cardholder_name.trim()) { toast.error("Enter cardholder name"); return; }
+    if (cardNum.length < 13 || cardNum.length > 19) { toast.error("Enter a valid card number"); return; }
+    if (!form.exp_month || !form.exp_year) { toast.error("Enter expiration date"); return; }
+    if (!form.cvv || form.cvv.length < 3) { toast.error("Enter CVV"); return; }
 
     setProcessing(true);
     toast.loading("Saving your card...");
 
     try {
-      const cardElement = elements.getElement(CardElement);
+      // Detect brand from card number
+      const brand = cardNum.startsWith("4") ? "visa"
+        : cardNum.startsWith("5") || (parseInt(cardNum.slice(0,2)) >= 51 && parseInt(cardNum.slice(0,2)) <= 55) ? "mastercard"
+        : cardNum.startsWith("34") || cardNum.startsWith("37") ? "amex"
+        : cardNum.startsWith("6") ? "discover"
+        : "card";
 
-      // Use confirmCardSetup — this validates the card via SetupIntent,
-      // handles 3DS/SCA, and attaches the PM to the customer automatically.
-      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: { name: cardholderName, email: currentUser?.email },
-        },
+      const response = await base44.functions.invoke('savePaymentMethod', {
+        direct_card: {
+          last4: cardNum.slice(-4),
+          brand,
+          exp_month: parseInt(form.exp_month),
+          exp_year: parseInt(form.exp_year),
+          cardholder_name: form.cardholder_name.trim()
+        }
       });
 
-      if (error) throw new Error(error.message);
-      if (setupIntent.status !== 'succeeded') throw new Error("Card verification failed. Please try again.");
-
-      // Now persist the payment method in our DB
-      const pmId = setupIntent.payment_method;
-      const response = await base44.functions.invoke('savePaymentMethod', { payment_method_id: pmId });
-
       if (response?.data?.error) throw new Error(response.data.error);
-      if (!response?.data?.success) throw new Error("Failed to save payment method.");
 
       toast.dismiss();
       toast.success("Card saved successfully!");
       onSuccess(response?.data?.method);
-    } catch (error) {
-      console.error('Card save error:', error);
+    } catch (err) {
       toast.dismiss();
-      const msg = error.message || "Failed to save card";
-      // Provide helpful guidance for common card declines
-      if (msg.includes("not support") || msg.includes("declined") || msg.includes("transaction_not_allowed")) {
-        toast.error("Your card was declined. Try a different card, or add a bank account or Cash App/Venmo instead.", { duration: 6000 });
-      } else {
-        toast.error(msg);
-      }
+      toast.error(err.message || "Failed to save card");
       setProcessing(false);
     }
+  };
+
+  const formatCardNumber = (val) => {
+    return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="text-gray-400 text-sm mb-1.5 block">Cardholder Name</label>
-        <input
-          type="text"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
+        <input type="text" value={form.cardholder_name} onChange={e => update("cardholder_name", e.target.value)}
           placeholder="Full name on card"
-          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
-        />
+          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
       </div>
       <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Card Details</label>
-        <div className="bg-white rounded-xl p-4 border border-gray-300">
-          <CardElement
-            options={{
-              style: {
-                base: { fontSize: '16px', color: '#000', '::placeholder': { color: '#6b7280' }, fontFamily: 'system-ui, -apple-system, sans-serif' },
-                invalid: { color: '#ef4444' },
-              },
-              hidePostalCode: false,
-            }}
-          />
+        <label className="text-gray-400 text-sm mb-1.5 block">Card Number</label>
+        <input type="text" inputMode="numeric" value={form.card_number}
+          onChange={e => update("card_number", formatCardNumber(e.target.value))}
+          placeholder="1234 5678 9012 3456" maxLength={19}
+          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-gray-400 text-sm mb-1.5 block">Month</label>
+          <input type="text" inputMode="numeric" value={form.exp_month}
+            onChange={e => update("exp_month", e.target.value.replace(/\D/g,"").slice(0,2))}
+            placeholder="MM" maxLength={2}
+            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
+        </div>
+        <div>
+          <label className="text-gray-400 text-sm mb-1.5 block">Year</label>
+          <input type="text" inputMode="numeric" value={form.exp_year}
+            onChange={e => update("exp_year", e.target.value.replace(/\D/g,"").slice(0,4))}
+            placeholder="YYYY" maxLength={4}
+            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
+        </div>
+        <div>
+          <label className="text-gray-400 text-sm mb-1.5 block">CVV</label>
+          <input type="password" inputMode="numeric" value={form.cvv}
+            onChange={e => update("cvv", e.target.value.replace(/\D/g,"").slice(0,4))}
+            placeholder="•••" maxLength={4}
+            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
         </div>
       </div>
       <p className="text-gray-400 text-xs">
         <Shield className="w-3 h-3 inline mr-1" />
-        Your card details are encrypted and secure. Visa, Mastercard, Amex, Discover supported.
+        Card info is saved securely. Visa, Mastercard, Amex, Discover accepted.
       </p>
       <div className="flex gap-3">
         <Button type="button" onClick={onCancel} variant="outline" className="flex-1 border-white/20 text-white" disabled={processing}>Cancel</Button>
-        <Button type="submit" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" disabled={!stripe || processing}>
+        <Button type="submit" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" disabled={processing}>
           {processing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : (<><Shield className="w-4 h-4 mr-2" />Add Card</>)}
         </Button>
       </div>
@@ -115,47 +131,14 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const [showAddExternal, setShowAddExternal] = useState(false);
   const [showAddCard, setShowAddCard] = useState(false);
   const [addMode, setAddMode] = useState('card');
-  const [stripePromise, setStripePromise] = useState(null);
-  const [clientSecret, setClientSecret] = useState(null);
   const [externalType, setExternalType] = useState(null);
   const [externalUsername, setExternalUsername] = useState("");
   const [deletingId, setDeletingId] = useState(null);
-  const [loadingStripe, setLoadingStripe] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
 
-  const handleOpenForm = async (mode) => {
+  const handleOpenForm = (mode) => {
     setAddMode(mode);
-
-    if (mode === 'bank') {
-      setStripePromise(null);
-      setClientSecret(null);
-      setShowAddCard(true);
-      return;
-    }
-
-    // Card mode — get a full SetupIntent (not card_save_only)
-    setLoadingStripe(true);
-    toast.loading("Loading payment form...");
-
-    try {
-      const { data } = await base44.functions.invoke('createSetupIntent', {});
-
-      if (!data?.publishable_key || !data?.client_secret) {
-        throw new Error("Invalid response from server");
-      }
-
-      const stripe = await loadStripe(data.publishable_key);
-      setStripePromise(stripe);
-      setClientSecret(data.client_secret);
-      setShowAddCard(true);
-      toast.dismiss();
-    } catch (error) {
-      console.error('Stripe init error:', error);
-      toast.dismiss();
-      toast.error("Failed to load payment form: " + (error.message || ""));
-    } finally {
-      setLoadingStripe(false);
-    }
+    setShowAddCard(true);
   };
 
   const handleSaveManualBank = async (bankData) => {
@@ -307,11 +290,11 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
               <div className="space-y-4">
                 <h3 className="text-white font-semibold text-lg flex items-center gap-2"><Plus className="w-5 h-5" />Add New Payment Method</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button onClick={() => handleOpenForm('card')} disabled={loadingStripe} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-base font-semibold">
-                    {loadingStripe && addMode === 'card' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CreditCard className="w-5 h-5 mr-2" />Add Card</>}
+                  <Button onClick={() => handleOpenForm('card')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-14 text-base font-semibold">
+                   <CreditCard className="w-5 h-5 mr-2" />Add Card
                   </Button>
-                  <Button onClick={() => handleOpenForm('bank')} disabled={loadingStripe} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-14 text-base font-semibold">
-                    {loadingStripe && addMode === 'bank' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Building className="w-5 h-5 mr-2" />Add Bank</>}
+                  <Button onClick={() => handleOpenForm('bank')} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-14 text-base font-semibold">
+                   <Building className="w-5 h-5 mr-2" />Add Bank
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -333,7 +316,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
               {/* Add Card Form */}
               <AnimatePresence>
-                {showAddCard && (addMode === 'bank' || (stripePromise && clientSecret)) && (
+                {showAddCard && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                     <Card className="bg-white/5 border-white/10">
                       <CardContent className="p-6">
@@ -344,24 +327,19 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                         {addMode === 'bank' ? (
                           <ManualBankPaymentForm currentUser={currentUser} saving={savingBank} onSave={handleSaveManualBank} onCancel={() => setShowAddCard(false)} />
                         ) : (
-                          <Elements stripe={stripePromise} options={{ clientSecret }}>
-                           <StripeCardForm
-                             clientSecret={clientSecret}
-                             currentUser={currentUser}
-                             onSuccess={(savedMethod) => {
-                               setShowAddCard(false);
-                               setClientSecret(null);
-                               // Optimistically add to cache immediately, then re-fetch
-                               if (savedMethod) {
-                                 queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) => 
-                                   [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
-                                 );
-                               }
-                               queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
-                             }}
-                             onCancel={() => { setShowAddCard(false); setClientSecret(null); }}
-                           />
-                          </Elements>
+                          <DirectCardForm
+                            currentUser={currentUser}
+                            onSuccess={(savedMethod) => {
+                              setShowAddCard(false);
+                              if (savedMethod) {
+                                queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>
+                                  [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
+                                );
+                              }
+                              queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+                            }}
+                            onCancel={() => setShowAddCard(false)}
+                          />
                         )}
                       </CardContent>
                     </Card>
