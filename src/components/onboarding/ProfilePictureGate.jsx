@@ -23,7 +23,12 @@ function UsernameStep({ user, onComplete }) {
     let lastErr = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        await base44.auth.updateMe({ username: username.toLowerCase() });
+        // Set username. Also zero-out soflo_coins if not already set to prevent phantom balances
+        const updatePayload = { username: username.toLowerCase() };
+        if (user?.soflo_coins === undefined || user?.soflo_coins === null) {
+          updatePayload.soflo_coins = 0;
+        }
+        await base44.auth.updateMe(updatePayload);
         onComplete();
         return;
       } catch (err) {

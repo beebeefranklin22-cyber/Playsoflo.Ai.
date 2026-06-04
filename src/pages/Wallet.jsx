@@ -18,7 +18,6 @@ import RequestMoneyModal from "../components/wallet/RequestMoneyModal";
 import RequestRefundModal from "../components/wallet/RequestRefundModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
 import CardManagementModal from "../components/wallet/CardManagementModal";
-import BankAccountModal from "../components/wallet/BankAccountModal";
 import AddMoneyModal from "../components/wallet/AddMoneyModal";
 import WithdrawModal from "../components/wallet/WithdrawModal";
 import SubscriptionManagementModal from "../components/wallet/SubscriptionManagementModal";
@@ -1015,7 +1014,7 @@ export default function Wallet() {
         <CardManagementModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'banks' && currentUser && (
-        <BankAccountModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+        <PaymentMethodsManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'subscription' && currentUser && (
         <SubscriptionManagementModal currentUser={currentUser} onClose={() => setActiveModal(null)} />

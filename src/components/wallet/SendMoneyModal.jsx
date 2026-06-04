@@ -20,21 +20,13 @@ export default function SendMoneyModal({ currentUser, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const queryClient = useQueryClient();
 
-  // Search for users by username or phone number
+  // Search for users by username or name using backend searchUsers function
   const { data: searchResults = [] } = useQuery({
     queryKey: ['user-search', searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
-      const users = await base44.entities.User.filter({});
-      return users.filter(u => {
-        if (u.email === currentUser.email) return false; // exclude self
-        const q = searchQuery.toLowerCase().replace(/^@/, '');
-        return (
-          u.username?.toLowerCase().includes(q) ||
-          u.phone?.includes(searchQuery) ||
-          u.full_name?.toLowerCase().includes(q)
-        );
-      }).slice(0, 5);
+      const { data } = await base44.functions.invoke('searchUsers', { query: searchQuery });
+      return (data?.users || []).filter(u => u.email !== currentUser.email).slice(0, 8);
     },
     enabled: searchQuery.length >= 2
   });
