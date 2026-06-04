@@ -251,7 +251,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             ))}
           </div>
 
-          <div className="space-y-3 overflow-y-auto flex-1 px-4 pb-3 text-sm" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'scroll', minHeight: 0 }}>
+          <div className="space-y-3 overflow-y-auto flex-1 px-4 text-sm" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'scroll', minHeight: 0, paddingBottom: '0' }}>
             {step === 1 && (
               <>
                 <div>
@@ -1150,50 +1150,51 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
               </>
             )}
-          </div>
 
-          <div className="flex gap-3 px-5 py-4 flex-shrink-0 border-t border-white/10">
-            {step > 1 && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  triggerHaptic('light');
-                  setStep(step - 1);
-                }} 
-                className="flex-1 min-h-[44px]"
-              >
-                Back
-              </Button>
-            )}
-            {step < 5 ? (
-              <Button 
-                onClick={() => {
-                  triggerHaptic('light');
-                  setStep(step + 1);
-                }} 
-                className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
-              >
-                Next Step
-              </Button>
-            ) : (
-              <Button
-                onClick={() => {
-                  triggerHaptic('medium');
-                  handleSubmit();
-                }}
-                disabled={createExperienceMutation.isPending || uploading}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
-              >
-                {createExperienceMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Publishing...
-                  </>
-                ) : (
-                  'Publish Experience'
-                )}
-              </Button>
-            )}
+            {/* Navigation buttons inside scroll area so they're always reachable */}
+            <div className="flex gap-3 pt-3 pb-6 border-t border-white/10 mt-2">
+              {step > 1 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setStep(step - 1);
+                  }} 
+                  className="flex-1 min-h-[44px]"
+                >
+                  Back
+                </Button>
+              )}
+              {step < 5 ? (
+                <Button 
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setStep(step + 1);
+                  }} 
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
+                >
+                  Next Step
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    handleSubmit();
+                  }}
+                  disabled={createExperienceMutation.isPending || uploading}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 min-h-[44px]"
+                >
+                  {createExperienceMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    'Publish Experience'
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </motion.div>
       </motion.div>
