@@ -133,7 +133,7 @@ export default function VideoComments({ contentId }) {
       {/* Header */}
       <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2 flex-shrink-0">
         <MessageCircle className="w-4 h-4 text-purple-400" />
-        <span className="text-white font-bold text-sm">Live Comments</span>
+        <span className="text-white font-bold text-sm">Comments</span>
         <span className="ml-auto text-gray-500 text-xs">{comments.length}</span>
       </div>
 

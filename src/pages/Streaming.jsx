@@ -7,7 +7,7 @@ import {
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
   Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
    Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck,
-   Heart, Bookmark, Share2
+   Heart, Bookmark, Share2, MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,7 @@ import PostStreamEditor from "../components/livestream/PostStreamEditor";
 import StreamingActionPanel from "../components/streaming/StreamingActionPanel";
 import StreamingContentRail from "../components/streaming/StreamingContentRail";
 import StreamingTips from "../components/streaming/StreamingTips";
+import VideoComments from "../components/streaming/VideoComments";
 import { toggleStreamingEngagement } from "@/functions/toggleStreamingEngagement";
 
 const CATEGORIES = [
@@ -72,6 +73,7 @@ export default function Streaming() {
   const [processing, setProcessing] = useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [confirmedPurchase, setConfirmedPurchase] = useState(null);
+  const [commentsOpenId, setCommentsOpenId] = useState(null);
 
   // Upload state
   const [uploadData, setUploadData] = useState({
@@ -916,9 +918,9 @@ export default function Streaming() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => handleContentClick(item)}
-                  className="cursor-pointer group"
+                  className="cursor-pointer group rounded-xl overflow-hidden bg-gray-900"
                 >
-                  <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900">
+                  <div className="relative aspect-[2/3] bg-gray-900">
                     {item.thumbnail_url ? (
                       <img
                         src={item.thumbnail_url}
@@ -1001,6 +1003,31 @@ export default function Streaming() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Comment toggle button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setCommentsOpenId(commentsOpenId === item.id ? null : item.id); }}
+                    className="w-full flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 transition text-gray-400 hover:text-white text-xs font-medium"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Comments
+                  </button>
+
+                  {/* Inline comments panel */}
+                  <AnimatePresence>
+                    {commentsOpenId === item.id && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 340, opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        className="overflow-hidden bg-[#111] border-t border-white/10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <VideoComments contentId={item.id} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               ))}
             </AnimatePresence>
