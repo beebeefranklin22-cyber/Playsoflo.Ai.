@@ -215,7 +215,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl"
         onClick={onClose}
       >
         <motion.div
@@ -224,7 +224,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
           exit={{ y: "100%", scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col my-0 sm:my-4"
+          className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-2xl flex flex-col"
           style={{ maxHeight: '90vh', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex items-center justify-between px-5 pt-5 pb-0 flex-shrink-0">
@@ -251,11 +251,11 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             ))}
           </div>
 
-          <div className="space-y-4 overflow-y-auto flex-1 px-5 pb-3" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-3 overflow-y-auto flex-1 px-4 pb-3 text-sm" style={{ WebkitOverflowScrolling: 'touch' }}>
             {step === 1 && (
               <>
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Experience Title *</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Experience Title *</label>
                   <Input
                     value={experience.title}
                     onChange={(e) => setExperience({ ...experience, title: e.target.value })}
@@ -265,7 +265,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Category *</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Category *</label>
                   <MobileSelect 
                     value={experience.category} 
                     onValueChange={(v) => {
@@ -310,19 +310,19 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Description *</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Description *</label>
                   <Textarea
                     value={experience.description}
                     onChange={(e) => setExperience({ ...experience, description: e.target.value })}
                     placeholder="Describe your experience in detail..."
-                    rows={4}
+                    rows={3}
                     className="bg-white/10 border-white/20 text-white"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-white font-semibold mb-2 block">Base Price (USD) *</label>
+                    <label className="text-white font-medium mb-1 block text-xs">Base Price (USD) *</label>
                     <Input
                       type="number"
                       value={experience.price}
@@ -332,7 +332,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white font-semibold mb-2 block">Duration (minutes)</label>
+                    <label className="text-white font-medium mb-1 block text-xs">Duration (minutes)</label>
                     <Input
                       type="number"
                       value={experience.duration_minutes}
@@ -343,7 +343,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Contact Phone</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Contact Phone</label>
                   <Input
                     value={experience.provider_phone}
                     onChange={(e) => setExperience({ ...experience, provider_phone: e.target.value })}
@@ -357,7 +357,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             {step === 2 && (
               <>
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Main Cover Photo *</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Main Cover Photo *</label>
                   {experience.image_url && (
                     <img src={experience.image_url} className="w-full h-48 object-cover rounded-lg mb-3 border-2 border-purple-500" />
                   )}
@@ -381,7 +381,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Gallery Photos</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Gallery Photos</label>
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     {experience.gallery_images.map((img, idx) => (
                       <div key={idx} className="relative">
@@ -422,7 +422,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Venue Name</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Venue Name</label>
                   <Input
                     value={experience.venue_name}
                     onChange={(e) => setExperience({ ...experience, venue_name: e.target.value })}
@@ -432,7 +432,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Venue Address</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Venue Address</label>
                   <Input
                     value={experience.venue_address}
                     onChange={(e) => setExperience({ ...experience, venue_address: e.target.value })}
@@ -452,7 +452,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white font-semibold mb-2 block">State</label>
+                    <label className="text-white font-medium mb-1 block text-xs">State</label>
                     <Input
                       value={experience.venue_state}
                       onChange={(e) => setExperience({ ...experience, venue_state: e.target.value })}
@@ -461,7 +461,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white font-semibold mb-2 block">Zipcode</label>
+                    <label className="text-white font-medium mb-1 block text-xs">Zipcode</label>
                     <Input
                       value={experience.venue_zipcode}
                       onChange={(e) => setExperience({ ...experience, venue_zipcode: e.target.value })}
@@ -472,7 +472,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Included Amenities</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Included Amenities</label>
                   <div className="flex gap-2 mb-3">
                     <Input
                       value={newAmenity}
@@ -599,7 +599,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 )}
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Availability Type</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Availability Type</label>
                   <MobileSelect 
                     value={experience.availability_type} 
                     onValueChange={(v) => {
@@ -1086,28 +1086,28 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Cancellation Policy</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Cancellation Policy</label>
                   <Textarea
                     value={experience.cancellation_policy}
                     onChange={(e) => setExperience({ ...experience, cancellation_policy: e.target.value })}
-                    rows={3}
+                    rows={2}
                     className="bg-white/10 border-white/20 text-white"
                   />
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Refund Policy</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Refund Policy</label>
                   <Textarea
                     value={experience.refund_policy}
                     onChange={(e) => setExperience({ ...experience, refund_policy: e.target.value })}
-                    rows={3}
+                    rows={2}
                     className="bg-white/10 border-white/20 text-white"
                   />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-white font-semibold mb-2 block">Age Restriction</label>
+                    <label className="text-white font-medium mb-1 block text-xs">Age Restriction</label>
                     <Input
                       value={experience.age_restriction}
                       onChange={(e) => setExperience({ ...experience, age_restriction: e.target.value })}
@@ -1115,7 +1115,7 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                     />
                   </div>
                   <div>
-                    <label className="text-white font-semibold mb-2 block">Dress Code</label>
+                    <label className="text-white font-medium mb-1 block text-xs">Dress Code</label>
                     <Input
                       value={experience.dress_code}
                       onChange={(e) => setExperience({ ...experience, dress_code: e.target.value })}
@@ -1125,12 +1125,12 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
                 </div>
 
                 <div>
-                  <label className="text-white font-semibold mb-2 block">Special Requirements</label>
+                  <label className="text-white font-medium mb-1 block text-xs">Special Requirements</label>
                   <Textarea
                     value={experience.special_requirements}
                     onChange={(e) => setExperience({ ...experience, special_requirements: e.target.value })}
                     placeholder="Any special requirements or notes..."
-                    rows={3}
+                    rows={2}
                     className="bg-white/10 border-white/20 text-white"
                   />
                 </div>
