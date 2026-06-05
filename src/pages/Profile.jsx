@@ -480,8 +480,6 @@ export default function Profile() {
           <TabsList className="bg-white/10 border border-white/20 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="business">Business Hub</TabsTrigger>
-            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
-            <TabsTrigger value="gallery">Gallery</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -652,22 +650,6 @@ export default function Profile() {
                 const user = await base44.auth.me();
                 setCurrentUser(user);
               }}
-            />
-          </TabsContent>
-
-          <TabsContent value="portfolio" className="space-y-4">
-            <PortfolioSection 
-              userEmail={currentUser?.email} 
-              isOwnProfile={true} 
-              currentUser={currentUser} 
-            />
-          </TabsContent>
-
-          <TabsContent value="gallery" className="space-y-4">
-            <GallerySection 
-              userEmail={currentUser?.email} 
-              isOwnProfile={true} 
-              currentUser={currentUser} 
             />
           </TabsContent>
 
