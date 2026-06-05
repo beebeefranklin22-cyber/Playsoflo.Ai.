@@ -9,9 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Upload, X, Shield, CheckCircle, AlertCircle,
-  Award, FileText, Calendar, TrendingUp, Plus, User, List,
-  DollarSign, Star, Users, CreditCard, Loader2, Sparkles, Clock
+  Upload, X, Shield, CheckCircle, AlertCircle, Award, FileText, Calendar,
+  TrendingUp, Plus, User, List, DollarSign, Star, CreditCard, Loader2,
+  Sparkles, Clock, LayoutDashboard, Briefcase, MessageSquare, Settings,
+  Video, BarChart3, Package, ChevronDown, ChevronUp, Save, Building2
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -42,6 +43,44 @@ import NotificationPreferences from "../components/provider/NotificationPreferen
 import RealtimeNotifications from "../components/provider/RealtimeNotifications";
 import MultiAssetDashboard from "../components/provider/MultiAssetDashboard";
 
+const TABS = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "assets", label: "Assets", icon: Package },
+  { id: "services", label: "Services", icon: Briefcase },
+  { id: "requests", label: "Requests", icon: Calendar, badge: true },
+  { id: "messages", label: "Messages", icon: MessageSquare, badge: true },
+  { id: "earnings", label: "Earnings", icon: DollarSign },
+  { id: "availability", label: "Availability", icon: Clock },
+  { id: "verification", label: "Verification", icon: Shield },
+  { id: "contracts", label: "Contracts", icon: FileText },
+  { id: "video-editor", label: "Video Editor", icon: Video },
+  { id: "profile", label: "Profile", icon: User },
+  { id: "settings", label: "Settings", icon: Settings },
+];
+
+const rentalCategories = [
+  "property_rental", "equipment_rental", "yacht_charter",
+  "private_aviation", "bounce_house_rental", "party_rental", "photo_booth_rental"
+];
+const isRentalCategory = (c) => rentalCategories.includes(c);
+
+const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+const statusColors = {
+  pending: "bg-yellow-500/15 text-yellow-300 border-yellow-500/30",
+  verified: "bg-green-500/15 text-green-300 border-green-500/30",
+  rejected: "bg-red-500/15 text-red-300 border-red-500/30",
+  expired: "bg-gray-500/15 text-gray-300 border-gray-500/30"
+};
+const statusIcons = { pending: Clock, verified: CheckCircle, rejected: AlertCircle, expired: AlertCircle };
+const verificationLevelColors = {
+  none: "from-gray-600 to-gray-700",
+  basic: "from-blue-600 to-blue-700",
+  standard: "from-green-600 to-green-700",
+  premium: "from-purple-600 to-purple-700",
+  elite: "from-yellow-500 to-yellow-600"
+};
+
 export default function ProviderHub() {
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -49,77 +88,34 @@ export default function ProviderHub() {
   const [userLoaded, setUserLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [availabilityForm, setAvailabilityForm] = useState({
-    day_of_week: "monday",
-    is_available: true,
-    start_time: "09:00",
-    end_time: "17:00",
-    break_start: "",
-    break_end: "",
-    slot_duration_minutes: 60
+    day_of_week: "monday", is_available: true,
+    start_time: "09:00", end_time: "17:00",
+    break_start: "", break_end: "", slot_duration_minutes: 60
   });
-
-  const { data: myServices = [] } = useQuery({
-    queryKey: ["my-services"],
-    queryFn: () => base44.entities.MarketplaceItem.list(),
-    initialData: []
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [stripeOnboarding, setStripeOnboarding] = useState(false);
+  const [brand, setBrand] = useState({ provider_brand_name: "", provider_description: "", provider_logo_url: "" });
+  const [profileForm, setProfileForm] = useState({
+    provider_business_name: "", provider_phone: "", provider_business_address: "",
+    provider_website: "", provider_years_experience: ""
   });
-
-  const { data: myBookings = [] } = useQuery({
-    queryKey: ["provider-bookings"],
-    queryFn: async () => {
-      if (!currentUser) return [];
-      return await base44.entities.ServiceBooking.filter({
-        provider_email: currentUser.email
-      });
-    },
-    enabled: !!currentUser,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60000,
-    initialData: []
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showNewServiceForm, setShowNewServiceForm] = useState(false);
+  const [form, setForm] = useState({
+    title: "", category: "consulting", price: 100, price_type: "fixed",
+    image_url: "", description: "", escrow_required: false,
+    portfolio_images: [], variations: [], add_ons: [],
+    is_rental: false, rental_details: {}, blocked_dates: []
   });
-
-  const { data: unreadMessages = 0 } = useQuery({
-    queryKey: ['provider-unread-messages', currentUser?.email],
-    queryFn: async () => {
-      const messages = await base44.entities.DirectMessage.filter({
-        recipient_email: currentUser.email,
-        read: false
-      });
-      return messages.length;
-    },
-    enabled: !!currentUser,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60000
-  });
-
-  const { data: unreadBookingRequests = 0 } = useQuery({
-    queryKey: ['provider-unread-bookings', currentUser?.email],
-    queryFn: async () => {
-      const notifications = await base44.entities.Notification.filter({
-        recipient_email: currentUser.email,
-        type: 'booking_request',
-        read: false
-      });
-      return notifications.length;
-    },
-    enabled: !!currentUser,
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    staleTime: 60000
-  });
-
-  const { data: availability = [] } = useQuery({
-    queryKey: ["my-availability"],
-    queryFn: async () => {
-      if (!currentUser) return [];
-      return await base44.entities.ProviderAvailability.filter({
-        provider_email: currentUser.email
-      });
-    },
-    enabled: !!currentUser,
-    initialData: []
+  const [sortBy, setSortBy] = useState("created_date");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [generatingPricing, setGeneratingPricing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editData, setEditData] = useState(null);
+  const [verificationForm, setVerificationForm] = useState({
+    verification_type: "background_check", license_number: "",
+    issuing_authority: "", issue_date: "", expiration_date: "", document_urls: []
   });
 
   useEffect(() => {
@@ -127,100 +123,12 @@ export default function ProviderHub() {
       try {
         const user = await base44.auth.me();
         setCurrentUser(user);
-        if (!user.is_provider) {
-          await base44.auth.updateMe({ is_provider: true });
-        }
-      } catch (error) {
-        console.log("Error loading user:", error);
-        setCurrentUser(null);
-      } finally {
-        setUserLoaded(true);
-      }
+        if (!user.is_provider) await base44.auth.updateMe({ is_provider: true });
+      } catch { setCurrentUser(null); }
+      finally { setUserLoaded(true); }
     };
     loadUser();
   }, []);
-
-  const { data: verifications = [] } = useQuery({
-    queryKey: ["my-verifications"],
-    queryFn: async () => {
-      if (!currentUser) return [];
-      return await base44.entities.ProviderVerification.filter({
-        provider_email: currentUser.email
-      });
-    },
-    enabled: !!currentUser,
-    initialData: []
-  });
-
-  const [verificationForm, setVerificationForm] = useState({
-    verification_type: "background_check",
-    license_number: "",
-    issuing_authority: "",
-    issue_date: "",
-    expiration_date: "",
-    document_urls: []
-  });
-
-  const submitVerificationMutation = useMutation({
-    mutationFn: async (data) => {
-      return await base44.entities.ProviderVerification.create({
-        ...data,
-        provider_email: currentUser.email
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-verifications"] });
-      toast.success("Verification request submitted! We'll review it within 24-48 hours.");
-      setVerificationForm({
-        verification_type: "background_check",
-        license_number: "",
-        issuing_authority: "",
-        issue_date: "",
-        expiration_date: "",
-        document_urls: []
-      });
-    }
-  });
-
-  const handleDocumentUpload = async (file) => {
-    if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setVerificationForm((prev) => ({
-      ...prev,
-      document_urls: [...(prev.document_urls || []), file_url]
-    }));
-  };
-
-  const verifiedCount = verifications.filter(v => v.status === "verified").length;
-  const overallTrustScore = verifiedCount > 0
-    ? Math.min(50 + (verifiedCount * 15), 100)
-    : 0;
-
-  const verificationLevelColors = {
-    none: "from-gray-500 to-gray-600",
-    basic: "from-blue-500 to-blue-600",
-    standard: "from-green-500 to-green-600",
-    premium: "from-purple-500 to-purple-600",
-    elite: "from-yellow-500 to-yellow-600"
-  };
-
-  const statusColors = {
-    pending: "bg-yellow-100 text-yellow-800",
-    verified: "bg-green-100 text-green-800",
-    rejected: "bg-red-100 text-red-800",
-    expired: "bg-gray-100 text-gray-800"
-  };
-
-  const statusIcons = {
-    pending: Clock,
-    verified: CheckCircle,
-    rejected: AlertCircle,
-    expired: AlertCircle
-  };
-
-  const [brand, setBrand] = useState({ provider_brand_name: "", provider_description: "", provider_logo_url: "" });
-  const [stripeOnboarding, setStripeOnboarding] = useState(false);
-  const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -229,49 +137,15 @@ export default function ProviderHub() {
         provider_description: currentUser.provider_description || "",
         provider_logo_url: currentUser.provider_logo_url || ""
       });
+      setProfileForm({
+        provider_business_name: currentUser.provider_business_name || "",
+        provider_phone: currentUser.provider_phone || "",
+        provider_business_address: currentUser.provider_business_address || "",
+        provider_website: currentUser.provider_website || "",
+        provider_years_experience: currentUser.provider_years_experience || ""
+      });
     }
   }, [currentUser]);
-
-  const createStripeAccountMutation = useMutation({
-    mutationFn: async () => {
-      const response = await base44.functions.invoke('createConnectedAccount', {
-        email: currentUser.email,
-        businessName: currentUser.provider_business_name || currentUser.full_name,
-        country: 'US'
-      });
-      await base44.auth.updateMe({ stripe_account_id: response.data.accountId });
-      return response.data.accountId;
-    },
-    onSuccess: async (accountId) => {
-      const linkResponse = await base44.functions.invoke('createAccountLink', {
-        accountId,
-        returnUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=success`,
-        refreshUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=refresh`
-      });
-      window.location.href = linkResponse.data.url;
-    },
-    onError: (error) => {
-      toast.error('Failed to create Stripe account: ' + error.message);
-      setStripeOnboarding(false);
-    }
-  });
-
-  const checkStripeStatusMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentUser?.stripe_account_id) return null;
-      const response = await base44.functions.invoke('getAccountStatus', {
-        account_id: currentUser.stripe_account_id
-      });
-      return response.data;
-    },
-    onSuccess: (data) => {
-      if (data?.charges_enabled) {
-        toast.success('Stripe account verified and ready!');
-      } else {
-        toast.info('Complete your Stripe onboarding to receive payments');
-      }
-    }
-  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -281,725 +155,767 @@ export default function ProviderHub() {
     }
   }, [currentUser]);
 
+  const { data: myServices = [] } = useQuery({
+    queryKey: ["my-services"],
+    queryFn: () => base44.entities.MarketplaceItem.list(),
+    initialData: []
+  });
+
+  const { data: unreadMessages = 0 } = useQuery({
+    queryKey: ['provider-unread-messages', currentUser?.email],
+    queryFn: async () => {
+      const msgs = await base44.entities.DirectMessage.filter({ recipient_email: currentUser.email, read: false });
+      return msgs.length;
+    },
+    enabled: !!currentUser, staleTime: 60000, refetchOnWindowFocus: false
+  });
+
+  const { data: unreadBookingRequests = 0 } = useQuery({
+    queryKey: ['provider-unread-bookings', currentUser?.email],
+    queryFn: async () => {
+      const notifs = await base44.entities.Notification.filter({ recipient_email: currentUser.email, type: 'booking_request', read: false });
+      return notifs.length;
+    },
+    enabled: !!currentUser, staleTime: 60000, refetchOnWindowFocus: false
+  });
+
+  const { data: availability = [] } = useQuery({
+    queryKey: ["my-availability"],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.ProviderAvailability.filter({ provider_email: currentUser.email });
+    },
+    enabled: !!currentUser, initialData: []
+  });
+
+  const { data: verifications = [] } = useQuery({
+    queryKey: ["my-verifications"],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.ProviderVerification.filter({ provider_email: currentUser.email });
+    },
+    enabled: !!currentUser, initialData: []
+  });
+
+  const verifiedCount = verifications.filter(v => v.status === "verified").length;
+  const overallTrustScore = verifiedCount > 0 ? Math.min(50 + verifiedCount * 15, 100) : 0;
+  const trustScore = currentUser?.provider_trust_score || overallTrustScore;
+  const verificationLevel = currentUser?.provider_verification_level && currentUser.provider_verification_level !== "none"
+    ? currentUser.provider_verification_level : null;
+
+  const createStripeAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await base44.functions.invoke('createConnectedAccount', {
+        email: currentUser.email,
+        businessName: currentUser.provider_business_name || currentUser.full_name,
+        country: 'US'
+      });
+      await base44.auth.updateMe({ stripe_account_id: res.data.accountId });
+      return res.data.accountId;
+    },
+    onSuccess: async (accountId) => {
+      const linkRes = await base44.functions.invoke('createAccountLink', {
+        accountId,
+        returnUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=success`,
+        refreshUrl: `${window.location.origin}${createPageUrl('ProviderHub')}?onboarding=refresh`
+      });
+      window.location.href = linkRes.data.url;
+    },
+    onError: (err) => { toast.error('Failed to create Stripe account: ' + err.message); setStripeOnboarding(false); }
+  });
+
+  const checkStripeStatusMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUser?.stripe_account_id) return null;
+      const res = await base44.functions.invoke('getAccountStatus', { account_id: currentUser.stripe_account_id });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (data?.charges_enabled) toast.success('Stripe account verified and ready!');
+      else toast.info('Complete your Stripe onboarding to receive payments');
+    }
+  });
+
   const saveBrand = async () => {
     await base44.auth.updateMe(brand);
-    const updatedUser = await base44.auth.me();
-    setCurrentUser(updatedUser);
+    const u = await base44.auth.me();
+    setCurrentUser(u);
     toast.success("Brand profile saved!");
   };
 
-  const [form, setForm] = useState({
-    title: "",
-    category: "consulting",
-    price: 100,
-    price_type: "fixed",
-    image_url: "",
-    description: "",
-    escrow_required: false,
-    portfolio_images: [],
-    variations: [],
-    add_ons: [],
-    is_rental: false,
-    rental_details: {},
-    blocked_dates: []
-  });
-  
-  const [sortBy, setSortBy] = useState("created_date");
-  const [filterCategory, setFilterCategory] = useState("all");
-
-  const rentalCategories = [
-    "property_rental", "equipment_rental", "yacht_charter", 
-    "private_aviation", "bounce_house_rental", "party_rental",
-    "photo_booth_rental"
-  ];
-
-  const isRentalCategory = (category) => rentalCategories.includes(category);
-
-  const [generatingDescription, setGeneratingDescription] = useState(false);
-  const [generatingPricing, setGeneratingPricing] = useState(false);
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await base44.auth.updateMe({
+        ...profileForm,
+        provider_years_experience: profileForm.provider_years_experience ? Number(profileForm.provider_years_experience) : undefined
+      });
+      const u = await base44.auth.me();
+      setCurrentUser(u);
+      toast.success("Profile saved!");
+    } finally { setSavingProfile(false); }
+  };
 
   const generateDescription = async () => {
-    if (!form.title || !form.category) {
-      toast.error('Please enter a title and category first');
-      return;
-    }
+    if (!form.title || !form.category) { toast.error('Enter a title and category first'); return; }
     setGeneratingDescription(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an expert service provider copywriter. Create a compelling, professional service description for the following:\n\nService Title: ${form.title}\nCategory: ${form.category}\n\nThe description should:\n- Be 2-3 sentences long\n- Highlight the key benefits to customers\n- Sound professional yet approachable\n- Include relevant details about what's included\n- End with a call to action\n\nGenerate only the description text, nothing else.`,
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Write a compelling 2-3 sentence service description for:\nService: ${form.title}\nCategory: ${form.category}\nHighlight key benefits, sound professional and approachable, end with a call to action. Return only the description text.`,
         add_context_from_internet: false
       });
-      setForm({ ...form, description: response });
+      setForm(f => ({ ...f, description: res }));
       toast.success('Description generated!');
-    } catch (error) {
-      toast.error('Failed to generate description');
-    } finally {
-      setGeneratingDescription(false);
-    }
+    } catch { toast.error('Failed to generate description'); }
+    finally { setGeneratingDescription(false); }
   };
 
   const suggestPricing = async () => {
-    if (!form.title || !form.category) {
-      toast.error('Please enter a title and category first');
-      return;
-    }
+    if (!form.title || !form.category) { toast.error('Enter a title and category first'); return; }
     setGeneratingPricing(true);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a pricing expert for service marketplaces. Based on market trends and industry standards, suggest an optimal price for:\n\nService: ${form.title}\nCategory: ${form.category}\nCurrent Price Type: ${form.price_type}\n\nRespond with ONLY a single number (the suggested price in USD). No explanation, just the number.`,
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Suggest an optimal price (USD) for:\nService: ${form.title}\nCategory: ${form.category}\nPricing type: ${form.price_type}\nRespond with ONLY a single number.`,
         add_context_from_internet: true
       });
-      const suggestedPrice = parseFloat(response.trim());
-      if (!isNaN(suggestedPrice)) {
-        setForm({ ...form, price: suggestedPrice });
-        toast.success(`Suggested price: $${suggestedPrice}`);
-      }
-    } catch (error) {
-      toast.error('Failed to generate pricing suggestion');
-    } finally {
-      setGeneratingPricing(false);
-    }
+      const price = parseFloat(res.trim());
+      if (!isNaN(price)) { setForm(f => ({ ...f, price })); toast.success(`AI suggests: $${price}`); }
+    } catch { toast.error('Failed to suggest pricing'); }
+    finally { setGeneratingPricing(false); }
   };
 
   const handleUploadCoverImage = async (file) => {
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm((prev) => ({ ...prev, image_url: file_url }));
+    setForm(f => ({ ...f, image_url: file_url }));
   };
 
   const handleUploadPortfolioImage = async (file) => {
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm((prev) => ({ ...prev, portfolio_images: [...(prev.portfolio_images || []), file_url] }));
-  };
-
-  const createMutation = useMutation({
-    mutationFn: async (data) => {
-      if (data.category === "logistics" && !currentUser?.business_verified) {
-        toast.error("Only verified businesses can offer Logistics. Please verify your business in your profile.");
-        return Promise.reject("Not verified for logistics");
-      }
-      const serviceData = {
-        ...data,
-        provider_email: currentUser.email,
-        provider_name: currentUser.provider_business_name || currentUser.full_name,
-        verified_provider: verifiedCount > 0,
-        availability: "available",
-        rating: 5.0,
-        reviews_count: 0,
-        response_time: "within 1 hour"
-      };
-      return base44.entities.MarketplaceItem.create(serviceData);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-services"] });
-      qc.invalidateQueries({ queryKey: ["marketplace-items"] });
-      setForm({ 
-        title: "", category: "consulting", price: 100, price_type: "fixed", 
-        image_url: "", description: "", escrow_required: false, 
-        portfolio_images: [], variations: [], add_ons: [],
-        is_rental: false, rental_details: {}, blocked_dates: []
-      });
-      toast.success("Service published and live in marketplace!");
-    },
-    onError: (error) => {
-      if (error !== "Not verified for logistics") {
-        toast.error("Failed to publish service: " + error.message);
-      }
-    }
-  });
-
-  const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState(null);
-  const [generatingPackage, setGeneratingPackage] = useState(false);
-  const [generatedPackages, setGeneratedPackages] = useState([]);
-  const [showPackages, setShowPackages] = useState(false);
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.MarketplaceItem.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-services"] });
-      setEditingId(null);
-      setEditData(null);
-      toast.success("Service updated!");
-    }
-  });
-
-  const startEdit = (service) => {
-    setEditingId(service.id);
-    setEditData({
-      price: service.price || 0,
-      price_type: service.price_type || "fixed",
-      image_url: service.image_url || "",
-      portfolio_images: service.portfolio_images || [],
-      variations: service.variations || [],
-      add_ons: service.add_ons || [],
-      is_rental: service.is_rental || false,
-      rental_details: service.rental_details || {},
-      blocked_dates: service.blocked_dates || []
-    });
+    setForm(f => ({ ...f, portfolio_images: [...(f.portfolio_images || []), file_url] }));
   };
 
   const handleUploadEditCoverImage = async (file) => {
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setEditData((prev) => ({ ...prev, image_url: file_url }));
+    setEditData(d => ({ ...d, image_url: file_url }));
   };
 
-  const handleUploadEditPortfolioImage = async (file) => {
+  const handleDocumentUpload = async (file) => {
     if (!file) return;
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setEditData((prev) => ({ ...prev, portfolio_images: [...(prev.portfolio_images || []), file_url] }));
+    setVerificationForm(f => ({ ...f, document_urls: [...(f.document_urls || []), file_url] }));
   };
+
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      if (data.category === "logistics" && !currentUser?.business_verified) {
+        toast.error("Only verified businesses can offer Logistics.");
+        return Promise.reject("Not verified for logistics");
+      }
+      return base44.entities.MarketplaceItem.create({
+        ...data,
+        provider_email: currentUser.email,
+        provider_name: currentUser.provider_business_name || currentUser.full_name,
+        verified_provider: verifiedCount > 0,
+        availability: "available", rating: 5.0, reviews_count: 0, response_time: "within 1 hour"
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-services"] });
+      qc.invalidateQueries({ queryKey: ["marketplace-items"] });
+      setForm({ title: "", category: "consulting", price: 100, price_type: "fixed", image_url: "", description: "", escrow_required: false, portfolio_images: [], variations: [], add_ons: [], is_rental: false, rental_details: {}, blocked_dates: [] });
+      setShowNewServiceForm(false);
+      toast.success("Service published to marketplace!");
+    },
+    onError: (err) => { if (err !== "Not verified for logistics") toast.error("Failed to publish: " + err.message); }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.MarketplaceItem.update(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["my-services"] }); setEditingId(null); setEditData(null); toast.success("Service updated!"); }
+  });
+
+  const submitVerificationMutation = useMutation({
+    mutationFn: async (data) => base44.entities.ProviderVerification.create({ ...data, provider_email: currentUser.email }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-verifications"] });
+      toast.success("Verification submitted! We'll review within 24-48 hours.");
+      setVerificationForm({ verification_type: "background_check", license_number: "", issuing_authority: "", issue_date: "", expiration_date: "", document_urls: [] });
+    }
+  });
 
   const saveAvailabilityMutation = useMutation({
     mutationFn: async (data) => {
       const existing = availability.find(a => a.day_of_week === data.day_of_week);
-      if (existing) {
-        return await base44.entities.ProviderAvailability.update(existing.id, data);
-      }
-      return await base44.entities.ProviderAvailability.create({
-        ...data,
-        provider_email: currentUser.email
-      });
+      if (existing) return await base44.entities.ProviderAvailability.update(existing.id, data);
+      return await base44.entities.ProviderAvailability.create({ ...data, provider_email: currentUser.email });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["my-availability"] });
-      toast.success("Availability saved!");
-    }
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["my-availability"] }); toast.success("Availability saved!"); }
   });
 
-  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const startEdit = (s) => {
+    setEditingId(s.id);
+    setEditData({ price: s.price || 0, price_type: s.price_type || "fixed", image_url: s.image_url || "", portfolio_images: s.portfolio_images || [], variations: s.variations || [], add_ons: s.add_ons || [], is_rental: s.is_rental || false, rental_details: s.rental_details || {}, blocked_dates: s.blocked_dates || [] });
+  };
 
   if (!userLoaded) return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 flex items-center justify-center">
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-white text-lg">Loading Provider Hub...</p>
+        <div className="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-white font-medium">Loading Provider Hub...</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-blue-950 to-gray-950 p-6 pb-20">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Provider Hub</h1>
-            <p className="text-gray-400 text-sm mt-1">Manage your services, bookings, and earnings</p>
-          </div>
-          <Link to={createPageUrl("ProviderProfile")}>
-            <Button variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 w-full sm:w-auto">
-              <Shield className="w-4 h-4 mr-2" />
-              View Public Profile
-            </Button>
-          </Link>
-        </div>
-
-        {currentUser && !currentUser.provider_onboarding_completed && (
-          <Card className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-purple-500/30 mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white text-lg font-bold mb-1">Complete Your Provider Setup</h3>
-                    <p className="text-gray-300 text-sm">Get started in just 5 easy steps - set up your profile, availability, and first service!</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => navigate(createPageUrl("ProviderOnboarding"))}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Start Onboarding
-                </Button>
+    <div className="min-h-screen bg-gray-950 pb-24">
+      {/* Header */}
+      <div className="border-b border-white/10 bg-gray-950/80 backdrop-blur-xl sticky top-16 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                <Briefcase className="w-6 h-6 text-white" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <h1 className="text-xl font-bold text-white">Provider Hub</h1>
+                <p className="text-gray-400 text-xs mt-0.5">{currentUser?.provider_business_name || currentUser?.full_name}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setActiveTab("services")} size="sm" className="bg-purple-600 hover:bg-purple-700 gap-2">
+                <Plus className="w-4 h-4" />Add Service
+              </Button>
+              <Link to={createPageUrl("ProviderProfile")}>
+                <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 gap-2">
+                  <User className="w-4 h-4" />Profile
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+
+        {/* Alert Banners */}
+        {currentUser && !currentUser.provider_onboarding_completed && (
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/30">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0" />
+              <div>
+                <p className="text-white font-semibold text-sm">Complete Your Provider Setup</p>
+                <p className="text-gray-400 text-xs">Get started in 5 easy steps</p>
+              </div>
+            </div>
+            <Button onClick={() => navigate(createPageUrl("ProviderOnboarding"))} size="sm" className="bg-purple-600 hover:bg-purple-700 flex-shrink-0">
+              Start Setup
+            </Button>
+          </div>
         )}
 
         {!currentUser?.stripe_account_id && (
-          <Card className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border-green-500/30 mb-6">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white text-lg font-bold mb-1">Connect Stripe to Receive Payments</h3>
-                    <p className="text-gray-300 text-sm">Set up your payout account to start earning</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => {
-                    setStripeOnboarding(true);
-                    createStripeAccountMutation.mutate();
-                  }}
-                  disabled={stripeOnboarding || createStripeAccountMutation.isLoading}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {stripeOnboarding || createStripeAccountMutation.isLoading ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Connecting...</>
-                  ) : (
-                    <><CreditCard className="w-4 h-4 mr-2" />Connect Stripe</>
-                  )}
-                </Button>
+          <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
+            <div className="flex items-center gap-3">
+              <CreditCard className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-white font-semibold text-sm">Connect Stripe to Receive Payments</p>
+                <p className="text-gray-400 text-xs">Required to start earning</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <Button onClick={() => { setStripeOnboarding(true); createStripeAccountMutation.mutate(); }}
+              disabled={stripeOnboarding || createStripeAccountMutation.isPending}
+              size="sm" className="bg-green-600 hover:bg-green-700 flex-shrink-0">
+              {stripeOnboarding || createStripeAccountMutation.isPending ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" />Connecting...</> : <>Connect Stripe</>}
+            </Button>
+          </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
-          {[
-            { label: "Manage Listings", icon: List, color: "text-purple-400", bg: "bg-purple-500/10", onClick: () => navigate(createPageUrl("ProviderListings")) },
-            { label: "Add New Service", icon: Plus, color: "text-blue-400", bg: "bg-blue-500/10", onClick: () => setActiveTab("services") },
-            { label: "Get Verified", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-500/10", onClick: () => setActiveTab("verification") },
-            { label: "Update Profile", icon: User, color: "text-orange-400", bg: "bg-orange-500/10", onClick: () => setActiveTab("profile") },
-          ].map((action) => (
-            <button
-              key={action.label}
-              onClick={action.onClick}
-              className="group flex flex-col items-start gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.07] hover:border-white/20 transition-all text-left active:scale-[0.98]"
-            >
-              <div className={`w-11 h-11 rounded-xl ${action.bg} flex items-center justify-center`}>
-                <action.icon className={`w-5 h-5 ${action.color}`} />
+        {/* Trust Score Card */}
+        <div className={`rounded-xl bg-gradient-to-r ${verificationLevelColors[verificationLevel || "none"]} p-5`}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Shield className="w-6 h-6 text-white flex-shrink-0" />
+              <div>
+                <p className="text-white font-bold">
+                  {verificationLevel ? `${verificationLevel.charAt(0).toUpperCase() + verificationLevel.slice(1)} Verified` : "Not Verified"}
+                </p>
+                <p className="text-white/70 text-xs">{verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} complete</p>
               </div>
-              <span className="text-white font-semibold text-sm">{action.label}</span>
+            </div>
+            <div className="flex-1 max-w-xs">
+              <div className="flex justify-between text-white/80 text-xs mb-1.5">
+                <span>Trust Score</span><span className="font-bold">{trustScore}/100</span>
+              </div>
+              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                <div className="h-full bg-white rounded-full transition-all" style={{ width: `${Math.min(trustScore, 100)}%` }} />
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0 hidden sm:block">
+              <p className="text-white text-2xl font-bold">{myServices.length}</p>
+              <p className="text-white/70 text-xs">Active Services</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: "Manage Listings", icon: List, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20", onClick: () => navigate(createPageUrl("ProviderListings")) },
+            { label: "Add New Service", icon: Plus, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20", onClick: () => { setActiveTab("services"); setShowNewServiceForm(true); } },
+            { label: "Get Verified", icon: Shield, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", onClick: () => setActiveTab("verification") },
+            { label: "Update Profile", icon: User, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", onClick: () => setActiveTab("profile") },
+          ].map((a) => (
+            <button key={a.label} onClick={a.onClick}
+              className={`flex items-center gap-3 p-4 rounded-xl border ${a.bg} hover:brightness-125 transition-all text-left active:scale-[0.97]`}>
+              <div className={`w-9 h-9 rounded-lg ${a.bg} flex items-center justify-center flex-shrink-0`}>
+                <a.icon className={`w-4 h-4 ${a.color}`} />
+              </div>
+              <span className="text-white font-semibold text-sm leading-snug">{a.label}</span>
             </button>
           ))}
         </div>
 
-        {(() => {
-          const level = currentUser?.provider_verification_level && currentUser.provider_verification_level !== "none"
-            ? currentUser.provider_verification_level : null;
-          const trustScore = currentUser?.provider_trust_score || overallTrustScore;
-          return (
-            <Card className={`bg-gradient-to-r ${verificationLevelColors[level || "none"]} border-0 mb-8 overflow-hidden`}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <Shield className="w-7 h-7 text-white" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-white text-xl font-bold mb-0.5 truncate">
-                        {level ? `${level.charAt(0).toUpperCase() + level.slice(1)} Verified Provider` : "Get Verified"}
-                      </h3>
-                      <p className="text-white/80 text-sm">{verifiedCount} verification{verifiedCount !== 1 ? 's' : ''} completed</p>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-white text-3xl font-bold leading-none">{verifiedCount}/{verifications.length}</div>
-                    <p className="text-white/80 text-xs mt-1">Verifications</p>
-                  </div>
-                </div>
-                <div className="mt-5">
-                  <div className="flex items-center justify-between text-white/90 text-xs mb-1.5">
-                    <span>Trust Score</span>
-                    <span className="font-semibold">{trustScore}/100</span>
-                  </div>
-                  <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${Math.min(trustScore, 100)}%` }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <div className="overflow-x-auto -mx-2 px-2 hide-scrollbar">
-            <TabsList className="inline-flex w-auto min-w-full bg-white/[0.04] backdrop-blur-xl border border-white/10 p-1.5 gap-1 rounded-xl">
-              <TabsTrigger value="dashboard" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Dashboard</TabsTrigger>
-              <TabsTrigger value="assets" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">My Assets ({myServices.length})</TabsTrigger>
-              <TabsTrigger value="video-editor" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Video Editor</TabsTrigger>
-              <TabsTrigger value="requests" className="relative whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">
-                Requests
-                {unreadBookingRequests > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                    {unreadBookingRequests > 9 ? '9+' : unreadBookingRequests}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="relative whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">
-                Messages
-                {unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                    {unreadMessages > 9 ? '9+' : unreadMessages}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="earnings" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Earnings</TabsTrigger>
-              <TabsTrigger value="services" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Services</TabsTrigger>
-              <TabsTrigger value="availability" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Availability</TabsTrigger>
-              <TabsTrigger value="verification" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Verification</TabsTrigger>
-              <TabsTrigger value="contracts" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Contracts</TabsTrigger>
-              <TabsTrigger value="profile" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Profile</TabsTrigger>
-              <TabsTrigger value="settings" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Settings</TabsTrigger>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
+          <div className="overflow-x-auto -mx-4 px-4 hide-scrollbar">
+            <TabsList className="inline-flex w-auto bg-white/[0.04] border border-white/10 p-1 gap-0.5 rounded-xl">
+              {TABS.map(tab => (
+                <TabsTrigger key={tab.id} value={tab.id}
+                  className="relative flex items-center gap-2 whitespace-nowrap px-3 py-2 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg text-sm transition-all">
+                  <tab.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.id === 'requests' && unreadBookingRequests > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                      {unreadBookingRequests > 9 ? '9+' : unreadBookingRequests}
+                    </span>
+                  )}
+                  {tab.id === 'messages' && unreadMessages > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold">
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
-          <TabsContent value="dashboard" className="space-y-6">
+          {/* Dashboard */}
+          <TabsContent value="dashboard" className="space-y-5">
             <DashboardMetrics currentUser={currentUser} />
             <RentalNotifications currentUser={currentUser} />
             <StripeExpressDashboard currentUser={currentUser} />
-            <AdvancedAnalytics currentUser={currentUser} />
-            <BusinessReportGenerator currentUser={currentUser} />
+            <div className="grid lg:grid-cols-2 gap-5">
+              <AdvancedAnalytics currentUser={currentUser} />
+              <BusinessReportGenerator currentUser={currentUser} />
+            </div>
             <FinancialDataExport currentUser={currentUser} />
             <PerformanceDashboard currentUser={currentUser} />
           </TabsContent>
 
-          <TabsContent value="assets" className="space-y-6">
+          {/* Assets */}
+          <TabsContent value="assets">
             <MultiAssetDashboard currentUser={currentUser} />
           </TabsContent>
 
-          <TabsContent value="video-editor" className="space-y-6">
-            <AdvancedVideoEditor currentUser={currentUser} />
-            <VideoEditorPro currentUser={currentUser} />
-          </TabsContent>
-
-          <TabsContent value="requests" className="space-y-6">
-            <BookingRequestsSection currentUser={currentUser} />
-            <ActiveRentalsManager currentUser={currentUser} />
-          </TabsContent>
-
-          <TabsContent value="messages" className="space-y-6">
-            <ProviderChatSection currentUser={currentUser} />
-          </TabsContent>
-
-          <TabsContent value="earnings" className="space-y-6">
-            <div className="flex justify-end mb-4">
-              <Button onClick={() => setShowPayoutModal(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
-                <DollarSign className="w-4 h-4 mr-2" />Request Payout
-              </Button>
-            </div>
-            <EarningsSection currentUser={currentUser} />
-          </TabsContent>
-
-          <TabsContent value="services" className="space-y-6">
+          {/* Services */}
+          <TabsContent value="services" className="space-y-5">
             <ServicePackageManager myServices={myServices} currentUser={currentUser} />
 
-            <Card className="bg-white/5 border-white/10 mb-6">
-              <CardHeader>
-                <CardTitle className="text-white">Brand Profile</CardTitle>
+            {/* Brand Profile */}
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-white text-base flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-purple-400" />Brand Profile
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Input placeholder="Business Name" value={brand.provider_brand_name} onChange={(e) => setBrand({...brand, provider_brand_name: e.target.value})} className="bg-white/10 border-white/20 text-white" />
-                <Input placeholder="Logo URL" value={brand.provider_logo_url} onChange={(e) => setBrand({...brand, provider_logo_url: e.target.value})} className="bg-white/10 border-white/20 text-white" />
-                <Input placeholder="About Your Business" value={brand.provider_description} onChange={(e) => setBrand({...brand, provider_description: e.target.value})} className="bg-white/10 border-white/20 text-white" />
-                <Button onClick={saveBrand} className="bg-purple-600 hover:bg-purple-700 w-full">Save Brand Profile</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/5 border-white/10 mb-6">
-              <CardHeader>
-                <CardTitle className="text-white">Add New Service/Product</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input placeholder="Service/Product Title" value={form.title} onChange={(e) => setForm({...form, title: e.target.value})} className="bg-white/10 border-white/20 text-white" />
-
-                <div className="grid md:grid-cols-2 gap-4">
+              <CardContent className="space-y-3">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Service Category *</label>
-                    <Select value={form.category} onValueChange={(v) => { const isRental = isRentalCategory(v); setForm({...form, category: v, is_rental: isRental}); }}>
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Select a category" /></SelectTrigger>
-                      <SelectContent className="max-h-96">
-                        <SelectItem value="barber_beauty">Barber & Beauty</SelectItem>
-                        <SelectItem value="hair_extensions">Hair Extensions</SelectItem>
-                        <SelectItem value="hair_makeup">Hair & Makeup</SelectItem>
-                        <SelectItem value="massage_therapy">Massage Therapy</SelectItem>
-                        <SelectItem value="home_services">Home Services</SelectItem>
-                        <SelectItem value="cleaning">Cleaning</SelectItem>
-                        <SelectItem value="plumbing">Plumbing</SelectItem>
-                        <SelectItem value="electrical">Electrical</SelectItem>
-                        <SelectItem value="hvac">HVAC</SelectItem>
-                        <SelectItem value="landscaping">Landscaping</SelectItem>
-                        <SelectItem value="pool_maintenance">Pool Maintenance</SelectItem>
-                        <SelectItem value="pest_control">Pest Control</SelectItem>
-                        <SelectItem value="roofing">Roofing</SelectItem>
-                        <SelectItem value="painting">Painting</SelectItem>
-                        <SelectItem value="junk_removal">Junk Removal</SelectItem>
-                        <SelectItem value="locksmith">Locksmith</SelectItem>
-                        <SelectItem value="restaurant">Restaurant</SelectItem>
-                        <SelectItem value="food_truck">Food Truck</SelectItem>
-                        <SelectItem value="personal_chef">Personal Chef</SelectItem>
-                        <SelectItem value="catering">Catering</SelectItem>
-                        <SelectItem value="chauffeur">Chauffeur Service</SelectItem>
-                        <SelectItem value="moving_services">Moving Services</SelectItem>
-                        <SelectItem value="property_rental">Property Rental</SelectItem>
-                        <SelectItem value="real_estate">Real Estate</SelectItem>
-                        <SelectItem value="interior_design">Interior Design</SelectItem>
-                        <SelectItem value="legal_services">Legal Services</SelectItem>
-                        <SelectItem value="accounting">Accounting</SelectItem>
-                        <SelectItem value="consulting">Consulting</SelectItem>
-                        <SelectItem value="financial_planning">Financial Planning</SelectItem>
-                        <SelectItem value="tax_preparation">Tax Preparation</SelectItem>
-                        <SelectItem value="construction">Construction</SelectItem>
-                        <SelectItem value="automotive">Automotive</SelectItem>
-                        <SelectItem value="wedding_planning">Wedding Planning</SelectItem>
-                        <SelectItem value="event_planning">Event Planning</SelectItem>
-                        <SelectItem value="photography">Photography</SelectItem>
-                        <SelectItem value="video_production">Video Production</SelectItem>
-                        <SelectItem value="dj_entertainment">DJ & Entertainment</SelectItem>
-                        <SelectItem value="equipment_rental">Equipment Rental</SelectItem>
-                        <SelectItem value="graphic_design">Graphic Design</SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="web_development">Web Development</SelectItem>
-                        <SelectItem value="content_writing">Content Writing</SelectItem>
-                        <SelectItem value="tutoring">Tutoring</SelectItem>
-                        <SelectItem value="music_lessons">Music Lessons</SelectItem>
-                        <SelectItem value="fitness_training">Fitness Training</SelectItem>
-                        <SelectItem value="life_coaching">Life Coaching</SelectItem>
-                        <SelectItem value="childcare">Childcare</SelectItem>
-                        <SelectItem value="pet_services">Pet Services</SelectItem>
-                        <SelectItem value="tech_support">Tech Support</SelectItem>
-                        <SelectItem value="computer_repair">Computer Repair</SelectItem>
-                        <SelectItem value="virtual_assistant">Virtual Assistant</SelectItem>
-                        <SelectItem value="health_insurance">Health Insurance</SelectItem>
-                        <SelectItem value="car_insurance">Car Insurance</SelectItem>
-                        <SelectItem value="bail_bonding">Bail Bonds</SelectItem>
-                        <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
-                        <SelectItem value="bounce_house_rental">Bounce House Rental</SelectItem>
-                        <SelectItem value="party_rental">Party Rental</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Business Name</label>
+                    <Input placeholder="Your business name" value={brand.provider_brand_name} onChange={(e) => setBrand(b => ({ ...b, provider_brand_name: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
-
-                  <Select value={form.price_type} onValueChange={(v) => setForm({...form, price_type: v})}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Pricing Type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">Fixed Price</SelectItem>
-                      <SelectItem value="hourly">Hourly Rate</SelectItem>
-                      <SelectItem value="per_day">Per Day</SelectItem>
-                      <SelectItem value="per_project">Per Project</SelectItem>
-                      <SelectItem value="negotiable">Negotiable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-gray-400 text-sm">Price (USD)</label>
-                    <Button type="button" size="sm" onClick={suggestPricing} disabled={generatingPricing || !form.title} className="bg-green-600 hover:bg-green-700">
-                      {generatingPricing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><TrendingUp className="w-3 h-3 mr-1" />AI Suggest</>}
-                    </Button>
-                  </div>
-                  <Input type="number" placeholder="Price (USD)" value={form.price} onChange={(e) => setForm({...form, price: Number(e.target.value)})} className="bg-white/10 border-white/20 text-white" />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-gray-400 text-sm">Description</label>
-                    <Button type="button" size="sm" onClick={generateDescription} disabled={generatingDescription || !form.title} className="bg-purple-600 hover:bg-purple-700">
-                      {generatingDescription ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</> : <><Star className="w-3 h-3 mr-1" />AI Generate</>}
-                    </Button>
-                  </div>
-                  <Input placeholder="Service description" value={form.description} onChange={(e) => setForm({...form, description: e.target.value})} className="bg-white/10 border-white/20 text-white" />
-                </div>
-
-                {form.is_rental ? (
-                  <>
-                    <RentalAssetManager rentalDetails={form.rental_details} onChange={(d) => setForm({...form, rental_details: d})} />
-                    <RentalCalendar blockedDates={form.blocked_dates} onChange={(d) => setForm({...form, blocked_dates: d})} />
-                  </>
-                ) : (
-                  <>
-                    <ServiceVariationsManager variations={form.variations} onChange={(v) => setForm({...form, variations: v})} />
-                    <ServiceAddOnsManager addOns={form.add_ons} onChange={(a) => setForm({...form, add_ons: a})} />
-                  </>
-                )}
-
-                <div className="space-y-3">
-                  <label className="text-white font-medium block">Cover Image</label>
-                  {form.image_url && (
-                    <div className="relative inline-block">
-                      <img src={form.image_url} alt="cover" className="w-32 h-32 object-cover rounded-lg border border-white/20" />
-                      <button onClick={() => setForm({...form, image_url: ""})} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    <Button type="button" variant="outline" onClick={() => document.getElementById('cover-upload').click()}>
-                      <Upload className="w-4 h-4 mr-2" />Upload Image
-                    </Button>
-                    <input id="cover-upload" type="file" accept="image/*" onChange={(e) => handleUploadCoverImage(e.target.files?.[0])} className="hidden" />
-                    <span className="text-gray-400 text-sm">or</span>
-                    <Input placeholder="Paste image URL" onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value) { setForm({...form, image_url: e.currentTarget.value}); e.currentTarget.value = ""; } }} className="bg-white/10 border-white/20 text-white flex-1" />
+                  <div>
+                    <label className="text-gray-400 text-xs mb-1.5 block">Logo URL</label>
+                    <Input placeholder="https://..." value={brand.provider_logo_url} onChange={(e) => setBrand(b => ({ ...b, provider_logo_url: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
-
-                <div className="space-y-3">
-                  <label className="text-white font-medium block">Portfolio Images (Optional)</label>
-                  <div className="flex flex-wrap gap-3">
-                    {form.portfolio_images?.map((url, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={url} alt={`portfolio-${idx}`} className="w-24 h-24 object-cover rounded-lg border border-white/20" />
-                        <button onClick={() => setForm((prev) => ({ ...prev, portfolio_images: prev.portfolio_images.filter((_, i) => i !== idx) }))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button type="button" variant="outline" onClick={() => document.getElementById('portfolio-upload').click()}>
-                    <Upload className="w-4 h-4 mr-2" />Add Image
-                  </Button>
-                  <input id="portfolio-upload" type="file" accept="image/*" onChange={(e) => handleUploadPortfolioImage(e.target.files?.[0])} className="hidden" />
+                <div>
+                  <label className="text-gray-400 text-xs mb-1.5 block">About Your Business</label>
+                  <Input placeholder="Brief description of what you offer" value={brand.provider_description} onChange={(e) => setBrand(b => ({ ...b, provider_description: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                 </div>
-
-                <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4">
-                  <Switch checked={form.escrow_required} onCheckedChange={(v) => setForm({ ...form, escrow_required: v })} />
-                  <div className="text-sm">
-                    <div className="text-white font-medium">Require Escrow Protection</div>
-                    <div className="text-gray-400">Payments held securely until service completion</div>
-                  </div>
-                </div>
-
-                <Button
-                  className="bg-green-600 hover:bg-green-700 w-full"
-                  onClick={() => {
-                    if (!form.title || !form.description || !form.image_url) {
-                      toast.error('Please fill in title, description, and upload a cover image');
-                      return;
-                    }
-                    createMutation.mutate(form);
-                  }}
-                  disabled={createMutation.isLoading || !form.title || !form.description || !form.image_url}
-                >
-                  {createMutation.isLoading ? 'Publishing...' : 'Publish Service to Marketplace'}
+                <Button onClick={saveBrand} size="sm" className="bg-purple-600 hover:bg-purple-700 gap-2">
+                  <Save className="w-3.5 h-3.5" />Save Brand
                 </Button>
               </CardContent>
             </Card>
 
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-white font-bold">Your Active Services</h2>
-              <div className="flex gap-2">
-                <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white"><SelectValue placeholder="All Categories" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {[...new Set(myServices.map(s => s.category))].map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ').toUpperCase()}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white"><SelectValue placeholder="Sort By" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="created_date">Newest First</SelectItem>
-                    <SelectItem value="price">Price: Low to High</SelectItem>
-                    <SelectItem value="-price">Price: High to Low</SelectItem>
-                    <SelectItem value="title">Name: A-Z</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myServices
-                .filter(s => filterCategory === 'all' || s.category === filterCategory)
-                .sort((a, b) => {
-                  if (sortBy === 'price') return (a.price || 0) - (b.price || 0);
-                  if (sortBy === '-price') return (b.price || 0) - (a.price || 0);
-                  if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
-                  return new Date(b.created_date) - new Date(a.created_date);
-                })
-                .map(s => (
-                <Card key={s.id} className="bg-white/5 border-white/10">
-                  <CardContent className="p-4">
-                    {s.image_url && <img src={s.image_url} alt={s.title} className="h-40 w-full object-cover rounded-lg mb-3" />}
-                    <div className="text-white font-semibold text-lg mb-1">{s.title}</div>
-                    <div className="text-gray-400 text-sm capitalize mb-2">{s.category?.replace("_"," ")}</div>
-                    <div className="text-white text-xl font-bold mb-1">${s.price?.toFixed(2)}</div>
-                    {s.is_rental && <Badge className="bg-purple-500/20 text-purple-300 text-xs mb-2">Rental Asset</Badge>}
-                    {!s.is_rental && s.variations?.length > 0 && <p className="text-purple-400 text-xs mb-1">{s.variations.length} variations</p>}
-                    {!s.is_rental && s.add_ons?.length > 0 && <p className="text-blue-400 text-xs mb-2">{s.add_ons.length} add-ons available</p>}
-                    <Button size="sm" variant="outline" onClick={() => startEdit(s)} className="w-full">
-                      Manage {s.is_rental ? 'Rental' : 'Service'}
-                    </Button>
+            {/* New Service Form Toggle */}
+            <Card className="bg-white/5 border-white/10">
+              <button onClick={() => setShowNewServiceForm(v => !v)} className="w-full p-5 flex items-center justify-between text-left">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-blue-500/15 rounded-lg flex items-center justify-center">
+                    <Plus className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">Add New Service / Product</p>
+                    <p className="text-gray-400 text-xs">Publish a new listing to the marketplace</p>
+                  </div>
+                </div>
+                {showNewServiceForm ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+              </button>
 
-                    {editingId === s.id && editData && (
-                      <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                        <Input type="number" value={editData.price} onChange={(e) => setEditData({...editData, price: Number(e.target.value)})} placeholder="Price" className="bg-white/10 border-white/20 text-white" />
-                        <Select value={editData.price_type} onValueChange={(v) => setEditData({...editData, price_type: v})}>
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue placeholder="Price Type" /></SelectTrigger>
+              {showNewServiceForm && (
+                <CardContent className="pt-0 space-y-5 border-t border-white/10">
+                  <div className="space-y-3 pt-4">
+                    <div>
+                      <label className="text-gray-400 text-xs mb-1.5 block">Service Title *</label>
+                      <Input placeholder="e.g. Professional Haircut & Style" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">Category *</label>
+                        <Select value={form.category} onValueChange={(v) => setForm(f => ({ ...f, category: v, is_rental: isRentalCategory(v) }))}>
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
+                          <SelectContent className="max-h-80">
+                            {[["barber_beauty","Barber & Beauty"],["hair_extensions","Hair Extensions"],["hair_makeup","Hair & Makeup"],["massage_therapy","Massage Therapy"],["home_services","Home Services"],["cleaning","Cleaning"],["plumbing","Plumbing"],["electrical","Electrical"],["hvac","HVAC"],["landscaping","Landscaping"],["pool_maintenance","Pool Maintenance"],["pest_control","Pest Control"],["roofing","Roofing"],["painting","Painting"],["junk_removal","Junk Removal"],["locksmith","Locksmith"],["restaurant","Restaurant"],["food_truck","Food Truck"],["personal_chef","Personal Chef"],["catering","Catering"],["chauffeur","Chauffeur Service"],["moving_services","Moving Services"],["property_rental","Property Rental"],["real_estate","Real Estate"],["interior_design","Interior Design"],["legal_services","Legal Services"],["accounting","Accounting"],["consulting","Consulting"],["financial_planning","Financial Planning"],["tax_preparation","Tax Preparation"],["construction","Construction"],["automotive","Automotive"],["wedding_planning","Wedding Planning"],["event_planning","Event Planning"],["photography","Photography"],["video_production","Video Production"],["dj_entertainment","DJ & Entertainment"],["equipment_rental","Equipment Rental"],["graphic_design","Graphic Design"],["marketing","Marketing"],["web_development","Web Development"],["content_writing","Content Writing"],["tutoring","Tutoring"],["music_lessons","Music Lessons"],["fitness_training","Fitness Training"],["life_coaching","Life Coaching"],["childcare","Childcare"],["pet_services","Pet Services"],["tech_support","Tech Support"],["computer_repair","Computer Repair"],["virtual_assistant","Virtual Assistant"],["health_insurance","Health Insurance"],["car_insurance","Car Insurance"],["bail_bonding","Bail Bonds"],["yacht_charter","Yacht Charter"],["bounce_house_rental","Bounce House Rental"],["party_rental","Party Rental"]].map(([v, l]) => (
+                              <SelectItem key={v} value={v}>{l}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-xs mb-1.5 block">Pricing Type</label>
+                        <Select value={form.price_type} onValueChange={(v) => setForm(f => ({ ...f, price_type: v }))}>
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="fixed">Fixed</SelectItem>
-                            <SelectItem value="hourly">Hourly</SelectItem>
+                            <SelectItem value="fixed">Fixed Price</SelectItem>
+                            <SelectItem value="hourly">Hourly Rate</SelectItem>
                             <SelectItem value="per_day">Per Day</SelectItem>
                             <SelectItem value="per_project">Per Project</SelectItem>
                             <SelectItem value="negotiable">Negotiable</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    </div>
 
-                        <div className="space-y-2">
-                          <label className="text-white text-sm">Cover Image</label>
-                          {editData.image_url && <img src={editData.image_url} alt="cover" className="w-full h-32 object-cover rounded-lg" />}
-                          <Button size="sm" variant="outline" onClick={() => document.getElementById(`edit-cover-${s.id}`).click()} className="w-full">
-                            <Upload className="w-4 h-4 mr-2" />Change Cover
-                          </Button>
-                          <input id={`edit-cover-${s.id}`} type="file" accept="image/*" onChange={(e) => handleUploadEditCoverImage(e.target.files?.[0])} className="hidden" />
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-gray-400 text-xs">Price (USD)</label>
+                        <Button type="button" size="sm" onClick={suggestPricing} disabled={generatingPricing || !form.title} className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700">
+                          {generatingPricing ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Analyzing...</> : <><TrendingUp className="w-3 h-3 mr-1" />AI Suggest</>}
+                        </Button>
+                      </div>
+                      <Input type="number" placeholder="100" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: Number(e.target.value) }))} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-gray-400 text-xs">Description *</label>
+                        <Button type="button" size="sm" onClick={generateDescription} disabled={generatingDescription || !form.title} className="h-7 px-2 text-xs bg-purple-600 hover:bg-purple-700">
+                          {generatingDescription ? <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</> : <><Sparkles className="w-3 h-3 mr-1" />AI Write</>}
+                        </Button>
+                      </div>
+                      <Input placeholder="Describe your service..." value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
+                    </div>
+
+                    {form.is_rental ? (
+                      <>
+                        <RentalAssetManager rentalDetails={form.rental_details} onChange={(d) => setForm(f => ({ ...f, rental_details: d }))} />
+                        <RentalCalendar blockedDates={form.blocked_dates} onChange={(d) => setForm(f => ({ ...f, blocked_dates: d }))} />
+                      </>
+                    ) : (
+                      <>
+                        <ServiceVariationsManager variations={form.variations} onChange={(v) => setForm(f => ({ ...f, variations: v }))} />
+                        <ServiceAddOnsManager addOns={form.add_ons} onChange={(a) => setForm(f => ({ ...f, add_ons: a }))} />
+                      </>
+                    )}
+
+                    <div>
+                      <label className="text-white text-sm font-medium block mb-2">Cover Image *</label>
+                      {form.image_url && (
+                        <div className="relative inline-block mb-2">
+                          <img src={form.image_url} alt="cover" className="w-28 h-28 object-cover rounded-xl border border-white/20" />
+                          <button onClick={() => setForm(f => ({ ...f, image_url: "" }))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                            <X className="w-3.5 h-3.5 text-white" />
+                          </button>
                         </div>
+                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('cover-upload').click()} className="border-white/20 text-white hover:bg-white/10">
+                          <Upload className="w-3.5 h-3.5 mr-1" />Upload Image
+                        </Button>
+                        <input id="cover-upload" type="file" accept="image/*" onChange={(e) => handleUploadCoverImage(e.target.files?.[0])} className="hidden" />
+                        <span className="text-gray-500 text-xs">or</span>
+                        <Input placeholder="Paste image URL" onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value) { setForm(f => ({ ...f, image_url: e.currentTarget.value })); e.currentTarget.value = ""; } }} className="bg-white/10 border-white/20 text-white flex-1 min-w-32 h-9" />
+                      </div>
+                    </div>
 
-                        {editData.is_rental ? (
-                          <>
-                            <RentalAssetManager rentalDetails={editData.rental_details} onChange={(d) => setEditData({...editData, rental_details: d})} />
-                            <RentalCalendar blockedDates={editData.blocked_dates} onChange={(d) => setEditData({...editData, blocked_dates: d})} />
-                          </>
-                        ) : (
-                          <>
-                            <ServiceVariationsManager variations={editData.variations} onChange={(v) => setEditData({...editData, variations: v})} />
-                            <ServiceAddOnsManager addOns={editData.add_ons} onChange={(a) => setEditData({...editData, add_ons: a})} />
-                          </>
-                        )}
-
-                        <AvailabilityOverridesManager serviceId={s.id} providerEmail={currentUser?.email} />
-
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 flex-1" onClick={() => updateMutation.mutate({ id: s.id, data: editData })} disabled={updateMutation.isLoading}>
-                            Save Changes
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditData(null); }} className="flex-1">
-                            Cancel
-                          </Button>
-                        </div>
+                    {form.portfolio_images?.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {form.portfolio_images.map((url, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={url} alt={`p-${idx}`} className="w-20 h-20 object-cover rounded-lg border border-white/20" />
+                            <button onClick={() => setForm(f => ({ ...f, portfolio_images: f.portfolio_images.filter((_, i) => i !== idx) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              ))}
+                    <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('portfolio-upload').click()} className="border-white/20 text-white hover:bg-white/10">
+                      <Upload className="w-3.5 h-3.5 mr-1" />Add Portfolio Image
+                    </Button>
+                    <input id="portfolio-upload" type="file" accept="image/*" onChange={(e) => handleUploadPortfolioImage(e.target.files?.[0])} className="hidden" />
+
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+                      <Switch checked={form.escrow_required} onCheckedChange={(v) => setForm(f => ({ ...f, escrow_required: v }))} />
+                      <div>
+                        <p className="text-white text-sm font-medium">Require Escrow Protection</p>
+                        <p className="text-gray-400 text-xs">Payments held until service is completed</p>
+                      </div>
+                    </div>
+
+                    <Button className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 font-semibold"
+                      onClick={() => {
+                        if (!form.title || !form.description || !form.image_url) { toast.error('Please fill in title, description, and cover image'); return; }
+                        createMutation.mutate(form);
+                      }}
+                      disabled={createMutation.isPending || !form.title || !form.description || !form.image_url}>
+                      {createMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Publishing...</> : <>Publish to Marketplace</>}
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
+            {/* Active Services List */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-white font-bold text-lg">Active Services ({myServices.length})</h2>
+                <div className="flex gap-2">
+                  <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="w-36 bg-white/10 border-white/20 text-white h-9 text-xs"><SelectValue placeholder="All Categories" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {[...new Set(myServices.map(s => s.category))].map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-36 bg-white/10 border-white/20 text-white h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="created_date">Newest First</SelectItem>
+                      <SelectItem value="price">Price: Low to High</SelectItem>
+                      <SelectItem value="-price">Price: High to Low</SelectItem>
+                      <SelectItem value="title">Name A-Z</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {myServices.length === 0 ? (
+                <div className="text-center py-16 rounded-xl border border-dashed border-white/20">
+                  <Briefcase className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-white font-semibold mb-1">No services yet</p>
+                  <p className="text-gray-400 text-sm">Add your first service to start receiving bookings</p>
+                  <Button onClick={() => setShowNewServiceForm(true)} size="sm" className="mt-4 bg-purple-600 hover:bg-purple-700">
+                    <Plus className="w-4 h-4 mr-1" />Add Service
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myServices
+                    .filter(s => filterCategory === 'all' || s.category === filterCategory)
+                    .sort((a, b) => {
+                      if (sortBy === 'price') return (a.price || 0) - (b.price || 0);
+                      if (sortBy === '-price') return (b.price || 0) - (a.price || 0);
+                      if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+                      return new Date(b.created_date) - new Date(a.created_date);
+                    })
+                    .map(s => (
+                      <Card key={s.id} className="bg-white/5 border-white/10 overflow-hidden">
+                        {s.image_url && <img src={s.image_url} alt={s.title} className="h-36 w-full object-cover" />}
+                        <CardContent className="p-4 space-y-3">
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-white font-semibold leading-snug">{s.title}</p>
+                              {s.is_rental && <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px] flex-shrink-0">Rental</Badge>}
+                            </div>
+                            <p className="text-gray-400 text-xs capitalize mt-0.5">{s.category?.replace(/_/g, ' ')}</p>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-white font-bold text-lg">${s.price?.toFixed(2)}</p>
+                            <div className="flex gap-1 text-xs text-gray-400">
+                              {s.variations?.length > 0 && <span className="bg-white/10 px-2 py-0.5 rounded">{s.variations.length} var</span>}
+                              {s.add_ons?.length > 0 && <span className="bg-white/10 px-2 py-0.5 rounded">{s.add_ons.length} add-ons</span>}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => startEdit(s)} className="w-full border-white/20 text-white hover:bg-white/10">
+                            Manage {s.is_rental ? 'Rental' : 'Service'}
+                          </Button>
+
+                          {editingId === s.id && editData && (
+                            <div className="space-y-3 border-t border-white/10 pt-3">
+                              <div className="grid grid-cols-2 gap-2">
+                                <Input type="number" value={editData.price} onChange={(e) => setEditData(d => ({ ...d, price: Number(e.target.value) }))} placeholder="Price" className="bg-white/10 border-white/20 text-white h-9 text-sm" />
+                                <Select value={editData.price_type} onValueChange={(v) => setEditData(d => ({ ...d, price_type: v }))}>
+                                  <SelectTrigger className="bg-white/10 border-white/20 text-white h-9 text-sm"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="fixed">Fixed</SelectItem>
+                                    <SelectItem value="hourly">Hourly</SelectItem>
+                                    <SelectItem value="per_day">Per Day</SelectItem>
+                                    <SelectItem value="per_project">Per Project</SelectItem>
+                                    <SelectItem value="negotiable">Negotiable</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {editData.image_url && <img src={editData.image_url} alt="cover" className="w-full h-28 object-cover rounded-lg" />}
+                              <Button size="sm" variant="outline" onClick={() => document.getElementById(`edit-cover-${s.id}`).click()} className="w-full border-white/20 text-white hover:bg-white/10">
+                                <Upload className="w-3.5 h-3.5 mr-1" />Change Cover
+                              </Button>
+                              <input id={`edit-cover-${s.id}`} type="file" accept="image/*" onChange={(e) => handleUploadEditCoverImage(e.target.files?.[0])} className="hidden" />
+
+                              {editData.is_rental ? (
+                                <>
+                                  <RentalAssetManager rentalDetails={editData.rental_details} onChange={(d) => setEditData(ed => ({ ...ed, rental_details: d }))} />
+                                  <RentalCalendar blockedDates={editData.blocked_dates} onChange={(d) => setEditData(ed => ({ ...ed, blocked_dates: d }))} />
+                                </>
+                              ) : (
+                                <>
+                                  <ServiceVariationsManager variations={editData.variations} onChange={(v) => setEditData(d => ({ ...d, variations: v }))} />
+                                  <ServiceAddOnsManager addOns={editData.add_ons} onChange={(a) => setEditData(d => ({ ...d, add_ons: a }))} />
+                                </>
+                              )}
+                              <AvailabilityOverridesManager serviceId={s.id} providerEmail={currentUser?.email} />
+                              <div className="flex gap-2">
+                                <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateMutation.mutate({ id: s.id, data: editData })} disabled={updateMutation.isPending}>
+                                  {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setEditData(null); }} className="flex-1 border-white/20 text-white">Cancel</Button>
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                </div>
+              )}
             </div>
           </TabsContent>
 
-          <TabsContent value="verification" className="space-y-6">
-            <Card className="bg-blue-500/10 border-blue-500/30">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <Shield className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-white font-bold text-lg mb-2">Why Get Verified?</h3>
-                    <ul className="text-gray-300 space-y-1 text-sm">
-                      <li>• Build trust with customers instantly</li>
-                      <li>• Rank higher in search results</li>
-                      <li>• Access premium features and pricing</li>
-                      <li>• Get a verified badge on your listings</li>
-                      <li>• Increase booking rates by up to 300%</li>
-                    </ul>
-                  </div>
-                </div>
+          {/* Requests */}
+          <TabsContent value="requests" className="space-y-5">
+            <BookingRequestsSection currentUser={currentUser} />
+            <ActiveRentalsManager currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Messages */}
+          <TabsContent value="messages">
+            <ProviderChatSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Earnings */}
+          <TabsContent value="earnings" className="space-y-5">
+            <div className="flex justify-end">
+              <Button onClick={() => setShowPayoutModal(true)} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 gap-2">
+                <DollarSign className="w-4 h-4" />Request Payout
+              </Button>
+            </div>
+            <EarningsSection currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Availability */}
+          <TabsContent value="availability">
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-purple-400" />Set Your Availability
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {DAYS.map(day => {
+                  const avail = availability.find(a => a.day_of_week === day);
+                  const isAvail = avail?.is_available ?? true;
+                  return (
+                    <div key={day} className={`rounded-xl p-4 border transition-all ${isAvail ? 'bg-white/5 border-white/10' : 'bg-white/[0.02] border-white/5 opacity-60'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-white font-semibold capitalize">{day}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 text-xs">{isAvail ? 'Available' : 'Closed'}</span>
+                          <Switch checked={isAvail} onCheckedChange={async (checked) => {
+                            await saveAvailabilityMutation.mutateAsync({
+                              day_of_week: day, is_available: checked,
+                              start_time: avail?.start_time || "09:00",
+                              end_time: avail?.end_time || "17:00",
+                              slot_duration_minutes: avail?.slot_duration_minutes || 60
+                            });
+                          }} />
+                        </div>
+                      </div>
+                      {isAvail && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-gray-400 text-xs mb-1 block">Start</label>
+                            <Input type="time" value={avail?.start_time || "09:00"}
+                              onChange={(e) => setAvailabilityForm({ day_of_week: day, is_available: true, start_time: e.target.value, end_time: avail?.end_time || "17:00", slot_duration_minutes: avail?.slot_duration_minutes || 60 })}
+                              onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
+                              className="bg-white/10 border-white/20 text-white h-9 text-sm" />
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-xs mb-1 block">End</label>
+                            <Input type="time" value={avail?.end_time || "17:00"}
+                              onChange={(e) => setAvailabilityForm({ day_of_week: day, is_available: true, start_time: avail?.start_time || "09:00", end_time: e.target.value, slot_duration_minutes: avail?.slot_duration_minutes || 60 })}
+                              onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)}
+                              className="bg-white/10 border-white/20 text-white h-9 text-sm" />
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-xs mb-1 block">Slot Length</label>
+                            <Select value={String(avail?.slot_duration_minutes || 60)} onValueChange={(v) => saveAvailabilityMutation.mutate({ day_of_week: day, is_available: true, start_time: avail?.start_time || "09:00", end_time: avail?.end_time || "17:00", slot_duration_minutes: Number(v) })}>
+                              <SelectTrigger className="bg-white/10 border-white/20 text-white h-9 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="15">15 min</SelectItem>
+                                <SelectItem value="30">30 min</SelectItem>
+                                <SelectItem value="60">1 hour</SelectItem>
+                                <SelectItem value="90">1.5 hrs</SelectItem>
+                                <SelectItem value="120">2 hours</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Verification */}
+          <TabsContent value="verification" className="space-y-5">
+            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-start gap-3">
+              <Shield className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-white font-semibold text-sm mb-1">Why Get Verified?</p>
+                <ul className="text-gray-300 text-xs space-y-0.5">
+                  <li>• Build instant trust with customers</li>
+                  <li>• Rank higher in search results</li>
+                  <li>• Get a verified badge on your listings</li>
+                  <li>• Increase booking rates by up to 300%</li>
+                </ul>
+              </div>
+            </div>
 
             <Card className="bg-white/5 border-white/10">
-              <CardHeader><CardTitle className="text-white">Request Verification</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-white text-base">Submit Verification Request</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Verification Type</label>
-                  <Select value={verificationForm.verification_type} onValueChange={(v) => setVerificationForm({...verificationForm, verification_type: v})}>
+                  <label className="text-gray-400 text-xs mb-1.5 block">Verification Type</label>
+                  <Select value={verificationForm.verification_type} onValueChange={(v) => setVerificationForm(f => ({ ...f, verification_type: v }))}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="background_check">Background Check</SelectItem>
@@ -1015,188 +931,167 @@ export default function ProviderHub() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">License/Certificate Number</label>
-                    <Input placeholder="e.g., ABC-123456" value={verificationForm.license_number} onChange={(e) => setVerificationForm({...verificationForm, license_number: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">License / Certificate #</label>
+                    <Input placeholder="e.g. ABC-123456" value={verificationForm.license_number} onChange={(e) => setVerificationForm(f => ({ ...f, license_number: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Issuing Authority</label>
-                    <Input placeholder="e.g., State Board" value={verificationForm.issuing_authority} onChange={(e) => setVerificationForm({...verificationForm, issuing_authority: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Issuing Authority</label>
+                    <Input placeholder="e.g. State Board" value={verificationForm.issuing_authority} onChange={(e) => setVerificationForm(f => ({ ...f, issuing_authority: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Issue Date</label>
-                    <Input type="date" value={verificationForm.issue_date} onChange={(e) => setVerificationForm({...verificationForm, issue_date: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Issue Date</label>
+                    <Input type="date" value={verificationForm.issue_date} onChange={(e) => setVerificationForm(f => ({ ...f, issue_date: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Expiration Date</label>
-                    <Input type="date" value={verificationForm.expiration_date} onChange={(e) => setVerificationForm({...verificationForm, expiration_date: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Expiration Date</label>
+                    <Input type="date" value={verificationForm.expiration_date} onChange={(e) => setVerificationForm(f => ({ ...f, expiration_date: e.target.value }))} className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Upload Documents</label>
-                  <div className="flex flex-wrap gap-3 mb-3">
-                    {verificationForm.document_urls?.map((url, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={url} alt={`doc-${idx}`} className="w-24 h-24 object-cover rounded-lg border border-white/20" />
-                        <button onClick={() => setVerificationForm((prev) => ({ ...prev, document_urls: prev.document_urls.filter((_, i) => i !== idx) }))} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <Button type="button" variant="outline" onClick={() => document.getElementById('verification-upload').click()}>
-                    <Upload className="w-4 h-4 mr-2" />Upload Document
+                  <label className="text-gray-400 text-xs mb-2 block">Supporting Documents</label>
+                  {verificationForm.document_urls?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {verificationForm.document_urls.map((url, idx) => (
+                        <div key={idx} className="relative">
+                          <img src={url} alt={`doc-${idx}`} className="w-20 h-20 object-cover rounded-lg border border-white/20" />
+                          <button onClick={() => setVerificationForm(f => ({ ...f, document_urls: f.document_urls.filter((_, i) => i !== idx) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('verification-upload').click()} className="border-white/20 text-white hover:bg-white/10">
+                    <Upload className="w-3.5 h-3.5 mr-1" />Upload Document
                   </Button>
                   <input id="verification-upload" type="file" accept="image/*,application/pdf" onChange={(e) => handleDocumentUpload(e.target.files?.[0])} className="hidden" />
                 </div>
-
-                <Button onClick={() => submitVerificationMutation.mutate(verificationForm)} disabled={!verificationForm.license_number || submitVerificationMutation.isLoading} className="w-full bg-green-600 hover:bg-green-700">
-                  <FileText className="w-4 h-4 mr-2" />Submit Verification Request
+                <Button onClick={() => submitVerificationMutation.mutate(verificationForm)} disabled={!verificationForm.license_number || submitVerificationMutation.isPending} className="w-full bg-green-600 hover:bg-green-700 gap-2">
+                  <FileText className="w-4 h-4" />
+                  {submitVerificationMutation.isPending ? "Submitting..." : "Submit Verification Request"}
                 </Button>
               </CardContent>
             </Card>
 
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-white">My Verifications</h2>
-              {verifications.length === 0 ? (
-                <Card className="bg-white/5 border-white/10">
-                  <CardContent className="p-12 text-center">
-                    <Award className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">No verifications yet</h3>
-                    <p className="text-gray-400">Submit your first verification to build trust</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                verifications.map((verification) => {
-                  const StatusIcon = statusIcons[verification.status] || CheckCircle;
+            {verifications.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-white font-bold">My Verifications ({verifications.length})</h3>
+                {verifications.map((v) => {
+                  const StatusIcon = statusIcons[v.status] || CheckCircle;
                   return (
-                    <Card key={verification.id} className="bg-white/5 border-white/10">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-start gap-4">
-                            <div className={`w-12 h-12 ${verification.status === 'verified' ? 'bg-green-500/20' : 'bg-blue-500/20'} rounded-full flex items-center justify-center`}>
-                              <StatusIcon className={`w-6 h-6 ${verification.status === 'verified' ? 'text-green-400' : 'text-blue-400'}`} />
+                    <Card key={v.id} className="bg-white/5 border-white/10">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 ${v.status === 'verified' ? 'bg-green-500/20' : 'bg-blue-500/20'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                              <StatusIcon className={`w-5 h-5 ${v.status === 'verified' ? 'text-green-400' : 'text-blue-400'}`} />
                             </div>
                             <div>
-                              <h3 className="text-white font-bold text-lg capitalize mb-1">{verification.verification_type.replace(/_/g, ' ')}</h3>
-                              {verification.license_number && <p className="text-gray-400 text-sm mb-1">License: {verification.license_number}</p>}
-                              {verification.issuing_authority && <p className="text-gray-400 text-sm">Issued by: {verification.issuing_authority}</p>}
+                              <p className="text-white font-semibold capitalize">{v.verification_type.replace(/_/g, ' ')}</p>
+                              {v.license_number && <p className="text-gray-400 text-xs">License: {v.license_number}</p>}
+                              {v.issuing_authority && <p className="text-gray-400 text-xs">Issued by: {v.issuing_authority}</p>}
+                              {v.expiration_date && (
+                                <p className="text-gray-400 text-xs flex items-center gap-1 mt-1">
+                                  <Calendar className="w-3 h-3" />Expires: {new Date(v.expiration_date).toLocaleDateString()}
+                                </p>
+                              )}
                             </div>
                           </div>
-                          <Badge className={statusColors[verification.status]}>{verification.status.toUpperCase()}</Badge>
+                          <Badge className={`${statusColors[v.status]} border text-xs flex-shrink-0`}>{v.status.toUpperCase()}</Badge>
                         </div>
-                        {verification.expiration_date && (
-                          <div className="flex items-center gap-2 text-gray-400 text-sm mb-3">
-                            <Calendar className="w-4 h-4" />Expires: {new Date(verification.expiration_date).toLocaleDateString()}
-                          </div>
-                        )}
-                        {verification.status === 'rejected' && verification.rejection_reason && (
-                          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                            <p className="text-red-400 text-sm"><strong>Rejection Reason:</strong> {verification.rejection_reason}</p>
+                        {v.status === 'rejected' && v.rejection_reason && (
+                          <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                            <p className="text-red-400 text-xs"><strong>Reason:</strong> {v.rejection_reason}</p>
                           </div>
                         )}
                       </CardContent>
                     </Card>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
+
+            {verifications.length === 0 && (
+              <div className="text-center py-16 rounded-xl border border-dashed border-white/20">
+                <Award className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <p className="text-white font-semibold mb-1">No verifications yet</p>
+                <p className="text-gray-400 text-sm">Submit your first verification to build customer trust</p>
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="contracts" className="space-y-6">
+          {/* Contracts */}
+          <TabsContent value="contracts">
             <ContractTemplateManager currentUser={currentUser} />
           </TabsContent>
 
-          <TabsContent value="profile" className="space-y-6">
+          {/* Video Editor */}
+          <TabsContent value="video-editor" className="space-y-5">
+            <AdvancedVideoEditor currentUser={currentUser} />
+            <VideoEditorPro currentUser={currentUser} />
+          </TabsContent>
+
+          {/* Profile */}
+          <TabsContent value="profile">
             <Card className="bg-white/5 border-white/10">
-              <CardHeader><CardTitle className="text-white">Provider Profile Information</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <User className="w-5 h-5 text-purple-400" />Provider Profile
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Business Name</label>
-                    <Input placeholder="Your Business Name" value={currentUser?.provider_business_name || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_business_name: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Business Name</label>
+                    <Input placeholder="Your Business Name" value={profileForm.provider_business_name}
+                      onChange={(e) => setProfileForm(f => ({ ...f, provider_business_name: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Phone Number</label>
-                    <Input placeholder="+1 (555) 123-4567" value={currentUser?.provider_phone || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_phone: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Phone Number</label>
+                    <Input placeholder="+1 (555) 123-4567" value={profileForm.provider_phone}
+                      onChange={(e) => setProfileForm(f => ({ ...f, provider_phone: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-2 block">Business Address</label>
-                    <Input placeholder="123 Main St, City, State ZIP" value={currentUser?.provider_business_address || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_business_address: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
+                  <div className="sm:col-span-2">
+                    <label className="text-gray-400 text-xs mb-1.5 block">Business Address</label>
+                    <Input placeholder="123 Main St, City, State ZIP" value={profileForm.provider_business_address}
+                      onChange={(e) => setProfileForm(f => ({ ...f, provider_business_address: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Website</label>
-                    <Input placeholder="https://yourbusiness.com" value={currentUser?.provider_website || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_website: e.target.value }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Website</label>
+                    <Input placeholder="https://yourbusiness.com" value={profileForm.provider_website}
+                      onChange={(e) => setProfileForm(f => ({ ...f, provider_website: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Years of Experience</label>
-                    <Input type="number" placeholder="10" value={currentUser?.provider_years_experience || ""} onChange={async (e) => { const updated = await base44.auth.updateMe({ provider_years_experience: Number(e.target.value) }); setCurrentUser(prev => ({...prev, ...updated})); }} className="bg-white/10 border-white/20 text-white" />
+                    <label className="text-gray-400 text-xs mb-1.5 block">Years of Experience</label>
+                    <Input type="number" placeholder="5" value={profileForm.provider_years_experience}
+                      onChange={(e) => setProfileForm(f => ({ ...f, provider_years_experience: e.target.value }))}
+                      className="bg-white/10 border-white/20 text-white" />
                   </div>
                 </div>
+                <Button onClick={saveProfile} disabled={savingProfile} className="bg-purple-600 hover:bg-purple-700 gap-2">
+                  {savingProfile ? <><Loader2 className="w-4 h-4 animate-spin" />Saving...</> : <><Save className="w-4 h-4" />Save Profile</>}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="availability" className="space-y-6">
-            <Card className="bg-white/5 border-white/10">
-              <CardHeader><CardTitle className="text-white">Set Your Availability</CardTitle></CardHeader>
-              <CardContent className="space-y-6">
-                {daysOfWeek.map(day => {
-                  const existingAvail = availability.find(a => a.day_of_week === day);
-                  const isAvailable = existingAvail?.is_available ?? true;
-                  return (
-                    <div key={day} className="bg-white/5 rounded-xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-white font-semibold capitalize">{day}</h3>
-                        <Switch checked={isAvailable} onCheckedChange={async (checked) => {
-                          await saveAvailabilityMutation.mutateAsync({
-                            day_of_week: day, is_available: checked,
-                            start_time: existingAvail?.start_time || "09:00",
-                            end_time: existingAvail?.end_time || "17:00",
-                            slot_duration_minutes: existingAvail?.slot_duration_minutes || 60
-                          });
-                        }} />
-                      </div>
-                      {isAvailable && (
-                        <div className="grid md:grid-cols-3 gap-3">
-                          <div>
-                            <label className="text-gray-400 text-xs mb-1 block">Start Time</label>
-                            <Input type="time" value={existingAvail?.start_time || "09:00"} onChange={(e) => { setAvailabilityForm({ day_of_week: day, is_available: true, start_time: e.target.value, end_time: existingAvail?.end_time || "17:00", slot_duration_minutes: existingAvail?.slot_duration_minutes || 60 }); }} onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)} className="bg-white/10 border-white/20 text-white" />
-                          </div>
-                          <div>
-                            <label className="text-gray-400 text-xs mb-1 block">End Time</label>
-                            <Input type="time" value={existingAvail?.end_time || "17:00"} onChange={(e) => { setAvailabilityForm({ day_of_week: day, is_available: true, start_time: existingAvail?.start_time || "09:00", end_time: e.target.value, slot_duration_minutes: existingAvail?.slot_duration_minutes || 60 }); }} onBlur={() => saveAvailabilityMutation.mutate(availabilityForm)} className="bg-white/10 border-white/20 text-white" />
-                          </div>
-                          <div>
-                            <label className="text-gray-400 text-xs mb-1 block">Slot Duration (min)</label>
-                            <Select value={String(existingAvail?.slot_duration_minutes || 60)} onValueChange={(value) => { saveAvailabilityMutation.mutate({ day_of_week: day, is_available: true, start_time: existingAvail?.start_time || "09:00", end_time: existingAvail?.end_time || "17:00", slot_duration_minutes: Number(value) }); }}>
-                              <SelectTrigger className="bg-white/10 border-white/20 text-white"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="15">15 min</SelectItem>
-                                <SelectItem value="30">30 min</SelectItem>
-                                <SelectItem value="60">1 hour</SelectItem>
-                                <SelectItem value="90">1.5 hours</SelectItem>
-                                <SelectItem value="120">2 hours</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+          {/* Settings */}
+          <TabsContent value="settings" className="space-y-5">
+            <NotificationPreferences currentUser={currentUser} />
           </TabsContent>
         </Tabs>
-
-        <ProviderPayoutManager isOpen={showPayoutModal} onClose={() => setShowPayoutModal(false)} currentUser={currentUser} />
       </div>
 
+      <ProviderPayoutManager isOpen={showPayoutModal} onClose={() => setShowPayoutModal(false)} currentUser={currentUser} />
       <RealtimeNotifications currentUser={currentUser} />
+
+      <style>{`.hide-scrollbar::-webkit-scrollbar{display:none}.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`}</style>
     </div>
   );
 }
