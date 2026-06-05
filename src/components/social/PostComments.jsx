@@ -95,8 +95,8 @@ export default function PostComments({ post, currentUser, onClose }) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300 }}
-      className="fixed inset-x-0 z-[70] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col overflow-hidden"
-      style={{ bottom: "calc(5rem + env(safe-area-inset-bottom, 0px))", maxHeight: "65dvh", height: "65dvh" }}
+      className="fixed inset-x-0 z-[70] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
+      style={{ bottom: 0, maxHeight: "75dvh", height: "75dvh", paddingBottom: "calc(5rem + env(safe-area-inset-bottom, 0px))" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
