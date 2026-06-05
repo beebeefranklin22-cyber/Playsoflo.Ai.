@@ -20,7 +20,6 @@ import BookingRequestsSection from "../components/provider/BookingRequestsSectio
 import EarningsSection from "../components/provider/EarningsSection";
 import PerformanceDashboard from "../components/provider/PerformanceDashboard";
 import ProviderChatSection from "../components/provider/ProviderChatSection";
-import PortfolioSection from "../components/profile/PortfolioSection";
 import ServiceVariationsManager from "../components/provider/ServiceVariationsManager";
 import ServiceAddOnsManager from "../components/provider/ServiceAddOnsManager";
 import AvailabilityOverridesManager from "../components/provider/AvailabilityOverridesManager";
@@ -635,7 +634,6 @@ export default function ProviderHub() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="earnings" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Earnings</TabsTrigger>
-              <TabsTrigger value="portfolio" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Portfolio</TabsTrigger>
               <TabsTrigger value="services" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Services</TabsTrigger>
               <TabsTrigger value="availability" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Availability</TabsTrigger>
               <TabsTrigger value="verification" className="whitespace-nowrap px-4 text-gray-400 data-[state=active]:bg-white/10 data-[state=active]:text-white rounded-lg">Verification</TabsTrigger>
@@ -680,21 +678,6 @@ export default function ProviderHub() {
               </Button>
             </div>
             <EarningsSection currentUser={currentUser} />
-          </TabsContent>
-
-          <TabsContent value="portfolio" className="space-y-6">
-            <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30 mb-6">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <Award className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-white font-bold text-lg mb-2">Showcase Your Work</h3>
-                    <p className="text-blue-200 text-sm">Build trust and attract more customers by showcasing your best work.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <PortfolioSection userEmail={currentUser?.email} isOwnProfile={true} currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="services" className="space-y-6">
