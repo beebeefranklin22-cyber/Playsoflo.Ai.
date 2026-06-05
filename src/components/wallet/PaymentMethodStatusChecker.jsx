@@ -24,8 +24,8 @@ export default function PaymentMethodStatusChecker({ currentUser }) {
   const { data: methods = [], isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
     queryFn: async () => {
-      const list = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' });
-      return list.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+      const list = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email });
+      return list.filter(m => m.status !== 'disabled' && m.status !== 'expired').sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
     },
     enabled: !!currentUser,
     staleTime: 0,

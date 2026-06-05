@@ -182,8 +182,8 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const { data: paymentMethods = [], isLoading } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
     queryFn: async () => {
-      const methods = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' });
-      return methods.sort((a, b) => {
+      const methods = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email });
+      return methods.filter(m => m.status !== 'disabled' && m.status !== 'expired').sort((a, b) => {
         if (a.is_default && !b.is_default) return -1;
         if (!a.is_default && b.is_default) return 1;
         return new Date(b.created_date) - new Date(a.created_date);
