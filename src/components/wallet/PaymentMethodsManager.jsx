@@ -61,7 +61,10 @@ function DirectCardForm({ onSuccess, onCancel, currentUser }) {
 
       toast.dismiss();
       toast.success("Card saved successfully!");
-      onSuccess(response?.data?.method);
+      // Wait 2 seconds so user can see their card appear in the list before form closes
+      setTimeout(() => {
+        onSuccess(response?.data?.method);
+      }, 2000);
     } catch (err) {
       toast.dismiss();
       toast.error(err.message || "Failed to save card");
@@ -175,8 +178,9 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     queryClient.refetchQueries({ queryKey: ['payment-methods', currentUser?.email] });
     queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
     setSavingBank(false);
-    setShowAddCard(false);
     toast.success("Bank account saved!");
+    // Wait 2 seconds so user can see their account appear before form closes
+    setTimeout(() => setShowAddCard(false), 2000);
   };
 
   const { data: paymentMethods = [], isLoading } = useQuery({
