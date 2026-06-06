@@ -63,6 +63,8 @@ export default function Home() {
   const [sharingPost, setSharingPost] = useState(null);
   const [postMenuOpen, setPostMenuOpen] = useState(null); // postId of open context menu
   const [hiddenPosts, setHiddenPosts] = useState(new Set());
+  const [visibleCount, setVisibleCount] = useState(10);
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -266,6 +268,18 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
     }
   });
+
+  // Infinite scroll — load 10 more posts when sentinel comes into view
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount(c => c + 10); },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [posts]);
 
   const toggleLike = (postId, post) => {
     if (!currentUser) { toast.error('Sign in to like posts'); return; }
@@ -554,7 +568,7 @@ export default function Home() {
 
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
-        {posts.filter(p => !hiddenPosts.has(p.id)).map((post, index) => (
+        {posts.filter(p => !hiddenPosts.has(p.id)).slice(0, visibleCount).map((post, index) => (
           <React.Fragment key={post.id}>
             {index === 2 && <AdDisplay currentUser={currentUser} position="feed" />}
             <motion.div
@@ -746,6 +760,13 @@ export default function Home() {
           </motion.div>
           </React.Fragment>
         ))}
+
+        {/* Infinite scroll sentinel */}
+        {visibleCount < posts.filter(p => !hiddenPosts.has(p.id)).length && (
+          <div ref={loadMoreRef} className="flex justify-center py-6">
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          </div>
+        )}
 
         {posts.length === 0 && !isLoading && (
           <div className="text-center py-24 px-6">
