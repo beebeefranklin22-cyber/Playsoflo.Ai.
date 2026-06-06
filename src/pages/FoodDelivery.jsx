@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -6,15 +6,36 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Star, Clock, DollarSign, ShoppingCart } from "lucide-react";
+import { Search, Star, Clock, DollarSign, ShoppingCart, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+
+// Calculate rough miles between two lat/lon points
+function getMilesBetween(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export default function FoodDelivery() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
   const [page, setPage] = useState(1);
+  const [userCoords, setUserCoords] = useState(null);
   const itemsPerPage = 12;
+
+  // Get user location once for distance display
+  React.useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {}
+      );
+    }
+  }, []);
 
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['restaurants', page],
@@ -121,20 +142,32 @@ export default function FoodDelivery() {
                   <h3 className="text-xl font-bold text-white mb-2">{restaurant.name}</h3>
                   <p className="text-gray-300 text-sm mb-3 line-clamp-2">{restaurant.description}</p>
 
-                  <div className="flex items-center gap-4 mb-3">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-white font-medium">{restaurant.rating}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-300">
-                      <Clock className="w-4 h-4" />
-                      <span className="text-sm">{restaurant.estimated_delivery_time}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-300">
-                      <DollarSign className="w-4 h-4" />
-                      <span className="text-sm">${restaurant.delivery_fee}</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const miles = getMilesBetween(userCoords?.lat, userCoords?.lon, restaurant.latitude, restaurant.longitude);
+                    const estDelivery = miles ? `${Math.round(miles * 4 + 10)}-${Math.round(miles * 4 + 20)} min` : restaurant.estimated_delivery_time;
+                    return (
+                      <div className="flex items-center gap-3 mb-3 flex-wrap">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                          <span className="text-white font-medium">{restaurant.rating}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-300">
+                          <Clock className="w-4 h-4" />
+                          <span className="text-sm">{estDelivery}</span>
+                        </div>
+                        {miles !== null && (
+                          <div className="flex items-center gap-1 text-blue-300">
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm">{miles.toFixed(1)} mi</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-gray-300">
+                          <DollarSign className="w-4 h-4" />
+                          <span className="text-sm">${restaurant.delivery_fee}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex items-center justify-between">
                     <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">

@@ -52,8 +52,9 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stories'] });
       toast.success('✨ Story shared with your followers!');
-      onClose();
+      // Reset form so user can upload another story immediately — do NOT close
       resetForm();
+      toast.info('Upload another story or close when done.', { duration: 3000 });
     }
   });
 

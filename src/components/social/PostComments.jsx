@@ -30,6 +30,7 @@ export default function PostComments({ post, currentUser, onClose }) {
 
   const addCommentMutation = useMutation({
     mutationFn: async (content) => {
+      if (!currentUser?.email) throw new Error("Not authenticated");
       const comment = await base44.entities.Comment.create({
         post_id: post.id,
         author_email: currentUser.email,

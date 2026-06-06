@@ -34,6 +34,7 @@ import RentalNotifications from "../components/provider/RentalNotifications";
 import StripeExpressDashboard from "../components/provider/StripeExpressDashboard";
 import ActiveRentalsManager from "../components/provider/ActiveRentalsManager";
 import ContractTemplateManager from "../components/provider/ContractTemplateManager";
+import ContractManager from "../components/contracts/ContractManager";
 import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
 import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
 import FinancialDataExport from "../components/provider/FinancialDataExport";
@@ -765,7 +766,8 @@ export default function ProviderHub() {
                         <SelectItem value="yacht_charter">Yacht Charter</SelectItem>
                         <SelectItem value="bounce_house_rental">Bounce House Rental</SelectItem>
                         <SelectItem value="party_rental">Party Rental</SelectItem>
-                      </SelectContent>
+                        <SelectItem value="other">Other / Not Listed</SelectItem>
+                        </SelectContent>
                     </Select>
                   </div>
 
@@ -1107,6 +1109,7 @@ export default function ProviderHub() {
           </TabsContent>
 
           <TabsContent value="contracts" className="space-y-6">
+            <ContractManager currentUser={currentUser} />
             <ContractTemplateManager currentUser={currentUser} />
           </TabsContent>
 

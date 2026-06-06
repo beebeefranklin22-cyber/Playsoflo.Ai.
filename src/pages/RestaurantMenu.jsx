@@ -1,14 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Minus, ShoppingCart, Star, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Plus, Minus, ShoppingCart, Star, Clock, DollarSign, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { LoadMoreButton } from "../components/Pagination";
+
+function getMilesBetween(lat1, lon1, lat2, lon2) {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export default function RestaurantMenu() {
   const navigate = useNavigate();
@@ -18,6 +27,16 @@ export default function RestaurantMenu() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [menuPage, setMenuPage] = useState(1);
   const menuItemsPerPage = 20;
+  const [userCoords, setUserCoords] = useState(null);
+
+  React.useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => {}
+      );
+    }
+  }, []);
 
   const { data: restaurant } = useQuery({
     queryKey: ['restaurant', restaurantId],
@@ -100,20 +119,32 @@ export default function RestaurantMenu() {
 
         <div className="absolute bottom-4 left-4 right-4">
           <h1 className="text-3xl font-bold text-white mb-2">{restaurant.name}</h1>
-          <div className="flex items-center gap-4 text-white">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-              <span>{restaurant.rating}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>{restaurant.estimated_delivery_time}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <DollarSign className="w-4 h-4" />
-              <span>${restaurant.delivery_fee} delivery</span>
-            </div>
-          </div>
+          {(() => {
+            const miles = getMilesBetween(userCoords?.lat, userCoords?.lon, restaurant.latitude, restaurant.longitude);
+            const estDelivery = miles ? `${Math.round(miles * 4 + 10)}-${Math.round(miles * 4 + 20)} min` : restaurant.estimated_delivery_time;
+            return (
+              <div className="flex items-center gap-4 text-white flex-wrap">
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <span>{restaurant.rating}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{estDelivery}</span>
+                </div>
+                {miles !== null && (
+                  <div className="flex items-center gap-1 text-blue-300">
+                    <MapPin className="w-4 h-4" />
+                    <span>{miles.toFixed(1)} mi away</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-4 h-4" />
+                  <span>${restaurant.delivery_fee} delivery</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

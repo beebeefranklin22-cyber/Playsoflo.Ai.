@@ -10,7 +10,7 @@ import {
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
   Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star,
-  Flag, EyeOff, ChevronRight, Mic2, Building
+  Flag, EyeOff, ChevronRight, Mic2, Building, User
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -294,6 +294,7 @@ export default function Home() {
     { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
     { icon: Wand2, label: "AI", bg: "bg-violet-500/20", iconColor: "text-violet-400", path: "RonronAI" },
     { icon: Tv, label: "Stream", bg: "bg-red-500/20", iconColor: "text-red-400", path: "Streaming" },
+    { icon: User, label: "My Profile", bg: "bg-purple-500/20", iconColor: "text-purple-400", path: "Profile" },
     // Progressive disclosure: show role-specific shortcuts only for relevant users
     ...(currentUser?.is_creator || currentUser?.is_musician ? [{ icon: Mic2, label: "Studio", bg: "bg-fuchsia-500/20", iconColor: "text-fuchsia-400", path: "MusicStudio" }] : []),
     ...(currentUser?.is_provider || currentUser?.is_restaurant_owner ? [{ icon: Building, label: "My Hub", bg: "bg-teal-500/20", iconColor: "text-teal-400", path: "ProviderHub" }] : []),

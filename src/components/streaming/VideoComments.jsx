@@ -92,15 +92,18 @@ export default function VideoComments({ contentId }) {
   }, [sorted.length]);
 
   const sendMutation = useMutation({
-    mutationFn: () => base44.entities.Comment.create({
-      post_id: contentId,
-      author_email: currentUser.email,
-      author_name: currentUser.username || currentUser.full_name || currentUser.email.split("@")[0],
-      author_avatar: currentUser.profile_picture || "",
-      content: text.trim(),
-      likes_count: 0,
-      liked_by: []
-    }),
+    mutationFn: () => {
+      if (!currentUser?.email) throw new Error("Not authenticated");
+      return base44.entities.Comment.create({
+        post_id: contentId,
+        author_email: currentUser.email,
+        author_name: currentUser.username || currentUser.full_name || currentUser.email.split("@")[0],
+        author_avatar: currentUser.profile_picture || "",
+        content: text.trim(),
+        likes_count: 0,
+        liked_by: []
+      });
+    },
     onSuccess: () => {
       setText("");
       queryClient.invalidateQueries({ queryKey: ["video-comments", contentId] });

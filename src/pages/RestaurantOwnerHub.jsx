@@ -568,9 +568,15 @@ export default function RestaurantOwnerHub() {
           </TabsContent>
 
           <TabsContent value="menu">
+            {!myRestaurant && (
+              <div className="text-center py-8 bg-white/10 rounded-2xl mb-4">
+                <p className="text-gray-300">Create your restaurant first before adding menu items.</p>
+              </div>
+            )}
             <div className="mb-4 flex justify-end">
               <Button
                 onClick={() => {
+                  if (!myRestaurant) { toast.error("Please create your restaurant first"); setShowRestaurantModal(true); return; }
                   setEditingMenuItem(null);
                   setMenuItemForm({
                     name: "",

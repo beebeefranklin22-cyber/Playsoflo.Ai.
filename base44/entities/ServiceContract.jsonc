@@ -2,85 +2,142 @@
   "name": "ServiceContract",
   "type": "object",
   "properties": {
-    "provider_email": {
+    "title": {
+      "type": "string",
+      "description": "Contract title"
+    },
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the provider who created this contract"
+    },
+    "creator_name": {
       "type": "string"
     },
-    "service_id": {
+    "recipient_email": {
       "type": "string",
-      "description": "Optional - link to specific service"
+      "description": "Email of the person who must sign"
     },
-    "template_name": {
+    "recipient_name": {
       "type": "string"
     },
-    "terms_and_conditions": {
+    "body": {
       "type": "string",
-      "description": "Main terms of service"
+      "description": "Full contract text / terms"
     },
-    "cancellation_policy": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "flexible",
-            "moderate",
-            "strict",
-            "non_refundable",
-            "custom"
-          ]
-        },
-        "hours_before": {
-          "type": "number"
-        },
-        "refund_percentage": {
-          "type": "number"
-        },
-        "custom_text": {
-          "type": "string"
-        }
-      }
+    "service_description": {
+      "type": "string"
     },
-    "liability_clauses": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": []
+    "amount": {
+      "type": "number",
+      "description": "Contract value in USD"
     },
-    "custom_clauses": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
-          },
-          "content": {
-            "type": "string"
-          }
-        }
-      },
-      "default": []
+    "start_date": {
+      "type": "string",
+      "format": "date"
     },
-    "requires_signature": {
+    "end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "viewed",
+        "signed",
+        "declined",
+        "expired"
+      ],
+      "default": "draft"
+    },
+    "delivery_method": {
+      "type": "string",
+      "enum": [
+        "in_app",
+        "email"
+      ],
+      "default": "in_app"
+    },
+    "creator_signature": {
+      "type": "string",
+      "description": "Creator digital signature"
+    },
+    "creator_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipient_signature": {
+      "type": "string",
+      "description": "Recipient typed/drawn signature"
+    },
+    "recipient_signed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "signed_pdf_url": {
+      "type": "string",
+      "description": "URL of signed document export"
+    },
+    "viewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "liability_disclaimer_accepted": {
       "type": "boolean",
-      "default": true
-    },
-    "is_active": {
-      "type": "boolean",
-      "default": true
-    },
-    "applies_to_services": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": []
+      "default": false,
+      "description": "Recipient acknowledged PlaySoFlo is not liable for breach"
     }
   },
   "required": [
-    "provider_email",
-    "template_name",
-    "terms_and_conditions"
-  ]
+    "title",
+    "creator_email",
+    "recipient_email",
+    "body"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "recipient_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "creator_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

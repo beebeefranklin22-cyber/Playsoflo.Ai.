@@ -348,15 +348,13 @@ export default function Vibe() {
               </h1>
               <p className="text-gray-400">Millions of songs • All genres • Discover new artists</p>
             </div>
-            {currentUser?.is_creator && (
-              <Button
-                onClick={() => navigate(createPageUrl("MusicStudio"))}
-                className="bg-gradient-to-r from-purple-600 to-pink-600"
-              >
-                <Mic2 className="w-4 h-4 mr-2" />
-                Artist Studio
-              </Button>
-            )}
+            <Button
+              onClick={() => navigate(createPageUrl("MusicStudio"))}
+              className="bg-gradient-to-r from-purple-600 to-pink-600"
+            >
+              <Mic2 className="w-4 h-4 mr-2" />
+              Artist Studio
+            </Button>
           </div>
 
           {/* Search Bar */}

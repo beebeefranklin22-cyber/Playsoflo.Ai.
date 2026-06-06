@@ -22,6 +22,12 @@ const CATEGORIES = [
   { value: "cleaning", label: "Cleaning Services" },
   { value: "automotive", label: "Automotive" },
   { value: "event_planning", label: "Event Planning" },
+  { value: "consulting", label: "Consulting / Coaching" },
+  { value: "legal_services", label: "Legal Services" },
+  { value: "real_estate", label: "Real Estate" },
+  { value: "marketing", label: "Marketing / Social Media" },
+  { value: "content_writing", label: "Content Writing" },
+  { value: "other", label: "Other / Not Listed" },
 ];
 
 const PRICE_TYPES = [

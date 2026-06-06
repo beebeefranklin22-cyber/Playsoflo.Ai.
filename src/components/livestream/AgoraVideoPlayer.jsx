@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export default function AgoraVideoPlayer({ channelName, role = "audience", onViewerJoin, preferredDeviceId = null, onPauseChange }) {
-  const [client] = useState(() => AgoraRTC.createClient({ mode: "live", codec: "vp8" }));
+  const [client] = useState(() => AgoraRTC.createClient({ mode: "live", codec: "h264" }));
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [remoteUsers, setRemoteUsers] = useState({});
@@ -106,7 +106,16 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
               });
             }
 
-            const audioConfig = { encoderConfig: "music_standard" };
+            const audioConfig = {
+              encoderConfig: {
+                sampleRate: 48000,
+                stereo: false,
+                bitrate: 128,
+              },
+              AEC: true,   // Acoustic Echo Cancellation
+              ANS: true,   // Automatic Noise Suppression
+              AGC: true,   // Automatic Gain Control
+            };
             if (selectedAudioDevice) audioConfig.microphoneId = selectedAudioDevice;
             const audioTrack = await AgoraRTC.createMicrophoneAudioTrack(audioConfig);
 
