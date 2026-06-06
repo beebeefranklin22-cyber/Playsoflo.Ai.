@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -8,34 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Star, Clock, DollarSign, ShoppingCart, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
-
-// Calculate rough miles between two lat/lon points
-function getMilesBetween(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-  const R = 3958.8;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+import { useGeoDistance } from "@/hooks/useGeoDistance";
+import LocationFilter from "@/components/location/LocationFilter";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 export default function FoodDelivery() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
   const [page, setPage] = useState(1);
-  const [userCoords, setUserCoords] = useState(null);
+  const [locationCity, setLocationCity] = useState("");
+  const [maxMiles, setMaxMiles] = useState(null);
   const itemsPerPage = 12;
 
-  // Get user location once for distance display
-  React.useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setUserCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => {}
-      );
-    }
-  }, []);
+  const { userCoords, distanceTo } = useGeoDistance();
+  const { userCity } = useUserLocation();
 
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ['restaurants', page],
@@ -59,6 +46,20 @@ export default function FoodDelivery() {
     const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           r.cuisine_type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCuisine = selectedCuisine === "all" || r.cuisine_type === selectedCuisine;
+
+    // City text filter
+    if (locationCity) {
+      const q = locationCity.toLowerCase().trim();
+      const hay = [r.address, r.city, r.location].filter(Boolean).join(" ").toLowerCase();
+      if (hay.length > 0 && !hay.includes(q)) return false;
+    }
+
+    // GPS radius filter
+    if (maxMiles && r.latitude && r.longitude) {
+      const d = distanceTo(r.latitude, r.longitude);
+      if (d !== null && d > maxMiles) return false;
+    }
+
     return matchesSearch && matchesCuisine;
   });
 
@@ -95,6 +96,15 @@ export default function FoodDelivery() {
               className="pl-12 py-6 bg-white/10 border-white/20 text-white placeholder-gray-400 rounded-2xl"
             />
           </div>
+
+          <LocationFilter
+            cityValue={locationCity}
+            onCityChange={setLocationCity}
+            radiusValue={maxMiles}
+            onRadiusChange={setMaxMiles}
+            userCity={userCity}
+            accentColor="orange"
+          />
 
           <div className="flex gap-2 overflow-x-auto pb-2">
             {cuisines.map(cuisine => (
@@ -143,7 +153,7 @@ export default function FoodDelivery() {
                   <p className="text-gray-300 text-sm mb-3 line-clamp-2">{restaurant.description}</p>
 
                   {(() => {
-                    const miles = getMilesBetween(userCoords?.lat, userCoords?.lon, restaurant.latitude, restaurant.longitude);
+                    const miles = distanceTo(restaurant.latitude, restaurant.longitude);
                     const estDelivery = miles ? `${Math.round(miles * 4 + 10)}-${Math.round(miles * 4 + 20)} min` : restaurant.estimated_delivery_time;
                     return (
                       <div className="flex items-center gap-3 mb-3 flex-wrap">

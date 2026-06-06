@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
-  Star, Clock, ChevronLeft, Sparkles, ShoppingBag,
+  Star, Clock, ChevronLeft, Sparkles, ShoppingBag, MapPin,
   Scissors, Home, Package, ChefHat, Car, Building,
   Briefcase, Hammer, Heart, Camera, TrendingUp,
   Calculator, Users, Truck, PawPrint, BookOpen,
@@ -26,6 +26,7 @@ import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useGeoDistance } from "../hooks/useGeoDistance";
 import ListItemModal from "../components/marketplace/ListItemModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 
@@ -141,6 +142,7 @@ export default function Marketplace() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { userCity, refreshLocation } = useUserLocation();
+  const { userCoords, distanceTo } = useGeoDistance();
   const [locationCity, setLocationCity] = useState("");
   const [locationRadius, setLocationRadius] = useState(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
@@ -369,6 +371,17 @@ export default function Marketplace() {
       const hay = [item.location, item.service_area, item.city, item.state, item.address]
         .filter(Boolean).join(" ").toLowerCase();
       if (hay.length > 0 && !hay.includes(q)) return false;
+    }
+
+    // GPS radius filter (works when browser location is granted)
+    if (locationRadius) {
+      const raw = item.originalData;
+      const lat = raw?.latitude || raw?.lat;
+      const lon = raw?.longitude || raw?.lon || raw?.lng;
+      if (lat && lon) {
+        const d = distanceTo(lat, lon);
+        if (d !== null && d > locationRadius) return false;
+      }
     }
 
     // Category filter
@@ -853,6 +866,20 @@ export default function Marketplace() {
                       <p className="text-gray-300 text-sm mb-2">
                         by {item.provider_name}
                       </p>
+
+                      {/* Distance badge */}
+                      {(() => {
+                        const raw = item.originalData;
+                        const lat = raw?.latitude || raw?.lat;
+                        const lon = raw?.longitude || raw?.lon || raw?.lng;
+                        const d = distanceTo(lat, lon);
+                        return d !== null ? (
+                          <div className="flex items-center gap-1 text-blue-300 text-xs mb-2">
+                            <MapPin className="w-3 h-3" />
+                            <span>{d.toFixed(1)} mi away</span>
+                          </div>
+                        ) : null;
+                      })()}
 
                       {/* Multiple Providers Indicator */}
                       {groupedByService[item.title]?.length > 1 && (
