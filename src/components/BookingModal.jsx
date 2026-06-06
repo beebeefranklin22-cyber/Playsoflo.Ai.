@@ -15,6 +15,7 @@ import StripePaymentForm from "@/components/payment/StripePaymentForm";
 import PaymentConfirmation from "./payment/PaymentConfirmation";
 import ContractSigningModal from "./booking/ContractSigningModal";
 import CustomerBookingCalendar from "./booking/CustomerBookingCalendar";
+import BookingChatButton from "./booking/BookingChatButton";
 
 export default function BookingModal({ service, onClose }) {
   const queryClient = useQueryClient();
@@ -594,6 +595,21 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
           </div>
 
           <div className="p-6">
+            {/* Pre-booking Provider Chat */}
+            {step < 3 && service?.created_by && currentUser && (
+              <div className="mb-4">
+                <BookingChatButton
+                  providerEmail={service.created_by}
+                  providerName={service.provider_name || 'Provider'}
+                  providerPhoto={service.provider_photo}
+                  currentUser={currentUser}
+                  bookingTitle={service.title}
+                  bookingStatus="pre"
+                  variant="default"
+                />
+              </div>
+            )}
+
             {/* AI Assistant Toggle Button */}
             <div className="mb-4">
               <Button
@@ -1123,6 +1139,19 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
                     </div>
                   </CardContent>
                 </Card>
+                {/* Post-booking chat with provider */}
+                {service?.created_by && currentUser && (
+                  <div className="mb-4">
+                    <BookingChatButton
+                      providerEmail={service.created_by}
+                      providerName={service.provider_name || 'Provider'}
+                      currentUser={currentUser}
+                      bookingTitle={service.title}
+                      bookingStatus="confirmed"
+                      variant="default"
+                    />
+                  </div>
+                )}
                 <Button
                   onClick={onClose}
                   className="w-full bg-purple-600 hover:bg-purple-700 py-6"

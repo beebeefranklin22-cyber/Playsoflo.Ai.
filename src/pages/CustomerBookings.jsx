@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Clock, MapPin, Star, MessageCircle, X, CheckCircle, Activity } from "lucide-react";
 import BookingProgressTracker from "../components/booking/BookingProgressTracker";
+import BookingChatButton from "../components/booking/BookingChatButton";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -173,7 +174,7 @@ export default function CustomerBookings() {
         )}
       </div>
 
-      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
         <span className="text-white font-bold text-xl">${booking.total_price}</span>
         <div className="flex items-center gap-2">
           {booking.status === 'completed' && !booking.review_submitted && (
@@ -184,6 +185,19 @@ export default function CustomerBookings() {
           <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs font-semibold rounded-full flex items-center gap-1">
             <Activity className="w-3 h-3" /> Track
           </span>
+          {booking.provider_email && currentUser && (
+            <div onClick={e => e.stopPropagation()}>
+              <BookingChatButton
+                providerEmail={booking.provider_email}
+                providerName={booking.provider_name || 'Provider'}
+                currentUser={currentUser}
+                bookingTitle={booking.service_title}
+                bookingId={booking.id}
+                bookingStatus={booking.status === 'confirmed' ? 'confirmed' : 'pre'}
+                variant="icon"
+              />
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
