@@ -8,6 +8,17 @@
     "restaurant_name": {
       "type": "string"
     },
+    "restaurant_address": {
+      "type": "string",
+      "description": "Pickup address for driver"
+    },
+    "restaurant_owner_email": {
+      "type": "string",
+      "description": "Restaurant owner email for notifications"
+    },
+    "restaurant_phone": {
+      "type": "string"
+    },
     "items": {
       "type": "array",
       "items": {
@@ -67,6 +78,9 @@
     "driver_email": {
       "type": "string"
     },
+    "driver_name": {
+      "type": "string"
+    },
     "special_instructions": {
       "type": "string"
     },
@@ -79,6 +93,23 @@
     },
     "payment_intent_id": {
       "type": "string"
+    },
+    "delivery_order_id": {
+      "type": "string",
+      "description": "Linked DeliveryOrder id for driver dispatch"
+    },
+    "delivery_photo_url": {
+      "type": "string",
+      "description": "Proof-of-delivery photo uploaded by driver"
+    },
+    "payment_settled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether driver payment has been settled"
+    },
+    "driver_earnings": {
+      "type": "number",
+      "description": "Amount earned by driver for this order"
     }
   },
   "required": [
@@ -100,6 +131,9 @@
           "driver_email": "{{user.email}}"
         },
         {
+          "restaurant_owner_email": "{{user.email}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
@@ -113,6 +147,9 @@
         },
         {
           "driver_email": "{{user.email}}"
+        },
+        {
+          "restaurant_owner_email": "{{user.email}}"
         },
         {
           "user_condition": {

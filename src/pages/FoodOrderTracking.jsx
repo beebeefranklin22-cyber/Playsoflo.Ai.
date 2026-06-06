@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone, Image } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { LoadMoreButton } from "../components/Pagination";
@@ -232,13 +232,23 @@ export default function FoodOrderTracking() {
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <MapPin className="w-5 h-5" />
-              Delivery Address
+              Delivery Details
             </h3>
-            <p className="text-gray-300">{order.delivery_address}</p>
+            {order.restaurant_address && (
+              <div className="mb-3">
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Pickup from</p>
+                <p className="text-orange-300 font-medium">{order.restaurant_name}</p>
+                <p className="text-gray-300 text-sm">{order.restaurant_address}</p>
+              </div>
+            )}
+            <div className="mb-2">
+              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Deliver to</p>
+              <p className="text-white">{order.delivery_address}</p>
+            </div>
             {order.special_instructions && (
-              <div className="mt-4 p-3 bg-white/5 rounded-lg">
-                <p className="text-gray-400 text-sm">Instructions:</p>
-                <p className="text-gray-300">{order.special_instructions}</p>
+              <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                <p className="text-yellow-300 text-sm font-medium mb-0.5">Special Instructions</p>
+                <p className="text-gray-300 text-sm">{order.special_instructions}</p>
               </div>
             )}
           </div>
@@ -270,11 +280,11 @@ export default function FoodOrderTracking() {
         </div>
 
         {order.driver_email && (
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 mb-6">
             <h3 className="text-lg font-bold text-white mb-4">Your Driver</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-medium">{order.driver_email.split('@')[0]}</p>
+                <p className="text-white font-medium">{order.driver_name || order.driver_email.split('@')[0]}</p>
                 <p className="text-gray-400 text-sm">Delivery driver</p>
               </div>
               <Button variant="outline" className="flex items-center gap-2">
@@ -282,6 +292,22 @@ export default function FoodOrderTracking() {
                 Contact
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Proof of Delivery Photo */}
+        {order.delivery_photo_url && (
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Delivery Photo
+            </h3>
+            <img
+              src={order.delivery_photo_url}
+              alt="Proof of delivery"
+              className="w-full rounded-xl object-cover max-h-64"
+            />
+            <p className="text-gray-400 text-xs mt-2">Photo taken by driver at delivery location</p>
           </div>
         )}
       </div>

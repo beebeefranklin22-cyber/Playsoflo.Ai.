@@ -1,20 +1,24 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bike, DollarSign, Clock, MapPin, CheckCircle, Package } from "lucide-react";
+import { Bike, DollarSign, Clock, MapPin, CheckCircle, Package, Camera, Store, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
+import { settleDeliveryPayment } from "@/functions/settleDeliveryPayment";
 
 export default function FoodDriverHub() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isOnline, setIsOnline] = useState(false);
   const [driverLocation, setDriverLocation] = useState(null);
+  const [deliveryPhotoOrder, setDeliveryPhotoOrder] = useState(null); // order awaiting proof photo
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -72,17 +76,18 @@ export default function FoodDriverHub() {
       
       await base44.entities.FoodOrder.update(order.id, {
         driver_email: user.email,
+        driver_name: user.full_name || user.email.split('@')[0],
         status: 'ready'
       });
 
       // Notify customer
       await base44.entities.Notification.create({
-        user_email: order.created_by,
+        recipient_email: order.created_by,
         type: 'order_update',
         title: '🚴 Driver Assigned!',
-        message: `Your order from ${order.restaurant_name} has been assigned to a driver and will be picked up soon.`,
+        message: `Your order from ${order.restaurant_name} has been assigned to ${user.full_name || 'a driver'} and will be picked up soon.`,
         reference_id: order.id,
-        reference_type: 'food_order'
+        reference_type: 'order'
       });
 
       return order;
@@ -95,8 +100,11 @@ export default function FoodDriverHub() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ orderId, newStatus, customerEmail, restaurantName }) => {
-      await base44.entities.FoodOrder.update(orderId, { status: newStatus });
+    mutationFn: async ({ orderId, newStatus, customerEmail, restaurantName, deliveryPhotoUrl }) => {
+      const updateData = { status: newStatus };
+      if (deliveryPhotoUrl) updateData.delivery_photo_url = deliveryPhotoUrl;
+
+      await base44.entities.FoodOrder.update(orderId, updateData);
 
       const statusMessages = {
         'picked_up': '📦 Order Picked Up - Your delivery is on the way!',
@@ -106,7 +114,7 @@ export default function FoodDriverHub() {
 
       if (statusMessages[newStatus]) {
         await base44.entities.Notification.create({
-          user_email: customerEmail,
+          recipient_email: customerEmail,
           type: 'order_update',
           title: statusMessages[newStatus].split(' - ')[0],
           message: `${restaurantName}: ${statusMessages[newStatus].split(' - ')[1]}`,
@@ -114,17 +122,77 @@ export default function FoodDriverHub() {
           reference_type: 'food_order'
         });
       }
+
+      // On delivery: update linked DeliveryOrder and settle driver payment
+      if (newStatus === 'delivered') {
+        try {
+          // Fetch the food order to get linked delivery_order_id
+          const foodOrders = await base44.entities.FoodOrder.filter({ id: orderId });
+          const foodOrder = foodOrders[0];
+          if (foodOrder?.delivery_order_id) {
+            await base44.entities.DeliveryOrder.update(foodOrder.delivery_order_id, { status: 'delivered' });
+            await settleDeliveryPayment({ order_id: foodOrder.delivery_order_id });
+          } else {
+            // Fallback: directly credit driver wallet from food order driver_earnings
+            const user = await base44.auth.me();
+            const earnings = parseFloat(foodOrder?.driver_earnings || foodOrder?.delivery_fee * 0.8 || 0);
+            if (earnings > 0) {
+              const currentBalance = parseFloat(user.usd_balance || 0);
+              await base44.auth.updateMe({ usd_balance: parseFloat((currentBalance + earnings).toFixed(2)) });
+              await base44.entities.Notification.create({
+                recipient_email: user.email,
+                type: 'payment_received',
+                title: '💰 Earnings Credited!',
+                message: `$${earnings.toFixed(2)} added to your wallet for delivering from ${foodOrder?.restaurant_name}.`,
+                reference_id: orderId,
+                reference_type: 'order',
+                read: false
+              });
+            }
+          }
+          await base44.entities.FoodOrder.update(orderId, { payment_settled: true });
+        } catch (err) {
+          console.warn('Settlement error (non-fatal):', err);
+        }
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries(['my-food-deliveries']);
       queryClient.invalidateQueries(['completed-food-deliveries']);
-      toast.success('Status updated');
+      toast.success(vars.newStatus === 'delivered' ? '✅ Delivered! Earnings credited to your wallet.' : 'Status updated');
+      setDeliveryPhotoOrder(null);
     }
   });
+
+  const handleCompleteDelivery = (order) => {
+    // Require proof photo before marking delivered
+    setDeliveryPhotoOrder(order);
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !deliveryPhotoOrder) return;
+    setPhotoUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      updateStatusMutation.mutate({
+        orderId: deliveryPhotoOrder.id,
+        newStatus: 'delivered',
+        customerEmail: deliveryPhotoOrder.created_by,
+        restaurantName: deliveryPhotoOrder.restaurant_name,
+        deliveryPhotoUrl: file_url
+      });
+    } catch (err) {
+      toast.error('Photo upload failed. Please try again.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   const totalEarnings = completedOrders.reduce((sum, order) => sum + (order.delivery_fee * 0.8), 0);
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
@@ -268,10 +336,22 @@ export default function FoodDriverHub() {
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-xl font-bold text-white mb-2">{order.restaurant_name}</h3>
-                      <div className="flex items-center gap-2 text-gray-300 text-sm mb-2">
+                      {order.restaurant_address && (
+                        <div className="flex items-center gap-2 text-orange-300 text-sm mb-1">
+                          <Store className="w-4 h-4" />
+                          Pickup: {order.restaurant_address}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-gray-300 text-sm mb-1">
                         <MapPin className="w-4 h-4" />
-                        {order.delivery_address}
+                        Deliver to: {order.delivery_address}
                       </div>
+                      {order.special_instructions && (
+                        <div className="flex items-start gap-2 text-yellow-300 text-sm mb-2">
+                          <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          {order.special_instructions}
+                        </div>
+                      )}
                       <Badge className={
                         order.status === 'ready' ? 'bg-blue-500/20 text-blue-300' :
                         order.status === 'picked_up' ? 'bg-purple-500/20 text-purple-300' :
@@ -280,7 +360,7 @@ export default function FoodDriverHub() {
                         {order.status.replace('_', ' ')}
                       </Badge>
                     </div>
-                    <p className="text-xl font-bold text-green-400">${(order.delivery_fee * 0.8).toFixed(2)}</p>
+                    <p className="text-xl font-bold text-green-400">${(order.driver_earnings || order.delivery_fee * 0.8).toFixed(2)}</p>
                   </div>
 
                   <div className="space-y-2">
@@ -312,15 +392,11 @@ export default function FoodDriverHub() {
                     )}
                     {order.status === 'on_the_way' && (
                       <Button
-                        onClick={() => updateStatusMutation.mutate({ 
-                          orderId: order.id, 
-                          newStatus: 'delivered',
-                          customerEmail: order.created_by,
-                          restaurantName: order.restaurant_name
-                        })}
+                        onClick={() => handleCompleteDelivery(order)}
                         className="w-full bg-green-600 hover:bg-green-700"
                       >
-                        Complete Delivery
+                        <Camera className="w-4 h-4 mr-2" />
+                        Complete Delivery (Take Photo)
                       </Button>
                     )}
                   </div>
@@ -335,18 +411,75 @@ export default function FoodDriverHub() {
                 key={order.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 flex items-center justify-between"
+                className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6"
               >
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-1">{order.restaurant_name}</h3>
-                  <p className="text-gray-400 text-sm">{new Date(order.updated_date).toLocaleDateString()}</p>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-white mb-1">{order.restaurant_name}</h3>
+                    <p className="text-gray-400 text-sm">{new Date(order.updated_date).toLocaleDateString()}</p>
+                  </div>
+                  <p className="text-xl font-bold text-green-400">+${(order.driver_earnings || order.delivery_fee * 0.8).toFixed(2)}</p>
                 </div>
-                <p className="text-xl font-bold text-green-400">+${(order.delivery_fee * 0.8).toFixed(2)}</p>
+                {order.delivery_photo_url && (
+                  <img
+                    src={order.delivery_photo_url}
+                    alt="Proof of delivery"
+                    className="w-full h-32 object-cover rounded-xl mt-2 border border-white/10"
+                  />
+                )}
               </motion.div>
             ))}
           </TabsContent>
         </Tabs>
       </div>
     </div>
+
+    {/* Proof of Delivery Photo Modal */}
+    {deliveryPhotoOrder && (
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center p-4">
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-gray-900 border border-white/20 rounded-2xl p-6 w-full max-w-md"
+        >
+          <h3 className="text-xl font-bold text-white mb-2">Proof of Delivery</h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Take or upload a photo showing where you left the order at {deliveryPhotoOrder.delivery_address}
+          </p>
+          {deliveryPhotoOrder.special_instructions && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4">
+              <p className="text-yellow-300 text-sm">📝 {deliveryPhotoOrder.special_instructions}</p>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
+          <div className="space-y-3">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={photoUploading}
+              className="w-full bg-green-600 hover:bg-green-700 py-4"
+            >
+              <Camera className="w-5 h-5 mr-2" />
+              {photoUploading ? 'Uploading...' : 'Take / Upload Photo'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDeliveryPhotoOrder(null)}
+              className="w-full border-white/20 text-white"
+              disabled={photoUploading}
+            >
+              Cancel
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+    </>
   );
 }

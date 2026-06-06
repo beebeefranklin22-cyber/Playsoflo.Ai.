@@ -6,10 +6,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Minus, Trash2, MapPin } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, MapPin, Store, Clock, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
+import { dispatchFoodOrder } from "@/functions/dispatchFoodOrder";
 
 export default function FoodCart() {
   const navigate = useNavigate();
@@ -76,6 +77,9 @@ export default function FoodCart() {
       const order = await base44.entities.FoodOrder.create({
         restaurant_id: restaurant.id,
         restaurant_name: restaurant.name,
+        restaurant_address: restaurant.address || restaurant.name,
+        restaurant_owner_email: restaurant.owner_email || restaurant.created_by || '',
+        restaurant_phone: restaurant.phone || '',
         items: cartItems.map(item => ({
           menu_item_id: item.menu_item_id,
           name: item.menu_item_name,
@@ -89,7 +93,8 @@ export default function FoodCart() {
         delivery_address: deliveryAddress,
         special_instructions: specialInstructions,
         status: 'pending',
-        estimated_delivery_time: restaurant.estimated_delivery_time
+        estimated_delivery_time: restaurant.estimated_delivery_time,
+        driver_earnings: parseFloat((deliveryFee * 0.80).toFixed(2))
       });
 
       return order;
@@ -100,33 +105,19 @@ export default function FoodCart() {
     }
   });
 
-  const handlePaymentSuccess = async () => {
+  const handlePaymentSuccess = async (paymentResult) => {
+    try {
+      // Dispatch: creates DeliveryOrder, notifies restaurant + drivers
+      await dispatchFoodOrder({
+        food_order_id: orderId,
+        payment_intent_id: paymentResult?.payment_intent_id || paymentResult?.id || ''
+      });
+    } catch (err) {
+      console.warn('Dispatch non-fatal error:', err);
+    }
+
     await clearCartMutation.mutateAsync();
-    
-    // Send notifications
-    const order = await base44.entities.FoodOrder.list().then(orders => orders.find(o => o.id === orderId));
-    
-    // Notify customer
-    await base44.entities.Notification.create({
-      user_email: currentUser.email,
-      type: 'order_update',
-      title: '🎉 Order Confirmed!',
-      message: `Your order from ${restaurant.name} has been confirmed. Estimated delivery: ${restaurant.estimated_delivery_time}`,
-      reference_id: orderId,
-      reference_type: 'food_order'
-    });
-    
-    // Notify restaurant owner
-    await base44.entities.Notification.create({
-      user_email: order.created_by,
-      type: 'order_update',
-      title: '📱 New Order Received',
-      message: `New order #${orderId.slice(0, 8)} - ${cartItems.length} items - $${order.total.toFixed(2)}`,
-      reference_id: orderId,
-      reference_type: 'food_order'
-    });
-    
-    toast.success('Order placed successfully!');
+    toast.success('Order placed! Restaurant and drivers notified.');
     navigate(createPageUrl("FoodOrderTracking") + `?id=${orderId}`);
   };
 
@@ -190,8 +181,27 @@ export default function FoodCart() {
 
         {restaurant && (
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 mb-6">
-            <h2 className="text-xl font-bold text-white mb-2">{restaurant.name}</h2>
-            <p className="text-gray-300 text-sm">{restaurant.estimated_delivery_time}</p>
+            <h2 className="text-xl font-bold text-white mb-1">{restaurant.name}</h2>
+            <div className="flex flex-wrap gap-3 mt-2">
+              {restaurant.address && (
+                <div className="flex items-center gap-1 text-gray-300 text-sm">
+                  <Store className="w-4 h-4 text-orange-400" />
+                  {restaurant.address}
+                </div>
+              )}
+              {restaurant.estimated_delivery_time && (
+                <div className="flex items-center gap-1 text-gray-300 text-sm">
+                  <Clock className="w-4 h-4 text-orange-400" />
+                  {restaurant.estimated_delivery_time}
+                </div>
+              )}
+              {restaurant.phone && (
+                <div className="flex items-center gap-1 text-gray-300 text-sm">
+                  <Phone className="w-4 h-4 text-orange-400" />
+                  {restaurant.phone}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
