@@ -29,6 +29,8 @@ import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
 import { useGeoDistance } from "../hooks/useGeoDistance";
 import ListItemModal from "../components/marketplace/ListItemModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
+import LuxuryBookingModal from "../components/marketplace/LuxuryBookingModal";
+import EcommerceOrderModal from "../components/marketplace/EcommerceOrderModal";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -160,6 +162,10 @@ export default function Marketplace() {
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [pendingOrder, setPendingOrder] = useState(null);
+  const [showLuxuryBooking, setShowLuxuryBooking] = useState(false);
+  const [luxuryItem, setLuxuryItem] = useState(null);
+  const [showEcommerceOrder, setShowEcommerceOrder] = useState(false);
+  const [ecommerceItem, setEcommerceItem] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
@@ -769,6 +775,10 @@ export default function Marketplace() {
             {sortedItems.map((item) => {
               const isInventoryProduct = item.itemType === 'inventory_product';
               const isFood = ["restaurant", "food_truck", "groceries"].includes(item.category);
+              const isLuxuryBooking = ["yacht_charter", "concierge", "chauffeur", "private_aviation",
+                "personal_security", "yacht_charter", "luxury_shopping_experience", "exclusive_event_access",
+                "personal_stylist", "fine_art_consulting", "sommelier_services",
+                "car_rental", "property_rental"].includes(item.category);
                               const isPhysicalProduct = ["clothing_retail", "fashion_boutique", "streetwear", "vintage_clothing",
                 "custom_apparel", "print_on_demand", "graphic_printing", "screen_printing",
                 "luxury_goods", "jewelry_repair", "tailoring", "personal_shopping",
@@ -920,91 +930,64 @@ export default function Marketplace() {
                             />
                           </div>
                         )}
-                        {isInventoryProduct ? (
+                        {isInventoryProduct || isPhysicalProduct ? (
                           <button
-                            className="px-6 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+                            className="px-5 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setPendingOrder({
-                                category: item.category,
-                                item_id: item.originalData.id,
-                                title: item.title,
-                                price: item.price,
-                                provider_email: item.provider_email,
-                                isProduct: true
-                              });
-                              setShowPayment(true);
+                              setEcommerceItem(item);
+                              setShowEcommerceOrder(true);
                             }}
                           >
                             <ShoppingCart className="w-4 h-4" />
                             Buy Now
                           </button>
-                        ) : !isFood ? (
-                          groupedByService[item.title]?.length > 1 ? (
-                            <button
-                              className="px-6 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(createPageUrl("ServiceProviders") + `?service=${encodeURIComponent(item.title)}`);
-                              }}
-                            >
-                              <Users className="w-4 h-4" />
-                              Compare
-                            </button>
-                          ) : isPhysicalProduct ? (
-                            <button
-                              className="px-6 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const deliveryAddress = prompt('Enter your delivery address:');
-                                if (!deliveryAddress) return;
-                                setPendingOrder({
-                                  category: item.category,
-                                  item_id: String(item.id),
-                                  title: item.title,
-                                  price: item.price,
-                                  provider_email: item.created_by || "",
-                                  delivery_address: deliveryAddress,
-                                  isProduct: true
-                                });
-                                setShowPayment(true);
-                              }}
-                            >
-                              <Package className="w-4 h-4" />
-                              Order Now
-                            </button>
-                          ) : (
-                            <button
-                              className="px-6 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedService(item);
-                                setSelectedProvider({ email: item.created_by, full_name: item.provider_name });
-                                setShowQuickBooking(true);
-                              }}
-                            >
-                              Book Now
-                            </button>
-                          )
-                        ) : (
+                        ) : isLuxuryBooking ? (
                           <button
-                            className="px-6 py-3 bg-green-600 rounded-full text-white font-semibold hover:bg-green-700 transition"
+                            className="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full text-white font-semibold hover:opacity-90 transition flex items-center gap-2 shadow-lg shadow-purple-500/20"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const deliveryAddress = prompt('Enter your delivery address:');
-                              if (!deliveryAddress) return;
-                              setPendingOrder({
-                                category: item.category,
-                                item_id: String(item.id),
-                                title: item.title,
-                                price: item.price,
-                                provider_email: item.created_by || "",
-                                delivery_address: deliveryAddress
-                              });
-                              setShowPayment(true);
+                              setLuxuryItem(item);
+                              setShowLuxuryBooking(true);
                             }}
                           >
+                            <Sparkles className="w-4 h-4" />
+                            Book Now
+                          </button>
+                        ) : isFood ? (
+                          <button
+                            className="px-5 py-3 bg-green-600 rounded-full text-white font-semibold hover:bg-green-700 transition flex items-center gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEcommerceItem(item);
+                              setShowEcommerceOrder(true);
+                            }}
+                          >
+                            <Utensils className="w-4 h-4" />
                             Order Now
+                          </button>
+                        ) : groupedByService[item.title]?.length > 1 ? (
+                          <button
+                            className="px-5 py-3 bg-purple-500 rounded-full text-white font-semibold hover:bg-purple-600 transition flex items-center gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(createPageUrl("ServiceProviders") + `?service=${encodeURIComponent(item.title)}`);
+                            }}
+                          >
+                            <Users className="w-4 h-4" />
+                            Compare
+                          </button>
+                        ) : (
+                          <button
+                            className="px-5 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedService(item);
+                              setSelectedProvider({ email: item.created_by, full_name: item.provider_name });
+                              setShowQuickBooking(true);
+                            }}
+                          >
+                            Book Now
                           </button>
                         )}
                         </div>
@@ -1177,6 +1160,39 @@ export default function Marketplace() {
           onSaved={() => { refreshLocation(); setShowCitySelector(false); }}
         />
       )}
+
+      {/* Luxury Booking Modal */}
+      <AnimatePresence>
+        {showLuxuryBooking && luxuryItem && currentUser && (
+          <LuxuryBookingModal
+            item={luxuryItem}
+            currentUser={currentUser}
+            onClose={() => { setShowLuxuryBooking(false); setLuxuryItem(null); }}
+            onSuccess={() => {
+              setShowLuxuryBooking(false);
+              setLuxuryItem(null);
+              queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* E-commerce Order Modal */}
+      <AnimatePresence>
+        {showEcommerceOrder && ecommerceItem && currentUser && (
+          <EcommerceOrderModal
+            item={ecommerceItem}
+            currentUser={currentUser}
+            onClose={() => { setShowEcommerceOrder(false); setEcommerceItem(null); }}
+            onSuccess={() => {
+              setShowEcommerceOrder(false);
+              setEcommerceItem(null);
+              queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
+              queryClient.invalidateQueries({ queryKey: ['marketplace-inventory'] });
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showListModal && currentUser && (
