@@ -1,11 +1,12 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * dispatchFoodOrder
- * Called after successful Stripe payment on a marketplace food order.
- * 1. Creates a DeliveryOrder linked to the marketplace Order
- * 2. Notifies the restaurant/provider
- * 3. Notifies nearby available food delivery drivers
+ * Called after successful payment on a FoodOrder.
+ * 1. Marks FoodOrder as confirmed with full restaurant details
+ * 2. Creates a DeliveryOrder with correct pickup/delivery addresses and instructions
+ * 3. Notifies the restaurant owner
+ * 4. Broadcasts to available food delivery drivers
  */
 Deno.serve(async (req) => {
   try {
@@ -16,112 +17,158 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const {
-      order_id,
-      item_title,
-      provider_email,
-      delivery_address,
-      price,
-      payment_intent_id
-    } = await req.json();
+    const { food_order_id, payment_intent_id } = await req.json();
 
-    if (!order_id || !provider_email || !delivery_address) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!food_order_id) {
+      return Response.json({ error: 'food_order_id is required' }, { status: 400 });
     }
 
-    const orderNumber = `FOOD${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-    const platformFee = parseFloat((price * 0.10).toFixed(2));
-    const driverEarnings = parseFloat((price * 0.15).toFixed(2));
+    // Fetch the food order
+    const foodOrders = await base44.asServiceRole.entities.FoodOrder.filter({ id: food_order_id });
+    if (foodOrders.length === 0) {
+      return Response.json({ error: 'Food order not found' }, { status: 404 });
+    }
+    const foodOrder = foodOrders[0];
 
-    // Create the DeliveryOrder
+    // Fetch the restaurant for full details
+    const restaurants = await base44.asServiceRole.entities.Restaurant.filter({ id: foodOrder.restaurant_id });
+    if (restaurants.length === 0) {
+      return Response.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+    const restaurant = restaurants[0];
+
+    // Determine restaurant owner email (created_by on Restaurant entity)
+    const restaurantOwnerEmail = restaurant.owner_email || restaurant.created_by;
+    const restaurantAddress = restaurant.address || restaurant.name;
+    const restaurantPhone = restaurant.phone || 'N/A';
+
+    // Build item summary
+    const itemSummary = (foodOrder.items || [])
+      .map(i => `${i.quantity}x ${i.name}`)
+      .join(', ');
+
+    const orderNumber = `FOOD${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const total = parseFloat(foodOrder.total) || 0;
+    const deliveryFee = parseFloat(foodOrder.delivery_fee) || 3.99;
+    const platformFee = parseFloat((total * 0.10).toFixed(2));
+    const driverEarnings = parseFloat((deliveryFee * 0.80).toFixed(2));
+
+    // Update FoodOrder with restaurant details, payment info, and confirmed status
+    await base44.asServiceRole.entities.FoodOrder.update(food_order_id, {
+      status: 'confirmed',
+      restaurant_owner_email: restaurantOwnerEmail,
+      restaurant_address: restaurantAddress,
+      restaurant_phone: restaurantPhone,
+      driver_earnings: driverEarnings,
+      ...(payment_intent_id ? { payment_intent_id } : {})
+    });
+
+    // Create a linked DeliveryOrder for the driver system
     const deliveryOrder = await base44.asServiceRole.entities.DeliveryOrder.create({
       order_number: orderNumber,
-      sender_name: item_title || 'Restaurant',
-      sender_phone: 'N/A',
-      sender_email: provider_email,
-      pickup_address: `Provider: ${provider_email}`,
-      recipient_name: user.full_name || user.email,
+      sender_name: restaurant.name,
+      sender_phone: restaurantPhone,
+      sender_email: restaurantOwnerEmail,
+      pickup_address: restaurantAddress,
+      recipient_name: user.full_name || user.email.split('@')[0],
       recipient_phone: user.phone || 'N/A',
       recipient_email: user.email,
-      delivery_address: delivery_address,
+      delivery_address: foodOrder.delivery_address,
       package_type: 'food',
-      package_description: item_title,
+      package_description: itemSummary,
       delivery_type: 'same_day',
       urgency_level: 'urgent',
-      base_price: price,
+      base_price: total,
       platform_fee: platformFee,
       driver_earnings: driverEarnings,
-      total_price: price,
+      total_price: total,
       status: 'pending',
       payment_status: 'paid',
       payment_method: 'stripe',
+      special_instructions: foodOrder.special_instructions || '',
+      food_order_id: food_order_id,
       tracking_updates: [{
         timestamp: new Date().toISOString(),
         status: 'pending',
-        message: 'Order received, finding a driver',
-        location: delivery_address
-      }],
-      special_instructions: `Marketplace Order #${order_id} | Payment: ${payment_intent_id}`
+        message: 'Order confirmed, finding a driver',
+        location: foodOrder.delivery_address
+      }]
     });
 
-    // Notify the restaurant/provider
-    await base44.asServiceRole.entities.Notification.create({
-      recipient_email: provider_email,
-      type: 'system_alert',
-      title: '🍽️ New Order Received',
-      message: `You have a new food order: ${item_title}. Order #${orderNumber.substring(0, 10)}. Please prepare for pickup.`,
-      reference_type: 'delivery',
-      reference_id: deliveryOrder.id,
-      read: false
+    // Link the delivery order back to the food order
+    await base44.asServiceRole.entities.FoodOrder.update(food_order_id, {
+      delivery_order_id: deliveryOrder.id
     });
 
-    // Find active food delivery drivers
+    // Notify restaurant owner
+    if (restaurantOwnerEmail) {
+      await base44.asServiceRole.entities.Notification.create({
+        recipient_email: restaurantOwnerEmail,
+        type: 'order_update',
+        title: '📱 New Order Received!',
+        message: `New order from ${user.full_name || user.email}: ${itemSummary}. Deliver to: ${foodOrder.delivery_address}. Total: $${total.toFixed(2)}. Order #${orderNumber.substring(0, 10)}.`,
+        reference_type: 'order',
+        reference_id: food_order_id,
+        read: false
+      });
+    }
+
+    // Notify available food delivery drivers
     let notifiedDrivers = 0;
     try {
+      // Look for active DeliveryVehicle drivers who can handle food
       const vehicles = await base44.asServiceRole.entities.DeliveryVehicle.filter({ is_active: true });
-      const foodDrivers = vehicles.filter(v =>
+      const foodDriverVehicles = vehicles.filter(v =>
         !v.can_transport || v.can_transport.includes('food') || v.can_transport.includes('small_box')
       );
 
-      for (const vehicle of foodDrivers) {
-        await base44.asServiceRole.entities.Notification.create({
-          recipient_email: vehicle.driver_email,
-          type: 'system_alert',
-          title: '🍕 New Food Delivery Job',
-          message: `Food order available: ${item_title}. Deliver to ${delivery_address}. Earn $${driverEarnings.toFixed(2)}. Tap to accept.`,
-          reference_type: 'delivery',
-          reference_id: deliveryOrder.id,
-          read: false
-        });
-        notifiedDrivers++;
+      const driverEmailsSeen = new Set();
+
+      for (const vehicle of foodDriverVehicles) {
+        if (!driverEmailsSeen.has(vehicle.driver_email)) {
+          driverEmailsSeen.add(vehicle.driver_email);
+          await base44.asServiceRole.entities.Notification.create({
+            recipient_email: vehicle.driver_email,
+            type: 'order_update',
+            title: '🍕 New Food Delivery Available!',
+            message: `Pickup: ${restaurantAddress} → Deliver to: ${foodOrder.delivery_address}. Items: ${itemSummary}. Earn $${driverEarnings.toFixed(2)}. Tap to accept.`,
+            reference_type: 'order',
+            reference_id: food_order_id,
+            read: false
+          });
+          notifiedDrivers++;
+        }
       }
 
-      // Also notify food delivery hub drivers (role = food_driver)
-      const allUsers = await base44.asServiceRole.entities.User.filter({ role: 'food_driver' });
-      for (const driver of allUsers) {
-        await base44.asServiceRole.entities.Notification.create({
-          recipient_email: driver.email,
-          type: 'system_alert',
-          title: '🍕 New Food Delivery Job',
-          message: `Food order available: ${item_title}. Earn $${driverEarnings.toFixed(2)}. Tap to accept.`,
-          reference_type: 'delivery',
-          reference_id: deliveryOrder.id,
-          read: false
-        });
-        notifiedDrivers++;
+      // Also notify users with food_driver role
+      const foodDriverUsers = await base44.asServiceRole.entities.User.filter({ role: 'food_driver' });
+      for (const driver of foodDriverUsers) {
+        if (!driverEmailsSeen.has(driver.email)) {
+          driverEmailsSeen.add(driver.email);
+          await base44.asServiceRole.entities.Notification.create({
+            recipient_email: driver.email,
+            type: 'order_update',
+            title: '🍕 New Food Delivery Available!',
+            message: `Pickup: ${restaurantAddress} → Deliver to: ${foodOrder.delivery_address}. Items: ${itemSummary}. Earn $${driverEarnings.toFixed(2)}. Tap to accept.`,
+            reference_type: 'order',
+            reference_id: food_order_id,
+            read: false
+          });
+          notifiedDrivers++;
+        }
       }
     } catch (err) {
       console.log('Driver notification error (non-fatal):', err.message);
     }
 
-    // Notify the customer
+    // Confirm to customer
     await base44.asServiceRole.entities.Notification.create({
       recipient_email: user.email,
-      type: 'system_alert',
+      type: 'order_update',
       title: '✅ Order Confirmed!',
-      message: `Your order for ${item_title} has been confirmed. Order #${orderNumber.substring(0, 10)}. A driver will be assigned shortly.`,
-      reference_type: 'delivery',
-      reference_id: deliveryOrder.id,
+      message: `Your order from ${restaurant.name} is confirmed! Items: ${itemSummary}. We'll notify you when a driver is assigned.`,
+      reference_type: 'order',
+      reference_id: food_order_id,
       read: false
     });
 
