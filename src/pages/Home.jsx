@@ -117,33 +117,8 @@ export default function Home() {
     post.creator_name || post.creator_username || post.author_name ||
     userMap[post.created_by] || post.created_by?.split("@")[0] || "User";
 
-  // Track interactions for AI
-  const trackInteractionMutation = useMutation({
-    mutationFn: async (data) => {
-      if (!currentUser?.email) {
-        console.warn("Cannot track interaction: currentUser email not available.");
-        return;
-      }
-      return await base44.entities.UserInteraction.create({
-        user_email: currentUser.email,
-        ...data
-      });
-    },
-    onError: (error) => {
-      console.error("Error tracking user interaction:", error);
-    }
-  });
-
-  // Track content views
-  const trackView = (contentType, contentId, category) => {
-    if (!currentUser?.email) return;
-    trackInteractionMutation.mutate({
-      interaction_type: "view",
-      content_type: contentType,
-      content_id: contentId,
-      content_category: category
-    });
-  };
+  // Track interactions — silently disabled (UserInteraction RLS blocks creates)
+  const trackView = () => {};
 
   const [showFriendFinder, setShowFriendFinder] = useState(false);
 
@@ -203,8 +178,9 @@ export default function Home() {
     initialData: [],
     retry: false,
     enabled: !!currentUser,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60000
   });
 
   // Initialise liked set from real liked_by data once posts load
@@ -588,9 +564,9 @@ export default function Home() {
           <React.Fragment key={post.id}>
             {index === 2 && <AdDisplay currentUser={currentUser} position="feed" />}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
               className="mb-6"
             >
             {/* Post Header */}

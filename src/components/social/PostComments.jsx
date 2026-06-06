@@ -16,7 +16,8 @@ export default function PostComments({ post, currentUser, onClose }) {
   const { data: comments = [], isLoading } = useQuery({
     queryKey: ["comments", post.id],
     queryFn: () => base44.entities.Comment.filter({ post_id: post.id }, "-created_date"),
-    refetchInterval: 5000,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   // Real-time subscription
@@ -130,8 +131,8 @@ export default function PostComments({ post, currentUser, onClose }) {
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300 }}
-      className="fixed inset-x-0 z-[70] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
-      style={{ bottom: 0, maxHeight: "80dvh", height: "80dvh" }}
+      className="fixed inset-x-0 z-[200] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
+      style={{ bottom: 0, maxHeight: "85dvh", height: "85dvh" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -277,7 +278,7 @@ export default function PostComments({ post, currentUser, onClose }) {
       {/* Input */}
       <div
         className="flex-shrink-0 px-4 pt-3 border-t border-white/10 bg-[#111]"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
+        style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom, 1.25rem))" }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
