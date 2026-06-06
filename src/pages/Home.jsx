@@ -28,6 +28,7 @@ import HomeBannerAd from "../components/ads/HomeBannerAd";
 import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 import PostComments from "../components/social/PostComments";
+import VideoPost from "../components/social/VideoPost";
 import PersonalizedOffersWidget from "../components/offers/PersonalizedOffersWidget";
 import EarningsSetupBanner from "../components/onboarding/EarningsSetupBanner";
 import { AnimatePresence } from "framer-motion";
@@ -637,25 +638,8 @@ export default function Home() {
             {/* Post Media - supports images and videos */}
             <div className="relative">
               {(post.media_type === 'video' || post.image_url?.match(/\.(mp4|webm|ogg|mov)/i) || post.image_url?.includes('video')) ? (
-                <div className="relative w-full aspect-square bg-gray-900">
-                  <video
-                    src={post.image_url}
-                    poster={post.thumbnail_url || undefined}
-                    className="w-full h-full object-cover"
-                    controls
-                    playsInline
-                    preload="metadata"
-                  />
-                  {!post.thumbnail_url && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-14 h-14 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <img 
+                <VideoPost post={post} />) : (
+              <img 
                   src={post.image_url} 
                   alt={post.caption || "Post"}
                   className="w-full aspect-square object-cover bg-gray-800"

@@ -353,7 +353,7 @@ export default function Vibe() {
               className="bg-gradient-to-r from-purple-600 to-pink-600"
             >
               <Mic2 className="w-4 h-4 mr-2" />
-              Artist Studio
+              🎙️ Artist Studio
             </Button>
           </div>
 
