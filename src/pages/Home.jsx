@@ -32,6 +32,8 @@ import VideoPost from "../components/social/VideoPost";
 import PersonalizedOffersWidget from "../components/offers/PersonalizedOffersWidget";
 import EarningsSetupBanner from "../components/onboarding/EarningsSetupBanner";
 import { AnimatePresence } from "framer-motion";
+import FullScreenFeed from "../components/feed/FullScreenFeed";
+import { Layers, LayoutList } from "lucide-react";
 
 // Simple Badge component for styling, as it's used in the recommendations section
 const Badge = ({ children, className }) => (
@@ -65,6 +67,8 @@ export default function Home() {
   const [hiddenPosts, setHiddenPosts] = useState(new Set());
   const [visibleCount, setVisibleCount] = useState(10);
   const loadMoreRef = useRef(null);
+  const [fullScreenMode, setFullScreenMode] = useState(false);
+  const [fullScreenStartIndex, setFullScreenStartIndex] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -566,6 +570,18 @@ export default function Home() {
       {/* Platform Ad Banner */}
       <HomeBannerAd currentUser={currentUser} />
 
+      {/* Feed view toggle */}
+      <div className="max-w-2xl mx-auto flex items-center justify-end px-4 pt-3 pb-1 gap-2">
+        <span className="text-gray-500 text-xs">{fullScreenMode ? "Swipe mode" : "Scroll mode"}</span>
+        <button
+          onClick={() => setFullScreenMode(m => !m)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${fullScreenMode ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"}`}
+        >
+          {fullScreenMode ? <LayoutList className="w-3.5 h-3.5" /> : <Layers className="w-3.5 h-3.5" />}
+          {fullScreenMode ? "List view" : "Swipe view"}
+        </button>
+      </div>
+
       {/* Feed */}
       <div className="max-w-2xl mx-auto">
         {posts.filter(p => !hiddenPosts.has(p.id)).slice(0, visibleCount).map((post, index) => (
@@ -650,7 +666,14 @@ export default function Home() {
             </div>
 
             {/* Post Media - supports images and videos */}
-            <div className="relative">
+            <div
+              className="relative cursor-pointer"
+              onClick={() => {
+                const visIdx = posts.filter(p => !hiddenPosts.has(p.id)).findIndex(p => p.id === post.id);
+                setFullScreenStartIndex(visIdx);
+                setFullScreenMode(true);
+              }}
+            >
               {(post.media_type === 'video' || post.image_url?.match(/\.(mp4|webm|ogg|mov)/i) || post.image_url?.includes('video')) ? (
                 <VideoPost post={post} />) : (
               <img 
@@ -786,6 +809,23 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Full-Screen Swipe Feed */}
+      <AnimatePresence>
+        {fullScreenMode && posts.filter(p => !hiddenPosts.has(p.id)).length > 0 && (
+          <FullScreenFeed
+            posts={posts.filter(p => !hiddenPosts.has(p.id))}
+            currentUser={currentUser}
+            likedPosts={likedPosts}
+            onToggleLike={toggleLike}
+            onComment={(post) => setCommentingPost(post)}
+            onShare={(post) => setSharingPost(post)}
+            onHide={(postId) => setHiddenPosts(p => new Set([...p, postId]))}
+            onClose={() => setFullScreenMode(false)}
+            startIndex={fullScreenStartIndex}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Floating Create Button — standard FAB pattern with tooltip label */}
       <button
