@@ -768,20 +768,11 @@ export default function Home() {
         )}
 
         {posts.length === 0 && !isLoading && (
-          <div className="text-center py-24 px-6">
-            <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Activity className="w-10 h-10 text-pink-400" />
+          <div className="text-center py-16 px-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Activity className="w-8 h-8 text-pink-400" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Welcome to PlaySoFlo</h3>
-            <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">Share your lifestyle experiences and connect with the community.</p>
-            {/* Primary action — large, high contrast */}
-            <button
-              onClick={() => { setCreateModalDefaultType(null); setShowCreateModal(true); }}
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl text-white font-bold shadow-lg shadow-purple-900/40 hover:scale-105 active:scale-95 transition-transform"
-            >
-              <Plus className="w-5 h-5" />
-              Create Your First Post
-            </button>
+            <p className="text-gray-500 text-sm">No posts yet. Follow people to see their content here.</p>
           </div>
         )}
       </div>
