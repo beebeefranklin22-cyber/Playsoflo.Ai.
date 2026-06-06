@@ -272,6 +272,15 @@ export default function RestaurantOwnerHub() {
   const pendingOrders = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status));
   const completedOrders = orders.filter(o => o.status === 'delivered');
 
+  // Daily summary
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayOrders = orders.filter(o => new Date(o.created_date) >= today);
+  const todayRevenue = todayOrders
+    .filter(o => o.status !== 'cancelled')
+    .reduce((sum, o) => sum + ((o.subtotal || 0) - (o.commission_amount || 0)), 0);
+  const todayCompleted = todayOrders.filter(o => o.status === 'delivered').length;
+
   if (userLoading || restaurantLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-6 flex items-center justify-center">
@@ -376,6 +385,24 @@ export default function RestaurantOwnerHub() {
           </motion.div>
         </div>
 
+        {/* Daily Summary Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-orange-600/30 to-red-600/30 border border-orange-500/40 rounded-2xl p-5 mb-6 flex flex-wrap items-center justify-between gap-4"
+        >
+          <div>
+            <p className="text-orange-300 text-xs font-semibold uppercase tracking-wide mb-1">Today's Summary</p>
+            <p className="text-white text-2xl font-bold">{todayOrders.length} orders today</p>
+            <p className="text-gray-300 text-sm">{todayCompleted} completed · {todayOrders.filter(o => ['pending','confirmed','preparing'].includes(o.status)).length} active</p>
+          </div>
+          <div className="text-right">
+            <p className="text-orange-300 text-xs font-semibold uppercase tracking-wide mb-1">Today's Revenue</p>
+            <p className="text-green-400 text-3xl font-bold">${todayRevenue.toFixed(2)}</p>
+            <p className="text-gray-400 text-xs">after commission</p>
+          </div>
+        </motion.div>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white/10 border border-white/20">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
@@ -411,18 +438,39 @@ export default function RestaurantOwnerHub() {
               </div>
 
               <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">Recent Orders</h2>
-                {pendingOrders.slice(0, 3).map(order => (
-                  <div key={order.id} className="bg-white/5 rounded-lg p-4 mb-3 last:mb-0">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-white">Active Orders</h2>
+                  <button onClick={() => setActiveTab("orders")} className="text-orange-400 text-sm hover:text-orange-300 transition">View all →</button>
+                </div>
+                {pendingOrders.slice(0, 5).map(order => (
+                  <div key={order.id} className="bg-white/5 rounded-xl p-4 mb-3 last:mb-0 border border-white/10">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-white font-semibold">Order #{order.id.slice(0, 8)}</span>
-                      <Badge className="bg-yellow-500/20 text-yellow-400">{order.status}</Badge>
+                      <Badge className={
+                        order.status === 'preparing' ? 'bg-purple-500/20 text-purple-400' :
+                        order.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }>{order.status}</Badge>
                     </div>
-                    <p className="text-gray-400 text-sm">{order.items.length} items • ${order.total.toFixed(2)}</p>
+                    {/* Menu items */}
+                    <div className="text-gray-300 text-sm mb-2">
+                      {(order.items || []).map((item, i) => (
+                        <span key={i}>{item.quantity}× {item.name}{i < order.items.length - 1 ? ', ' : ''}</span>
+                      ))}
+                    </div>
+                    {/* Delivery address */}
+                    <div className="flex items-center gap-1.5 text-orange-300 text-xs">
+                      <span>📍</span>
+                      <span className="truncate">{order.delivery_address || 'No address provided'}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-gray-500 text-xs">{new Date(order.created_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span className="text-green-400 font-bold text-sm">${(order.total || 0).toFixed(2)}</span>
+                    </div>
                   </div>
                 ))}
                 {pendingOrders.length === 0 && (
-                  <p className="text-gray-400 text-center py-4">No pending orders</p>
+                  <p className="text-gray-400 text-center py-4">No active orders right now</p>
                 )}
               </div>
             </div>
