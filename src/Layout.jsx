@@ -705,7 +705,7 @@ export default function Layout({ children, currentPageName }) {
         <button
           onClick={() => setShowSupportChat(true)}
           className="fixed right-6 z-40 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform min-w-[44px] min-h-[44px]"
-          style={{ bottom: 'calc(6rem + var(--safe-area-bottom))' }}
+          style={{ bottom: 'calc(8rem + var(--safe-area-bottom))' }}
         >
           <Headphones className="w-6 h-6 text-white" />
         </button>

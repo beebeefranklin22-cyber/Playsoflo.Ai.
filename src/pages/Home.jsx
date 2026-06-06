@@ -169,30 +169,25 @@ export default function Home() {
     queryKey: ['social-posts', currentUser?.email],
     queryFn: async () => {
       try {
-        const allPosts = await base44.entities.SocialPost.list('-created_date');
-        
-        // Filter to show only real posts (not stories) from friends and self
-        const friendPosts = allPosts.filter(post => {
-          const isFromNetwork = post.created_by === currentUser?.email || 
-                                currentUser?.following?.includes(post.created_by) ||
-                                true; // show all posts in feed for discovery
-          const hasValidMedia = post.image_url && 
-                               post.image_url !== 'text-story' && 
-                               !post.image_url.includes('example-') &&
-                               post.image_url.startsWith('http');
-          const isNotStory = !post.is_story && post.caption;
-          
-          return hasValidMedia && isNotStory;
+        const allPosts = await base44.entities.SocialPost.list('-created_date', 100);
+
+        // Filter: must have media, must not be a story, ignore placeholder/broken URLs
+        const feedPosts = allPosts.filter(post => {
+          if (!post.image_url) return false;
+          if (post.image_url === 'text-story') return false;
+          if (post.image_url.includes('example-')) return false;
+          if (post.is_story === true) return false;
+          return true;
         });
-        
+
         // Track post views for the first few posts
         if (currentUser?.email) {
-          friendPosts.slice(0, 5).forEach(post => {
+          feedPosts.slice(0, 5).forEach(post => {
             trackView("post", post.id, post.vibe || "social");
           });
         }
-        
-        return friendPosts;
+
+        return feedPosts;
       } catch (err) {
         console.log("Error loading posts:", err);
         return [];
@@ -201,8 +196,8 @@ export default function Home() {
     initialData: [],
     retry: false,
     enabled: !!currentUser,
-    refetchInterval: false,
-    refetchOnWindowFocus: false
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true
   });
 
   // Initialise liked set from real liked_by data once posts load
@@ -265,7 +260,8 @@ export default function Home() {
       });
       toast.error('Failed to update like');
     },
-    onSuccess: () => {
+    onSettled: () => {
+      // Refetch in background to sync server state without clearing optimistic update
       queryClient.invalidateQueries({ queryKey: ['social-posts'] });
     }
   });
@@ -294,7 +290,7 @@ export default function Home() {
     { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
     { icon: Wand2, label: "AI", bg: "bg-violet-500/20", iconColor: "text-violet-400", path: "RonronAI" },
     { icon: Tv, label: "Stream", bg: "bg-red-500/20", iconColor: "text-red-400", path: "Streaming" },
-    { icon: User, label: "My Profile", bg: "bg-purple-500/20", iconColor: "text-purple-400", path: "Profile" },
+    { icon: User, label: "My Profile", bg: "bg-purple-500/20", iconColor: "text-purple-400", path: currentUser?.email ? `UserProfile?email=${encodeURIComponent(currentUser.email)}` : "Profile" },
     // Progressive disclosure: show role-specific shortcuts only for relevant users
     ...(currentUser?.is_creator || currentUser?.is_musician ? [{ icon: Mic2, label: "Studio", bg: "bg-fuchsia-500/20", iconColor: "text-fuchsia-400", path: "MusicStudio" }] : []),
     ...(currentUser?.is_provider || currentUser?.is_restaurant_owner ? [{ icon: Building, label: "My Hub", bg: "bg-teal-500/20", iconColor: "text-teal-400", path: "ProviderHub" }] : []),
@@ -529,6 +525,8 @@ export default function Home() {
               onClick={() => {
                 if (item.isOffers) {
                   document.querySelector('[data-offers-widget]')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else if (item.path.includes('?')) {
+                  navigate('/' + item.path);
                 } else {
                   navigate(createPageUrl(item.path));
                 }
@@ -638,20 +636,22 @@ export default function Home() {
 
             {/* Post Media - supports images and videos */}
             <div className="relative">
-              {post.image_url?.match(/\.(mp4|webm|ogg|mov)(\?|$)/i) ? (
+              {(post.media_type === 'video' || post.image_url?.match(/\.(mp4|webm|ogg|mov)/i) || post.image_url?.includes('video')) ? (
                 <video
                   src={post.image_url}
                   className="w-full aspect-square object-cover"
                   controls
                   playsInline
                   preload="metadata"
+                  onError={(e) => { e.target.style.display='none'; e.target.nextSibling && (e.target.nextSibling.style.display='block'); }}
                 />
               ) : (
                 <img 
                   src={post.image_url} 
-                  alt={post.caption}
-                  className="w-full aspect-square object-cover"
-                  loading="lazy"
+                  alt={post.caption || "Post"}
+                  className="w-full aspect-square object-cover bg-gray-800"
+                  loading={index < 3 ? "eager" : "lazy"}
+                  decoding="async"
                 />
               )}
               

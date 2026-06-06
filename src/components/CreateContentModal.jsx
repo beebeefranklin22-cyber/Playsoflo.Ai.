@@ -292,9 +292,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         image_url: mediaUrl, caption, location, music_playing: music,
         vibe, is_experience: isExperience, experience_type: experienceType,
         likes_count: 0, comments_count: 0,
+        is_story: false,
+        media_type: mediaFileType,
         creator_name: currentUser?.full_name,
-        creator_username: currentUser?.username,
+        creator_username: currentUser?.username || currentUser?.email?.split('@')[0],
         creator_profile_picture: currentUser?.profile_picture,
+        liked_by: [],
       });
       if (currentUser) {
         const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
@@ -311,7 +314,12 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
       }
       return post;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["social-posts"] }); toast.success("Post shared!"); onClose(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["social-posts"] });
+      queryClient.refetchQueries({ queryKey: ["social-posts"] });
+      toast.success("Post shared! 🎉");
+      onClose();
+    },
     onError: (e) => toast.error("Failed: " + e.message),
   });
 
