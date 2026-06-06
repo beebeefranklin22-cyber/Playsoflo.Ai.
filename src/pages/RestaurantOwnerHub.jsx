@@ -67,8 +67,11 @@ export default function RestaurantOwnerHub() {
     queryFn: async () => {
       if (!currentUser) return null;
       try {
-        const restaurants = await base44.entities.Restaurant.filter({ created_by: currentUser.email });
-        return restaurants[0] || null;
+        // Try created_by first (standard), fall back to owner_email field
+        const byCreator = await base44.entities.Restaurant.filter({ created_by: currentUser.email });
+        if (byCreator.length > 0) return byCreator[0];
+        const byOwner = await base44.entities.Restaurant.filter({ owner_email: currentUser.email });
+        return byOwner[0] || null;
       } catch (error) {
         console.error('Error loading restaurant:', error);
         return null;
@@ -142,7 +145,8 @@ export default function RestaurantOwnerHub() {
   const createMenuItemMutation = useMutation({
     mutationFn: (data) => base44.entities.MenuItem.create({
       ...data,
-      restaurant_id: myRestaurant.id
+      restaurant_id: myRestaurant.id,
+      owner_email: currentUser?.email,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries(['restaurant-menu-items']);

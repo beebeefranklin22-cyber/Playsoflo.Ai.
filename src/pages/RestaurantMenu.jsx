@@ -184,8 +184,14 @@ export default function RestaurantMenu() {
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-white mb-1">{item.name}</h3>
                   <p className="text-gray-300 text-sm mb-2 line-clamp-2">{item.description}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-orange-400 font-bold text-lg">${item.price.toFixed(2)}</span>
+                    {item.prep_time && (
+                      <span className="flex items-center gap-1 text-gray-400 text-xs">
+                        <Clock className="w-3 h-3" />
+                        {item.prep_time}
+                      </span>
+                    )}
                     {!item.is_available && (
                       <Badge className="bg-red-500/20 text-red-300">Unavailable</Badge>
                     )}

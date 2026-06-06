@@ -19,9 +19,10 @@ export default function PlaylistManager({ currentUser }) {
     enabled: !!currentUser?.email,
   });
 
-  // Fetch all video details for expanded playlist
+  // Fetch all video details for expanded playlist — keyed on video_ids so it refetches after reorder/remove
+  const videoIdsKey = expandedPlaylist?.video_ids?.join(",") ?? "";
   const { data: videos = [], isLoading: videosLoading } = useQuery({
-    queryKey: ["playlist-videos", expandedPlaylist?.id],
+    queryKey: ["playlist-videos", expandedPlaylist?.id, videoIdsKey],
     queryFn: async () => {
       if (!expandedPlaylist?.video_ids?.length) return [];
       const all = await Promise.all(
@@ -32,6 +33,7 @@ export default function PlaylistManager({ currentUser }) {
       return all.filter(Boolean);
     },
     enabled: !!expandedPlaylist?.id,
+    staleTime: 0,
   });
 
   const createMutation = useMutation({
