@@ -51,15 +51,38 @@ export default function ShareToInboxModal({ isOpen, onClose, post, currentUser }
         ? `Shared a post: "${post.caption.substring(0, 80)}"`
         : "Shared a post";
 
+      const messageContent = post.image_url
+        ? `${shareText}${post.image_url ? '\n' + post.image_url : ''}`
+        : shareText;
+
       await base44.entities.ChatMessage.create({
         conversation_id: convo.id,
         sender_email: currentUser.email,
         sender_name: currentUser.full_name,
-        content: shareText,
-        media_url: post.image_url || null,
-        message_type: "shared_post",
-        shared_post_id: post.id,
+        content: messageContent,
+        message_type: "text",
       });
+
+      // Update conversation last message
+      await base44.entities.ChatConversation.update(convo.id, {
+        last_message: shareText,
+        last_message_time: new Date().toISOString(),
+        last_message_sender: currentUser.email,
+      });
+
+      // Send notification to recipient
+      base44.entities.Notification.create({
+        recipient_email: recipient.email,
+        type: "direct_message",
+        title: `${currentUser.full_name || "Someone"} sent you a post`,
+        message: shareText,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_picture,
+        reference_type: "direct_message",
+        reference_id: convo.id,
+        read: false,
+      }).catch(() => {});
 
       toast.success(`Sent to ${recipient.full_name || recipient.email}`);
       setSending(null);

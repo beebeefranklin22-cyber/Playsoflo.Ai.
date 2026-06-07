@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Video, X, Loader2, Radio } from "lucide-react";
+import { Video, X, Loader2, Radio, Sparkles } from "lucide-react";
+import FaceFiltersCamera from "../camera/FaceFiltersCamera";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -12,6 +13,7 @@ import { createPageUrl } from "@/utils";
 
 export default function GoLiveButton({ currentUser }) {
   const [showModal, setShowModal] = useState(false);
+  const [showFaceFilters, setShowFaceFilters] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const queryClient = useQueryClient();
@@ -81,6 +83,16 @@ export default function GoLiveButton({ currentUser }) {
 
   if (!currentUser) return null;
 
+  if (showFaceFilters) {
+    return (
+      <FaceFiltersCamera
+        mode="video"
+        onClose={() => setShowFaceFilters(false)}
+        onCapture={() => setShowFaceFilters(false)}
+      />
+    );
+  }
+
   return (
     <>
       <Button
@@ -134,6 +146,18 @@ export default function GoLiveButton({ currentUser }) {
                 />
               </div>
 
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+                <button
+                  onClick={() => { setShowModal(false); setShowFaceFilters(true); }}
+                  className="w-full flex items-center gap-3 text-purple-300 hover:text-purple-200 transition"
+                >
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  <div className="text-left">
+                    <p className="font-semibold text-sm">Try Face Filters before going live</p>
+                    <p className="text-xs opacity-70">Test filters, test your look</p>
+                  </div>
+                </button>
+              </div>
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                 <p className="text-red-300 text-sm">
                   📡 Your followers will be notified when you go live. Make sure you're ready!

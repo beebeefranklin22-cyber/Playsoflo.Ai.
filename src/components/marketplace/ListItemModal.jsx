@@ -39,15 +39,15 @@ const PRICE_TYPES = [
   { value: "negotiable", label: "Negotiable" },
 ];
 
-export default function ListItemModal({ currentUser, onClose, onSuccess }) {
+export default function ListItemModal({ currentUser, onClose, onSuccess, preselectedCategory }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    category: "",
+    category: preselectedCategory || "",
     price: "",
     price_type: "fixed",
     image_url: "",
-    location: "",
+    location: currentUser?.city || "",
     service_area: "",
     availability: "available",
     instant_booking: false,

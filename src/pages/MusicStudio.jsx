@@ -54,6 +54,7 @@ export default function MusicStudio() {
     price_usd: 0,
     price_soflo: 0,
     audio_file_url: "",
+    music_video_url: "",
     cover_art_url: "",
     explicit: false,
     allow_downloads: false
@@ -119,6 +120,7 @@ export default function MusicStudio() {
         artist_email: currentUser.email,
         artist_name: trackData.artist_name || currentUser.full_name || currentUser.email,
         artist: trackData.artist_name || currentUser.full_name || currentUser.email,
+        music_video_url: trackData.music_video_url || null,
         status: "published"
       });
     },
@@ -287,6 +289,8 @@ Make it legally sound, fair, and industry-standard.`;
       setTrackForm(prev => ({ ...prev, audio_file_url: file_url }));
     } else if (type === 'cover') {
       setTrackForm(prev => ({ ...prev, cover_art_url: file_url }));
+    } else if (type === 'music_video') {
+      setTrackForm(prev => ({ ...prev, music_video_url: file_url }));
     }
   };
 
@@ -897,6 +901,54 @@ Make it legally sound, fair, and industry-standard.`;
                           Upload Audio File
                         </Button>
                         <p className="text-gray-400 text-xs mt-2">MP3, WAV, M4A, AAC, OGG</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Music Video Upload - right after audio */}
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">🎬 Music Video (Optional)</label>
+                    {trackForm.music_video_url ? (
+                      <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                          <span className="text-green-400">Music video uploaded</span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setTrackForm({...trackForm, music_video_url: ""})}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="border-2 border-dashed border-white/20 rounded-xl p-6 text-center hover:border-red-500/50 transition">
+                        <input
+                          id="video-upload"
+                          type="file"
+                          accept="video/*,.mp4,.mov,.avi,.webm"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file, 'music_video');
+                          }}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            document.getElementById('video-upload')?.click();
+                          }}
+                          className="w-full bg-red-600 hover:bg-red-700 border-0"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Music Video
+                        </Button>
+                        <p className="text-gray-400 text-xs mt-2">MP4, MOV, AVI, WEBM</p>
                       </div>
                     )}
                   </div>

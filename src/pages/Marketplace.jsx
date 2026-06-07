@@ -734,21 +734,23 @@ export default function Marketplace() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               className="group cursor-pointer"
-              onClick={() => navigate(createPageUrl("ProviderHub"))}
-            >
+              onClick={() => {
+                setShowListModal(true);
+              }}
+              >
               <div className="relative h-80 rounded-3xl overflow-hidden bg-gradient-to-br from-orange-600 to-red-600 border-2 border-white/20">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556745757-8d76bdb6984b?w=600')] bg-cover bg-center opacity-20" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-                
+
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                   <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Briefcase className="w-10 h-10 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    Become a Provider
+                    List Your {categories.find(c => c.id === selectedCategory)?.label || 'Service'}
                   </h3>
                   <p className="text-white/90 text-sm mb-4">
-                    Start offering {categories.find(c => c.id === selectedCategory)?.label.toLowerCase()} services
+                    Start offering {categories.find(c => c.id === selectedCategory)?.label.toLowerCase()} — go live instantly
                   </p>
                   <div className="space-y-2 text-left w-full max-w-xs">
                     <div className="flex items-center gap-2 text-white text-sm">
@@ -761,15 +763,21 @@ export default function Marketplace() {
                     </div>
                     <div className="flex items-center gap-2 text-white text-sm">
                       <Check className="w-4 h-4 text-green-400" />
-                      <span>Build your client base</span>
+                      <span>Manage multiple businesses</span>
                     </div>
                   </div>
                   <button className="mt-6 px-8 py-3 bg-white rounded-full text-orange-600 font-bold hover:scale-105 transition-transform shadow-xl">
-                    Get Started →
+                    List Now — It's Free →
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); navigate(createPageUrl("ProviderHub")); }}
+                    className="mt-2 text-white/60 text-xs hover:text-white transition underline"
+                  >
+                    Or go to Provider Hub →
                   </button>
                 </div>
               </div>
-            </motion.div>
+              </motion.div>
           )}
           <AnimatePresence>
             {sortedItems.map((item) => {
@@ -1198,6 +1206,7 @@ export default function Marketplace() {
         {showListModal && currentUser && (
           <ListItemModal
             currentUser={currentUser}
+            preselectedCategory={selectedCategory !== "all" ? selectedCategory : undefined}
             onClose={() => setShowListModal(false)}
             onSuccess={() => {
               queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });

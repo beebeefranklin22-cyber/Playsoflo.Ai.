@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import {
   X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
   Type, Image as ImageIcon, Video, Smile, Pen, SlidersHorizontal,
-  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2, Trash2, Plus as PlusIcon
+  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2, Trash2, Plus as PlusIcon,
+  Camera
 } from "lucide-react";
+import FaceFiltersCamera from "./camera/FaceFiltersCamera";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -92,6 +94,7 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
   const [uploading, setUploading]       = useState(false);
   const [musicQuery, setMusicQuery]     = useState("");
   const [draggingEmoji, setDraggingEmoji] = useState(null);
+  const [showFaceFilters, setShowFaceFilters] = useState(false);
   const [draggingTextId, setDraggingTextId] = useState(null);
   const [draggingTextStart, setDraggingTextStart] = useState(null);
   const [showTrashZone, setShowTrashZone] = useState(false);
@@ -372,6 +375,20 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
 
   if (!isOpen) return null;
 
+  if (showFaceFilters) {
+    return (
+      <FaceFiltersCamera
+        mode={contentType === "reel" ? "video" : "photo"}
+        onClose={() => setShowFaceFilters(false)}
+        onCapture={({ url, type }) => {
+          setMediaUrl(url);
+          setMediaFileType(type === "video" ? "video" : "image");
+          setShowFaceFilters(false);
+        }}
+      />
+    );
+  }
+
   const filterStyle  = FILTERS.find(f => f.id === selectedFilter)?.style || {};
   const selectedBg   = BG_GRADIENTS.find(b => b.id === textBg);
   const hasMedia     = !!mediaUrl;
@@ -522,6 +539,13 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
                         </div>
                         <p className="text-white font-bold text-lg mb-1">{contentType === "reel" ? "Upload Video" : "Upload Photo / Video"}</p>
                         <p className="text-gray-400 text-sm">{contentType === "reel" ? "MP4, MOV • Max 500MB" : "JPG, PNG, MP4, MOV • Max 500MB"}</p>
+                        <button
+                          type="button"
+                          onClick={(ev) => { ev.preventDefault(); setShowFaceFilters(true); }}
+                          className="mt-3 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 rounded-full text-white text-sm font-semibold transition flex items-center gap-2"
+                        >
+                          <Camera className="w-4 h-4" /> Use Face Filters Camera
+                        </button>
                         {contentType === "story" && (
                           <button
                             type="button"
