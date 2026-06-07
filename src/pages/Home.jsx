@@ -132,6 +132,20 @@ export default function Home() {
     setTimeout(() => setRefreshing(false), 500);
   };
 
+  const { data: unreadDMCount = 0 } = useQuery({
+    queryKey: ['unread-dm-count', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return 0;
+      const convs = await base44.entities.ChatConversation.list();
+      return convs.reduce((total, conv) => {
+        return total + (conv.unread_count?.[currentUser.email] || 0);
+      }, 0);
+    },
+    enabled: !!currentUser,
+    refetchInterval: 15000,
+    staleTime: 10000,
+  });
+
   const { data: pendingRequestsCount = 0 } = useQuery({
     queryKey: ['pending-requests-count', currentUser?.email],
     queryFn: async () => {
@@ -514,7 +528,10 @@ export default function Home() {
 
         {/* Row 2: Quick-access chips with colored icons */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar scrollable-content" style={{ overscrollBehavior: 'contain' }}>
-          {quickAccess.map((item) => (
+          {quickAccess.map((item) => {
+            const isDMs = item.label === "DMs";
+            const hasUnread = isDMs && unreadDMCount > 0;
+            return (
             <button
               key={item.label}
               onClick={() => {
@@ -526,15 +543,25 @@ export default function Home() {
                   navigate(createPageUrl(item.path));
                 }
               }}
-              className="flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 hover:border-white/30 hover:bg-white/10 active:scale-95 transition"
+              className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border active:scale-95 transition relative ${
+                hasUnread
+                  ? 'border-purple-500/60 bg-purple-600/20 hover:bg-purple-600/30'
+                  : 'border-white/10 hover:border-white/30 hover:bg-white/10'
+              }`}
             >
               {/* Colored icon container for clear visual hierarchy */}
               <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${item.bg}`}>
                 <item.icon className={`w-3.5 h-3.5 ${item.iconColor}`} />
               </span>
-              <span className="text-white text-xs font-semibold">{item.label}</span>
+              <span className={`text-xs font-semibold ${hasUnread ? 'text-white' : 'text-white'}`}>{item.label}</span>
+              {hasUnread && (
+                <span className="min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
+                  {unreadDMCount > 9 ? '9+' : unreadDMCount}
+                </span>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Row 3: Personalized Offers */}
