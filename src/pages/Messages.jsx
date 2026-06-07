@@ -62,20 +62,22 @@ export default function Messages() {
     queryKey: ['conversations', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      const allConvs = await base44.entities.ChatConversation.list('-last_message_time');
-      return allConvs.filter(conv => conv.participants.includes(currentUser.email));
+      // RLS already filters to conversations where current user is a participant
+      return await base44.entities.ChatConversation.list('-last_message_time');
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 10000, // Poll every 10s so new convs created by others appear
   });
 
-  // Real-time conversation updates
+  // Real-time conversation updates — fires for both new and updated convs
   useEffect(() => {
     if (!currentUser) return;
     
     const unsubscribe = base44.entities.ChatConversation.subscribe((event) => {
-      if (event.data?.participants?.includes(currentUser.email)) {
-        queryClient.invalidateQueries(['conversations']);
+      const participants = event.data?.participants || [];
+      if (participants.includes(currentUser.email)) {
+        queryClient.invalidateQueries(['conversations', currentUser.email]);
         // Browser push notification for new messages when tab is not focused
         if (
           event.type === 'update' &&
@@ -198,7 +200,14 @@ export default function Messages() {
       const message = await base44.entities.ChatMessage.create(messageData);
       console.log('Message created:', message);
       
-      // Update conversation
+      // Update conversation — also bump unread_count for all other participants
+      const otherEmails = selectedConversation.participants.filter(p => p !== currentUser.email);
+      const existingUnread = selectedConversation.unread_count || {};
+      const updatedUnread = { ...existingUnread };
+      otherEmails.forEach(email => {
+        updatedUnread[email] = (updatedUnread[email] || 0) + 1;
+      });
+
       await base44.entities.ChatConversation.update(selectedConversation.id, {
         last_message: encryptionEnabled ? "🔒 Encrypted message" : 
                      (data.message_type === 'image' ? "📷 Photo" :
@@ -207,7 +216,8 @@ export default function Messages() {
                       data.message_type === 'file' ? "📎 File" :
                       data.content.substring(0, 50)),
         last_message_time: new Date().toISOString(),
-        last_message_sender: currentUser.email
+        last_message_sender: currentUser.email,
+        unread_count: updatedUnread,
       });
 
       // Send notifications to other participants
@@ -692,6 +702,15 @@ export default function Messages() {
       unreadMessages.forEach(msg => {
         markAsReadMutation.mutate(msg.id);
       });
+
+      // Reset our unread_count in the conversation
+      const myUnread = selectedConversation.unread_count?.[currentUser.email];
+      if (myUnread && myUnread > 0) {
+        const updatedUnread = { ...(selectedConversation.unread_count || {}), [currentUser.email]: 0 };
+        base44.entities.ChatConversation.update(selectedConversation.id, {
+          unread_count: updatedUnread,
+        }).catch(() => {});
+      }
     }
   }, [messages, selectedConversation]);
 
@@ -783,7 +802,8 @@ export default function Messages() {
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.map((conv) => {
             const otherParticipant = conv.participants.find(p => p !== currentUser?.email);
-            const isUnread = conv.last_message_sender !== currentUser?.email;
+            const myUnreadCount = conv.unread_count?.[currentUser?.email] || 0;
+            const isUnread = myUnreadCount > 0;
             
             return (
               <motion.div
@@ -858,7 +878,7 @@ export default function Messages() {
                       </p>
                       {isUnread && !conv.muted_by?.includes(currentUser?.email) && (
                         <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold ml-2 flex-shrink-0">
-                          {(conv.unread_count?.[currentUser?.email] || 1)}
+                          {myUnreadCount > 9 ? '9+' : myUnreadCount}
                         </div>
                       )}
                     </div>
