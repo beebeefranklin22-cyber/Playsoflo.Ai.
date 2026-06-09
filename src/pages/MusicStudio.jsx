@@ -787,10 +787,12 @@ Make it legally sound, fair, and industry-standard.`;
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90vh] flex flex-col overflow-hidden"
               >
-                <h2 className="text-3xl font-bold text-white mb-6">Upload Track</h2>
-                <div className="space-y-4">
+                <div className="flex-shrink-0 px-8 pt-8 pb-4 border-b border-white/10">
+                  <h2 className="text-3xl font-bold text-white">Upload Track</h2>
+                </div>
+                <div className="flex-1 overflow-y-auto px-8 py-4 space-y-4">
                   <Input
                     value={trackForm.title}
                     onChange={(e) => setTrackForm({...trackForm, title: e.target.value})}
@@ -996,18 +998,19 @@ Make it legally sound, fair, and industry-standard.`;
                     )}
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setShowUploadModal(false)} className="flex-1">
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => uploadTrackMutation.mutate(trackForm)}
-                      disabled={!currentUser || !trackForm.title || !trackForm.audio_file_url}
-                      className="flex-1 bg-purple-600"
-                    >
-                      Publish
-                    </Button>
-                  </div>
+                </div>
+                {/* Sticky publish footer */}
+                <div className="flex-shrink-0 flex gap-3 px-8 py-5 border-t border-white/10 bg-gray-900">
+                  <Button variant="outline" onClick={() => setShowUploadModal(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => uploadTrackMutation.mutate(trackForm)}
+                    disabled={!currentUser || !trackForm.title || !trackForm.audio_file_url}
+                    className="flex-1 bg-purple-600"
+                  >
+                    Publish
+                  </Button>
                 </div>
               </motion.div>
             </motion.div>

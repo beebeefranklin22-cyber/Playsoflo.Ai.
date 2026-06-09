@@ -156,9 +156,9 @@ export default function ProviderOnboardingFlow({ currentUser, providerType, onCo
       <motion.div
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
-        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden"
+        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden flex flex-col max-h-[90vh]"
       >
-        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 p-6">
+        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 p-6 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold text-white">Provider Onboarding</h2>
@@ -171,7 +171,8 @@ export default function ProviderOnboardingFlow({ currentUser, providerType, onCo
           <Progress value={progress} className="h-2" />
         </div>
 
-        <div className="p-8">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -225,36 +226,38 @@ export default function ProviderOnboardingFlow({ currentUser, providerType, onCo
                 </div>
               )}
 
-              {/* Navigation */}
-              <div className="flex gap-4 pt-6">
-                {currentStep > 0 && (
-                  <Button
-                    onClick={() => setCurrentStep(currentStep - 1)}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Previous
-                  </Button>
-                )}
-                <Button
-                  onClick={handleNext}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-                >
-                  {currentStep === steps.length - 1 ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Complete Tour
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </Button>
-              </div>
             </motion.div>
           </AnimatePresence>
+          </div>
+
+          {/* Sticky navigation footer */}
+          <div className="flex-shrink-0 flex gap-4 px-8 pb-8 pt-4 border-t border-white/10 bg-gray-900">
+            {currentStep > 0 && (
+              <Button
+                onClick={() => setCurrentStep(currentStep - 1)}
+                variant="outline"
+                className="flex-1"
+              >
+                Previous
+              </Button>
+            )}
+            <Button
+              onClick={handleNext}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+            >
+              {currentStep === steps.length - 1 ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Complete Tour
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </motion.div>
     </motion.div>

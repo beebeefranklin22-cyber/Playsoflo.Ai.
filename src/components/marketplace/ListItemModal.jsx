@@ -146,7 +146,8 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
             <p className="text-gray-400">Your item is now visible on the marketplace.</p>
           </div>
         ) : (
-          <div className="overflow-y-auto flex-1 p-6 space-y-4">
+          <>
+          <div className="overflow-y-auto flex-1 p-6 space-y-4 pb-2">
             {/* Title */}
             <div>
               <label className="text-gray-400 text-sm mb-1.5 block">Title *</label>
@@ -267,10 +268,13 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
               <span className="text-gray-300 text-sm">Enable Instant Booking (customers can book without waiting for approval)</span>
             </label>
 
+          </div>
+          {/* Sticky footer so button is always visible */}
+          <div className="flex-shrink-0 px-6 pb-6 pt-3 border-t border-white/10 bg-gray-900">
             <Button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 text-base mt-2"
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 text-base"
             >
               {submitting ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Publishing...</>
@@ -279,6 +283,7 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
               )}
             </Button>
           </div>
+          </>
         )}
       </motion.div>
     </motion.div>
