@@ -117,8 +117,13 @@ export default function Home() {
     post.creator_name || post.creator_username || post.author_name ||
     userMap[post.created_by] || post.created_by?.split("@")[0] || "User";
 
-  // Track interactions — silently disabled (UserInteraction RLS blocks creates)
-  const trackView = () => {};
+  // Track post view — increments views_count once per session per post
+  const viewedPostsRef = useRef(new Set());
+  const trackView = (postId) => {
+    if (!postId || viewedPostsRef.current.has(postId)) return;
+    viewedPostsRef.current.add(postId);
+    base44.entities.SocialPost.update(postId, { views_count: 1 }).catch(() => {});
+  };
 
   const [showFriendFinder, setShowFriendFinder] = useState(false);
 
@@ -178,9 +183,7 @@ export default function Home() {
 
         // Track post views for the first few posts
         if (currentUser?.email) {
-          feedPosts.slice(0, 5).forEach(post => {
-            trackView("post", post.id, post.vibe || "social");
-          });
+          feedPosts.slice(0, 3).forEach(post => trackView(post.id));
         }
 
         return feedPosts;
@@ -595,6 +598,14 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.15 }}
               className="mb-6"
+              ref={(el) => {
+                if (el && !viewedPostsRef.current.has(post.id)) {
+                  const obs = new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting) { trackView(post.id); obs.disconnect(); }
+                  }, { threshold: 0.5 });
+                  obs.observe(el);
+                }
+              }}
             >
             {/* Post Header */}
             <div className="flex items-center justify-between px-4 py-3">
@@ -778,6 +789,26 @@ export default function Home() {
             >
               {post.comments_count > 0 ? `View all ${post.comments_count} comments` : "Add a comment…"}
             </button>
+
+            {/* Insights row — only shown to post owner */}
+            {post.created_by === currentUser?.email && (
+              <div className="px-4 pb-2 flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                  <Activity className="w-3.5 h-3.5 text-blue-400/70" />
+                  <span><span className="text-blue-300 font-semibold">{(post.views_count || 0).toLocaleString()}</span> views</span>
+                </div>
+                <span className="text-gray-700 text-xs">·</span>
+                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                  <Heart className="w-3.5 h-3.5 text-red-400/70" />
+                  <span><span className="text-red-300 font-semibold">{Array.isArray(post.liked_by) ? post.liked_by.length : (post.likes_count || 0)}</span> likes</span>
+                </div>
+                <span className="text-gray-700 text-xs">·</span>
+                <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                  <MessageCircle className="w-3.5 h-3.5 text-green-400/70" />
+                  <span><span className="text-green-300 font-semibold">{post.comments_count || 0}</span> comments</span>
+                </div>
+              </div>
+            )}
 
             {/* Timestamp — smallest, least prominent */}
             <p className="px-4 pb-4 text-gray-600 text-xs uppercase tracking-wide">

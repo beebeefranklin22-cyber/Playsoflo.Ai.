@@ -26,6 +26,11 @@
       "type": "number",
       "default": 0
     },
+    "views_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times this post has been viewed"
+    },
     "is_experience": {
       "type": "boolean",
       "default": false
@@ -55,6 +60,22 @@
         "romantic",
         "party"
       ]
+    },
+    "is_story": {
+      "type": "boolean",
+      "default": false
+    },
+    "media_type": {
+      "type": "string"
+    },
+    "creator_name": {
+      "type": "string"
+    },
+    "creator_username": {
+      "type": "string"
+    },
+    "creator_profile_picture": {
+      "type": "string"
     }
   },
   "required": [
