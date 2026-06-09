@@ -10,7 +10,7 @@ import {
   Heart, MessageCircle, Share2, Bookmark, MapPin,
   Music, Sparkles, Plus, MoreHorizontal, Activity,
   Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star,
-  Flag, EyeOff, ChevronRight, Mic2, Building, User
+  Flag, EyeOff, ChevronRight, Mic2, Building, User, Users
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ import PostComments from "../components/social/PostComments";
 import VideoPost from "../components/social/VideoPost";
 import PersonalizedOffersWidget from "../components/offers/PersonalizedOffersWidget";
 import EarningsSetupBanner from "../components/onboarding/EarningsSetupBanner";
+import LiveNowBanner from "../components/feed/LiveNowBanner";
 import { AnimatePresence } from "framer-motion";
 import FullScreenFeed from "../components/feed/FullScreenFeed";
 import { Layers, LayoutList } from "lucide-react";
@@ -302,6 +303,7 @@ export default function Home() {
     { icon: Truck, label: "Delivery", bg: "bg-sky-500/20", iconColor: "text-sky-400", path: "PackageDelivery" },
     { icon: Wand2, label: "AI", bg: "bg-violet-500/20", iconColor: "text-violet-400", path: "RonronAI" },
     { icon: Tv, label: "Stream", bg: "bg-red-500/20", iconColor: "text-red-400", path: "Streaming" },
+    { icon: Radio, label: "News", bg: "bg-blue-600/20", iconColor: "text-blue-300", path: "CommunityNews" },
     { icon: User, label: "My Profile", bg: "bg-purple-500/20", iconColor: "text-purple-400", path: currentUser?.email ? `UserProfile?email=${encodeURIComponent(currentUser.email)}` : "Profile" },
     // Progressive disclosure: show role-specific shortcuts only for relevant users
     ...(currentUser?.is_creator || currentUser?.is_musician ? [{ icon: Mic2, label: "Studio", bg: "bg-fuchsia-500/20", iconColor: "text-fuchsia-400", path: "MusicStudio" }] : []),
@@ -478,6 +480,9 @@ export default function Home() {
             ))}
         </div>
       </div>
+
+      {/* Live Streams Banner */}
+      <LiveNowBanner />
 
       {/* Earnings Setup Banner for providers/drivers/creators */}
       {currentUser && <EarningsSetupBanner currentUser={currentUser} />}

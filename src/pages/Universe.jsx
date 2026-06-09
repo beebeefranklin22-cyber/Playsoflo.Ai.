@@ -5,7 +5,7 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, ChevronLeft, Building, Car, Music, Users, MapPin
+  Home, ChevronLeft, Building, Car, Music, Users, MapPin, Newspaper
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CardStack from "../components/CardStack";
@@ -127,6 +127,36 @@ const pillars = [
 
 const updatedPillars = [
   ...pillars,
+  {
+    id: "affiliate",
+    title: "Affiliate Programs",
+    subtitle: "Earn While You Share",
+    icon: TrendingUp,
+    gradient: "from-green-600 via-emerald-600 to-green-600",
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200",
+    features: ["Shopify Affiliate", "Referral Bonuses", "Track Earnings", "Payout Dash"],
+    action: "AffiliateHub"
+  },
+  {
+    id: "news",
+    title: "Community News",
+    subtitle: "Stay Informed",
+    icon: Globe,
+    gradient: "from-blue-600 via-sky-600 to-blue-600",
+    image: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200",
+    features: ["Breaking News", "Live Broadcasts", "Community Stories", "Creator Reports"],
+    action: "CommunityNews"
+  },
+  {
+    id: "creators",
+    title: "Creator Directory",
+    subtitle: "Discover Talent",
+    icon: Users,
+    gradient: "from-fuchsia-600 via-purple-600 to-fuchsia-600",
+    image: "https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?w=1200",
+    features: ["Browse Creators", "Browse Providers", "Follow & Support", "Book Direct"],
+    action: "CreatorDiscovery"
+  },
   {
     id: "car_rentals",
     title: "Car Rentals",

@@ -185,7 +185,7 @@ export default function Marketplace() {
       queryClient.invalidateQueries({ queryKey: ['marketplace-items'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-inventory'] }),
       queryClient.invalidateQueries({ queryKey: ['marketplace-properties'] }),
-      queryClient.invalidateQueries({ queryKey: ['marketplace-p2p'] })
+
     ]);
   };
 
@@ -240,22 +240,7 @@ export default function Marketplace() {
     staleTime: 120000
   });
 
-  // Also fetch P2P orders
-  const { data: p2pOrders = [] } = useQuery({
-    queryKey: ['marketplace-p2p'],
-    queryFn: async () => {
-      try {
-        return await base44.entities.P2POrder.filter({ status: 'active' });
-      } catch (err) {
-        console.log("Error loading P2P orders:", err);
-        return [];
-      }
-    },
-    initialData: [],
-    refetchInterval: false,
-    refetchOnWindowFocus: false,
-    staleTime: 120000
-  });
+  // P2P orders live in the Wallet page (P2P Trading), not here
 
   // Add query for provider verifications
   const { data: providerVerifications = {} } = useQuery({
@@ -348,20 +333,7 @@ export default function Marketplace() {
       itemType: 'property',
       originalData: p
     })),
-    ...p2pOrders.map(o => ({
-      id: `p2p_${o.id}`,
-      title: `${o.order_type === 'sell' ? 'Sell' : 'Buy'} ${o.crypto_amount} ${o.crypto_currency}`,
-      description: o.terms,
-      price: o.total_amount,
-      price_type: 'total',
-      category: 'p2p_crypto',
-      rating: 5,
-      provider_name: 'P2P Trader',
-      created_by: o.seller_email,
-      availability: 'available',
-      itemType: 'p2p',
-      originalData: o
-    }))
+
   ];
 
   const filteredItems = allItems.filter(item => {
