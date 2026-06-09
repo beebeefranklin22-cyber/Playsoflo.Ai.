@@ -31,6 +31,7 @@ import ListItemModal from "../components/marketplace/ListItemModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 import LuxuryBookingModal from "../components/marketplace/LuxuryBookingModal";
 import EcommerceOrderModal from "../components/marketplace/EcommerceOrderModal";
+import MakeOfferModal from "../components/marketplace/MakeOfferModal";
 
 const categories = [
   { id: "all", label: "All Services", icon: ShoppingBag },
@@ -166,6 +167,8 @@ export default function Marketplace() {
   const [luxuryItem, setLuxuryItem] = useState(null);
   const [showEcommerceOrder, setShowEcommerceOrder] = useState(false);
   const [ecommerceItem, setEcommerceItem] = useState(null);
+  const [showMakeOffer, setShowMakeOffer] = useState(false);
+  const [offerItem, setOfferItem] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
@@ -958,17 +961,31 @@ export default function Marketplace() {
                             Compare
                           </button>
                         ) : (
-                          <button
-                            className="px-5 py-3 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedService(item);
-                              setSelectedProvider({ email: item.created_by, full_name: item.provider_name });
-                              setShowQuickBooking(true);
-                            }}
-                          >
-                            Book Now
-                          </button>
+                          <div className="flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                            <button
+                              className="px-5 py-2.5 bg-orange-500 rounded-full text-white font-semibold hover:bg-orange-600 transition text-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedService(item);
+                                setSelectedProvider({ email: item.created_by, full_name: item.provider_name });
+                                setShowQuickBooking(true);
+                              }}
+                            >
+                              Book Now
+                            </button>
+                            {currentUser && currentUser.email !== (item.created_by || item.provider_email) && (
+                              <button
+                                className="px-5 py-2.5 bg-white/15 border border-white/30 rounded-full text-white font-semibold hover:bg-white/25 transition text-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOfferItem(item);
+                                  setShowMakeOffer(true);
+                                }}
+                              >
+                                Make Offer
+                              </button>
+                            )}
+                          </div>
                         )}
                         </div>
                         </div>
@@ -1170,6 +1187,17 @@ export default function Marketplace() {
               queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
               queryClient.invalidateQueries({ queryKey: ['marketplace-inventory'] });
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Make Offer Modal */}
+      <AnimatePresence>
+        {showMakeOffer && offerItem && currentUser && (
+          <MakeOfferModal
+            item={offerItem}
+            currentUser={currentUser}
+            onClose={() => { setShowMakeOffer(false); setOfferItem(null); }}
           />
         )}
       </AnimatePresence>

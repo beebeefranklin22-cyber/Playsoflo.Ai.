@@ -117,13 +117,14 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-xl overflow-hidden"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="w-full md:max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl max-h-[92vh] flex flex-col"
+        className="w-full md:max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl flex flex-col"
+        style={{ maxHeight: 'min(92vh, 92dvh)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -270,7 +271,7 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
 
           </div>
           {/* Sticky footer so button is always visible */}
-          <div className="flex-shrink-0 px-6 pb-6 pt-3 border-t border-white/10 bg-gray-900">
+          <div className="flex-shrink-0 px-6 pt-3 border-t border-white/10 bg-gray-900" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 1.5rem))' }}>
             <Button
               onClick={handleSubmit}
               disabled={submitting}

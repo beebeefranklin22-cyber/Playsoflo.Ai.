@@ -25,8 +25,7 @@ export default function MessageProviderButton({ providerEmail, providerName, cur
     <>
       <Button
         onClick={openChat}
-        variant="outline"
-        className={`bg-white/5 border-white/10 hover:bg-white/10 ${className || ''}`}
+        className={`bg-white/20 border border-white/30 text-white hover:bg-white/30 font-semibold ${className || ''}`}
       >
         <MessageSquare className="w-4 h-4 mr-2" />
         Message
