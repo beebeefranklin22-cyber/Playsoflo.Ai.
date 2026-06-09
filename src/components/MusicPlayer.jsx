@@ -53,6 +53,13 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
             played_at: new Date().toISOString()
           });
 
+          // Increment stream count for app-uploaded tracks
+          if (track.id && !track.video_id) {
+            base44.entities.MusicTrack.update(track.id, {
+              stream_count: (track.stream_count || 0) + 1
+            }).catch(() => {});
+          }
+
           // Keep only last 20 entries per user
           const history = await base44.entities.ListeningHistory.filter({ 
             user_email: currentUser.email 

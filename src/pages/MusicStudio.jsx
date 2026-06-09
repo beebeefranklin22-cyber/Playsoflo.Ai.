@@ -787,7 +787,8 @@ Make it legally sound, fair, and industry-standard.`;
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90vh] flex flex-col overflow-hidden"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl flex flex-col"
+                style={{ height: 'min(90vh, 700px)', maxHeight: '90vh' }}
               >
                 <div className="flex-shrink-0 px-8 pt-8 pb-4 border-b border-white/10">
                   <h2 className="text-3xl font-bold text-white">Upload Track</h2>

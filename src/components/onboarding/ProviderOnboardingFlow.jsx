@@ -156,7 +156,8 @@ export default function ProviderOnboardingFlow({ currentUser, providerType, onCo
       <motion.div
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
-        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden flex flex-col"
+        style={{ height: 'min(90vh, 680px)', maxHeight: '90vh' }}
       >
         <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 p-6 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">

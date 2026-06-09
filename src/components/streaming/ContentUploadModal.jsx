@@ -185,7 +185,8 @@ export default function ContentUploadModal({ currentUser, onClose }) {
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl flex flex-col"
+        style={{ height: 'min(92vh, 720px)', maxHeight: '92vh' }}
         style={{ marginBottom: 'var(--safe-area-bottom, 0px)' }}
       >
         {/* Header */}
@@ -213,7 +214,7 @@ export default function ContentUploadModal({ currentUser, onClose }) {
           </div>
         </div>
 
-        <div className="px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* VIDEO — primary section, first */}
           <div>
@@ -438,10 +439,10 @@ export default function ContentUploadModal({ currentUser, onClose }) {
             </label>
           </div>
 
-        </div>
+        </div>{/* end scrollable area */}
 
         {/* Sticky Publish Footer */}
-        <div className="sticky bottom-0 bg-[#18181b] border-t border-white/10 px-5 py-3 z-10">
+        <div className="flex-shrink-0 bg-[#18181b] border-t border-white/10 px-5 py-3">
           <Button
             onClick={handlePublish}
             disabled={publishing || (!data.title) || (videoMode === "url" && !data.video_url) || (videoMode === "file" && !videoFile)}
