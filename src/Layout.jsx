@@ -249,6 +249,7 @@ export default function Layout({ children, currentPageName }) {
     { icon: Package, label: "Inventory", path: "InventoryManager" },
     { icon: Store, label: "Restaurant Hub", path: "RestaurantOwnerHub" },
     { icon: TrendingUp, label: "Ads Manager", path: "AdsManager" },
+    { icon: DollarSign, label: "Earnings Summary", path: "ProviderEarningsSummary" },
   ];
 
   // Add support dashboard for admins

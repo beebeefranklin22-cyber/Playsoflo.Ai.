@@ -1,5 +1,6 @@
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
+import ProviderEarningsSummary from './pages/ProviderEarningsSummary'
 import AdManager from './pages/AdManager'
 import DropshippingDashboard from './pages/DropshippingDashboard'
 import LeasePortal from './pages/LeasePortal'
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
       <Route path="/DropshippingDashboard" element={<LayoutWrapper currentPageName="DropshippingDashboard"><DropshippingDashboard /></LayoutWrapper>} />
       <Route path="/LeasePortal" element={<LayoutWrapper currentPageName="LeasePortal"><LeasePortal /></LayoutWrapper>} />
       <Route path="/SavedProperties" element={<LayoutWrapper currentPageName="SavedProperties"><SavedProperties /></LayoutWrapper>} />
+      <Route path="/ProviderEarningsSummary" element={<LayoutWrapper currentPageName="ProviderEarningsSummary"><ProviderEarningsSummary /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
