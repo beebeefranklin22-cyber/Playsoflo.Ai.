@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import Discover from './pages/Discover'
 import CreatorDiscovery from './pages/CreatorDiscovery'
+import Events from './pages/Events'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
@@ -90,6 +91,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/Discover" element={<LayoutWrapper currentPageName="Discover"><Discover /></LayoutWrapper>} />
       <Route path="/CreatorDiscovery" element={<LayoutWrapper currentPageName="CreatorDiscovery"><CreatorDiscovery /></LayoutWrapper>} />
+      <Route path="/Events" element={<LayoutWrapper currentPageName="Events"><Events /></LayoutWrapper>} />
       <Route path="/VODPlayer" element={<LayoutWrapper currentPageName="VODPlayer"><VODPlayer /></LayoutWrapper>} />
       <Route path="/CreatorChannel" element={<LayoutWrapper currentPageName="CreatorChannel"><CreatorChannel /></LayoutWrapper>} />
       <Route path="/CreatorDashboard" element={<LayoutWrapper currentPageName="CreatorDashboard"><CreatorDashboard /></LayoutWrapper>} />

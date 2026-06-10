@@ -1,0 +1,176 @@
+{
+  "name": "Event",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "location": {
+      "type": "string"
+    },
+    "address": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "music",
+        "sports",
+        "food_drink",
+        "arts",
+        "networking",
+        "nightlife",
+        "community",
+        "fitness",
+        "education",
+        "charity",
+        "festival",
+        "other"
+      ]
+    },
+    "cover_image": {
+      "type": "string"
+    },
+    "media_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "ticket_price": {
+      "type": "number",
+      "default": 0
+    },
+    "is_free": {
+      "type": "boolean",
+      "default": true
+    },
+    "ticket_url": {
+      "type": "string"
+    },
+    "capacity": {
+      "type": "number"
+    },
+    "organizer_name": {
+      "type": "string"
+    },
+    "organizer_email": {
+      "type": "string"
+    },
+    "organizer_photo": {
+      "type": "string"
+    },
+    "is_anonymous": {
+      "type": "boolean",
+      "default": false
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0
+    },
+    "liked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0
+    },
+    "saves_count": {
+      "type": "number",
+      "default": 0
+    },
+    "saved_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "shares_count": {
+      "type": "number",
+      "default": 0
+    },
+    "views": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "upcoming",
+        "live",
+        "ended",
+        "cancelled"
+      ],
+      "default": "upcoming"
+    },
+    "is_featured": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "title",
+    "event_date"
+  ],
+  "rls": {
+    "create": {},
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "organizer_email": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "organizer_email": "{{user.email}}"
+        },
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

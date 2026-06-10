@@ -1004,8 +1004,8 @@ export default function Wallet() {
       {activeModal === 'exchange' && currentUser && (
         <CryptoExchangeModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
-      {activeModal === 'cards' && currentUser && (
-        <CardManagementModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
+      {(activeModal === 'cards' || activeModal === 'payment-methods') && currentUser && (
+        <PaymentMethodsManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
       {activeModal === 'banks' && currentUser && (
         <PaymentMethodsManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
@@ -1016,9 +1016,7 @@ export default function Wallet() {
       {activeModal === 'wire' && currentUser && (
         <WireTransferModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}
-      {activeModal === 'payment-methods' && currentUser && (
-        <PaymentMethodsManager currentUser={currentUser} onClose={() => setActiveModal(null)} />
-      )}
+
       {activeModal === 'pending' && currentUser && (
         <PendingTransfersModal currentUser={currentUser} onClose={() => setActiveModal(null)} />
       )}

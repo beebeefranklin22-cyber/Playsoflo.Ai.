@@ -83,7 +83,7 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
   return (
       <div 
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl overflow-y-auto"
         onClick={(e) => {
           if (e.target === e.currentTarget && step !== 2) {
             handleModalClose();
@@ -95,7 +95,8 @@ export default function AddMoneyModal({ currentUser, onClose }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="w-full max-w-lg max-h-[90vh] bg-gray-900 rounded-3xl shadow-2xl flex flex-col"
+          className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col"
+          style={{ maxHeight: "min(92dvh, 680px)" }}
           onClick={(e) => e.stopPropagation()}
         >
         <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 flex-shrink-0">

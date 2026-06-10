@@ -132,7 +132,11 @@ export default function PostComments({ post, currentUser, onClose }) {
       exit={{ y: "100%" }}
       transition={{ type: "spring", damping: 30, stiffness: 300 }}
       className="fixed inset-x-0 z-[200] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
-      style={{ bottom: 0, maxHeight: "85svh", height: "85svh" }}
+      style={{
+        bottom: 0,
+        height: "min(72dvh, 600px)",
+        paddingBottom: 0,
+      }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -277,8 +281,8 @@ export default function PostComments({ post, currentUser, onClose }) {
 
       {/* Input */}
       <div
-        className="flex-shrink-0 px-4 pt-3 pb-5 border-t border-white/10 bg-[#111]"
-        style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}
+        className="flex-shrink-0 px-4 pt-3 border-t border-white/10 bg-[#111]"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">

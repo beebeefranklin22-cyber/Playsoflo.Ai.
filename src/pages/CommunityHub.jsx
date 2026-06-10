@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Newspaper, Briefcase, MessageSquare, DollarSign,
   TrendingUp, Users, ChevronRight, Clock, Eye,
-  Plus, Star, Search, Flame, ThumbsUp, Radio, MapPin
+  Plus, Star, Search, Flame, ThumbsUp, Radio, MapPin, Calendar
 } from "lucide-react";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";
@@ -176,6 +176,16 @@ export default function CommunityHub() {
       path: "CommunityAffiliate",
       count: affiliateCount,
       stats: "Active programs"
+    },
+    {
+      id: "events",
+      title: "Events",
+      description: "Discover and share local events, concerts, meetups & more",
+      icon: Calendar,
+      color: "from-purple-600 to-pink-600",
+      path: "Events",
+      count: null,
+      stats: "Upcoming events"
     }
   ];
 
