@@ -245,7 +245,7 @@ export default function DirectChatModal({ isOpen, onClose, targetUser, currentUs
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl"
       onClick={() => { closeContextMenu(); onClose(); }}
     >
       <motion.div
@@ -254,8 +254,8 @@ export default function DirectChatModal({ isOpen, onClose, targetUser, currentUs
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-gray-900 rounded-2xl overflow-hidden flex flex-col"
-        style={{ height: 'min(600px, 85dvh)' }}
+        className="w-full max-w-lg bg-gray-900 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col"
+        style={{ height: 'min(600px, 90dvh)', maxHeight: '90dvh' }}
       >
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
@@ -375,7 +375,7 @@ export default function DirectChatModal({ isOpen, onClose, targetUser, currentUs
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSend} className="p-4 border-t border-white/10">
+        <form onSubmit={handleSend} className="p-4 border-t border-white/10 flex-shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
           {editingMsg && (
             <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-xl">
               <Edit2 className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />

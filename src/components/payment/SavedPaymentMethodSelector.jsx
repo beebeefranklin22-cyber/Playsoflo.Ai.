@@ -54,16 +54,26 @@ export default function SavedPaymentMethodSelector({ currentUser, value, onChang
 
   // Force a fresh fetch every time this selector mounts (e.g. at checkout)
   useEffect(() => {
-    if (currentUser) {
-      queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser.email] });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!currentUser?.email) return;
+    queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser.email] });
+
+    // Real-time: if a card is saved anywhere in the app, show it here immediately
+    const unsub = base44.entities.PaymentMethod.subscribe((event) => {
+      if (event.data?.user_email === currentUser.email) {
+        queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser.email] });
+      }
+    });
+    return unsub;
+  }, [currentUser?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: methods = [], isLoading } = useQuery({
     queryKey: ['payment-methods', currentUser?.email],
     queryFn: async () => {
-      const list = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' });
-      return list.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+      // Fetch all methods, filter active client-side (same strategy as PaymentMethodsManager)
+      const list = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email });
+      return list
+        .filter(m => m.status !== 'disabled' && m.status !== 'expired')
+        .sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
     },
     enabled: !!currentUser,
     staleTime: 0,

@@ -238,13 +238,13 @@ export default function ProviderOnboardingFlow({ currentUser, onComplete, onSkip
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-end sm:items-center justify-center p-0 sm:p-4"
     >
       <motion.div
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="w-full max-w-2xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl"
-        style={{ maxHeight: "min(96dvh, 760px)" }}
+        style={{ height: "min(96dvh, 760px)", maxHeight: "96dvh" }}
       >
         {/* Header */}
         <div className={`bg-gradient-to-r ${category?.color || "from-purple-600 to-pink-600"} p-5 flex-shrink-0 rounded-t-3xl sm:rounded-t-3xl`}>
@@ -599,7 +599,7 @@ export default function ProviderOnboardingFlow({ currentUser, onComplete, onSkip
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex-shrink-0 flex gap-3 p-5 pt-3 border-t border-white/10 bg-gray-900 rounded-b-3xl">
+        <div className="flex-shrink-0 flex gap-3 p-5 pt-3 border-t border-white/10 bg-gray-900 rounded-b-3xl sm:rounded-b-3xl" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}>
           {stepIdx > 0 && currentStep !== "done" && (
             <Button variant="outline" onClick={back} className="bg-white/5 border-white/20 text-white">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back

@@ -61,10 +61,7 @@ function DirectCardForm({ onSuccess, onCancel, currentUser }) {
 
       toast.dismiss();
       toast.success("Card saved successfully!");
-      // Wait 2 seconds so user can see their card appear in the list before form closes
-      setTimeout(() => {
-        onSuccess(response?.data?.method);
-      }, 2000);
+      onSuccess(response?.data?.method);
     } catch (err) {
       toast.dismiss();
       toast.error(err.message || "Failed to save card");
@@ -179,8 +176,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
     queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
     setSavingBank(false);
     toast.success("Bank account saved!");
-    // Wait 2 seconds so user can see their account appear before form closes
-    setTimeout(() => setShowAddCard(false), 2000);
+    setShowAddCard(false);
   };
 
   const { data: paymentMethods = [], isLoading } = useQuery({
@@ -280,7 +276,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl" onClick={onClose}>
-      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-gray-900 rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col" style={{ maxHeight: 'min(92dvh, 700px)' }}>
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col" style={{ height: 'min(92dvh, 700px)', maxHeight: '92dvh' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
           <div className="flex items-center justify-between">
@@ -329,58 +325,83 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                 </div>
               </div>
 
-              {/* Add Card Form */}
+              {/* Add Card / Bank form — rendered as an overlay so buttons always visible */}
               <AnimatePresence>
                 {showAddCard && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                    <Card className="bg-white/5 border-white/10">
-                      <CardContent className="p-6">
-                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    onClick={() => setShowAddCard(false)}
+                  >
+                    <motion.div
+                      initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+                      onClick={e => e.stopPropagation()}
+                      className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col"
+                      style={{ maxHeight: '90dvh' }}
+                    >
+                      <div className="flex items-center justify-between p-5 border-b border-white/10 flex-shrink-0">
+                        <h3 className="text-white font-semibold flex items-center gap-2">
                           <Shield className="w-5 h-5 text-green-400" />
-                          {addMode === 'bank' ? 'Add Bank Account (Secure)' : 'Add Card (Secure)'}
+                          {addMode === 'bank' ? 'Add Bank Account' : 'Add Card'}
                         </h3>
+                        <button onClick={() => setShowAddCard(false)} className="p-1 hover:bg-white/10 rounded-full">
+                          <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </div>
+                      <div className="p-5 overflow-y-auto" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}>
                         {addMode === 'bank' ? (
                           <ManualBankPaymentForm currentUser={currentUser} saving={savingBank} onSave={handleSaveManualBank} onCancel={() => setShowAddCard(false)} />
                         ) : (
                           <DirectCardForm
-                           currentUser={currentUser}
-                           onSuccess={(savedMethod) => {
-                             setShowAddCard(false);
-                             if (savedMethod) {
-                               queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>
-                                 [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
-                               );
-                             }
-                             queryClient.refetchQueries({ queryKey: ['payment-methods', currentUser?.email] });
-                           }}
-                           onCancel={() => setShowAddCard(false)}
+                            currentUser={currentUser}
+                            onSuccess={(savedMethod) => {
+                              if (savedMethod) {
+                                queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>
+                                  [savedMethod, ...old.filter(m => m.id !== savedMethod.id)]
+                                );
+                              }
+                              queryClient.invalidateQueries({ queryKey: ['payment-methods', currentUser?.email] });
+                              setShowAddCard(false);
+                            }}
+                            onCancel={() => setShowAddCard(false)}
                           />
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Add External Account Form */}
+              {/* Add External Account form — overlay */}
               <AnimatePresence>
                 {showAddExternal && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                    <Card className="bg-white/5 border-white/10">
-                      <CardContent className="p-6">
-                        <h3 className="text-white font-semibold mb-2">Add {externalLabels[externalType]?.label || 'Account'}</h3>
-                        <p className="text-gray-400 text-xs mb-4">{externalLabels[externalType]?.hint}</p>
-                        <div className="space-y-4">
-                          <Input placeholder={externalLabels[externalType]?.placeholder || 'Username or email'} value={externalUsername} onChange={(e) => setExternalUsername(e.target.value)} className="bg-white/10 border-white/20 text-white" />
-                          <div className="flex gap-2">
-                            <Button onClick={() => addExternalMutation.mutate()} disabled={!externalUsername.trim() || addExternalMutation.isPending} className="flex-1 bg-green-600 hover:bg-green-700">
-                              {addExternalMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : <><Check className="w-4 h-4 mr-2" />Add Account</>}
-                            </Button>
-                            <Button onClick={() => { setShowAddExternal(false); setExternalUsername(""); }} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">Cancel</Button>
-                          </div>
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    onClick={() => { setShowAddExternal(false); setExternalUsername(""); }}
+                  >
+                    <motion.div
+                      initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+                      onClick={e => e.stopPropagation()}
+                      className="w-full max-w-lg bg-gray-900 rounded-t-3xl sm:rounded-3xl"
+                    >
+                      <div className="flex items-center justify-between p-5 border-b border-white/10">
+                        <h3 className="text-white font-semibold">Add {externalLabels[externalType]?.label || 'Account'}</h3>
+                        <button onClick={() => { setShowAddExternal(false); setExternalUsername(""); }} className="p-1 hover:bg-white/10 rounded-full">
+                          <X className="w-5 h-5 text-gray-400" />
+                        </button>
+                      </div>
+                      <div className="p-5 space-y-4" style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))' }}>
+                        <p className="text-gray-400 text-sm">{externalLabels[externalType]?.hint}</p>
+                        <Input placeholder={externalLabels[externalType]?.placeholder || 'Username or email'} value={externalUsername} onChange={(e) => setExternalUsername(e.target.value)} className="bg-white/10 border-white/20 text-white" />
+                        <div className="flex gap-2">
+                          <Button onClick={() => addExternalMutation.mutate()} disabled={!externalUsername.trim() || addExternalMutation.isPending} className="flex-1 bg-green-600 hover:bg-green-700">
+                            {addExternalMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Adding...</> : <><Check className="w-4 h-4 mr-2" />Add Account</>}
+                          </Button>
+                          <Button onClick={() => { setShowAddExternal(false); setExternalUsername(""); }} variant="outline" className="flex-1 border-white/20 text-white hover:bg-white/10">Cancel</Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -465,7 +486,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10 p-4 bg-white/5">
+        <div className="border-t border-white/10 p-4 bg-white/5 flex-shrink-0" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
           <div className="flex items-center gap-2 text-gray-400 text-xs">
             <Shield className="w-4 h-4" />
             <p>All payment information is securely encrypted and PCI-DSS compliant</p>
