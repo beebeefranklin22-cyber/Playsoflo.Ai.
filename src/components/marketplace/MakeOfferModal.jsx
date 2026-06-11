@@ -64,14 +64,14 @@ export default function MakeOfferModal({ item, currentUser, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-md bg-gray-900 rounded-3xl overflow-hidden"
+        className="w-full max-w-md bg-gray-900 rounded-t-3xl sm:rounded-3xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -97,7 +97,7 @@ export default function MakeOfferModal({ item, currentUser, onClose }) {
             <p className="text-gray-400 text-sm">The provider has been notified of your offer.</p>
           </div>
         ) : (
-          <div className="p-6 space-y-5">
+          <div className="p-6 space-y-5" style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}>
             {/* Item preview */}
             <div className="flex items-center gap-3 bg-white/5 rounded-2xl p-3">
               {item.image_url && (

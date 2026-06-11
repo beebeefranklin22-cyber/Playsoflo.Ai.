@@ -548,7 +548,7 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-xl"
         onClick={onClose}
       >
         <motion.div
@@ -556,10 +556,11 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-3xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col"
+          style={{ height: 'min(92dvh, 820px)', maxHeight: '92dvh' }}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-white">Book Service</h2>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
@@ -594,7 +595,7 @@ Be conversational, concise (2-3 sentences), and helpful. If suggesting times, fo
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-6 overflow-y-auto flex-1">
             {/* Pre-booking Provider Chat */}
             {step < 3 && service?.created_by && currentUser && (
               <div className="mb-4">

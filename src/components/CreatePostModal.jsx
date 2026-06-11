@@ -121,153 +121,116 @@ export default function CreatePostModal({ isOpen, onClose, currentUser }) {
           exit={{ y: "100%", scale: 0.95 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto border border-white/20"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl sm:rounded-3xl border border-white/20 flex flex-col"
+          style={{ maxHeight: '92dvh' }}
         >
-          <div className="flex items-center justify-between mb-6">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
             <h2 className="text-2xl font-bold text-white">Create Post</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full transition"
-            >
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
               <X className="w-6 h-6 text-gray-400" />
             </button>
           </div>
 
-          {/* User Info */}
-          <div className="flex items-center gap-3 mb-4 p-3 bg-white/5 rounded-xl">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
-              {currentUser?.full_name?.[0]}
-            </div>
-            <div>
-              <p className="text-white font-semibold">{currentUser?.full_name}</p>
-              <p className="text-gray-400 text-xs flex items-center gap-1">
-                <AtSign className="w-3 h-3" />
-                {currentUser?.username || currentUser?.email?.split('@')[0]}
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <MediaUploader
-              value={formData.image_url}
-              onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
-              type="both"
-              label="Post Media"
-              previewClassName="h-64"
-            />
-
-            {/* Caption */}
-            <Textarea
-              value={formData.caption}
-              onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
-              placeholder="Write a caption..."
-              className="bg-white/5 border-white/20 text-white placeholder-gray-400 min-h-24"
-            />
-
-            {/* Location */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Add location"
-                className="pl-12 bg-white/5 border-white/20 text-white placeholder-gray-400"
-              />
-            </div>
-
-            {/* Music */}
-            <div className="relative">
-              <Music className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
-              <Input
-                value={formData.music_playing}
-                onChange={(e) => setFormData(prev => ({ ...prev, music_playing: e.target.value }))}
-                placeholder="Add music (e.g., Artist - Song)"
-                className="pl-12 bg-white/5 border-white/20 text-white placeholder-gray-400"
-              />
-            </div>
-
-            {/* Vibe Selection */}
-            <div>
-              <label className="text-white text-sm font-medium mb-2 block">Select Vibe</label>
-              <div className="flex flex-wrap gap-2">
-                {vibes.map(vibe => (
-                  <button
-                    key={vibe}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, vibe: prev.vibe === vibe ? "" : vibe }))}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                      formData.vibe === vibe
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                    }`}
-                  >
-                    {vibe}
-                  </button>
-                ))}
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-6 pb-2">
+            {/* User Info */}
+            <div className="flex items-center gap-3 mb-4 p-3 bg-white/5 rounded-xl">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                {currentUser?.full_name?.[0]}
               </div>
-            </div>
-
-            {/* Experience Toggle */}
-            <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl">
-              <input
-                type="checkbox"
-                checked={formData.is_experience}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  is_experience: e.target.checked,
-                  experience_type: e.target.checked ? prev.experience_type : ""
-                }))}
-                className="w-5 h-5"
-              />
-              <div className="flex-1">
-                <label className="text-white font-medium flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-400" />
-                  Mark as Experience
-                </label>
-                <p className="text-gray-400 text-xs">Share a special moment or activity</p>
-              </div>
-            </div>
-
-            {/* Experience Type */}
-            {formData.is_experience && (
               <div>
-                <label className="text-white text-sm font-medium mb-2 block">Experience Type</label>
+                <p className="text-white font-semibold">{currentUser?.full_name}</p>
+                <p className="text-gray-400 text-xs flex items-center gap-1">
+                  <AtSign className="w-3 h-3" />
+                  {currentUser?.username || currentUser?.email?.split('@')[0]}
+                </p>
+              </div>
+            </div>
+
+            <form id="create-post-form" onSubmit={handleSubmit} className="space-y-4">
+              <MediaUploader
+                value={formData.image_url}
+                onChange={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                type="both"
+                label="Post Media"
+                previewClassName="h-64"
+              />
+
+              <Textarea
+                value={formData.caption}
+                onChange={(e) => setFormData(prev => ({ ...prev, caption: e.target.value }))}
+                placeholder="Write a caption..."
+                className="bg-white/5 border-white/20 text-white placeholder-gray-400 min-h-24"
+              />
+
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input value={formData.location} onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="Add location" className="pl-12 bg-white/5 border-white/20 text-white placeholder-gray-400" />
+              </div>
+
+              <div className="relative">
+                <Music className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-400" />
+                <Input value={formData.music_playing} onChange={(e) => setFormData(prev => ({ ...prev, music_playing: e.target.value }))}
+                  placeholder="Add music (e.g., Artist - Song)" className="pl-12 bg-white/5 border-white/20 text-white placeholder-gray-400" />
+              </div>
+
+              <div>
+                <label className="text-white text-sm font-medium mb-2 block">Select Vibe</label>
                 <div className="flex flex-wrap gap-2">
-                  {experienceTypes.map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, experience_type: type }))}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                        formData.experience_type === type
-                          ? 'bg-yellow-600 text-white'
-                          : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                      }`}
-                    >
-                      {type.replace(/_/g, ' ')}
+                  {vibes.map(vibe => (
+                    <button key={vibe} type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, vibe: prev.vibe === vibe ? "" : vibe }))}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${formData.vibe === vibe ? 'bg-purple-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}>
+                      {vibe}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
 
-            {/* Submit Button */}
+              <div className="flex items-center gap-3 p-4 bg-white/5 rounded-xl">
+                <input type="checkbox" checked={formData.is_experience}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_experience: e.target.checked, experience_type: e.target.checked ? prev.experience_type : "" }))}
+                  className="w-5 h-5" />
+                <div className="flex-1">
+                  <label className="text-white font-medium flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-yellow-400" /> Mark as Experience
+                  </label>
+                  <p className="text-gray-400 text-xs">Share a special moment or activity</p>
+                </div>
+              </div>
+
+              {formData.is_experience && (
+                <div>
+                  <label className="text-white text-sm font-medium mb-2 block">Experience Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {experienceTypes.map(type => (
+                      <button key={type} type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, experience_type: type }))}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${formData.experience_type === type ? 'bg-yellow-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}>
+                        {type.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Sticky submit button */}
+          <div className="flex-shrink-0 p-4 border-t border-white/10" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
             <Button
               type="submit"
+              form="create-post-form"
               disabled={createPostMutation.isPending || !formData.image_url || !formData.caption}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-6 text-lg"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 text-lg"
             >
               {createPostMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                'Share Post'
-              )}
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Posting...</>
+              ) : 'Share Post'}
             </Button>
-          </form>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>

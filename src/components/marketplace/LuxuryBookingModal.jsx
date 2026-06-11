@@ -136,7 +136,8 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
         initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 80 }}
-        className="w-full sm:max-w-2xl bg-gray-950 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[95vh] flex flex-col"
+        className="w-full sm:max-w-2xl bg-gray-950 rounded-t-3xl sm:rounded-3xl flex flex-col"
+        style={{ height: 'min(95dvh, 860px)', maxHeight: '95dvh' }}
       >
         {/* Header */}
         <div className="relative bg-gradient-to-r from-purple-900 via-indigo-900 to-purple-900 p-6 flex-shrink-0">
@@ -335,12 +336,6 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
                   </div>
                 )}
 
-                <button
-                  onClick={handleProceedToReview}
-                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2"
-                >
-                  Review Booking <ArrowRight className="w-4 h-4" />
-                </button>
               </motion.div>
             )}
 
@@ -370,14 +365,6 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
                   ⚠️ By proceeding, you authorize a payment of <strong>${totalAmount.toFixed(2)}</strong>. The provider will be notified immediately.
                 </div>
 
-                <div className="flex gap-3">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3 bg-white/10 border border-white/20 rounded-xl text-white font-medium hover:bg-white/20 transition">
-                    Edit Details
-                  </button>
-                  <button onClick={() => setStep(3)} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2">
-                    <CreditCard className="w-4 h-4" /> Pay ${totalAmount.toFixed(2)}
-                  </button>
-                </div>
               </motion.div>
             )}
 
@@ -403,9 +390,6 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
                     guests: form.guests,
                   }}
                 />
-                <button onClick={() => setStep(2)} className="w-full py-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition text-sm">
-                  ← Back to Review
-                </button>
               </motion.div>
             )}
 
@@ -424,20 +408,39 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
                   <Row label="Date" value={new Date(form.date + "T12:00").toLocaleDateString()} />
                   <Row label="Total Paid" value={`$${totalAmount.toFixed(2)}`} highlight />
                 </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => navigate(createPageUrl("CustomerBookings"))}
-                    className="flex-1 py-3 bg-purple-600 rounded-xl text-white font-bold hover:bg-purple-700 transition flex items-center justify-center gap-2"
-                  >
-                    <FileText className="w-4 h-4" /> View Bookings
-                  </button>
-                  <button onClick={onClose} className="flex-1 py-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition">
-                    Close
-                  </button>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* Sticky CTA footer — changes per step */}
+        <div className="flex-shrink-0 p-4 border-t border-white/10 bg-gray-950" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
+          {step === 1 && (
+            <button onClick={handleProceedToReview} className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 min-h-[48px]">
+              Review Booking <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          {step === 2 && (
+            <div className="flex gap-3">
+              <button onClick={() => setStep(1)} className="flex-1 py-3.5 bg-white/10 border border-white/20 rounded-xl text-white font-medium hover:bg-white/20 transition min-h-[48px]">Edit Details</button>
+              <button onClick={() => setStep(3)} className="flex-1 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 min-h-[48px]">
+                <CreditCard className="w-4 h-4" /> Pay ${totalAmount.toFixed(2)}
+              </button>
+            </div>
+          )}
+          {step === 3 && (
+            <button onClick={() => setStep(2)} className="w-full py-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition text-sm min-h-[44px]">
+              ← Back to Review
+            </button>
+          )}
+          {step === 4 && (
+            <div className="flex gap-3">
+              <button onClick={() => navigate(createPageUrl("CustomerBookings"))} className="flex-1 py-3.5 bg-purple-600 rounded-xl text-white font-bold hover:bg-purple-700 transition flex items-center justify-center gap-2 min-h-[48px]">
+                <FileText className="w-4 h-4" /> View Bookings
+              </button>
+              <button onClick={onClose} className="flex-1 py-3.5 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition min-h-[48px]">Close</button>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

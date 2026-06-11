@@ -114,7 +114,7 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4"
       onClick={onClose}
     >
       <motion.div
@@ -122,7 +122,8 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-gray-900 rounded-3xl border border-white/10 overflow-hidden"
+        className="w-full max-w-md bg-gray-900 rounded-t-3xl sm:rounded-3xl border border-white/10 flex flex-col"
+        style={{ maxHeight: '92dvh' }}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 flex items-center justify-between">
@@ -133,7 +134,7 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Items Summary */}
           <div className="space-y-3">
             <h3 className="text-white font-semibold">Booking Summary</h3>
@@ -173,34 +174,28 @@ export default function UnifiedCheckoutModal({ items, total, currentUser, onClos
               <span className="text-blue-300 text-sm">Processing your unified booking...</span>
             </div>
           )}
+        </div>
 
-          {/* Buttons */}
-          <div className="space-y-2 pt-4">
-            <button
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  Complete Booking
-                </>
-              )}
-            </button>
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="w-full py-2 text-gray-400 hover:text-white transition font-medium disabled:opacity-50"
-            >
-              Cancel
-            </button>
-          </div>
+        {/* Sticky footer buttons */}
+        <div className="flex-shrink-0 p-4 border-t border-white/10 space-y-2" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}>
+          <button
+            onClick={handleCheckout}
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2 min-h-[48px]"
+          >
+            {loading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Processing...</>
+            ) : (
+              <><Check className="w-4 h-4" />Complete Booking</>
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="w-full py-2 text-gray-400 hover:text-white transition font-medium disabled:opacity-50"
+          >
+            Cancel
+          </button>
         </div>
       </motion.div>
     </motion.div>
