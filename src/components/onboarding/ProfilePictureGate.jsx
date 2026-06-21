@@ -109,6 +109,15 @@ function UsernameStep({ user, onComplete }) {
           )}
         </button>
       </form>
+
+      {!isLoading && (
+        <button
+          onClick={onComplete}
+          className="w-full text-gray-500 hover:text-gray-300 text-sm py-2 mt-2 transition"
+        >
+          Skip for now
+        </button>
+      )}
     </motion.div>
   );
 }
@@ -237,7 +246,6 @@ function PhotoStep({ user, onComplete, onSkip }) {
 export default function ProfilePictureGate({ user, onComplete }) {
   // Gate is only shown when username is missing (enforced in App.jsx)
   // Photo step is always optional — user can skip
-  const needsPhoto = !user?.profile_picture;
   const [step, setStep] = useState("username");
 
   return (

@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import './App.css'
 import VODPlayer from './pages/VODPlayer'
 import ProviderEarningsSummary from './pages/ProviderEarningsSummary'
@@ -65,9 +66,8 @@ const AuthenticatedApp = () => {
   }
 
   // Show onboarding gate only for users who haven't set a username yet
-  // Profile picture is optional (skippable), so don't block on it
-  if (isAuthenticated && user && !user.username) {
-    return <ProfilePictureGate user={user} onComplete={refreshUser} />;
+  if (isAuthenticated && user && !user.username && !skipGate) {
+    return <ProfilePictureGate user={user} onComplete={async () => { await refreshUser(); setSkipGate(true); }} />;
   }
 
   // Render the main app
