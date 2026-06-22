@@ -43,6 +43,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
+  const [skipGate, setSkipGate] = useState(false);
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin, user, checkAppState, refreshUser } = useAuth();
 
   // Show loading spinner while checking app public settings or auth

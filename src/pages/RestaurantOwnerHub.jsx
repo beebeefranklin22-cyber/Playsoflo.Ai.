@@ -142,14 +142,54 @@ export default function RestaurantOwnerHub() {
     }
   });
 
+  const syncMenuItemToMarketplace = async (menuItem, restaurant) => {
+    try {
+      // Check if already synced
+      const existing = await base44.entities.MarketplaceItem.filter({
+        provider_email: currentUser?.email,
+        title: menuItem.name,
+        category: 'restaurant'
+      });
+      const marketplaceData = {
+        title: menuItem.name,
+        description: menuItem.description || '',
+        category: 'restaurant',
+        price: menuItem.price,
+        price_type: 'each',
+        image_url: menuItem.image_url || restaurant.image_url || '',
+        location: restaurant.address || '',
+        service_area: restaurant.address || '',
+        provider_name: restaurant.name,
+        provider_email: currentUser?.email,
+        created_by: currentUser?.email,
+        availability: menuItem.is_available ? 'available' : 'booked',
+        instant_booking: true,
+        verified_provider: false,
+        status: 'active',
+      };
+      if (existing.length > 0) {
+        await base44.entities.MarketplaceItem.update(existing[0].id, marketplaceData);
+      } else {
+        await base44.entities.MarketplaceItem.create({ ...marketplaceData, rating: 5, reviews_count: 0 });
+      }
+    } catch (err) {
+      console.error('Menu sync error (non-fatal):', err);
+    }
+  };
+
   const createMenuItemMutation = useMutation({
-    mutationFn: (data) => base44.entities.MenuItem.create({
-      ...data,
-      restaurant_id: myRestaurant.id,
-      owner_email: currentUser?.email,
-    }),
+    mutationFn: async (data) => {
+      const item = await base44.entities.MenuItem.create({
+        ...data,
+        restaurant_id: myRestaurant.id,
+        owner_email: currentUser?.email,
+      });
+      await syncMenuItemToMarketplace(item, myRestaurant);
+      return item;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['restaurant-menu-items']);
+      queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
       setShowMenuModal(false);
       setMenuItemForm({
         name: "",
@@ -162,17 +202,22 @@ export default function RestaurantOwnerHub() {
         calories: 0,
         dietary_tags: []
       });
-      toast.success('Menu item added!');
+      toast.success('Menu item added and synced to marketplace!');
     }
   });
 
   const updateMenuItemMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.MenuItem.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      const item = await base44.entities.MenuItem.update(id, data);
+      await syncMenuItemToMarketplace({ ...data, id }, myRestaurant);
+      return item;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['restaurant-menu-items']);
+      queryClient.invalidateQueries({ queryKey: ['marketplace-items'] });
       setShowMenuModal(false);
       setEditingMenuItem(null);
-      toast.success('Menu item updated!');
+      toast.success('Menu item updated and synced to marketplace!');
     }
   });
 

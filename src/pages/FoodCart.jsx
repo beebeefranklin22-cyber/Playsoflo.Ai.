@@ -70,8 +70,8 @@ export default function FoodCart() {
     mutationFn: async () => {
       const subtotal = cartItems.reduce((sum, item) => sum + (item.menu_item_price * item.quantity), 0);
       const deliveryFee = restaurant?.delivery_fee || 3.99;
-      const commissionRate = restaurant?.commission_rate || 0.12;
-      const commissionAmount = subtotal * commissionRate;
+      // Platform charges 15% from merchant, not from customer
+      const commissionAmount = parseFloat((subtotal * 0.15).toFixed(2));
       const total = subtotal + deliveryFee;
 
       const order = await base44.entities.FoodOrder.create({
@@ -272,18 +272,19 @@ export default function FoodCart() {
           
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-gray-300">
-              <span>Subtotal</span>
+              <span>Subtotal ({cartItems.reduce((s, i) => s + i.quantity, 0)} item{cartItems.reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''})</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-300">
               <span>Delivery Fee</span>
-              <span>${deliveryFee.toFixed(2)}</span>
+              <span className="text-orange-300">${deliveryFee.toFixed(2)}</span>
             </div>
             <div className="h-px bg-white/20 my-2" />
             <div className="flex justify-between text-white text-xl font-bold">
               <span>Total</span>
               <span>${total.toFixed(2)}</span>
             </div>
+            <p className="text-gray-500 text-xs text-center mt-1">Delivery fee set by restaurant · Platform commission charged to merchant</p>
           </div>
         </div>
 

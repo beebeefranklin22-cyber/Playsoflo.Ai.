@@ -49,18 +49,39 @@ Deno.serve(async (req) => {
 
     const orderNumber = `FOOD${Date.now()}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
     const total = parseFloat(foodOrder.total) || 0;
-    const deliveryFee = parseFloat(foodOrder.delivery_fee) || 3.99;
-    const platformFee = parseFloat((total * 0.10).toFixed(2));
+    const subtotal = parseFloat(foodOrder.subtotal) || total;
+    const deliveryFee = parseFloat(foodOrder.delivery_fee) || parseFloat(restaurant.delivery_fee) || 3.99;
+    // 15% platform commission taken from merchant subtotal
+    const platformCommission = parseFloat((subtotal * 0.15).toFixed(2));
+    // Merchant receives 85% of subtotal
+    const merchantEarnings = parseFloat((subtotal * 0.85).toFixed(2));
+    // Driver earns 80% of delivery fee
     const driverEarnings = parseFloat((deliveryFee * 0.80).toFixed(2));
+    const platformFee = platformCommission;
 
-    // Update FoodOrder with restaurant details, payment info, and confirmed status
+    // Update FoodOrder with restaurant details, payment info, commission, and confirmed status
     await base44.asServiceRole.entities.FoodOrder.update(food_order_id, {
       status: 'confirmed',
       restaurant_owner_email: restaurantOwnerEmail,
       restaurant_address: restaurantAddress,
       restaurant_phone: restaurantPhone,
       driver_earnings: driverEarnings,
+      commission_amount: platformCommission,
+      delivery_fee: deliveryFee,
       ...(payment_intent_id ? { payment_intent_id } : {})
+    });
+
+    // Record platform commission payment from merchant
+    await base44.asServiceRole.entities.Payment.create({
+      amount_usd: platformCommission,
+      amount_rri: 0,
+      method: 'internal_transfer',
+      status: 'completed',
+      reference_type: 'order',
+      reference_id: food_order_id,
+      sender_email: restaurantOwnerEmail,
+      recipient_email: 'platform@playsoflo.com',
+      memo: `15% platform commission - Order ${orderNumber.substring(0, 10)}`
     });
 
     // Create a linked DeliveryOrder for the driver system

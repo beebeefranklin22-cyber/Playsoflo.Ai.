@@ -16,7 +16,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
   const [loading, setLoading] = useState(false);
 
   const queryClient = useQueryClient();
-  const availableBalance = currentUser?.usd_balance || 0;
+  const availableBalance = currentUser?.usd_balance || currentUser?.balance_usd || 0;
 
   const getFeeAmount = () => (speed === "instant" ? 0.50 : 0);
   const getTotalAmount = () => parseFloat(amount || 0) + getFeeAmount();
@@ -27,7 +27,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
       return;
     }
     if (!selectedMethodId) {
-      toast.error('Please select a payout destination.');
+      toast.error('Please add and select a payout method (card or bank account).');
       return;
     }
     const totalWithFees = getTotalAmount();
@@ -180,9 +180,14 @@ export default function WithdrawModal({ currentUser, onClose }) {
               </div>
             )}
 
+            {!selectedMethodId && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-yellow-300 text-sm text-center">
+                Add a payment method above to enable withdrawals
+              </div>
+            )}
             <Button
               onClick={handleWithdraw}
-              disabled={loading || !amount || parseFloat(amount) <= 0 || !selectedMethodId}
+              disabled={loading || !amount || parseFloat(amount) <= 0}
               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg"
             >
               <Download className="w-5 h-5 mr-2" />

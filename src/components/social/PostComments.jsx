@@ -134,7 +134,7 @@ export default function PostComments({ post, currentUser, onClose }) {
       className="fixed inset-x-0 z-[200] bg-[#111] rounded-t-3xl border border-white/10 flex flex-col"
       style={{
         bottom: 0,
-        height: "min(72dvh, 600px)",
+        height: "min(80dvh, 650px)",
         paddingBottom: 0,
       }}
       onClick={(e) => e.stopPropagation()}

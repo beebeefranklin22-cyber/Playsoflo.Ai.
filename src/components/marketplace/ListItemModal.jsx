@@ -124,7 +124,7 @@ export default function ListItemModal({ currentUser, onClose, onSuccess, presele
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="w-full md:max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl flex flex-col"
-        style={{ maxHeight: 'min(92vh, 92dvh)' }}
+        style={{ height: 'min(92dvh, 700px)', maxHeight: '92dvh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
