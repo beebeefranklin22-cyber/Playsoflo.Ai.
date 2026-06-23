@@ -20,6 +20,7 @@ export default function PayoutDashboard() {
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -75,7 +76,7 @@ export default function PayoutDashboard() {
       user_email: currentUser.email 
     }, '-requested_date'),
     enabled: !!currentUser,
-    initialData: []
+    staleTime: 0
   });
 
   const { data: payoutMethods = [] } = useQuery({
@@ -84,7 +85,7 @@ export default function PayoutDashboard() {
       user_email: currentUser.email 
     }),
     enabled: !!currentUser,
-    initialData: []
+    staleTime: 0
   });
 
   const pendingPayouts = payoutRequests.filter(p => p.status === 'pending' || p.status === 'processing');
@@ -198,7 +199,7 @@ export default function PayoutDashboard() {
                       You need to add at least one payout method before you can withdraw your earnings.
                     </p>
                     <Button
-                      onClick={() => document.getElementById('methods-tab')?.click()}
+                      onClick={() => setActiveTab("methods")}
                       className="bg-yellow-600 hover:bg-yellow-700"
                     >
                       <Plus className="w-4 h-4 mr-2" />
@@ -212,11 +213,11 @@ export default function PayoutDashboard() {
         )}
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="methods" id="methods-tab">Payout Methods</TabsTrigger>
+            <TabsTrigger value="methods">Payout Methods</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
 

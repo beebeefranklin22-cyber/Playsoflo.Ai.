@@ -12,6 +12,7 @@ import {
   Store, DollarSign, Package, TrendingUp, Plus, Edit2, Trash2, CheckCircle, Upload, ChefHat, X, Code
 } from "lucide-react";
 import MenuWidgetEmbed from "../components/restaurant/MenuWidgetEmbed";
+import MenuBulkUpload from "../components/restaurant/MenuBulkUpload";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ export default function RestaurantOwnerHub() {
   const [editingMenuItem, setEditingMenuItem] = useState(null);
   const [showRestaurantModal, setShowRestaurantModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const [menuItemForm, setMenuItemForm] = useState({
     name: "",
@@ -144,31 +146,30 @@ export default function RestaurantOwnerHub() {
 
   const syncMenuItemToMarketplace = async (menuItem, restaurant) => {
     try {
-      // Check if already synced
+      // Look up by menu_item_id tag for stable matching across renames
       const existing = await base44.entities.MarketplaceItem.filter({
         provider_email: currentUser?.email,
-        title: menuItem.name,
-        category: 'restaurant'
+        category: 'catering'
       });
+      const linkedItem = existing.find(e => e.description?.includes(`[menu:${menuItem.id}]`));
+
       const marketplaceData = {
         title: menuItem.name,
-        description: menuItem.description || '',
-        category: 'restaurant',
+        description: (menuItem.description || '') + ` [menu:${menuItem.id}]`,
+        category: 'catering',
         price: menuItem.price,
-        price_type: 'each',
+        price_type: 'fixed',
         image_url: menuItem.image_url || restaurant.image_url || '',
         location: restaurant.address || '',
         service_area: restaurant.address || '',
         provider_name: restaurant.name,
         provider_email: currentUser?.email,
-        created_by: currentUser?.email,
         availability: menuItem.is_available ? 'available' : 'booked',
         instant_booking: true,
         verified_provider: false,
-        status: 'active',
       };
-      if (existing.length > 0) {
-        await base44.entities.MarketplaceItem.update(existing[0].id, marketplaceData);
+      if (linkedItem) {
+        await base44.entities.MarketplaceItem.update(linkedItem.id, marketplaceData);
       } else {
         await base44.entities.MarketplaceItem.create({ ...marketplaceData, rating: 5, reviews_count: 0 });
       }
@@ -670,7 +671,18 @@ export default function RestaurantOwnerHub() {
                 <p className="text-gray-300">Create your restaurant first before adding menu items.</p>
               </div>
             )}
-            <div className="mb-4 flex justify-end">
+            <div className="mb-4 flex gap-2 justify-end flex-wrap">
+              <Button
+                onClick={() => {
+                  if (!myRestaurant) { toast.error("Please create your restaurant first"); setShowRestaurantModal(true); return; }
+                  setShowBulkUpload(!showBulkUpload);
+                }}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {showBulkUpload ? 'Hide Bulk Upload' : 'Bulk Upload CSV'}
+              </Button>
               <Button
                 onClick={() => {
                   if (!myRestaurant) { toast.error("Please create your restaurant first"); setShowRestaurantModal(true); return; }
@@ -694,6 +706,16 @@ export default function RestaurantOwnerHub() {
                 Add Menu Item
               </Button>
             </div>
+
+            {showBulkUpload && myRestaurant && (
+              <div className="mb-6 bg-white/5 border border-white/10 rounded-2xl p-6">
+                <MenuBulkUpload
+                  restaurant={myRestaurant}
+                  currentUser={currentUser}
+                  onDone={() => setShowBulkUpload(false)}
+                />
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {menuItems.map(item => (

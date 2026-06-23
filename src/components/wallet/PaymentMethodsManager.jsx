@@ -275,7 +275,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
   const getCardColor = (brand) => ({ visa: "from-blue-600 to-blue-800", mastercard: "from-orange-600 to-red-700", amex: "from-teal-600 to-cyan-700", discover: "from-orange-500 to-yellow-600" }[brand?.toLowerCase()] || "from-gray-700 to-gray-900");
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl" onClick={onClose}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-xl" onClick={onClose}>
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-3xl bg-gray-900 rounded-t-3xl sm:rounded-3xl flex flex-col" style={{ height: 'min(92dvh, 700px)', maxHeight: '92dvh' }}>
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6">

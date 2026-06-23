@@ -25,7 +25,7 @@ export default function PayoutMethodsManager({ currentUser, methods }) {
       ...data
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries(['payout-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payout-methods'] });
       toast.success('Payout method added successfully');
       setShowAddForm(false);
       setFormData({});
@@ -34,14 +34,13 @@ export default function PayoutMethodsManager({ currentUser, methods }) {
 
   const setPrimaryMutation = useMutation({
     mutationFn: async (methodId) => {
-      // Unset all other primary flags
       const updates = methods.map(m => 
         base44.entities.PayoutMethod.update(m.id, { is_primary: m.id === methodId })
       );
       await Promise.all(updates);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payout-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payout-methods'] });
       toast.success('Primary method updated');
     }
   });
@@ -49,7 +48,7 @@ export default function PayoutMethodsManager({ currentUser, methods }) {
   const deleteMethodMutation = useMutation({
     mutationFn: (id) => base44.entities.PayoutMethod.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['payout-methods']);
+      queryClient.invalidateQueries({ queryKey: ['payout-methods'] });
       toast.success('Payout method removed');
     }
   });

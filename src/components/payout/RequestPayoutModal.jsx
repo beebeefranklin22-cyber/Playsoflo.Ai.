@@ -65,8 +65,8 @@ export default function RequestPayoutModal({ currentUser, availableBalance, payo
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['payout-requests']);
-      queryClient.invalidateQueries(['available-balance']);
+      queryClient.invalidateQueries({ queryKey: ['payout-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['available-balance'] });
       toast.success('Payout request submitted successfully');
       onClose();
     },
@@ -210,11 +210,11 @@ export default function RequestPayoutModal({ currentUser, availableBalance, payo
                 requestAmount < 10 || 
                 requestAmount > availableBalance || 
                 !selectedMethodId ||
-                requestPayoutMutation.isLoading
+                requestPayoutMutation.isPending
               }
               className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
-              {requestPayoutMutation.isLoading ? 'Processing...' : 'Submit Request'}
+              {requestPayoutMutation.isPending ? 'Processing...' : 'Submit Request'}
             </Button>
           </div>
         </div>
