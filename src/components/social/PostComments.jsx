@@ -41,7 +41,7 @@ export default function PostComments({ post, currentUser, onClose }) {
         author_name: currentUser.full_name || currentUser.email.split("@")[0],
         author_photo: currentUser.profile_picture,
         content,
-        reply_to_id: replyingTo?.id || null,
+        parent_comment_id: replyingTo?.id || null,
         reply_to_name: replyingTo?.author_name || null,
         likes_count: 0,
         liked_by: [],
@@ -52,7 +52,7 @@ export default function PostComments({ post, currentUser, onClose }) {
       if (post.created_by && post.created_by !== currentUser.email) {
         base44.entities.Notification.create({
           recipient_email: post.created_by,
-          type: "post_comment",
+          type: "new_comment",
           title: `${currentUser.full_name || "Someone"} commented on your post`,
           message: content.substring(0, 80),
           sender_email: currentUser.email,
@@ -116,14 +116,14 @@ export default function PostComments({ post, currentUser, onClose }) {
   };
 
   const handleReply = (comment) => {
-    setReplyingTo({ id: comment.id, author_name: comment.author_name, author_email: comment.author_email });
-    setCommentText(`@${comment.author_name} `);
+    setReplyingTo({ id: comment.id, author_name: comment.author_name || comment.author_email?.split("@")[0], author_email: comment.author_email });
+    setCommentText(`@${comment.author_name || comment.author_email?.split("@")[0]} `);
     inputRef.current?.focus();
   };
 
   // Group: top-level comments first, then replies underneath their parent
-  const topLevel = comments.filter(c => !c.reply_to_id);
-  const replies = comments.filter(c => c.reply_to_id);
+  const topLevel = comments.filter(c => !c.parent_comment_id);
+  const replies = comments.filter(c => c.parent_comment_id);
 
   return (
     <motion.div
@@ -135,7 +135,6 @@ export default function PostComments({ post, currentUser, onClose }) {
       style={{
         bottom: 0,
         height: "min(80dvh, 650px)",
-        paddingBottom: 0,
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -164,7 +163,7 @@ export default function PostComments({ post, currentUser, onClose }) {
 
         {topLevel.map((comment) => {
           const liked = comment.liked_by?.includes(currentUser?.email);
-          const commentReplies = replies.filter(r => r.reply_to_id === comment.id);
+          const commentReplies = replies.filter(r => r.parent_comment_id === comment.id);
 
           return (
             <div key={comment.id}>
@@ -282,7 +281,7 @@ export default function PostComments({ post, currentUser, onClose }) {
       {/* Input */}
       <div
         className="flex-shrink-0 px-4 pt-3 border-t border-white/10 bg-[#111]"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}
       >
         <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
