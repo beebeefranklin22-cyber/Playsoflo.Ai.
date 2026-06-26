@@ -1,0 +1,36 @@
+import { Routes, Route } from 'react-router-dom';
+import { Suspense } from 'react';
+import { appRoutes } from './routes/appRoutes';
+import { LayoutWrapper } from './routes/LayoutWrapper';
+import ProtectedRoute from './routes/ProtectedRoute';
+import { pagesConfig } from './pages.config';
+
+const { Layout } = pagesConfig;
+
+export default function AppRoutes() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center">
+        Loading...
+      </div>
+    }>
+      <Routes>
+        {appRoutes.map(({ path, element: Page, layout }) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <ProtectedRoute>
+                <LayoutWrapper
+                  Layout={layout ? Layout : null}
+                  page={Page}
+                  name={path}
+                />
+              </ProtectedRoute>
+            }
+          />
+        ))}
+      </Routes>
+    </Suspense>
+  );
+}
