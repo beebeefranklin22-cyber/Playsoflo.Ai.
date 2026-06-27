@@ -3,34 +3,34 @@ import { Suspense } from 'react';
 import { appRoutes } from './routes/appRoutes';
 import { LayoutWrapper } from './routes/LayoutWrapper';
 import ProtectedRoute from './routes/ProtectedRoute';
-import { pagesConfig } from './pages.config';
+import ErrorBoundary from './routes/ErrorBoundary';
+import NotFound from './pages/NotFound';
 
-const { Layout } = pagesConfig;
+const LoadingSpinner = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    Loading...
+  </div>
+);
 
 export default function AppRoutes() {
   return (
-    <Suspense fallback={
-      <div className="fixed inset-0 flex items-center justify-center">
-        Loading...
-      </div>
-    }>
-      <Routes>
-        {appRoutes.map(({ path, element: Page, layout }) => (
-          <Route
-            key={path}
-            path={path}
-            element={
-              <ProtectedRoute>
-                <LayoutWrapper
-                  Layout={layout ? Layout : null}
-                  page={Page}
-                  name={path}
-                />
-              </ProtectedRoute>
-            }
-          />
-        ))}
-      </Routes>
-    </Suspense>
+    <Routes>
+      {appRoutes.map(({ path, element: Page, layout }, index) => (
+        <Route
+          key={index}
+          path={path}
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <LayoutWrapper layout={layout} page={Page} />
+                </Suspense>
+              </ErrorBoundary>
+            </ProtectedRoute>
+          }
+        />
+      ))}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
