@@ -66,7 +66,7 @@ import CommunityForums from './pages/CommunityForums';
 import CommunityHub from './pages/CommunityHub';
 import CommunityJobs from './pages/CommunityJobs';
 import CommunityNews from './pages/CommunityNews';
-import communityseArch from './pages/CommunitySe arch';
+import CommunitySearch from './pages/CommunitySearch';
 import ContentCreator from './pages/ContentCreator';
 import ContentHub from './pages/ContentHub';
 import CreatorDiscovery from './pages/CreatorDiscovery';
@@ -186,7 +186,7 @@ export const PAGES = {
     "CommunityHub": CommunityHub,
     "CommunityJobs": CommunityJobs,
     "CommunityNews": CommunityNews,
-    "CommunitySe arch": communityseArch,
+    "CommunitySearch": CommunitySearch,
     "ContentCreator": ContentCreator,
     "ContentHub": ContentHub,
     "CreatorDiscovery": CreatorDiscovery,
