@@ -34,7 +34,6 @@ import ApplicationTracker from './pages/ApplicationTracker'
 import Discover from './pages/Discover'
 import CreatorDiscovery from './pages/CreatorDiscovery'
 import Events from './pages/Events'
-import DropshippingDashboard from './pages/DropshippingDashboard'
 
 const { Pages, Layout, mainPage } = pagesConfig
 const mainPageKey = mainPage ?? Object.keys(Pages)[0]
