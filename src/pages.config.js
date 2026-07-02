@@ -9,14 +9,8 @@
  * 
  * Example file structure:
  * 
- *   import HomePage from './pages/HomePage';
- *   import Dashboard from './pages/Dashboard';
- *   import Settings from './pages/Settings';
  *   
  *   export const PAGES = {
- *       "HomePage": HomePage,
- *       "Dashboard": Dashboard,
- *       "Settings": Settings,
  *   }
  *   
  *   export const pagesConfig = {
@@ -27,12 +21,10 @@
  * Example with Layout (wraps all pages):
  *
  *   import Home from './pages/Home';
- *   import Settings from './pages/Settings';
  *   import __Layout from './Layout.jsx';
  *
  *   export const PAGES = {
  *       "Home": Home,
- *       "Settings": Settings,
  *   }
  *
  *   export const pagesConfig = {
@@ -66,7 +58,6 @@ import CommunityForums from './pages/CommunityForums';
 import CommunityHub from './pages/CommunityHub';
 import CommunityJobs from './pages/CommunityJobs';
 import CommunityNews from './pages/CommunityNews';
-import CommunitySearch from './pages/CommunitySearch';
 import ContentCreator from './pages/ContentCreator';
 import ContentHub from './pages/ContentHub';
 import CreatorDiscovery from './pages/CreatorDiscovery';
@@ -186,7 +177,6 @@ export const PAGES = {
     "CommunityHub": CommunityHub,
     "CommunityJobs": CommunityJobs,
     "CommunityNews": CommunityNews,
-    "CommunitySearch": CommunitySearch,
     "ContentCreator": ContentCreator,
     "ContentHub": ContentHub,
     "CreatorDiscovery": CreatorDiscovery,
