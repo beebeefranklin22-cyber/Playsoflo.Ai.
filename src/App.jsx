@@ -34,7 +34,6 @@ import ApplicationTracker from './pages/ApplicationTracker'
 import Discover from './pages/Discover'
 import CreatorDiscovery from './pages/CreatorDiscovery'
 import Events from './pages/Events'
-
 const { Pages, Layout, mainPage } = pagesConfig
 const mainPageKey = mainPage ?? Object.keys(Pages)[0]
 const MainPage = mainPageKey ? Pages[mainPageKey] : <></>
@@ -104,7 +103,6 @@ const AuthenticatedApp = () => {
       <Route path="/Help" element={<LayoutWrapper currentPageName="Help"><Help /></LayoutWrapper>} />
       <Route path="/UnifiedBooking" element={<LayoutWrapper currentPageName="UnifiedBooking"><UnifiedBooking /></LayoutWrapper>} />
       <Route path="/AdManager" element={<LayoutWrapper currentPageName="AdManager"><AdManager /></LayoutWrapper>} />
-      <Route path="/DropshippingDashboard" element={<LayoutWrapper currentPageName="DropshippingDashboard"><DropshippingDashboard /></LayoutWrapper>} />
       <Route path="/LeasePortal" element={<LayoutWrapper currentPageName="LeasePortal"><LeasePortal /></LayoutWrapper>} />
       <Route path="/SavedProperties" element={<LayoutWrapper currentPageName="SavedProperties"><SavedProperties /></LayoutWrapper>} />
       <Route path="/ProviderEarningsSummary" element={<LayoutWrapper currentPageName="ProviderEarningsSummary"><ProviderEarningsSummary /></LayoutWrapper>} />
