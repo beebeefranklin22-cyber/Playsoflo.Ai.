@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
 
   const systemMessage = response_json_schema
-    ? `${systemPrompt ?? 'You are Ronron AI, the helpful assistant for PlaySoFlo.'}\n\nRespond ONLY with valid JSON that matches this schema:\n${JSON.stringify(response_json_schema, null, 2)}\n\nDo not include any text outside the JSON object.`
+    ? `${systemPrompt ?? 'You are Ronron AI, the helpful assistant for PlaySoFlo.'}\n\nRespond ONLY with valid JSON that matches this schema:\n${JSON.stringify(response_json_schema, null, 2)}\n\nDo not add any other text or explanation.`
     : (systemPrompt ?? 'You are Ronron AI, the helpful assistant for PlaySoFlo.');
 
   try {
