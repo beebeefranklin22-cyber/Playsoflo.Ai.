@@ -5,6 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as SonnerToaster } from "@/components/ui/sonner"
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
@@ -123,6 +124,7 @@ function App() {
         <Toaster />
         <SonnerToaster position="bottom-center" richColors closeButton />
         <VisualEditAgent />
+        <SpeedInsights />
       </QueryClientProvider>
     </AuthProvider>
   )
