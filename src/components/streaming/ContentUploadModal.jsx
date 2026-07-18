@@ -186,9 +186,7 @@ export default function ContentUploadModal({ currentUser, onClose }) {
         animate={{ y: 0, opacity: 1 }}
         onClick={e => e.stopPropagation()}
         className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl flex flex-col"
-        style={{ height: 'min(92vh, 720px)', maxHeight: '92vh' }}
-        style={{ marginBottom: 'var(--safe-area-bottom, 0px)' }}
-      >
+        style={{ height: 'min(92vh, 720px)', maxHeight: '92vh', marginBottom: 'var(--safe-area-bottom, 0px)' }}
         {/* Header */}
         <div className="sticky top-0 bg-[#18181b] px-5 pt-5 pb-3 border-b border-white/10 z-10">
           <div className="flex items-center justify-between mb-3">
