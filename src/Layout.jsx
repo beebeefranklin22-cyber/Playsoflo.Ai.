@@ -33,6 +33,7 @@ import AIErrorReporter from "./components/errors/AIErrorReporter";
 import LanguageSwitcher from "./components/i18n/LanguageSwitcher";
 import ExperienceBookingsStatus from "./components/profile/ExperienceBookingsStatus";
 import SidebarQuickStats from "./components/provider/SidebarQuickStats";
+import LoginModal from "./components/auth/LoginModal";
 
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
@@ -44,6 +45,7 @@ export default function Layout({ children, currentPageName }) {
   const [isNavigating, setIsNavigating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSupportChat, setShowSupportChat] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [showOrderTracker, setShowOrderTracker] = useState(false);
   const [trackedOrderId, setTrackedOrderId] = useState(null);
@@ -128,24 +130,25 @@ export default function Layout({ children, currentPageName }) {
     prevPathRef.current = currentPath;
   }, [currentPath]);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-        // Sync timezone from profile to localStorage so all time displays are correct
-        if (user?.timezone) {
-          try { localStorage.setItem('user_timezone', user.timezone); } catch {}
-        }
-        // Show onboarding for new users
-        if (user && !user.onboarding_completed) {
-          setShowOnboarding(true);
-        }
-      } catch (error) {
-        console.log("User not authenticated or error fetching user:", error);
-        setCurrentUser(null);
+  const fetchUser = async () => {
+    try {
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+      // Sync timezone from profile to localStorage so all time displays are correct
+      if (user?.timezone) {
+        try { localStorage.setItem('user_timezone', user.timezone); } catch {}
       }
-    };
+      // Show onboarding for new users
+      if (user && !user.onboarding_completed) {
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.log("User not authenticated or error fetching user:", error);
+      setCurrentUser(null);
+    }
+  };
+
+  useEffect(() => {
     fetchUser();
   }, []);
 
@@ -374,7 +377,11 @@ export default function Layout({ children, currentPageName }) {
                   if (window.NativeAppBridge?.triggerHaptic) {
                     window.NativeAppBridge.triggerHaptic('light');
                   }
-                  setSidebarOpen(!sidebarOpen);
+                  if (!currentUser) {
+                    setShowLoginModal(true);
+                  } else {
+                    setSidebarOpen(!sidebarOpen);
+                  }
                 }}
                 className="flex-shrink-0 active:scale-95 transition-transform"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -711,6 +718,13 @@ export default function Layout({ children, currentPageName }) {
           <Headphones className="w-6 h-6 text-white" />
         </button>
       )}
+
+      {/* Sign In / Sign Up */}
+      <LoginModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={fetchUser}
+      />
 
       {/* Support Chat Modal */}
       {showSupportChat && currentUser && (
