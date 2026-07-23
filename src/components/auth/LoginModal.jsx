@@ -12,16 +12,27 @@ import { useAuth } from "@/lib/AuthContext";
 function getErrorMessage(err) {
   console.error("Auth error:", err);
   if (!err) return "Something went wrong. Please try again.";
-  if (typeof err === "string") return err;
-  if (err.message && typeof err.message === "string") return err.message;
-  if (err.error_description) return err.error_description;
-  if (err.error && typeof err.error === "string") return err.error;
+  if (typeof err === "string" && err.trim()) return err;
+
+  const msg = err.message || err.error_description || err.error || err.msg;
+  if (typeof msg === "string" && msg.trim()) return msg;
+
+  // Error objects hide their real properties (like .message) from
+  // JSON.stringify by default, which is why this used to show "{}".
+  // Pull every property manually instead, enumerable or not.
   try {
-    const asString = JSON.stringify(err);
+    const plain = {};
+    Object.getOwnPropertyNames(err).forEach((k) => {
+      try { plain[k] = err[k]; } catch {}
+    });
+    const asString = JSON.stringify(plain);
     if (asString && asString !== "{}") return asString;
   } catch {
     // ignore
   }
+
+  if (err.name) return `Error: ${err.name}`;
+  if (err.status) return `Request failed (status ${err.status})`;
   return "Something went wrong. Please try again.";
 }
 
