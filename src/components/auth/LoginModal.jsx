@@ -11,29 +11,22 @@ import { useAuth } from "@/lib/AuthContext";
 // instead of "[object Object]" or "{}".
 function getErrorMessage(err) {
   console.error("Auth error:", err);
-  if (!err) return "Something went wrong. Please try again.";
-  if (typeof err === "string" && err.trim()) return err;
-
-  const msg = err.message || err.error_description || err.error || err.msg;
-  if (typeof msg === "string" && msg.trim()) return msg;
-
-  // Error objects hide their real properties (like .message) from
-  // JSON.stringify by default, which is why this used to show "{}".
-  // Pull every property manually instead, enumerable or not.
+  const debugParts = [];
+  debugParts.push(`typeof: ${typeof err}`);
+  debugParts.push(`String(err): ${String(err)}`);
   try {
-    const plain = {};
-    Object.getOwnPropertyNames(err).forEach((k) => {
-      try { plain[k] = err[k]; } catch {}
-    });
-    const asString = JSON.stringify(plain);
-    if (asString && asString !== "{}") return asString;
-  } catch {
-    // ignore
-  }
-
-  if (err.name) return `Error: ${err.name}`;
-  if (err.status) return `Request failed (status ${err.status})`;
-  return "Something went wrong. Please try again.";
+    debugParts.push(`keys: [${Object.keys(err || {}).join(", ")}]`);
+  } catch {}
+  try {
+    debugParts.push(`ownProps: [${Object.getOwnPropertyNames(err || {}).join(", ")}]`);
+  } catch {}
+  try {
+    debugParts.push(`message prop: ${err?.message}`);
+  } catch {}
+  try {
+    debugParts.push(`status: ${err?.status} code: ${err?.code} name: ${err?.name}`);
+  } catch {}
+  return debugParts.join(" | ");
 }
 
 const inputClass =
