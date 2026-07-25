@@ -110,6 +110,10 @@ export default function Profile() {
       try {
         setLoadError(null);
         const user = await base44.auth.me();
+        if (!user) {
+          setLoadError("Please sign in to view your profile.");
+          return;
+        }
         setCurrentUser(user);
         setEditedUser({
           full_name: user.full_name || "",
