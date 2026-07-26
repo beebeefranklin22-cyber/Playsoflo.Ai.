@@ -3,7 +3,26 @@ import { supabase } from '@/lib/supabaseClient';
 class Entity {
   constructor(tableName) { this.tableName = tableName; }
 
-  async list(filters = {}, { orderBy, orderDesc, limit } = {}) {
+  async list(filtersOrSort = {}, optionsOrLimit = {}) {
+    let filters = {};
+    let orderBy, orderDesc, limit;
+
+    if (typeof filtersOrSort === 'string') {
+      // Base44-style call: list('-created_date', 100)
+      orderDesc = filtersOrSort.startsWith('-');
+      orderBy = orderDesc ? filtersOrSort.slice(1) : filtersOrSort;
+      if (typeof optionsOrLimit === 'number') {
+        limit = optionsOrLimit;
+      }
+    } else if (filtersOrSort && typeof filtersOrSort === 'object') {
+      filters = filtersOrSort;
+      if (typeof optionsOrLimit === 'number') {
+        limit = optionsOrLimit;
+      } else if (optionsOrLimit && typeof optionsOrLimit === 'object') {
+        ({ orderBy, orderDesc, limit } = optionsOrLimit);
+      }
+    }
+
     let q = supabase.from(this.tableName).select('*');
     Object.entries(filters).forEach(([k, v]) => { q = q.eq(k, v); });
     if (orderBy) q = q.order(orderBy, { ascending: !orderDesc });
@@ -13,7 +32,7 @@ class Entity {
     return data ?? [];
   }
 
-  async filter(filters = {}, options = {}) { return this.list(filters, options); }
+  async filter(filtersOrSort = {}, optionsOrLimit = {}) { return this.list(filtersOrSort, optionsOrLimit); }
 
   async get(id) {
     const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
