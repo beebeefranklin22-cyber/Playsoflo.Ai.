@@ -4,6 +4,7 @@ import AIPersonalizationEngine from '../components/feed/AIPersonalizationEngine'
 import UniversalFeedFilter from '../components/feed/UniversalFeedFilter';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
@@ -46,6 +47,7 @@ const Badge = ({ children, className }) => (
 export default function Home() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: authUser } = useAuth();
   const [currentUser, setCurrentUser] = useState(null);
   const [aiPreferences, setAiPreferences] = useState(null);
   const [feedFilters, setFeedFilters] = useState({
@@ -72,33 +74,28 @@ export default function Home() {
   const [fullScreenStartIndex, setFullScreenStartIndex] = useState(0);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await base44.auth.me();
-        setCurrentUser(user);
-        
-        // Award welcome bonus if not claimed - wrapped in try/catch
-        if (user && !user.welcome_bonus_claimed) {
-          try {
-            const bonusAmount = 5;
-            await base44.auth.updateMe({
-              soflo_coins: (user.soflo_coins || 0) + bonusAmount,
-              welcome_bonus_claimed: true
-            });
-            const updatedUser = await base44.auth.me();
-            setCurrentUser(updatedUser);
-            toast.success(`Welcome! You've received ${bonusAmount} SoFloCoin as a welcome bonus!`);
-          } catch (bonusError) {
-            console.log("Could not award welcome bonus:", bonusError);
-          }
+    setCurrentUser(authUser);
+  }, [authUser]);
+
+  // Award welcome bonus if not claimed yet - separate effect, still
+  // guarded so it can never crash the page if it fails.
+  useEffect(() => {
+    const awardWelcomeBonus = async () => {
+      if (currentUser && !currentUser.welcome_bonus_claimed) {
+        try {
+          const bonusAmount = 5;
+          await base44.auth.updateMe({
+            soflo_coins: (currentUser.soflo_coins || 0) + bonusAmount,
+            welcome_bonus_claimed: true
+          });
+          toast.success(`Welcome! You've received ${bonusAmount} SoFloCoin as a welcome bonus!`);
+        } catch (bonusError) {
+          console.log("Could not award welcome bonus:", bonusError);
         }
-      } catch (error) {
-        console.log("User not authenticated:", error);
-        setCurrentUser(null);
       }
     };
-    fetchUser();
-  }, []);
+    awardWelcomeBonus();
+  }, [currentUser?.id]);
 
   // Onboarding check removed - users can access freely
 
