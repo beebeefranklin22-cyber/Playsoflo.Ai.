@@ -5,6 +5,7 @@ import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, S
 import CitySelector from "./components/location/CitySelector";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import usePresence from "./components/chat/usePresence";
@@ -38,6 +39,7 @@ import LoginModal from "./components/auth/LoginModal";
 export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [currentUser, setCurrentUser] = useState(null);
   const [showCitySelectorModal, setShowCitySelectorModal] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -130,27 +132,19 @@ export default function Layout({ children, currentPageName }) {
     prevPathRef.current = currentPath;
   }, [currentPath]);
 
-  const fetchUser = async () => {
-    try {
-      const user = await base44.auth.me();
-      setCurrentUser(user);
-      // Sync timezone from profile to localStorage so all time displays are correct
-      if (user?.timezone) {
-        try { localStorage.setItem('user_timezone', user.timezone); } catch {}
-      }
-      // Show onboarding for new users
-      if (user && !user.onboarding_completed) {
-        setShowOnboarding(true);
-      }
-    } catch (error) {
-      console.log("User not authenticated or error fetching user:", error);
-      setCurrentUser(null);
-    }
-  };
+  // currentUser now stays in sync with AuthContext's single source of truth
+  // instead of running its own separate, racy fetch.
+  const fetchUser = () => setCurrentUser(authUser);
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    setCurrentUser(authUser);
+    if (authUser?.timezone) {
+      try { localStorage.setItem('user_timezone', authUser.timezone); } catch {}
+    }
+    if (authUser && !authUser.onboarding_completed) {
+      setShowOnboarding(true);
+    }
+  }, [authUser]);
 
   // Track user presence for online status
   usePresence(currentUser);
