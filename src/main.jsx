@@ -10,7 +10,9 @@ import '@/index.css'
 function showFatalError(title, err) {
   const existing = document.getElementById('fatal-error-overlay');
   if (existing) return; // don't stack multiple overlays
-  const detail = err?.stack || err?.message || String(err);
+  const message = err?.message || (typeof err === 'string' ? err : String(err));
+  const stack = err?.stack || '';
+  const detail = 'MESSAGE: ' + message + '\n\nSTACK:\n' + stack;
   const el = document.createElement('div');
   el.id = 'fatal-error-overlay';
   el.style.cssText =
