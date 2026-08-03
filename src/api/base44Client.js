@@ -28,8 +28,32 @@ export const base44 = {
     logout: () => User.logout(),
   },
 
+  // Best-effort page-view logging. Not critical to app function, so
+  // any failure here should never break navigation.
+  appLogs: {
+    logUserInApp: async (pageName) => {
+      try {
+        console.log('[appLogs] page view:', pageName);
+      } catch {
+        // never let logging break the app
+      }
+      return null;
+    },
+  },
+
   // base44.entities.Booking, base44.entities.User, etc.
   entities,
+
+  // The original Base44 SDK used this for elevated-privilege writes
+  // (e.g. updating another user's balance when tipping). We do NOT
+  // use a real service-role key here — that key must never be exposed
+  // to the browser. This works today only because your current RLS
+  // policies allow any logged-in user to write to any row. Once RLS
+  // is tightened to per-user ownership, these specific actions will
+  // need to move into secure backend functions instead.
+  asServiceRole: {
+    entities,
+  },
 
   integrations: {
     Core: {
