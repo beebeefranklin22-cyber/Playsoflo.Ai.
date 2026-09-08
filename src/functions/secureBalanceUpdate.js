@@ -1,10 +1,22 @@
-export async function secureBalanceUpdate(data) {
+import { callSecureApi } from '@/lib/apiClient';
+
+// Peer-to-peer wallet transfer (send money, tips, etc). Debits the signed-in
+// user and credits recipient_email; the server verifies the caller's
+// identity from their session and checks their balance atomically.
+export async function secureBalanceUpdate({ amount, credit_amount, recipient_email, reference_type, reference_id, memo } = {}) {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/secureBalanceUpdate`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }, body: JSON.stringify(data) }
-    );
-    if (!response.ok) { const e = await response.json(); throw new Error(e.error || 'secureBalanceUpdate failed'); }
-    return await response.json();
-  } catch (error) { console.error('secureBalanceUpdate error:', error); throw error; }
+    const data = await callSecureApi('/api/wallet', {
+      action: 'transfer',
+      amount,
+      credit_amount,
+      recipient_email,
+      reference_type,
+      reference_id,
+      memo,
+    });
+    return { data };
+  } catch (error) {
+    console.error('secureBalanceUpdate error:', error);
+    return { data: { success: false, error: error.message } };
+  }
 }

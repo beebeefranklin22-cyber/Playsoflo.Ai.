@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import PageWrapper from "@/components/PageWrapper";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
@@ -353,10 +354,19 @@ export default function Streaming() {
     try {
       const price = purchaseType === "rent" ? selectedContent.rental_price_usd : selectedContent.price_usd;
       if ((currentUser.balance_usd || 0) < price) { toast.error("Insufficient balance"); setProcessing(false); return; }
-      await base44.auth.updateMe({ balance_usd: (currentUser.balance_usd || 0) - price });
       const creatorEarnings = price * 0.85;
-      const creators = await base44.entities.User.filter({ email: selectedContent.creator_email });
-      if (creators[0]) await base44.asServiceRole.entities.User.update(creators[0].id, { balance_usd: (creators[0].balance_usd || 0) + creatorEarnings });
+      // Atomic transfer: debits the buyer and credits the creator in one
+      // step (a direct cross-user balance write from the client can't work
+      // safely once RLS only allows updating your own profile row).
+      const { data: transferResult } = await secureBalanceUpdate({
+        amount: price,
+        credit_amount: creatorEarnings,
+        recipient_email: selectedContent.creator_email,
+        reference_type: 'content_purchase',
+        reference_id: selectedContent.id,
+        memo: `${purchaseType === "rent" ? "Rental" : "Purchase"}: ${selectedContent.title}`,
+      });
+      if (!transferResult?.success) throw new Error(transferResult?.error || 'Payment failed');
       const expiresAt = purchaseType === "rent" ? new Date(Date.now() + 48 * 3600000).toISOString() : null;
       await base44.entities.ContentPurchase.create({
         content_id: selectedContent.id, buyer_email: currentUser.email,

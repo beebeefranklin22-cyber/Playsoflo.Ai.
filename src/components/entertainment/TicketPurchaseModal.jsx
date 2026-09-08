@@ -6,6 +6,7 @@ import { X, Ticket, CheckCircle, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { useMutation } from "@tanstack/react-query";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import TicketPurchaseWalletIntegration from "./TicketPurchaseWalletIntegration";
@@ -66,27 +67,17 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
     mutationFn: async ({ paymentIntentId, useWallet = false }) => {
       // Process wallet payment if applicable
       if (useWallet) {
-        const buyers = await base44.entities.User.filter({ email: currentUser.email });
-        if (buyers.length === 0) throw new Error('User not found');
-        
-        const currentBalance = buyers[0].soflo_balance || 0;
-        if (currentBalance < totalPrice) {
-          throw new Error('Insufficient wallet balance');
-        }
-
-        // Deduct from buyer's wallet
-        await base44.entities.User.update(buyers[0].id, {
-          soflo_balance: currentBalance - totalPrice
+        // Atomic transfer: the server checks the buyer's balance and moves
+        // funds to the provider in one step (direct client-side balance
+        // writes can't safely credit another user's account under RLS).
+        const { data: result } = await secureBalanceUpdate({
+          amount: totalPrice,
+          recipient_email: experience.provider_email,
+          reference_type: 'entertainment_ticket',
+          reference_id: experience.id,
+          memo: `${isPurchasingPass ? 'Pass' : 'Ticket'} purchase: ${experience.title}`,
         });
-
-        // Add to provider's wallet
-        const providers = await base44.entities.User.filter({ email: experience.provider_email });
-        if (providers.length > 0) {
-          const providerBalance = providers[0].soflo_balance || 0;
-          await base44.entities.User.update(providers[0].id, {
-            soflo_balance: providerBalance + totalPrice
-          });
-        }
+        if (!result?.success) throw new Error(result?.error || 'Insufficient wallet balance');
 
         // Create payment record
         await base44.entities.Payment.create({

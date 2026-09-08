@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { X, Heart, Send, MessageCircle, Users, Globe, Mail, MapPin, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
@@ -39,14 +40,17 @@ export default function CauseDetailModal({ cause, onClose, onEdit }) {
         raised_usd: (cause.raised_usd || 0) + amount
       });
 
-      // Credit wallet balance for the cause creator
+      // Atomic transfer: debits the donor and credits the cause creator's
+      // wallet in one step.
       if (cause.creator_email) {
-        const creatorUsers = await base44.entities.User.filter({ email: cause.creator_email });
-        if (creatorUsers.length > 0) {
-          const creator = creatorUsers[0];
-          const currentBalance = creator.wallet_balance || 0;
-          await base44.entities.User.update(creator.id, { wallet_balance: currentBalance + amount });
-        }
+        const { data: result } = await secureBalanceUpdate({
+          amount,
+          recipient_email: cause.creator_email,
+          reference_type: 'donation',
+          reference_id: cause.id,
+          memo: `Donation to ${cause.title || 'cause'}`,
+        });
+        if (!result?.success) throw new Error(result?.error || 'Donation payment failed');
       }
 
       // Record payment

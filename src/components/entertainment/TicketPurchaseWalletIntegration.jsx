@@ -19,7 +19,7 @@ export default function TicketPurchaseWalletIntegration({
         try {
           const users = await base44.entities.User.filter({ email: currentUser.email });
           if (users.length > 0) {
-            setWalletBalance(users[0].soflo_balance || 0);
+            setWalletBalance(users[0].usd_balance || 0);
           }
         } catch (error) {
           console.error('Failed to fetch wallet balance:', error);

@@ -6,6 +6,7 @@ import { X, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function VoidPassModal({ isOpen, onClose, ticket, voidPolicies, currentUser }) {
@@ -41,29 +42,31 @@ export default function VoidPassModal({ isOpen, onClose, ticket, voidPolicies, c
         `
       });
 
-      // If refund needed, add to customer wallet
+      // If refund needed, add to customer wallet. This debits the
+      // provider issuing the refund and credits the customer atomically.
       if (refundAmount > 0) {
-        const customerUser = await base44.asServiceRole.entities.User.filter({ email: ticket.buyer_email });
-        if (customerUser.length > 0) {
-          const currentBalance = customerUser[0].soflo_balance || 0;
-          await base44.asServiceRole.entities.User.update(customerUser[0].id, {
-            soflo_balance: currentBalance + refundAmount
-          });
+        const { data: result } = await secureBalanceUpdate({
+          amount: refundAmount,
+          recipient_email: ticket.buyer_email,
+          reference_type: 'entertainment_ticket_refund',
+          reference_id: ticket.id,
+          memo: `Refund for voided pass: ${ticket.experience_title} - ${selectedPolicy.reason}`,
+        });
+        if (!result?.success) throw new Error(result?.error || 'Refund failed');
 
-          // Create payment/refund record for transaction history
-          await base44.entities.Payment.create({
-            sender_email: ticket.provider_email,
-            recipient_email: ticket.buyer_email,
-            amount: refundAmount,
-            currency: 'USD',
-            payment_method: 'wallet_refund',
-            status: 'completed',
-            transaction_type: 'refund',
-            reference_type: 'entertainment_ticket',
-            reference_id: ticket.id,
-            description: `Refund for voided pass: ${ticket.experience_title} - ${selectedPolicy.reason}`
-          });
-        }
+        // Create payment/refund record for transaction history
+        await base44.entities.Payment.create({
+          sender_email: ticket.provider_email,
+          recipient_email: ticket.buyer_email,
+          amount: refundAmount,
+          currency: 'USD',
+          payment_method: 'wallet_refund',
+          status: 'completed',
+          transaction_type: 'refund',
+          reference_type: 'entertainment_ticket',
+          reference_id: ticket.id,
+          description: `Refund for voided pass: ${ticket.experience_title} - ${selectedPolicy.reason}`
+        });
       }
 
       // Update ticket with refund info

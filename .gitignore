@@ -29,3 +29,6 @@ dist-ssr
 
 .env
 .env.local
+
+# Claude Code agent worktrees (isolated scratch checkouts, not project files)
+.claude/worktrees/

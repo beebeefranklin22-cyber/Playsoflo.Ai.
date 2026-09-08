@@ -1,10 +1,12 @@
-export async function payMoneyRequest(data) {
+import { callSecureApi } from '@/lib/apiClient';
+
+// Pays a pending PaymentRequest (the signed-in user must be its payer).
+export async function payMoneyRequest({ request_id } = {}) {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/payMoneyRequest`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }, body: JSON.stringify(data) }
-    );
-    if (!response.ok) { const e = await response.json(); throw new Error(e.error || 'payMoneyRequest failed'); }
-    return await response.json();
-  } catch (error) { console.error('payMoneyRequest error:', error); throw error; }
+    const data = await callSecureApi('/api/wallet', { action: 'pay_request', request_id });
+    return { data };
+  } catch (error) {
+    console.error('payMoneyRequest error:', error);
+    return { data: { success: false, error: error.message } };
+  }
 }

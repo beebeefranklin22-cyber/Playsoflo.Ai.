@@ -99,7 +99,7 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
     queryFn: async () => {
       if (!currentUser) return 0;
       const user = await base44.auth.me();
-      return user.balance || 0;
+      return user.usd_balance || 0;
     },
     enabled: !!currentUser
   });
