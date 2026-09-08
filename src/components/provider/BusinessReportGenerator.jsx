@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { FileText, Download, Loader2, Calendar } from "lucide-react";
+import { FileText, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BusinessReportGenerator({ currentUser }) {

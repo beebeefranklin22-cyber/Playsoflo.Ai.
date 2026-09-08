@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Volume2, Wind, Droplets, Music, MessageCircle, Save, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";

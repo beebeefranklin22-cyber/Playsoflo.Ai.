@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { ChevronLeft } from "lucide-react";
 import NotificationCenter from "../components/notifications/NotificationCenter";
 

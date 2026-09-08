@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  CheckCircle2, Circle, Clock, Loader2, Star,
+  CheckCircle2, Clock, Loader2, Star,
   MessageCircle, X, CalendarCheck, Wrench, PartyPopper,
-  CreditCard, UserCheck, MapPin, Bell, RefreshCw,
-  Wifi, WifiOff, ChevronRight, Timer, Shield
+  CreditCard, UserCheck, MapPin, Bell, WifiOff, Timer, Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";

@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
-  Sparkles, Music, Wand2, Play, Pause, Download, CheckCircle, 
-  Loader2, Upload, Volume2, Radio, Waves, TrendingUp 
+  Sparkles, Wand2, Play, Pause, Download, CheckCircle, 
+  Loader2, Upload, TrendingUp 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

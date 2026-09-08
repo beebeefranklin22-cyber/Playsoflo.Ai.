@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Search, Edit2, Trash2, Package, AlertTriangle,
-  CheckCircle, Filter, ChevronDown, RefreshCw, Tag, ScanLine
+  CheckCircle, ChevronDown, RefreshCw, Tag, ScanLine
 } from "lucide-react";
 import { toast } from "sonner";
 import ProductFormModal from "./ProductFormModal";

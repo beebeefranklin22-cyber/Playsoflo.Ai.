@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PageWrapper from "@/components/PageWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { 
-  ChevronLeft, Home, Building, Hotel, Key, MapPin,
-  Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
-  Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
-  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid, MessageCircle, Heart
+import { Home, Building, Hotel, Key, MapPin,
+  Bed, Bath, Maximize, Star, Check, Sparkles,
+  Search, Loader2, Play, Calculator, SlidersHorizontal, Map, LayoutGrid, MessageCircle, Heart
 } from "lucide-react";
 import SavePropertyButton from "../components/realestate/SavePropertyButton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +26,7 @@ import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFi
 import PropertyMapView from "../components/realestate/PropertyMapView";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
-import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useUserLocation } from "../hooks/useUserLocation";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },

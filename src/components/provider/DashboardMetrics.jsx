@@ -2,8 +2,8 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  DollarSign, Calendar, Star, TrendingUp, Clock, Users,
-  CheckCircle, AlertCircle, Package, CreditCard
+  DollarSign, Calendar, Star, Clock, Users,
+  CheckCircle, Package, CreditCard
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";

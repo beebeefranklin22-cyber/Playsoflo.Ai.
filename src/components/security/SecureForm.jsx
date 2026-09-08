@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import InputSanitizer from "./InputSanitizer";
 import { toast } from "sonner";
 import { Shield, AlertTriangle } from "lucide-react";

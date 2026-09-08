@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MapPin, Star, MessageCircle, X, CheckCircle, Activity } from "lucide-react";
+import { Calendar, Clock, MapPin, Star, Activity } from "lucide-react";
 import BookingProgressTracker from "../components/booking/BookingProgressTracker";
 import BookingChatButton from "../components/booking/BookingChatButton";
 import { toast } from "sonner";

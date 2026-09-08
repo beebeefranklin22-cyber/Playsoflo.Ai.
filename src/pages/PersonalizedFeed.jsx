@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Sparkles, ThumbsUp, ThumbsDown, Share2, Eye, 
+  Sparkles, ThumbsUp, Share2, Eye, 
   Radio, TrendingUp, Heart, X, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

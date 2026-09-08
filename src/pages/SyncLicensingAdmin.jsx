@@ -6,13 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Music, Film, Tv, ShoppingBag, MessageCircle, CheckCircle,
-  XCircle, Clock, DollarSign, Loader2, Send, FileText
+  Music, Film, Tv, ShoppingBag, MessageCircle,
+  XCircle, Loader2, Send, FileText
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 export default function SyncLicensingAdmin() {

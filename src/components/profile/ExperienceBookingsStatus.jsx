@@ -1,9 +1,8 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Calendar, Clock, CheckCircle2, XCircle, Loader2, Ticket } from "lucide-react";
+import { Sparkles, Calendar, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
 const STATUS_CONFIG = {

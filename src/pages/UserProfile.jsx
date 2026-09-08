@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Grid, Video, Bookmark, MessageCircle, MoreHorizontal, ChevronLeft, Play,
+  Grid, Video, MessageCircle, MoreHorizontal, ChevronLeft, Play,
   Heart, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign,
   MoreVertical, ShoppingBag, Megaphone, ExternalLink, Plus, Music, Trash2
 } from "lucide-react";

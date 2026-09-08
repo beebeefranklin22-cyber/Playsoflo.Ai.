@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, AlertTriangle, TrendingUp, Users, FileText, Sparkles, MapPin, DollarSign, Settings } from "lucide-react";
+import { Shield, AlertTriangle, TrendingUp, Users, Sparkles, MapPin, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import AdminDisputeResolution from "../components/wallet/AdminDisputeResolution";
 import GlobalDriverMap from "../components/admin/GlobalDriverMap";

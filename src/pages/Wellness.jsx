@@ -14,7 +14,7 @@ import WellnessProviderOnboardingModal from "@/components/wellness/WellnessProvi
 import WellnessChatModal from "@/components/wellness/WellnessChatModal";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
-import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useUserLocation } from "../hooks/useUserLocation";
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },

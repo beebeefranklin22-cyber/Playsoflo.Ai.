@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Volume2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, MoreHorizontal, Bookmark, Volume2 } from "lucide-react";
 
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80";
 

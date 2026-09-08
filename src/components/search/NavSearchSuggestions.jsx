@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { Search, Tv, User, Briefcase, Clock, X } from "lucide-react";
+import { Search, Tv, User, Briefcase, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const RECENT_KEY = "nav_recent_searches";

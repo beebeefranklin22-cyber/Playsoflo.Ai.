@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
   X, CheckCircle, ArrowRight, Calendar, Clock, MapPin,
-  Phone, MessageSquare, Anchor, Car, Sparkles, Loader2,
+  Phone, MessageSquare, Anchor, Car, Sparkles,
   Shield, CreditCard, Star, User, FileText
 } from "lucide-react";
 import StripePaymentForm from "../payment/StripePaymentForm";

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Heart, MessageCircle, Share2, Music, Volume2, VolumeX, MoreVertical } from "lucide-react";
+import { Heart, MessageCircle, Share2, Music, Volume2, VolumeX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";

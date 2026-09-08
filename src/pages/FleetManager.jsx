@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Car, Plus, DollarSign, TrendingUp, BarChart3,
-  Calendar, Settings, Eye, Edit, Trash2, Upload, Brain
+  Car, Plus, DollarSign, TrendingUp,
+  Calendar, Edit, Trash2, Upload, Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import AddCarModal from "../components/car/AddCarModal";
 import EditCarModal from "../components/car/EditCarModal";
-import BulkUploadModal from "../components/car/BulkUploadModal";
 import BulkCarUpload from "../components/car/BulkCarUpload";
 import FleetAnalytics from "../components/car/FleetAnalytics";
 import AvailabilityCalendar from "../components/car/AvailabilityCalendar";

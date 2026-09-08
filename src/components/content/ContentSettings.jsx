@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileSelect } from "@/components/ui/MobileSelect";
 import { triggerHaptic } from "@/components/ui/haptic";
-import { Settings, Bell, Eye, DollarSign, Shield } from "lucide-react";
+import { Settings, Bell, Eye, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ContentSettings({ currentUser }) {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, Shield, DollarSign, ArrowRightLeft, Gift, Lock, MessageCircle } from "lucide-react";
+import { X, Shield, DollarSign, ArrowRightLeft, Gift, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function HelpModal({ topic, onClose }) {

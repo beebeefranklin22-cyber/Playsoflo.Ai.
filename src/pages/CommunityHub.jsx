@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Newspaper, Briefcase, MessageSquare, DollarSign,
-  TrendingUp, Users, ChevronRight, Clock, Eye,
-  Plus, Star, Search, Flame, ThumbsUp, Radio, MapPin, Calendar
+  Newspaper, Briefcase, MessageSquare, DollarSign, Users, ChevronRight, Clock, Eye, Search, Flame, ThumbsUp, Radio, MapPin, Calendar
 } from "lucide-react";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";

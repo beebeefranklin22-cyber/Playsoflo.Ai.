@@ -3,13 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Mic, MicOff, Sparkles, Zap, Brain, MessageCircle,
-  Send, Volume2, VolumeX, Settings, TrendingUp, Wallet,
-  ShoppingBag, Calendar, Globe, Languages, CreditCard,
-  MapPin, Search, Heart, User, Navigation
+  Mic, MicOff, Sparkles, Zap, Brain,
+  Send, Volume2, VolumeX, Wallet,
+  ShoppingBag, Calendar, Languages,
+  MapPin, Navigation
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import AINavigationView from "../components/ai/AINavigationView";
 import LocationPermissionManager from "../components/LocationPermissionManager";
 

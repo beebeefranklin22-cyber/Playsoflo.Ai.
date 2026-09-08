@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { base44 } from "@/api/base44Client";
-import { DollarSign, CreditCard, Wallet, Lock, CheckCircle2 } from "lucide-react";
+import { CreditCard, Wallet, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY 

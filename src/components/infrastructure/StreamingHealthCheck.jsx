@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
 import { safeSessionStorage } from '../utils/SafeStorage';
 
 export default function StreamingHealthCheck() {

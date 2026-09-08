@@ -8,13 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Home, Building, Hotel, Plus, Upload, X, MapPin, Bed, Bath,
-  Maximize, Star, DollarSign, Calendar, Check, ChevronLeft,
-  Clock, TrendingUp, Users, Inbox
+import { Building, Plus, Upload, X, MapPin, Bed, Bath,
+  Maximize, DollarSign, Calendar, Check, ChevronLeft,
+  Clock, Inbox
 } from "lucide-react";
 import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";

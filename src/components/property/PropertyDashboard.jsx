@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Home, DollarSign, Calendar, Star, TrendingUp, Users, Percent, Clock } from "lucide-react";
+import { Home, DollarSign, Calendar, Star, Users, Percent, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function PropertyDashboard({ properties, bookings }) {

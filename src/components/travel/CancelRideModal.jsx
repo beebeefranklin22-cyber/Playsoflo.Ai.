@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, DollarSign, X } from "lucide-react";
+import { AlertTriangle, DollarSign } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 

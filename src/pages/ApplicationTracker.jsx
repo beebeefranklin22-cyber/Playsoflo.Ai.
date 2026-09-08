@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  ClipboardList, ChevronLeft, MapPin, DollarSign, Briefcase,
-  CheckCircle2, MessageSquare, Trophy, XCircle, MinusCircle, Pencil, Trash2, Bookmark
+  ClipboardList, ChevronLeft, MapPin, DollarSign, Briefcase, MessageSquare, Trophy, XCircle, MinusCircle, Pencil, Trash2, Bookmark
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

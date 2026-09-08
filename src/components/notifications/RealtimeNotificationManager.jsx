@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Bell, Calendar, MessageCircle, DollarSign, XCircle, CheckCircle, AlertCircle, UserPlus, Package, Car } from "lucide-react";
+import { Bell, Calendar, MessageCircle, DollarSign, XCircle, CheckCircle, AlertCircle, Package, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { playSoundForType } from "./notificationSounds";
 
 const notificationIcons = {

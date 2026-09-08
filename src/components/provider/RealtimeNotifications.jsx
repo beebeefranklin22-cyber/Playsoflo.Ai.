@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, X, Calendar, MessageCircle, FileText, DollarSign, Star, AlertTriangle } from "lucide-react";
+import { X, Calendar, MessageCircle, FileText, DollarSign, Star, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RealtimeNotifications({ currentUser }) {

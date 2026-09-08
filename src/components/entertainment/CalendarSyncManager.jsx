@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Calendar, Loader2, CheckCircle, ExternalLink } from "lucide-react";
+import { Calendar, CheckCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
 
 export default function CalendarSyncManager({ experience, onUpdate }) {
   const [syncing, setSyncing] = useState(false);

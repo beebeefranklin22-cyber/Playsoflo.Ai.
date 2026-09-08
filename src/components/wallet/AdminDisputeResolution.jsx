@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Shield, AlertTriangle, CheckCircle, Sparkles, Loader2, FileText, MessageCircle, User } from "lucide-react";
+import { X, Shield, AlertTriangle, CheckCircle, Sparkles, Loader2, FileText, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

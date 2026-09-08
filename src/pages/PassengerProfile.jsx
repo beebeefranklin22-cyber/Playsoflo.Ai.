@@ -3,15 +3,13 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   User, CreditCard, History, Heart, Settings, Star, 
-  Volume2, Wind, Music, MessageCircle, Droplets, MapPin,
-  Calendar, DollarSign, Phone, Mail, Award
+  Volume2, Wind, Music, MessageCircle, Droplets, MapPin, DollarSign, Mail
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

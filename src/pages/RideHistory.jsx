@@ -4,10 +4,9 @@ import { createPageUrl } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  MapPin, Calendar, DollarSign, Star, User, ChevronRight, 
-  Download, Share2, RotateCcw, Filter, X, Map, Clock,
-  Car, Navigation, CheckCircle, XCircle, ChevronLeft
+import { Star, ChevronRight, 
+  Download, Share2, RotateCcw, X, Clock,
+  Car, CheckCircle, XCircle, ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

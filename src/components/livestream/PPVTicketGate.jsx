@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Crown, Star, Zap, Check, DollarSign, Coins } from "lucide-react";
+import { Lock, Crown, Star, Zap, Check, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 

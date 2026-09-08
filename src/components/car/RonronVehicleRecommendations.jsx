@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
-import { Brain, Sparkles, TrendingUp, Star, DollarSign, Loader2, ThumbsUp } from "lucide-react";
+import { Brain, Sparkles, TrendingUp, Star, Loader2, ThumbsUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
-import { X, Upload, Link, Tag, DollarSign, Loader2, Image, Video, ShoppingBag, Briefcase, Star, Megaphone, Bookmark, Share2, CheckCircle } from "lucide-react";
+import { X, Upload, Link, Tag, DollarSign, Loader2, ShoppingBag, Briefcase, Star, Megaphone, Bookmark, Share2, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";

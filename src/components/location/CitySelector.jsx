@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { MapPin, X, Check, Clock, Search, Loader2 } from "lucide-react";
 import { setUserTimezone } from "../utils/dateUtils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 // Common IANA timezones grouped by region

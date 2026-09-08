@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Plus, Trash2, Edit2, Upload, Store, Package, UtensilsCrossed,
-  Tag, DollarSign, Image as ImageIcon, Loader2, X, Star, Check,
-  ShoppingBag, ChevronDown, RefreshCw, Percent, Camera, Car, Video, Briefcase
+  Plus, Trash2, Edit2, Upload, Package, UtensilsCrossed, Image as ImageIcon, Loader2, X,
+  ShoppingBag, Percent, Car, Video, Briefcase
 } from "lucide-react";
 import { toast } from "sonner";
 import InventoryProductList from "../inventory/InventoryProductList";

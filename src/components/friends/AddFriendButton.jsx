@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { UserPlus, UserCheck, UserMinus, Clock, Loader2, X } from "lucide-react";
+import { UserPlus, UserCheck, Clock, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function AddFriendButton({ targetUser, currentUser }) {
   const queryClient = useQueryClient();

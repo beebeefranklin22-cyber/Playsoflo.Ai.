@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { X, Upload, Plus, Trash2, Activity, DollarSign, CheckCircle, CreditCard, Loader2, Star, TrendingUp } from "lucide-react";
+import { X, Upload, Plus, Trash2, Activity, DollarSign, CheckCircle, CreditCard, Loader2, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

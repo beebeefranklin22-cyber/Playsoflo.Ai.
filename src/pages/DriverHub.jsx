@@ -8,9 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
-  DollarSign, TrendingUp, Clock, Star, Zap, Award,
-  MapPin, ArrowUpRight, Activity, Target, Gift,
-  Wallet, Calendar, BarChart3, Power, Bell, MessageCircle, User, Brain, AlertTriangle,
+  DollarSign, Clock, Star, Zap, Award,
+  MapPin, ArrowUpRight, Activity, Target, Gift, Calendar, BarChart3, Bell, MessageCircle, User, Brain, AlertTriangle,
   ShieldCheck, Car, Package, ChevronDown, ChevronUp
 } from "lucide-react";
 import DriverModeSelector from "../components/driver/DriverModeSelector";
@@ -23,8 +22,6 @@ import DriverProfileModal from "../components/driver/DriverProfileModal";
 import NavigationModal from "../components/driver/NavigationModal";
 import EarningsChart from "../components/driver/EarningsChart";
 import AIDriverAssistant from "../components/driver/AIDriverAssistant";
-import AIRouteOptimizer from "../components/driver/AIRouteOptimizer";
-import AIPassengerMatcher from "../components/driver/AIPassengerMatcher";
 import DisputeResolutionModal from "../components/driver/DisputeResolutionModal";
 import RealTimeDriverMap from "../components/driver/RealTimeDriverMap";
 import DriverStatsOverview from "../components/driver/DriverStatsOverview";

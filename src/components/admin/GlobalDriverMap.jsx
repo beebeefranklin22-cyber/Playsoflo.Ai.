@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet"
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Badge } from "@/components/ui/badge";
-import { Car, Navigation, User, DollarSign } from "lucide-react";
+import { Car } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 

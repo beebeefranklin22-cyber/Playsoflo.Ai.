@@ -5,7 +5,7 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, ChevronLeft, Building, Car, Music, Users, MapPin
+  Home, Building, Car, Music, Users, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CardStack from "../components/CardStack";

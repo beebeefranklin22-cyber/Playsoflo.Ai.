@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Sparkles, Ticket, Calendar, DollarSign, TrendingUp, 
-  Users, BarChart3, Scan, Plus, Edit, AlertTriangle
+  Users, BarChart3, Plus, Edit, AlertTriangle
 } from "lucide-react";
 import ListExperienceModal from "../components/entertainment/ListExperienceModal";
 import TicketRedemptionScanner from "../components/entertainment/TicketRedemptionScanner";

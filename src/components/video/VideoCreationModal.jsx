@@ -7,8 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { 
-  X, Upload, Sparkles, Music, Type, Palette, Zap, 
-  Volume2, Mic, Users, Scissors, Play, Loader2, Send
+  X, Upload, Music, Mic, Loader2, Send
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";

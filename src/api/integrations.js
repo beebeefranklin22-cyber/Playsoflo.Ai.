@@ -47,7 +47,10 @@ export async function GenerateImage({ prompt, width = 1024, height = 1024, model
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt, width, height, model }),
   });
-  if (!res.ok) throw new Error(`GenerateImage failed: ${res.statusText}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `GenerateImage failed: ${res.statusText}`);
+  }
   const { url } = await res.json();
   return url;
 }

@@ -3,10 +3,8 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { 
-  X, Send, Loader2, Bot, User, Headphones, 
-  CheckCircle, AlertCircle, Paperclip, Star
+  X, Send, Loader2, Bot, Headphones, AlertCircle, Paperclip
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

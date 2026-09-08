@@ -9,11 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   TrendingUp, DollarSign, Users, Heart, 
-  Eye, BarChart3, Calendar, Gift, HandshakeIcon, CheckCircle,
-  Upload, X, Loader2, Video, Radio, Star, ShoppingBag, Briefcase,
-  Crown, Package, Home, Lock, Play
+  Eye, BarChart3, Gift, HandshakeIcon, CheckCircle,
+  Upload, X, Loader2, Video, Radio, ShoppingBag,
+  Crown
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +25,6 @@ import DigitalProductsStore from "../components/creator/DigitalProductsStore";
 import AdvancedAnalyticsDashboard from "../components/creator/AdvancedAnalyticsDashboard";
 import CrowdfundingManager from "../components/monetization/CrowdfundingManager.jsx";
 import SponsoredContentManager from "../components/monetization/SponsoredContentManager.jsx";
-import CreatorAnalyticsDashboard from "../components/creator/CreatorAnalyticsDashboard.jsx";
 import ComprehensiveAnalyticsDashboard from "../components/analytics/ComprehensiveAnalyticsDashboard.jsx";
 import CollaborativeContentManager from "../components/creator/CollaborativeContentManager.jsx";
 import CreatorContentSuggestions from "../components/creator/CreatorContentSuggestions.jsx";
@@ -37,7 +35,6 @@ import DigitalProductsManager from "../components/creator/DigitalProductsManager
 import VideoEditorPro from "../components/creator/VideoEditorPro.jsx";
 import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
 import VODManager from "../components/creator/VODManager";
-import SubscribeButton from "../components/creator/SubscribeButton";
 
 export default function CreatorHub() {
   const qc = useQueryClient();

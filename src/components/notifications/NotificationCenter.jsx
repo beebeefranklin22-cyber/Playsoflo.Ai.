@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Bell, Check, Trash2, Settings, Car, Home, DollarSign,
-  MessageCircle, Heart, AlertCircle, Sparkles, Filter, X, Star, Package, UserPlus,
-  Radio, ShoppingBag, Users
+  MessageCircle, Heart, AlertCircle, Sparkles, X, Star, Package, UserPlus,
+  Radio, ShoppingBag
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { 
-  TrendingUp, TrendingDown, DollarSign, AlertTriangle, 
+  TrendingUp, DollarSign, AlertTriangle, 
   Target, Zap, Brain, Loader2, CheckCircle, BarChart3 
 } from "lucide-react";
 import { motion } from "framer-motion";

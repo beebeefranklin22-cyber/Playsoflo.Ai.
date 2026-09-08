@@ -4,11 +4,10 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Package, CheckCircle, XCircle, Clock, Truck, 
-  DollarSign, User, Calendar, MessageCircle 
+  Package, CheckCircle, XCircle, Truck, 
+  DollarSign, User, Calendar 
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";

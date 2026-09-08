@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, TrendingUp, Star, MapPin, Clock, Award, Zap } from "lucide-react";
+import { DollarSign, Star, MapPin, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function DriverStatsOverview({ stats, rating, isOnline }) {

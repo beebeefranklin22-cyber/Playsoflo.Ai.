@@ -8,16 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Music, Play, Heart, Share2, MoreVertical, ExternalLink,
+  Music, Play, Heart, Share2,
   Calendar, MapPin, Ticket, ShoppingBag, TrendingUp, Video,
-  Bell, BellOff, Users, DollarSign, Star, Award, Clock,
-  Instagram, Twitter, Youtube, Facebook, Globe, Verified,
-  Download, Plus, MessageCircle, ShoppingCart, X
+  Bell, BellOff, Users, DollarSign, Award, Clock,
+  Instagram, Twitter, Youtube, Facebook, Globe, Verified, MessageCircle, ShoppingCart, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatLocalTime, formatDateOnly } from "../components/utils/dateUtils";
-import PurchaseAccessGate from "../components/payment/PurchaseAccessGate";
 import UniversalPaymentGate from "../components/payment/UniversalPaymentGate";
 
 export default function ArtistProfile() {

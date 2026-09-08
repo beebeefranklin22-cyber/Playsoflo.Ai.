@@ -3,17 +3,15 @@ import PageWrapper from "@/components/PageWrapper";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   Anchor, Wine, Music, Car, PartyPopper, Camera, 
-  Sparkles, Search, Filter, Plus, Loader2, TrendingUp,
-  Gift, Calendar, Sun, Snowflake, Heart, MessageSquare, Ticket,
-  Theater, Laugh, Zap, Globe, Mic, Flame, Moon, Trophy,
-  Smile, Activity, Cpu, Utensils, Drum, Palette, SlidersHorizontal
+  Sparkles, Search, Plus, Loader2, TrendingUp,
+  Gift, Calendar, Sun, Snowflake, Heart, Ticket,
+  Theater, Laugh, Zap, Mic, Flame, Moon, Trophy, Activity, Cpu, Utensils, Palette, SlidersHorizontal
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -24,7 +22,7 @@ import AffiliatePayoutManager from "../components/affiliate/AffiliatePayoutManag
 import TicketPurchaseModal from "../components/entertainment/TicketPurchaseModal";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
-import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useUserLocation } from "../hooks/useUserLocation";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },

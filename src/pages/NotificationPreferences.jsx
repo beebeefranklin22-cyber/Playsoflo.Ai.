@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { 
-  Bell, Car, Home, DollarSign, MessageCircle, Heart, 
-  AlertCircle, Sparkles, Mail, Smartphone, ChevronLeft
+  Bell, Car, Home, DollarSign, MessageCircle, Sparkles, Smartphone, ChevronLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";

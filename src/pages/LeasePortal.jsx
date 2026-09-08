@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Home, DollarSign, Calendar, CheckCircle, Clock, AlertTriangle, Pen } from "lucide-react";
+import { FileText, Home, DollarSign, CheckCircle, Clock, AlertTriangle, Pen } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const statusColors = {

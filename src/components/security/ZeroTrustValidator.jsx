@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { rateLimiter } from './RateLimiter';
 import { anomalyDetector } from './AnomalyDetector';
 import { sessionManager } from './SessionManager';
-import { threatMonitor } from './ThreatMonitor';
 import InputSanitizer from './InputSanitizer';
 import { SecurityAuditLogger } from './SecurityAuditLogger';
 import { toast } from 'sonner';

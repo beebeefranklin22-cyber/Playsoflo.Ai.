@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, ShoppingCart, Star, Truck, Package, ExternalLink, Filter, X, Tag } from "lucide-react";
+import { Search, ShoppingCart, Star, Truck, Package, Filter, X } from "lucide-react";
 import { AMAZON_PRODUCTS } from "@/data/amazonProducts";
 import AmazonProductModal from "@/components/amazon/AmazonProductModal";
 import { Link } from "react-router-dom";

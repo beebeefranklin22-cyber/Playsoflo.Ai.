@@ -4,9 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Users, Copy, X, Play, Pause, Lock, Globe, Send, MessageCircle, List, Plus, Trash2, SkipForward } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function WatchPartyModal({ content, currentUser, onClose }) {

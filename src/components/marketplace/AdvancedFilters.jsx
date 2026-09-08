@@ -3,7 +3,6 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Star, Shield, MapPin, Clock, Zap, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
   const updateFilter = (key, value) => {

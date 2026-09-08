@@ -3,15 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Home, Car, Utensils, Plane, Ship, Store, Building, Video,
-  TrendingUp, Package, Calendar, DollarSign, Search, Filter,
-  Grid3x3, List, BarChart3, Eye, Edit, Trash2, Plus
+  TrendingUp, Package, Calendar, DollarSign, Search,
+  Grid3x3, List, BarChart3, Edit, Trash2, Plus
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";

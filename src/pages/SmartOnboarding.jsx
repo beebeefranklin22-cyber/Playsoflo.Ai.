@@ -3,13 +3,12 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Sparkles, ChevronRight, CheckCircle2, Circle, 
+  Sparkles, ChevronRight, CheckCircle2, 
   Brain, Target, Zap, Music, Wallet, ShoppingBag,
-  Car, Home, Users, TrendingUp, MessageCircle, Video
+  Car, Home, Users, Video
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export default function SmartOnboarding() {

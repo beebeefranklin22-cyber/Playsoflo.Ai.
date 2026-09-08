@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Briefcase, Plus, MapPin, DollarSign, Clock, Edit2, Trash2,
-  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle, Image as ImageIcon, Loader2, X, Upload,
+  Briefcase, Plus, MapPin, DollarSign, Edit2, Trash2,
+  ChevronLeft, ExternalLink, Send, MessageCircle, Loader2, X, Upload,
   Bookmark, BookmarkCheck, ClipboardList, CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

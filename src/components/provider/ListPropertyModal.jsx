@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building, Video, FileImage, Link } from "lucide-react";
+import { X, Upload, Loader2, CheckCircle, Plus, Building, Video, FileImage } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";

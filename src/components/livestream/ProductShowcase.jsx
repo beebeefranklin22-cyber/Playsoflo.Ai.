@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, X, Plus, ExternalLink, DollarSign, Package, Image as ImageIcon } from "lucide-react";
+import { ShoppingCart, X, Plus, ExternalLink, Package, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import QuickPaymentModal from "./QuickPaymentModal";

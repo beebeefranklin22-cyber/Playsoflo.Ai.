@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Activity, AlertTriangle, CheckCircle2, XCircle, 
-  RefreshCw, TrendingUp, Zap, DollarSign, Database,
+  RefreshCw, Zap, DollarSign, Database,
   Cpu, HardDrive, Clock, Shield, Wrench, ArrowLeft,
-  BarChart3, Sparkles, FileText, Target
+  BarChart3, Sparkles, Target
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

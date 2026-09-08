@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navigation, Package, Car, MapPin, MessageCircle, RefreshCw, Clock, CheckCircle, Truck, User, Zap } from 'lucide-react';
+import { Navigation, Package, Car, MapPin, MessageCircle, RefreshCw, Clock, User, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BookingChatModal from '@/components/tracking/BookingChatModal';
 

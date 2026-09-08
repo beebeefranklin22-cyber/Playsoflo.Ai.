@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
 import { X, Trophy, Medal, Award, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";

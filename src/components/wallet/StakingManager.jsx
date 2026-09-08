@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  X, TrendingUp, Lock, Unlock, DollarSign, 
-  Calendar, Percent, RefreshCw, Plus, AlertCircle, Shield, HelpCircle 
+  X, Lock, Unlock, 
+  Calendar, RefreshCw, Plus, AlertCircle, HelpCircle 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";

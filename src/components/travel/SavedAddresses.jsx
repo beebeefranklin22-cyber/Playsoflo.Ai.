@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapPin, Home, Briefcase, Star, Plus, Trash2, Edit } from "lucide-react";
+import { MapPin, Home, Briefcase, Star, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";

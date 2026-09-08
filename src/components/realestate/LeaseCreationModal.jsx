@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, FileText, Send } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Radio, Users, MessageSquare, Ban, Trash2, Calendar,
-  Eye, Plus, StopCircle, Play, Clock, X, DollarSign, Settings
+  Eye, StopCircle, Play, Clock, X, DollarSign
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

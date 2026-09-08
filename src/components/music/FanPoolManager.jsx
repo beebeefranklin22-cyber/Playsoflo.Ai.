@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Users, DollarSign, Plus, Edit, Trash, Target, Calendar, Share2,
-  Mail, X, Upload, Gift, ShoppingBag, CreditCard, CheckCircle, Star,
+  Users, Plus, Edit, Trash, Target, Share2, X, Upload, ShoppingBag, CreditCard, CheckCircle, Star,
   Package, ChevronDown, ChevronUp, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

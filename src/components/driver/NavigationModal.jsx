@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import { Navigation, MapPin, Clock, ExternalLink, AlertTriangle, TrendingUp, X, Volume2, VolumeX, RefreshCw, MapPinned } from "lucide-react";
 import L from "leaflet";

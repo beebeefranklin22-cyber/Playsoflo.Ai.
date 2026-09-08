@@ -8,10 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  X, Calendar, Clock, MapPin, DollarSign, Check,
+  X, Clock, MapPin, DollarSign, Check,
   AlertCircle, Loader2, User, Phone, Mail, Users, Bell, Sparkles, Send, Wallet
 } from "lucide-react";
-import StripePaymentForm from "@/components/payment/StripePaymentForm";
 import PaymentConfirmation from "./payment/PaymentConfirmation";
 import ContractSigningModal from "./booking/ContractSigningModal";
 import CustomerBookingCalendar from "./booking/CustomerBookingCalendar";

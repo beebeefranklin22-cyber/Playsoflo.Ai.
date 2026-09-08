@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload, X, Shield, CheckCircle, AlertCircle,
   Award, FileText, Calendar, TrendingUp, Plus, User, List,
-  DollarSign, Star, Users, CreditCard, Loader2, Sparkles, Clock
+  DollarSign, Star, CreditCard, Loader2, Sparkles, Clock
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -38,8 +38,6 @@ import ContractManager from "../components/contracts/ContractManager";
 import AdvancedAnalytics from "../components/provider/AdvancedAnalytics";
 import BusinessReportGenerator from "../components/provider/BusinessReportGenerator";
 import FinancialDataExport from "../components/provider/FinancialDataExport";
-import ProviderCalendarManager from "../components/provider/ProviderCalendarManager";
-import NotificationPreferences from "../components/provider/NotificationPreferences";
 import RealtimeNotifications from "../components/provider/RealtimeNotifications";
 import MultiAssetDashboard from "../components/provider/MultiAssetDashboard";
 

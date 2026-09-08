@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   DollarSign, TrendingUp, ArrowUpRight, Wallet, 
-  Coins, Download, Calendar, CheckCircle, Loader2, Clock
+  Coins, Download, CheckCircle, Loader2, Clock
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 export default function EarningsSection({ currentUser }) {
   const queryClient = useQueryClient();

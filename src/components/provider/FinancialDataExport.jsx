@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { FileDown, Download, Loader2, DollarSign, Calendar, FileSpreadsheet } from "lucide-react";
+import { FileDown, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function FinancialDataExport({ currentUser }) {

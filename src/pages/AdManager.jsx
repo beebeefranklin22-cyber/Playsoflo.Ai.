@@ -2,13 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Plus, Pencil, Trash2, Loader2, X, ExternalLink,
   Eye, MousePointerClick, TrendingUp, Calendar, CheckCircle, PauseCircle, AlertCircle, Brain
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import AdFormModal from "../components/ads/AdFormModal";

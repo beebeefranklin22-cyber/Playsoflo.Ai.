@@ -5,10 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Sparkles, Film, TrendingUp, BookOpen, Camera, Palette, 
-  Type, Zap, Check, Plus, X, Search, Save
+  Type, Zap, Check, Plus, Search
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";

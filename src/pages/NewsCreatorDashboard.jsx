@@ -12,8 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  TrendingUp, Eye, ThumbsUp, Edit2, Trash2, Plus, Play, Video,
-  BarChart3, Users, MessageSquare, Calendar, Radio, PauseCircle
+  TrendingUp, Eye, ThumbsUp, Edit2, Trash2, Plus, Play, Calendar, Radio
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

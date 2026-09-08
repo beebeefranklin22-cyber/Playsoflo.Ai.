@@ -6,9 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
-  AlertTriangle, CheckCircle, X, FileText, 
-  DollarSign, Image, Send, Download, Brain, 
-  Loader2, TrendingUp, Shield 
+  AlertTriangle, CheckCircle, FileText, 
+  DollarSign, Image, Download, Brain, 
+  Loader2, Shield 
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

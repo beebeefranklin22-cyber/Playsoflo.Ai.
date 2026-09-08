@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Send, X, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Send, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import DirectChatModal from "@/components/chat/DirectChatModal";

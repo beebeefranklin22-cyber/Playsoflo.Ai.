@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { DollarSign, TrendingUp, Gift, CreditCard, Crown } from "lucide-react";
+import { DollarSign, Gift, CreditCard, Crown } from "lucide-react";
 
 const COLORS = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981'];
 

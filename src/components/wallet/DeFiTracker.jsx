@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, TrendingUp, AlertCircle, RefreshCw, Droplet, Zap, DollarSign } from "lucide-react";
+import { X, AlertCircle, RefreshCw, Droplet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function DeFiTracker({ currentUser, onClose }) {
   const queryClient = useQueryClient();

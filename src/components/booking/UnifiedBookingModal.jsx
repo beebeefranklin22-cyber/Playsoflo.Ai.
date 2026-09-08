@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  X, ChevronLeft, ChevronRight, CheckCircle, Loader2, Calendar, Clock,
-  ShoppingBag, CreditCard, Wallet, Package, Truck, MapPin, Star, Tag,
-  Zap, RefreshCw, AlertCircle, ArrowRight
+  X, ChevronLeft, CheckCircle, Loader2, Calendar, Clock,
+  ShoppingBag, CreditCard, Wallet, Package, Truck, MapPin, AlertCircle, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";

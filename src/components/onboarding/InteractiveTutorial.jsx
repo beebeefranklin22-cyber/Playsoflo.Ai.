@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronRight, Sparkles, Target } from "lucide-react";
+import { X, ChevronRight, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
 
 export default function InteractiveTutorial({ feature, onComplete, onSkip }) {
   const [step, setStep] = useState(0);

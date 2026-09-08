@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone, Image } from "lucide-react";
+import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { LoadMoreButton } from "../components/Pagination";

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Lock, Play, ShoppingCart } from "lucide-react";
+import { Lock, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UniversalPaymentGate from "./UniversalPaymentGate";
 import { toast } from "sonner";

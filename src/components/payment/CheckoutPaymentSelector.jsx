@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { CreditCard, Building, Wallet, Bitcoin, Check, Plus, ChevronRight, Shield, Star } from "lucide-react";
+import { CreditCard, Building, Wallet, Bitcoin, Check, Plus, Shield, Star } from "lucide-react";
 
 const TYPE_CONFIG = {
   card: {

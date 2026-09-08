@@ -4,28 +4,24 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import {
-  Star, Clock, ChevronLeft, Sparkles, ShoppingBag, MapPin,
+  Star, Clock, Sparkles, ShoppingBag, MapPin,
   Scissors, Home, Package, ChefHat, Car, Building,
   Briefcase, Hammer, Heart, Camera, TrendingUp,
-  Calculator, Users, Truck, PawPrint, BookOpen,
-  Dumbbell, Monitor, Check, Music, Palette, Video,
+  Calculator, Users, Truck, PawPrint, BookOpen, Monitor, Check, Music, Palette, Video,
   Shield, Leaf, Droplet, Bug, Sofa, ShoppingCart,
-  Utensils, Baby, Heart as HeartIcon, Wrench,
-  Smartphone, Zap, Droplets, Paintbrush, Wind,
+  Utensils, Baby, Zap, Droplets, Paintbrush, Wind,
   Eye, Waves, Trash2, Key, FileText, DollarSign,
-  FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon,
-  Activity, Dumbbell as DumbbellIcon, Search, ShieldCheck, SlidersHorizontal, X, Plus
+  FileCheck, Plane, MessageSquare, Target, Palette as PaletteIcon, Dumbbell as DumbbellIcon, Search, ShieldCheck, SlidersHorizontal, X, Plus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import BookingModal from "../components/BookingModal";
 import QuickBookingFlow from "../components/booking/QuickBookingFlow";
 import StripePaymentForm from "../components/payment/StripePaymentForm";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
-import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useUserLocation } from "../hooks/useUserLocation";
 import { useGeoDistance } from "../hooks/useGeoDistance";
 import ListItemModal from "../components/marketplace/ListItemModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";

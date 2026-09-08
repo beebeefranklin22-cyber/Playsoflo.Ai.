@@ -2,11 +2,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Heart, MessageCircle, Share2, Bookmark, MapPin,
-  Music, Sparkles, X, ChevronUp, ChevronDown, MoreHorizontal,
-  Flag, EyeOff, Volume2, VolumeX
+  Music, X, ChevronUp, ChevronDown, MoreHorizontal,
+  Flag, EyeOff
 } from "lucide-react";
 import VideoPost from "../social/VideoPost";
-import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";

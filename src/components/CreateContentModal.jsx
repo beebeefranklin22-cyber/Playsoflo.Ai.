@@ -4,9 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
+  X, Upload, Loader2, Music, AtSign, MapPin, Search,
   Type, Image as ImageIcon, Video, Smile, Pen, SlidersHorizontal,
-  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2, Trash2, Plus as PlusIcon,
+  Clock, ChevronRight, ChevronLeft, Check, Tag, Trash2, Plus as PlusIcon,
   Camera
 } from "lucide-react";
 import FaceFiltersCamera from "./camera/FaceFiltersCamera";

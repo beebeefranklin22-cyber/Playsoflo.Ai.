@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-  Maximize, Minimize, Settings
+  Maximize, Minimize
 } from "lucide-react";
 
 function formatTime(secs) {

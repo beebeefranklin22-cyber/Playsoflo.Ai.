@@ -17,7 +17,11 @@ export default async function handler(req, res) {
     });
     const intent = await response.json();
     if (!response.ok) throw new Error(intent.error?.message ?? 'Stripe error');
-    return res.status(200).json({ clientSecret: intent.client_secret, id: intent.id });
+    return res.status(200).json({
+      clientSecret: intent.client_secret,
+      id: intent.id,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? null,
+    });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

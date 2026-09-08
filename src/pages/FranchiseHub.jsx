@@ -4,15 +4,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Building, MapPin, Users, TrendingUp, Plus, 
-  Edit, ArrowLeft, Package, DollarSign, Star, Clock
+  Building, MapPin, Plus, 
+  Edit, ArrowLeft, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 export default function FranchiseHub() {

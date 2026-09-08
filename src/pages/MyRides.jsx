@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  MapPin, Clock, DollarSign, Users, Share2, X,
-  CheckCircle, ArrowRight, Copy, Crown, Star, MessageCircle,
-  Settings, Calendar, Gift, Heart
+  MapPin, Clock, Users, Share2, X,
+  CheckCircle, ArrowRight, Crown, Star, MessageCircle,
+  Settings, Calendar, Gift
 } from "lucide-react";
 import { motion } from "framer-motion";
 import RideTrackingMap from "../components/ride/RideTrackingMap";

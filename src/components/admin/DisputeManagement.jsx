@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, X, MessageCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function DisputeManagement() {

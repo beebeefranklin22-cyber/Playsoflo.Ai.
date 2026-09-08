@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import {
-  Music, MapPin, Calendar, Settings, Edit2, Camera, Users,  
-  Lock, Upload, Loader2, Tag, Plus, X,
+import { MapPin, Calendar, Settings, Edit2, Camera, Users,  
+  Lock, Loader2, Tag, Plus, X,
   Shield, Bell, Globe, Award,
   Activity, Sparkles, Briefcase, Wallet,
-  DollarSign, ChevronRight, Palette, AlertTriangle, RefreshCw,
-  Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign
+  DollarSign, Palette, AlertTriangle, RefreshCw, AtSign
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -15,13 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import PortfolioSection from "../components/profile/PortfolioSection";
-import GallerySection from "../components/profile/GallerySection";
 import ReviewsList from "../components/reviews/ReviewsList";
 import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";

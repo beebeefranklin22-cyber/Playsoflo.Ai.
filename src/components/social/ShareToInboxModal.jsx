@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { X, Search, Send, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

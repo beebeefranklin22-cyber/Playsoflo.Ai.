@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Package, AlertTriangle, TrendingUp, DollarSign, Eye,
-  Plus, Edit2, Trash2, Upload, Search, Filter, BarChart3,
-  ShoppingCart, Star, Image as ImageIcon
+  Package, AlertTriangle, DollarSign,
+  Plus, Edit2, Trash2, Upload, Search,
+  ShoppingCart, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

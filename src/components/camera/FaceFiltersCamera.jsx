@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Camera, Sparkles, RotateCcw, Download, Video, Square } from "lucide-react";
+import { motion } from "framer-motion";
+import { X, Camera, Sparkles, RotateCcw, Video, Square } from "lucide-react";
 
 const FILTERS = [
   {

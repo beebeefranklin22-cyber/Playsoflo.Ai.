@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Music, Pause, Play } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function StoryViewer({ stories, initialIndex = 0, onClose }) {

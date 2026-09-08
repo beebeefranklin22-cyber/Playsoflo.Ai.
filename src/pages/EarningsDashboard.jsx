@@ -4,8 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  DollarSign, TrendingUp, Users, Heart, Download, 
-  Calendar, BarChart3, Crown, Video, Lock, Zap
+  DollarSign, TrendingUp, Users, Heart, Download, Crown, Video, Lock, Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";

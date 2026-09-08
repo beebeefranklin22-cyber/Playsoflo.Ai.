@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { X, CreditCard, DollarSign, Gift, Loader2 } from "lucide-react";
+import { X, CreditCard, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import StripePaymentForm from "../payment/StripePaymentForm";

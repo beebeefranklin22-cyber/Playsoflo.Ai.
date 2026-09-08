@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageSquare, Plus, Pin, Eye, Edit2, Trash2, ChevronLeft,
-  Send, Lock, ThumbsUp, User, Clock, Users, Heart, Bell, BellOff, Upload, Image as ImageIcon, Loader2, X
+  Send, Lock, ThumbsUp, Clock, Users, Heart, Bell, BellOff, Image as ImageIcon, Loader2, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

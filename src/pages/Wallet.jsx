@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { 
-  Wallet as WalletIcon, TrendingUp, ArrowUpRight, ArrowDownLeft,
+import { TrendingUp, ArrowUpRight, ArrowDownLeft,
   Send, Download, Eye, EyeOff, Sparkles, CreditCard,
   Bitcoin, DollarSign, PiggyBank, Zap, Building, ArrowDownUp,
-  Plus, Crown, Building2, Clock, Shield, FileText, Droplet, Globe, Gift, Brain,
+  Plus, Crown, Building2, Clock, Shield, FileText, Droplet, Globe, Brain,
   HandCoins, Undo2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +16,6 @@ import SendMoneyModal from "../components/wallet/SendMoneyModal";
 import RequestMoneyModal from "../components/wallet/RequestMoneyModal";
 import RequestRefundModal from "../components/wallet/RequestRefundModal";
 import CryptoExchangeModal from "../components/wallet/CryptoExchangeModal";
-import CardManagementModal from "../components/wallet/CardManagementModal";
 import AddMoneyModal from "../components/wallet/AddMoneyModal";
 import WithdrawModal from "../components/wallet/WithdrawModal";
 import SubscriptionManagementModal from "../components/wallet/SubscriptionManagementModal";
@@ -31,7 +29,6 @@ import StakingManager from "../components/wallet/StakingManager";
 import CryptoSecuritySettings from "../components/wallet/CryptoSecuritySettings";
 import TaxReportingModal from "../components/wallet/TaxReportingModal";
 import DeFiTracker from "../components/wallet/DeFiTracker";
-import CurrencySelector from "../components/wallet/CurrencySelector";
 import EnhancedCurrencySelector from "../components/wallet/EnhancedCurrencySelector";
 import RewardsProgram from "../components/wallet/RewardsProgram";
 import P2PTradingMarketplace from "../components/wallet/P2PTradingMarketplace";

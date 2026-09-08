@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
-import { 
-  Users, TrendingUp, Star, DollarSign, 
+import { Star, DollarSign, 
   MapPin, Clock, Sparkles, Target 
 } from "lucide-react";
 import { motion } from "framer-motion";

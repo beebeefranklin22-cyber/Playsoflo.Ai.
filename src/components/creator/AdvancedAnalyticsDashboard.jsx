@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
-  TrendingUp, DollarSign, Users, Eye, Heart, MessageCircle, 
-  Calendar, Download, Filter, BarChart3, PieChart, Activity
+  TrendingUp, DollarSign, Users, Eye, Heart, MessageCircle, Download, BarChart3, PieChart, Activity
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { LineChart, Line, BarChart, Bar, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, PieChart as RechartsPie, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdvancedAnalyticsDashboard({ currentUser }) {
   const [timeRange, setTimeRange] = useState('30d');

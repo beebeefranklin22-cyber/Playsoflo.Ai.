@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Car, Shield, MessageCircle, Camera, MapPin, Star,
+  Car, Shield, Camera, MapPin, Star,
   AlertTriangle, CheckCircle, Upload, Key, Smartphone,
   ChevronLeft, FileText, Sparkles
 } from "lucide-react";

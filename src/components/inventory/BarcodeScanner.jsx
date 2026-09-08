@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { X, Camera, Flashlight } from "lucide-react";
+import { X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function BarcodeScanner({ onScan, onClose }) {

@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { X, SlidersHorizontal } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdvancedPropertyFilters({ filters, onFiltersChange, onClose }) {

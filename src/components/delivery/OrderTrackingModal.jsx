@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { X, Package, Truck, CheckCircle, MapPin, Clock } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 
 export default function OrderTrackingModal({ order, onClose }) {
   const [trackingDetails, setTrackingDetails] = useState(null);

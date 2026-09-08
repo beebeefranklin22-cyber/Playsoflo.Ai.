@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, ArrowDownUp, TrendingUp, RefreshCw, Shield } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { X, ArrowDownUp, TrendingUp, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import toast from "react-hot-toast";
 import Crypto2FAModal from "./Crypto2FAModal";

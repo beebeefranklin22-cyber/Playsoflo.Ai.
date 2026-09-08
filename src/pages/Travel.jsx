@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import PageWrapper from "@/components/PageWrapper";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -7,7 +7,6 @@ import {
   Briefcase, Search, Globe, Key, Clock
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import HailRideModal from "../components/travel/HailRideModal";
 import TravelMap from "../components/travel/TravelMap";

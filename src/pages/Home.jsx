@@ -1,7 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import RealtimeFeedManager from '../components/feed/RealtimeFeedManager';
-import AIPersonalizationEngine from '../components/feed/AIPersonalizationEngine';
-import UniversalFeedFilter from '../components/feed/UniversalFeedFilter';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
@@ -9,9 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
   Heart, MessageCircle, Share2, Bookmark, MapPin,
-  Music, Sparkles, Plus, MoreHorizontal, Activity,
-  Compass, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, X, Radio, Star,
-  Flag, EyeOff, ChevronRight, Mic2, Building, User, Users
+  Music, Sparkles, Plus, MoreHorizontal, Activity, TrendingUp, ShoppingBag, Tv, Wand2, Wallet, UserPlus, Truck, RefreshCw, Radio,
+  Flag, EyeOff, ChevronRight, Mic2, Building, User
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -21,12 +17,10 @@ import CreateContentModal from "../components/CreateContentModal";
 import StoryViewer from "../components/story/StoryViewer";
 import FriendFinder from "../components/FriendFinder";
 import FollowRequestsModal from "../components/FollowRequestsModal";
-import ViewerRecommendations from "../components/discovery/ViewerRecommendations";
 import EditPostModal from "../components/social/EditPostModal";
 import ShareToInboxModal from "../components/social/ShareToInboxModal";
 import AdDisplay from "../components/ads/AdDisplay";
 import HomeBannerAd from "../components/ads/HomeBannerAd";
-import PeopleSuggestions from "../components/discovery/PeopleSuggestions";
 import GoLiveButton from "../components/social/GoLiveButton";
 import PostComments from "../components/social/PostComments";
 import VideoPost from "../components/social/VideoPost";

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { 
   Wallet, Building2, PlugZap, Droplets, Wifi, Phone, Landmark, 
-  Clock, CheckCircle, AlertCircle, Loader2, Bell, Calendar, Zap 
+  Clock, CheckCircle, AlertCircle, Loader2, Calendar, Zap 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

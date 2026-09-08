@@ -5,8 +5,8 @@ import { base44 } from "@/api/base44Client";
 import {
   Play, Tv, Gamepad2, Music, Radio,
   TrendingUp, Users, Sparkles, Film, SlidersHorizontal,
-  Upload, Clock, Calendar, DollarSign, X, Search, ChevronRight,
-   Star, Eye, Zap, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck,
+  Upload, Clock, DollarSign, X, Search, ChevronRight,
+   Star, Eye, Camera, StopCircle, RotateCcw, Video, Loader2, UserCheck,
    Heart, Bookmark, Share2, MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

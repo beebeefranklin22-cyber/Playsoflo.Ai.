@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 import ReviewCard from "./ReviewCard";
 import RatingDistribution from "./RatingDistribution";

@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { 
-  Camera, X, Maximize, Share2, ShoppingCart, 
-  Sparkles, ChevronLeft, Check, Grid, Box, Sun, 
-  Ruler, Palette, ZoomIn, ZoomOut, RotateCcw,
-  User, Home, Shirt, Watch
+  Camera, X, Share2, ShoppingCart, 
+  Sparkles, Check, Box, Sun, 
+  Ruler, Palette, RotateCcw,
+  User, Home, Shirt
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";

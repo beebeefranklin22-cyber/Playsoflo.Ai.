@@ -4,12 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Package, Plus, MapPin, Clock, DollarSign, Truck, 
-  CheckCircle, ArrowLeft, Search, Filter, TrendingDown
+  Package, Plus, MapPin, Truck, 
+  CheckCircle, ArrowLeft, Filter, TrendingDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import CreateDeliveryModal from "../components/delivery/CreateDeliveryModal";
 import DeliveryTrackingModal from "../components/delivery/DeliveryTrackingModal";
 
