@@ -1,5 +1,51 @@
 import { supabase } from '@/lib/supabaseClient';
 
+// Base44's original query DSL supported Mongo-style operators
+// ({status: {$in: [...]}}, {$or: [...]}, {$ne: ...}); this app's
+// components still call .filter()/.list() with that syntax throughout.
+// Translate it to real PostgREST filters instead of letting it fall
+// through to .eq(key, {$in: [...]}), which sends the operator object
+// itself as a value and errors.
+const OPERATOR_TO_PG = { $ne: 'neq', $gte: 'gte', $lte: 'lte', $gt: 'gt', $lt: 'lt' };
+
+function applyFilters(q, filters) {
+  const { $or: orConditions, ...plainFilters } = filters ?? {};
+
+  Object.entries(plainFilters).forEach(([key, value]) => {
+    q = applyFieldFilter(q, key, value);
+  });
+
+  if (orConditions?.length) {
+    q = q.or(orConditions.map(conditionToOrClause).join(','));
+  }
+
+  return q;
+}
+
+function applyFieldFilter(q, key, value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const [op, opValue] = Object.entries(value)[0] ?? [];
+    if (op === '$in') return q.in(key, opValue);
+    if (OPERATOR_TO_PG[op]) return q[OPERATOR_TO_PG[op]](key, opValue);
+  }
+  return q.eq(key, value);
+}
+
+// Builds one PostgREST or-filter branch, e.g. {a: 1, b: {$ne: 2}} ->
+// "and(a.eq.1,b.neq.2)". A single-key branch is returned unwrapped.
+function conditionToOrClause(condition) {
+  const parts = Object.entries(condition).map(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const [op, opValue] = Object.entries(value)[0] ?? [];
+      if (op === '$in') return `${key}.in.(${opValue.join(',')})`;
+      const pgOp = OPERATOR_TO_PG[op] || 'eq';
+      return `${key}.${pgOp}.${opValue}`;
+    }
+    return `${key}.eq.${value}`;
+  });
+  return parts.length > 1 ? `and(${parts.join(',')})` : parts[0];
+}
+
 class Entity {
   constructor(tableName) { this.tableName = tableName; }
 
@@ -24,7 +70,7 @@ class Entity {
     }
 
     let q = supabase.from(this.tableName).select('*');
-    Object.entries(filters).forEach(([k, v]) => { q = q.eq(k, v); });
+    q = applyFilters(q, filters);
     if (orderBy) q = q.order(orderBy, { ascending: !orderDesc });
     if (limit) q = q.limit(limit);
     const { data, error } = await q;
