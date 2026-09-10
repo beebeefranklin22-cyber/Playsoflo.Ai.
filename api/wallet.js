@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { requireUser } from './_lib/auth.js';
+import { retrievePaymentIntent } from './_lib/stripe.js';
 
 // Backs secureBalanceUpdate (action: 'transfer'), processWithdrawal
 // (action: 'withdraw'), and payMoneyRequest (action: 'pay_request'). All
@@ -30,6 +31,9 @@ export default async function handler(req, res) {
     }
     if (action === 'pay_request') {
       return res.status(200).json(await handlePayRequest(admin, user, req.body));
+    }
+    if (action === 'credit_from_payment') {
+      return res.status(200).json(await handleCreditFromPayment(admin, req.body));
     }
     return res.status(400).json({ error: `Unknown action "${action}"` });
   } catch (err) {
@@ -136,6 +140,48 @@ async function handlePayRequest(admin, user, body) {
   if (updateError) throw updateError;
 
   return { success: true };
+}
+
+// Credits a creator's wallet after a Stripe-paid tip/purchase (e.g.
+// livestream tipping) — a pure credit funded by real money already
+// collected via Stripe, not an internal transfer. Deliberately does NOT
+// require the caller to be the recipient: the tipper is the one whose
+// browser confirms the Stripe payment and calls this, but the money goes
+// to recipient_email. Re-verifies the PaymentIntent with Stripe itself
+// (never trusts the client's amount or success claim) and is idempotent
+// on payment_intent_id so a retry or double-click can't double-credit.
+async function handleCreditFromPayment(admin, { payment_intent_id, recipient_email, reference_type, fee_rate }) {
+  if (!payment_intent_id) throw new Error('payment_intent_id is required');
+  if (!recipient_email) throw new Error('recipient_email is required');
+
+  const { data: existing } = await admin
+    .from('wallet_transactions')
+    .select('id')
+    .eq('reference_id', payment_intent_id)
+    .eq('reference_type', reference_type || 'stripe_credit')
+    .limit(1)
+    .maybeSingle();
+  if (existing) return { success: true, already_processed: true };
+
+  const intent = await retrievePaymentIntent(payment_intent_id);
+  if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+
+  const grossAmount = intent.amount / 100;
+  const rate = Number.isFinite(fee_rate) ? fee_rate : 0.1;
+  const creditAmount = Math.round(grossAmount * (1 - rate) * 100) / 100;
+
+  const { error: moveError } = await admin.rpc('wallet_move', {
+    p_from_email: null,
+    p_to_email: recipient_email,
+    p_debit_amount: null,
+    p_credit_amount: creditAmount,
+    p_reference_type: reference_type || 'stripe_credit',
+    p_reference_id: payment_intent_id,
+    p_memo: null,
+  });
+  if (moveError) throw moveError;
+
+  return { success: true, credited: creditAmount };
 }
 
 function cleanPgError(message) {
