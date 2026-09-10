@@ -26,6 +26,9 @@ function applyFieldFilter(q, key, value) {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const [op, opValue] = Object.entries(value)[0] ?? [];
     if (op === '$in') return q.in(key, opValue);
+    // {$contains: x} means "this jsonb/array column contains x" (e.g.
+    // participant_emails/participants arrays) — not "column equals x".
+    if (op === '$contains') return q.contains(key, Array.isArray(opValue) ? opValue : [opValue]);
     if (OPERATOR_TO_PG[op]) return q[OPERATOR_TO_PG[op]](key, opValue);
   }
   return q.eq(key, value);

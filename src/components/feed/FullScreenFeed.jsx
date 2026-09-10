@@ -9,6 +9,7 @@ import VideoPost from "../social/VideoPost";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function FullScreenFeed({
   posts,
@@ -25,9 +26,30 @@ export default function FullScreenFeed({
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [showMenu, setShowMenu] = useState(false);
   const [savedPosts, setSavedPosts] = useState(new Set());
+  const [savedRowIds, setSavedRowIds] = useState({});
   const containerRef = useRef(null);
   const touchStartY = useRef(null);
   const touchStartX = useRef(null);
+
+  // Load which of these posts the user has actually saved before, once,
+  // rather than per-post — this used to be UI-only local state that reset
+  // on every reload despite showing a "Post saved!" toast.
+  useEffect(() => {
+    if (!currentUser?.email || !posts.length) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('user_interactions')
+        .select('id, target_id')
+        .eq('user_email', currentUser.email)
+        .eq('interaction_type', 'save')
+        .in('target_id', posts.filter(Boolean).map((p) => p.id));
+      if (cancelled || !data) return;
+      setSavedPosts(new Set(data.map((r) => r.target_id)));
+      setSavedRowIds(Object.fromEntries(data.map((r) => [r.target_id, r.id])));
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.email, posts]);
 
   const visiblePosts = posts.filter(Boolean);
   const post = visiblePosts[currentIndex];
@@ -83,13 +105,25 @@ export default function FullScreenFeed({
   const isVideo = post.media_type === "video" || post.image_url?.match(/\.(mp4|webm|ogg|mov)/i);
   const displayName = post.creator_name || post.creator_username || post.created_by?.split("@")[0] || "User";
 
-  const handleSave = () => {
-    setSavedPosts(prev => {
-      const next = new Set(prev);
-      if (next.has(post.id)) { next.delete(post.id); toast.success("Removed from saved"); }
-      else { next.add(post.id); toast.success("Post saved!"); }
-      return next;
-    });
+  const handleSave = async () => {
+    if (!currentUser?.email) { toast.error("Sign in to save posts"); return; }
+    const alreadySaved = savedPosts.has(post.id);
+
+    if (alreadySaved) {
+      const rowId = savedRowIds[post.id];
+      setSavedPosts((prev) => { const next = new Set(prev); next.delete(post.id); return next; });
+      if (rowId) await supabase.from('user_interactions').delete().eq('id', rowId);
+      toast.success("Removed from saved");
+    } else {
+      setSavedPosts((prev) => new Set(prev).add(post.id));
+      const { data } = await supabase
+        .from('user_interactions')
+        .insert({ user_email: currentUser.email, interaction_type: 'save', target_id: post.id })
+        .select('id')
+        .single();
+      if (data) setSavedRowIds((prev) => ({ ...prev, [post.id]: data.id }));
+      toast.success("Post saved!");
+    }
   };
 
   return (
