@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { requireUser } from './_lib/auth.js';
 
-// Backs cancelRideSecure and matchOptimalDriver.
+// Backs cancelRideSecure, matchOptimalDriver, and rateDriver.
 const CANCELLATION_FEE_BY_STATUS = {
   requested: 0,
   accepted: 5,
@@ -24,6 +24,7 @@ export default async function handler(req, res) {
   try {
     if (action === 'cancel') return res.status(200).json(await cancelRide(admin, user, req.body));
     if (action === 'match_driver') return res.status(200).json(await matchDriver(admin, req.body));
+    if (action === 'rate_driver') return res.status(200).json(await rateDriver(admin, user, req.body));
     return res.status(400).json({ error: `Unknown action "${action}"` });
   } catch (err) {
     console.error('rides error:', action, err);
@@ -104,4 +105,25 @@ async function matchDriver(admin, { ride_id }) {
   if (updateError) throw updateError;
 
   return { matched: true, driver_email: best.driver_email, distance_miles: Math.round(best.distance_miles * 10) / 10 };
+}
+
+async function rateDriver(admin, user, { ride_id, rating, review }) {
+  const { data: ride, error: rideError } = await admin.from('ride_requests').select('*').eq('id', ride_id).single();
+  if (rideError || !ride) throw new Error('Ride not found');
+  if (ride.passenger_email !== user.email) throw new Error('You are not the passenger on this ride');
+  if (!ride.driver_email) throw new Error('This ride has no driver to rate');
+
+  const { error: updateError } = await admin
+    .from('ride_requests')
+    .update({ passenger_rating: rating, passenger_review: review || null })
+    .eq('id', ride_id);
+  if (updateError) throw updateError;
+
+  const { data: stats, error: rpcError } = await admin.rpc('rate_driver', {
+    p_driver_email: ride.driver_email,
+    p_rating: rating,
+  });
+  if (rpcError) throw rpcError;
+
+  return { success: true, ...stats };
 }

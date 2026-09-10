@@ -3,6 +3,7 @@ import { X, DollarSign, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { toast } from "sonner";
 
 export default function DriverTippingModal({ ride, driver, onClose }) {
@@ -34,14 +35,22 @@ export default function DriverTippingModal({ ride, driver, onClose }) {
     try {
       const currentUser = await base44.auth.me();
 
-      // Check balance
-      if (currentUser.balance < tipAmount) {
-        toast.error('Insufficient balance. Please add funds to your wallet.');
+      // Atomic transfer: the server checks the passenger's balance and
+      // moves funds to the driver in one step.
+      const { data: result } = await secureBalanceUpdate({
+        amount: tipAmount,
+        recipient_email: ride.driver_email,
+        reference_type: 'ride_tip',
+        reference_id: ride.id,
+        memo: `Ride tip from ${currentUser.full_name}`,
+      });
+      if (!result?.success) {
+        toast.error(result?.error || 'Insufficient balance. Please add funds to your wallet.');
         setProcessing(false);
         return;
       }
 
-      // Create tip transaction
+      // Record the tip for the tip feed / history (money already moved above)
       await base44.entities.TipTransaction.create({
         creator_email: ride.driver_email,
         creator_username: driver?.username || driver?.full_name,
@@ -54,18 +63,6 @@ export default function DriverTippingModal({ ride, driver, onClose }) {
         content_id: ride.id,
         is_livestream_tip: false
       });
-
-      // Update balances
-      await base44.auth.updateMe({
-        balance: currentUser.balance - tipAmount
-      });
-
-      const driverData = await base44.entities.User.filter({ email: ride.driver_email });
-      if (driverData[0]) {
-        await base44.asServiceRole.entities.User.update(driverData[0].id, {
-          balance: (driverData[0].balance || 0) + tipAmount
-        });
-      }
 
       // Notify driver
       await base44.entities.Notification.create({
