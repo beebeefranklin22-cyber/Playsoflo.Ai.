@@ -26,11 +26,9 @@ export default function FoodCart() {
   });
 
   const { data: cartItems = [] } = useQuery({
-    queryKey: ['cart-items'],
-    queryFn: async () => {
-      const user = await base44.auth.me();
-      return base44.entities.CartItem.list();
-    }
+    queryKey: ['cart-items', currentUser?.email],
+    queryFn: () => base44.entities.CartItem.filter({ user_email: currentUser.email }),
+    enabled: !!currentUser
   });
 
   const { data: restaurant } = useQuery({

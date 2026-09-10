@@ -27,6 +27,7 @@ import ListItemModal from "../components/marketplace/ListItemModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 import LuxuryBookingModal from "../components/marketplace/LuxuryBookingModal";
 import EcommerceOrderModal from "../components/marketplace/EcommerceOrderModal";
+import AddToCartButton from "../components/cart/AddToCartButton";
 import MakeOfferModal from "../components/marketplace/MakeOfferModal";
 
 const categories = [
@@ -910,17 +911,33 @@ export default function Marketplace() {
                           </div>
                         )}
                         {isInventoryProduct || isPhysicalProduct ? (
-                          <button
-                            className="px-5 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEcommerceItem(item);
-                              setShowEcommerceOrder(true);
-                            }}
-                          >
-                            <ShoppingCart className="w-4 h-4" />
-                            Buy Now
-                          </button>
+                          <div className="flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="px-5 py-3 bg-blue-600 rounded-full text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEcommerceItem(item);
+                                setShowEcommerceOrder(true);
+                              }}
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                              Buy Now
+                            </button>
+                            {currentUser && (
+                              <AddToCartButton
+                                item={{
+                                  id: item.originalData?.id || item.id,
+                                  title: item.title,
+                                  price: item.price,
+                                  image_url: item.image_url,
+                                  provider_email: item.provider_email || item.created_by,
+                                }}
+                                itemType="marketplace"
+                                currentUser={currentUser}
+                                className="w-full"
+                              />
+                            )}
+                          </div>
                         ) : isLuxuryBooking ? (
                           <button
                             className="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full text-white font-semibold hover:opacity-90 transition flex items-center gap-2 shadow-lg shadow-purple-500/20"

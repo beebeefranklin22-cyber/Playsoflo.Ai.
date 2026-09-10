@@ -58,8 +58,12 @@ export default function ProviderHub() {
   });
 
   const { data: myServices = [] } = useQuery({
-    queryKey: ["my-services"],
-    queryFn: () => base44.entities.MarketplaceItem.list(),
+    queryKey: ["my-services", currentUser?.email],
+    queryFn: () => {
+      if (!currentUser) return [];
+      return base44.entities.MarketplaceItem.filter({ provider_email: currentUser.email });
+    },
+    enabled: !!currentUser,
     initialData: []
   });
 

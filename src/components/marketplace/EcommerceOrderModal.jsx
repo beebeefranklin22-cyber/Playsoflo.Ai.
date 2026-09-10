@@ -4,11 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import {
   X, CheckCircle, ArrowRight, MapPin, Package, Truck,
-  CreditCard, Shield, Star, Minus, Plus, FileText, MessageSquare
+  CreditCard, Shield, Star, Minus, Plus, FileText, MessageSquare, Wallet, Loader2
 } from "lucide-react";
-import StripePaymentForm from "../payment/StripePaymentForm";
+import StripeCheckoutForm from "../payment/StripeCheckoutForm";
 
 export default function EcommerceOrderModal({ item, currentUser, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -24,13 +26,23 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
     delivery_type: "delivery", // or "pickup"
   });
   const [orderId, setOrderId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("wallet");
+  const [processing, setProcessing] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
 
   const unitPrice = item.price || 0;
   const subtotal = unitPrice * quantity;
-  const deliveryFee = form.delivery_type === "delivery" ? (subtotal >= 50 ? 0 : 4.99) : 0;
-  const total = subtotal + deliveryFee;
+  // Matches PLATFORM_FEE_RATES.product_order in api/_lib/orderHelpers.js —
+  // the real fee api/checkout.js will charge, not an estimate. Per-mile
+  // delivery pricing isn't wired up yet (needs a maps/geocoding key), so
+  // for now delivery is covered by this flat fee rather than a separate
+  // line item that wouldn't match what's actually charged.
+  const platformFee = subtotal * 0.15;
+  const total = subtotal + platformFee;
 
   const maxQty = item.originalData?.stock_quantity || 99;
+  const providerEmail = item.provider_email || item.created_by;
 
   const handleProceed = () => {
     if (form.delivery_type === "delivery") {
@@ -41,73 +53,114 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
     setStep(2);
   };
 
-  const handlePaymentSuccess = async (paymentIntentId) => {
+  const fullAddress = form.delivery_type === "delivery"
+    ? `${form.delivery_address}, ${form.city}, ${form.state} ${form.zip}`.trim()
+    : "Customer pickup";
+
+  const finalizeOrder = async (newOrderId, paymentIntentId) => {
+    setOrderId(newOrderId);
+
+    // Dispatch delivery / fulfillment
     try {
-      const providerEmail = item.provider_email || item.created_by;
-      const fullAddress = form.delivery_type === "delivery"
-        ? `${form.delivery_address}, ${form.city}, ${form.state} ${form.zip}`.trim()
-        : "Customer pickup";
-
-      // Create order record
-      const order = await base44.entities.Order.create({
-        order_type: item.category,
-        item_id: item.originalData?.id || item.id,
+      const dispatchFn = item.itemType === "inventory_product" ? "dispatchInventoryDelivery" : "dispatchProductOrder";
+      await base44.functions.invoke(dispatchFn, {
+        order_id: newOrderId,
         item_title: item.title,
-        quantity,
-        total_usd: total,
-        pickup: form.delivery_type === "pickup",
-        delivery_address: fullAddress,
-        status: "confirmed",
         provider_email: providerEmail,
+        delivery_address: fullAddress,
+        quantity,
+        price: total,
         payment_intent_id: paymentIntentId,
-        customer_phone: form.phone,
-        notes: form.delivery_notes,
+        pickup: form.delivery_type === "pickup",
       });
+    } catch (e) {
+      console.error("Dispatch error (non-fatal):", e);
+    }
 
-      setOrderId(order.id);
+    // Notifications
+    try {
+      await base44.functions.invoke("sendBookingNotification", {
+        recipientEmail: providerEmail,
+        type: "new_order",
+        bookingId: newOrderId,
+        bookingTitle: `Order: ${item.title} x${quantity}`,
+        customerName: currentUser.full_name,
+        totalPrice: total,
+      });
+      await base44.functions.invoke("sendBookingNotification", {
+        recipientEmail: currentUser.email,
+        type: "order_confirmed",
+        bookingId: newOrderId,
+        bookingTitle: item.title,
+        totalPrice: total,
+        providerName: item.provider_name,
+      });
+    } catch (e) { /* non-fatal */ }
 
-      // Dispatch delivery / fulfillment
-      try {
-        const dispatchFn = item.itemType === "inventory_product" ? "dispatchInventoryDelivery" : "dispatchProductOrder";
-        await base44.functions.invoke(dispatchFn, {
-          order_id: order.id,
-          item_title: item.title,
-          provider_email: providerEmail,
-          delivery_address: fullAddress,
-          quantity,
-          price: total,
-          payment_intent_id: paymentIntentId,
-          pickup: form.delivery_type === "pickup",
-        });
-      } catch (e) {
-        console.error("Dispatch error (non-fatal):", e);
-      }
+    if (window.NativeAppBridge?.triggerHaptic) window.NativeAppBridge.triggerHaptic("success");
+    setStep(4);
+    if (onSuccess) onSuccess();
+  };
 
-      // Notifications
-      try {
-        await base44.functions.invoke("sendBookingNotification", {
-          recipientEmail: providerEmail,
-          type: "new_order",
-          bookingId: order.id,
-          bookingTitle: `Order: ${item.title} x${quantity}`,
-          customerName: currentUser.full_name,
-          totalPrice: total,
-        });
-        await base44.functions.invoke("sendBookingNotification", {
-          recipientEmail: currentUser.email,
-          type: "order_confirmed",
-          bookingId: order.id,
-          bookingTitle: item.title,
-          totalPrice: total,
-          providerName: item.provider_name,
-        });
-      } catch (e) { /* non-fatal */ }
+  const checkoutBody = (extra) => ({
+    order_type: "product_order",
+    amount: subtotal,
+    provider_email: providerEmail,
+    provider_name: item.provider_name,
+    item_id: item.originalData?.id || item.id,
+    item_title: item.title,
+    quantity,
+    fulfillment_method: form.delivery_type,
+    delivery_address: form.delivery_type === "delivery" ? fullAddress : null,
+    customer_notes: form.delivery_notes,
+    customer_phone: form.phone,
+    ...extra,
+  });
 
-      if (window.NativeAppBridge?.triggerHaptic) window.NativeAppBridge.triggerHaptic("success");
-      setStep(4);
-      if (onSuccess) onSuccess();
+  const handleWalletPay = async () => {
+    setProcessing(true);
+    try {
+      const res = await base44.functions.invoke('processUnifiedCheckout', checkoutBody({ payment_method: 'wallet' }));
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizeOrder(data.order_id, null);
+      toast.success('Payment successful!');
     } catch (err) {
-      toast.error("Order failed: " + err.message);
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStripeInitiate = async () => {
+    setProcessing(true);
+    try {
+      const res = await base44.functions.invoke('processUnifiedCheckout', checkoutBody({ payment_method: 'stripe' }));
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed — missing credentials');
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStripeSuccess = async (intentId) => {
+    setProcessing(true);
+    try {
+      const res = await base44.functions.invoke('processUnifiedCheckout', checkoutBody({ payment_method: 'stripe', confirm_payment_intent_id: intentId }));
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizeOrder(data.order_id, intentId);
+      toast.success('Payment successful!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to finalize order');
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -263,8 +316,8 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                     <span>Subtotal ({quantity}x)</span><span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-300">
-                    <span>Delivery</span>
-                    <span>{deliveryFee === 0 ? <span className="text-green-400">FREE</span> : `$${deliveryFee.toFixed(2)}`}</span>
+                    <span>Service Fee (15%)</span>
+                    <span>${platformFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-white font-bold border-t border-white/10 pt-2">
                     <span>Total</span><span>${total.toFixed(2)}</span>
@@ -293,7 +346,7 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                     <Row label="Deliver to" value={`${form.delivery_address}, ${form.city}`} />
                   )}
                   <Row label="Subtotal" value={`$${subtotal.toFixed(2)}`} />
-                  <Row label="Delivery Fee" value={deliveryFee === 0 ? "FREE" : `$${deliveryFee.toFixed(2)}`} />
+                  <Row label="Service Fee (15%)" value={`$${platformFee.toFixed(2)}`} />
                   <div className="border-t border-white/10 pt-3 flex justify-between">
                     <span className="text-gray-400 font-bold">Total</span>
                     <span className="text-white font-bold text-xl">${total.toFixed(2)}</span>
@@ -321,18 +374,63 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                 <h3 className="text-white font-bold text-lg">Secure Payment</h3>
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-sm text-blue-300 flex items-center gap-2">
                   <Shield className="w-4 h-4 flex-shrink-0" />
-                  <span>Payment secured by Stripe. Seller is notified instantly. Driver dispatched for delivery.</span>
+                  <span>Payment is verified server-side. Seller is notified instantly. Driver dispatched for delivery.</span>
                 </div>
-                <StripePaymentForm
-                  amount={total}
-                  description={`${item.title} x${quantity}`}
-                  recipientEmail={item.provider_email || item.created_by}
-                  onSuccess={handlePaymentSuccess}
-                  metadata={{ type: "product_order", item_id: item.id, quantity, category: item.category }}
-                />
-                <button onClick={() => setStep(2)} className="w-full py-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition text-sm">
-                  ← Back
-                </button>
+
+                {!clientSecret && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setPaymentMethod('wallet')}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                          paymentMethod === 'wallet' ? 'border-blue-500 bg-blue-500/20' : 'border-white/10 bg-white/5'
+                        }`}
+                      >
+                        <Wallet className="w-5 h-5 text-blue-300" />
+                        <span className="text-white text-sm font-medium">Wallet</span>
+                        <span className="text-gray-400 text-xs">${(currentUser?.usd_balance || 0).toFixed(2)} available</span>
+                      </button>
+                      <button
+                        onClick={() => setPaymentMethod('stripe')}
+                        className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                          paymentMethod === 'stripe' ? 'border-blue-500 bg-blue-500/20' : 'border-white/10 bg-white/5'
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-blue-300" />
+                        <span className="text-white text-sm font-medium">Card</span>
+                        <span className="text-gray-400 text-xs">Visa, Mastercard...</span>
+                      </button>
+                    </div>
+
+                    {paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total && (
+                      <p className="text-amber-400 text-xs text-center">Insufficient wallet balance — pay by card instead.</p>
+                    )}
+
+                    <button
+                      onClick={paymentMethod === 'wallet' ? handleWalletPay : handleStripeInitiate}
+                      disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total)}
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                      Pay ${total.toFixed(2)}
+                    </button>
+                    <button onClick={() => setStep(2)} className="w-full py-3 bg-white/10 border border-white/20 rounded-xl text-gray-300 hover:bg-white/20 transition text-sm">
+                      ← Back
+                    </button>
+                  </>
+                )}
+
+                {clientSecret && stripePromise && (
+                  <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#3b82f6' } } }}>
+                    <StripeCheckoutForm
+                      amount={total}
+                      onSuccess={handleStripeSuccess}
+                      onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+                      isProcessing={processing}
+                      setIsProcessing={setProcessing}
+                    />
+                  </Elements>
+                )}
               </motion.div>
             )}
 
