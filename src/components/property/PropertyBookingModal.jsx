@@ -4,10 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { motion } from "framer-motion";
-import { Calendar as CalendarIcon, Users, X, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Users, X, Loader2, Wallet, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
+import { propertyBooking } from "@/functions/propertyBooking";
 
 export default function PropertyBookingModal({ property, onClose }) {
   const [currentUser, setCurrentUser] = useState(null);
@@ -21,6 +25,10 @@ export default function PropertyBookingModal({ property, onClose }) {
   const [guests, setGuests] = useState(1);
   const [specialRequests, setSpecialRequests] = useState("");
   const [selectingCheckIn, setSelectingCheckIn] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState("wallet");
+  const [processing, setProcessing] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
 
   const calculateNights = () => {
     if (!checkInDate || !checkOutDate) return 0;
@@ -31,26 +39,87 @@ export default function PropertyBookingModal({ property, onClose }) {
   const calculateTotal = () => {
     const nights = calculateNights();
     if (property.listing_type === "short_term" && property.price_per_night) {
-      return nights * property.price_per_night;
+      const subtotal = nights * property.price_per_night;
+      return property.instant_book ? subtotal * (1 + 0.12) : subtotal;
     }
     return 0;
   };
 
-  const bookingMutation = useMutation({
-    mutationFn: async (bookingData) => {
-      const response = await base44.functions.invoke('createPropertyBooking', bookingData);
-      return response.data;
-    },
-    onSuccess: (data) => {
+  const requestBody = (extra) => ({
+    action: 'request',
+    property_id: property.id,
+    check_in_date: checkInDate?.toISOString(),
+    check_out_date: checkOutDate?.toISOString(),
+    number_of_guests: guests,
+    special_requests: specialRequests,
+    ...extra,
+  });
+
+  const handleRequestBooking = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking(requestBody());
+      if (data?.error) throw new Error(data.error);
       qc.invalidateQueries(['properties']);
-      qc.invalidateQueries(['my-bookings']);
+      qc.invalidateQueries(['my-property-bookings']);
       toast.success('Booking request submitted! Host will review shortly.');
       onClose();
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create booking');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create booking');
+    } finally {
+      setProcessing(false);
     }
-  });
+  };
+
+  const handleInstantWalletPay = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking(requestBody({ payment_method: 'wallet' }));
+      if (data?.error) throw new Error(data.error);
+      qc.invalidateQueries(['properties']);
+      qc.invalidateQueries(['my-property-bookings']);
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      toast.success('Booking confirmed!');
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleInstantStripeInitiate = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking(requestBody({ payment_method: 'stripe' }));
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed — missing credentials');
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleInstantStripeSuccess = async (intentId) => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking(requestBody({ payment_method: 'stripe', confirm_payment_intent_id: intentId }));
+      if (data?.error) throw new Error(data.error);
+      qc.invalidateQueries(['properties']);
+      qc.invalidateQueries(['my-property-bookings']);
+      qc.invalidateQueries({ queryKey: ['currentUser'] });
+      toast.success('Booking confirmed!');
+      onClose();
+    } catch (err) {
+      toast.error(err.message || 'Failed to finalize booking');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleSubmit = () => {
     if (!currentUser) {
@@ -74,15 +143,17 @@ export default function PropertyBookingModal({ property, onClose }) {
       return;
     }
 
-    bookingMutation.mutate({
-      property_id: property.id,
-      property_title: property.title,
-      check_in_date: checkInDate.toISOString(),
-      check_out_date: checkOutDate.toISOString(),
-      number_of_guests: guests,
-      special_requests: specialRequests,
-      host_email: property.created_by
-    });
+    if (!property.instant_book) {
+      handleRequestBooking();
+    } else if (paymentMethod === 'wallet') {
+      if (parseFloat(currentUser?.usd_balance || 0) < calculateTotal()) {
+        toast.error('Insufficient wallet balance. Add funds or pay by card instead.');
+        return;
+      }
+      handleInstantWalletPay();
+    } else {
+      handleInstantStripeInitiate();
+    }
   };
 
   const nights = calculateNights();
@@ -217,38 +288,80 @@ export default function PropertyBookingModal({ property, onClose }) {
                   <span className="text-gray-300">
                     ${property.price_per_night} × {nights || 0} night{nights !== 1 ? 's' : ''}
                   </span>
-                  <span className="text-white font-semibold">${total.toFixed(2)}</span>
+                  <span className="text-white font-semibold">${(property.price_per_night * nights || 0).toFixed(2)}</span>
                 </div>
+                {property.instant_book && nights > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-400">Service Fee (12%)</span>
+                    <span className="text-gray-300">${(property.price_per_night * nights * 0.12).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="border-t border-emerald-500/30 pt-2 flex items-center justify-between">
                   <span className="text-white font-bold text-lg">Total</span>
                   <span className="text-emerald-400 font-bold text-2xl">${total.toFixed(2)}</span>
                 </div>
-                {property.price_in_soflo && (
-                  <p className="text-emerald-300 text-sm text-right">
-                    or {(property.price_in_soflo * nights).toFixed(0)} SFC
-                  </p>
+                {!property.instant_book && nights > 0 && (
+                  <p className="text-gray-400 text-xs">You won't be charged until the host approves your request.</p>
                 )}
               </div>
 
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={onClose} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!checkInDate || !checkOutDate || bookingMutation.isPending}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                >
-                  {bookingMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Request Booking"
-                  )}
-                </Button>
-              </div>
+              {property.instant_book && !clientSecret && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setPaymentMethod('wallet')}
+                    className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                      paymentMethod === 'wallet' ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5'
+                    }`}
+                  >
+                    <Wallet className="w-5 h-5 text-emerald-400" />
+                    <span className="text-white text-sm font-medium">Wallet</span>
+                    <span className="text-gray-400 text-xs">${(currentUser?.usd_balance || 0).toFixed(2)} available</span>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('stripe')}
+                    className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                      paymentMethod === 'stripe' ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5'
+                    }`}
+                  >
+                    <CreditCard className="w-5 h-5 text-emerald-400" />
+                    <span className="text-white text-sm font-medium">Card</span>
+                  </button>
+                </div>
+              )}
+
+              {property.instant_book && clientSecret && stripePromise ? (
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#10b981' } } }}>
+                  <StripeCheckoutForm
+                    amount={total}
+                    onSuccess={handleInstantStripeSuccess}
+                    onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+                    isProcessing={processing}
+                    setIsProcessing={setProcessing}
+                  />
+                </Elements>
+              ) : (
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={onClose} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!checkInDate || !checkOutDate || processing}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        {property.instant_book ? 'Processing...' : 'Submitting...'}
+                      </>
+                    ) : property.instant_book ? (
+                      `Pay $${total.toFixed(2)} & Book`
+                    ) : (
+                      "Request Booking"
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -59,13 +59,14 @@ export default function PropertyMessaging({ booking, currentUser, isHost = false
       // Create new conversation if doesn't exist
       const newConv = await base44.entities.ChatConversation.create({
         booking_id: booking.id,
+        created_by: currentUser.email,
         participants: [booking.created_by, booking.provider_email],
         type: "property_booking",
         title: booking.experience_title
       });
       return newConv;
     },
-    enabled: !!booking
+    enabled: !!booking && !!currentUser
   });
 
   useEffect(() => {

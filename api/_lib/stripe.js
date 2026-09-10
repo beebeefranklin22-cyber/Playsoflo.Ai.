@@ -85,3 +85,18 @@ export async function retrievePaymentMethod(id) {
   if (!response.ok) throw new Error(pm.error?.message ?? 'Stripe error retrieving payment method');
   return pm;
 }
+
+// Used for cancellation refunds (e.g. property bookings paid by card).
+// amountCents omitted refunds the full charge.
+export async function refundPaymentIntent({ paymentIntentId, amountCents }) {
+  const body = { payment_intent: paymentIntentId };
+  if (amountCents != null) body.amount = String(amountCents);
+  const response = await fetch(`${STRIPE_API}/refunds`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body),
+  });
+  const refund = await response.json();
+  if (!response.ok) throw new Error(refund.error?.message ?? 'Stripe error creating refund');
+  return refund;
+}

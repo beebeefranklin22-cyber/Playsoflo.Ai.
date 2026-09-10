@@ -82,7 +82,11 @@ Office Space,commercial,for_sale,,,500000,,,,5000,Miami FL,789 Business Blvd,"pa
       const created = [];
       for (const prop of properties) {
         try {
-          const result = await base44.entities.Property.create(prop);
+          const result = await base44.entities.Property.create({
+            ...prop,
+            host_email: currentUser.email,
+            created_by: currentUser.email,
+          });
           created.push(result);
         } catch (err) {
           errors.push({ property: prop.title, error: err.message });

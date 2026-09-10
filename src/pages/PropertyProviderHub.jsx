@@ -25,6 +25,8 @@ import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingF
 import FeatureTooltip from "../components/onboarding/FeatureTooltip";
 import HelpModal from "../components/onboarding/HelpModal";
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
+import { mapPropertyBookingToGeneric } from "@/lib/propertyBookingAdapter";
+import { propertyBooking } from "@/functions/propertyBooking";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -97,11 +99,10 @@ export default function PropertyProviderHub() {
     queryKey: ["property-bookings", currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      const allBookings = await base44.entities.Booking.list();
-      const propertyIds = myProperties.map(p => p.id);
-      return allBookings.filter(b => propertyIds.includes(b.experience_id));
+      const propertyBookings = await base44.entities.PropertyBooking.filter({ host_email: currentUser.email });
+      return propertyBookings.map(mapPropertyBookingToGeneric);
     },
-    enabled: !!currentUser && myProperties.length > 0,
+    enabled: !!currentUser,
   });
 
   const createPropertyMutation = useMutation({
@@ -554,15 +555,14 @@ export default function PropertyProviderHub() {
                       </div>
                     </div>
 
-                    {booking.booking_status === "pending" && (
+                    {booking._raw.status === "pending_review" && (
                       <div className="flex gap-2 pt-4 border-t border-white/10">
                         <Button
                           onClick={async () => {
-                            await base44.entities.Booking.update(booking.id, {
-                              booking_status: "confirmed"
-                            });
+                            const { data } = await propertyBooking({ action: 'approve', booking_id: booking.id });
+                            if (data?.error) { toast.error(data.error); return; }
                             qc.invalidateQueries(["property-bookings"]);
-                            toast.success("Booking confirmed!");
+                            toast.success("Booking approved — guest notified to pay.");
                           }}
                           className="flex-1 bg-green-600 hover:bg-green-700"
                         >
@@ -571,14 +571,32 @@ export default function PropertyProviderHub() {
                         </Button>
                         <Button
                           onClick={async () => {
-                            await base44.entities.Booking.update(booking.id, {
-                              booking_status: "cancelled"
-                            });
+                            const { data } = await propertyBooking({ action: 'decline', booking_id: booking.id, reason: 'Not available' });
+                            if (data?.error) { toast.error(data.error); return; }
                             qc.invalidateQueries(["property-bookings"]);
                             toast.success("Booking declined");
                           }}
                           variant="outline"
                           className="flex-1"
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+
+                    {booking._raw.status === "approved_awaiting_payment" && (
+                      <div className="pt-4 border-t border-white/10 space-y-2">
+                        <p className="text-blue-400 text-sm">Approved — waiting on guest to complete payment.</p>
+                        <Button
+                          onClick={async () => {
+                            const { data } = await propertyBooking({ action: 'decline', booking_id: booking.id, reason: 'Cancelled by host' });
+                            if (data?.error) { toast.error(data.error); return; }
+                            qc.invalidateQueries(["property-bookings"]);
+                            toast.success("Booking declined");
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
                         >
                           Decline
                         </Button>

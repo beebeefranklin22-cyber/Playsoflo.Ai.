@@ -8,6 +8,7 @@ export const PLATFORM_FEE_RATES = {
   subscription: 0.20,
   experience: 0.19,
   food_order: 0.10,
+  property_booking: 0.12,
 };
 
 export const TABLE_BY_ORDER_TYPE = {
