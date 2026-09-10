@@ -240,7 +240,7 @@ export default function Rewards() {
           <CardContent className="text-gray-300 space-y-2">
             <p>• Share your unique referral link with friends and family</p>
             <p>• They sign up and start using PlaySoFlo for purchases and services</p>
-            <p>• You earn 1%-4% of their monthly spending, paid directly in SoFloCoin</p>
+            <p>• You earn 1%-4% of their monthly spending, paid directly in SoFloCoin (Coming Soon)</p>
             <p>• The more your referees spend collectively, the higher your reward tier</p>
             <p>• Rewards are calculated monthly and deposited automatically</p>
             <p>• No limit on how many people you can refer!</p>

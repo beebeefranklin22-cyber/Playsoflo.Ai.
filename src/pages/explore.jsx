@@ -544,7 +544,7 @@ export default function Explore() {
                       <SelectContent>
                         <SelectItem value="card">Credit/Debit Card</SelectItem>
                         <SelectItem value="bank">Bank Transfer</SelectItem>
-                        <SelectItem value="soflocoin">SoFloCoin</SelectItem>
+                        <SelectItem value="soflocoin" disabled>SoFloCoin (Coming Soon)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

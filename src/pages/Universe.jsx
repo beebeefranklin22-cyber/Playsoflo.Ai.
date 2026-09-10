@@ -49,7 +49,7 @@ const pillars = [
     icon: Wallet,
     gradient: "from-green-600 via-emerald-600 to-green-600",
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200",
-    features: ["SoFloCoin", "Private Banking", "Crypto Custody", "Assets"],
+    features: ["SoFloCoin (Coming Soon)", "Private Banking", "Crypto Custody", "Assets"],
     action: "Wallet"
   },
   {

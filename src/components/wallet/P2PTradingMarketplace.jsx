@@ -233,6 +233,9 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
                   }`}
                 >
                   {crypto === 'all' ? 'All' : crypto}
+                  {crypto === 'SoFloCoin' && (
+                    <span className="ml-1 text-[10px] uppercase tracking-wide opacity-70">(Coming Soon)</span>
+                  )}
                 </button>
               ))}
             </div>

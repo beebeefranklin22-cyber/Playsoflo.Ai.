@@ -162,16 +162,14 @@ export default function Wallet() {
   });
 
   const cryptoAssets = [
-    { 
+    {
       name: "SoFloCoin",
       symbol: "SFC",
-      balance: currentUser?.soflo_coins || 0, 
-      value: ((currentUser?.soflo_coins || 0) * (cryptoPrices?.SoFloCoin?.usd || 2.45)).toFixed(2),
-      change: `${(cryptoPrices?.SoFloCoin?.change_24h || 0) >= 0 ? '+' : ''}${(cryptoPrices?.SoFloCoin?.change_24h || 0).toFixed(2)}%`,
+      comingSoon: true,
       color: "purple",
       icon: Sparkles
     },
-    { 
+    {
       name: "Bitcoin", 
       symbol: "BTC", 
       balance: cryptoWallets.find(w => w.currency === 'BTC')?.balance || 0, 
@@ -280,11 +278,11 @@ export default function Wallet() {
             <div>
               <p className="text-gray-400 text-xs sm:text-sm mb-1">Total Balance</p>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mb-2">
-                {showBalance ? formatCurrency((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)) : "••••••"}
+                {showBalance ? formatCurrency(currentUser?.usd_balance || 0) : "••••••"}
               </h2>
               {currentUser?.show_dual_currency && currentUser?.primary_currency !== 'USD' && showBalance && (
                 <p className="text-gray-400 text-sm">
-                  ≈ ${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)} USD
+                  ≈ ${(currentUser?.usd_balance || 0).toFixed(2)} USD
                 </p>
               )}
               <div className="flex items-center gap-2">
@@ -300,8 +298,8 @@ export default function Wallet() {
                 <p className="text-white font-semibold">{formatCurrency(currentUser?.usd_balance || 0)}</p>
               </div>
               <div className="text-right">
-                <p className="text-gray-400 text-xs">Crypto Value</p>
-                <p className="text-purple-400 font-semibold">{formatCurrency((currentUser?.soflo_coins || 0) * 2.45)}</p>
+                <p className="text-gray-400 text-xs">SoFloCoin</p>
+                <p className="text-purple-400 font-semibold text-xs">Coming Soon</p>
               </div>
             </div>
           </div>
@@ -535,28 +533,38 @@ export default function Wallet() {
                     <p className="text-gray-500 text-xs">{asset.symbol}</p>
                   </div>
                 </div>
-                <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                  parseFloat(asset.change) >= 0 
-                    ? 'bg-green-500/10 text-green-400' 
-                    : 'bg-red-500/10 text-red-400'
-                }`}>
-                  {asset.change}
-                </div>
+                {asset.comingSoon ? (
+                  <div className="px-2 py-1 rounded-md text-xs font-semibold bg-purple-500/10 text-purple-400">
+                    Coming Soon
+                  </div>
+                ) : (
+                  <div className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                    parseFloat(asset.change) >= 0
+                      ? 'bg-green-500/10 text-green-400'
+                      : 'bg-red-500/10 text-red-400'
+                  }`}>
+                    {asset.change}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-xs mb-1">Balance</p>
-                  <p className="text-white font-bold text-lg">
-                    {showBalance ? `${asset.balance.toFixed(asset.balance < 1 ? 8 : 4)}` : "••••"}
-                  </p>
+              {asset.comingSoon ? (
+                <p className="text-gray-500 text-sm">SoFloCoin isn't live yet — check back after launch.</p>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Balance</p>
+                    <p className="text-white font-bold text-lg">
+                      {showBalance ? `${asset.balance.toFixed(asset.balance < 1 ? 8 : 4)}` : "••••"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-400 text-xs mb-1">Value</p>
+                    <p className="text-white font-bold text-lg">
+                      {showBalance ? `$${asset.value}` : "••••"}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-gray-400 text-xs mb-1">Value</p>
-                  <p className="text-white font-bold text-lg">
-                    {showBalance ? `$${asset.value}` : "••••"}
-                  </p>
-                </div>
-              </div>
+              )}
             </motion.div>
           ))}
         </div>
@@ -953,7 +961,7 @@ export default function Wallet() {
           <summary className="cursor-pointer text-white font-semibold flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-purple-400" />
-              About SoFloCoin
+              About SoFloCoin (Coming Soon)
             </span>
             <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
           </summary>

@@ -438,13 +438,14 @@ export default function ProviderListings() {
                     />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin)</label>
+                    <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin) <span className="text-purple-400 text-xs">(Coming Soon)</span></label>
                     <Input
                       type="number"
                       value={listingForm.price_in_soflo}
-                      onChange={(e) => setListingForm({...listingForm, price_in_soflo: Number(e.target.value)})}
-                      placeholder="0"
-                      className="bg-white/10 border-white/20 text-white"
+                      disabled
+                      title="SoFloCoin pricing is coming soon"
+                      placeholder="Coming soon"
+                      className="bg-white/5 border-white/10 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 </div>

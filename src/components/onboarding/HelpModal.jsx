@@ -112,7 +112,7 @@ export default function HelpModal({ topic, onClose }) {
           points: [
             "ETH: 4.5% APY • Min 7 days",
             "SOL: 7.2% APY • Min 14 days",
-            "SoFloCoin: 12% APY • Min 30 days",
+            "SoFloCoin: 12% APY • Min 30 days (Coming Soon)",
             "BTC: 3.5% APY • Min 30 days"
           ]
         }

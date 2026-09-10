@@ -77,12 +77,10 @@ export default function Home() {
     const awardWelcomeBonus = async () => {
       if (currentUser && !currentUser.welcome_bonus_claimed) {
         try {
-          const bonusAmount = 5;
           await base44.auth.updateMe({
-            soflo_coins: (currentUser.soflo_coins || 0) + bonusAmount,
             welcome_bonus_claimed: true
           });
-          toast.success(`Welcome! You've received ${bonusAmount} SoFloCoin as a welcome bonus!`);
+          toast.success(`Welcome! SoFloCoin rewards are coming soon — stay tuned!`);
         } catch (bonusError) {
           console.log("Could not award welcome bonus:", bonusError);
         }

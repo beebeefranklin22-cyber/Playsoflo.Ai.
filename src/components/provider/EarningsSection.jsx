@@ -17,7 +17,7 @@ export default function EarningsSection({ currentUser }) {
   const queryClient = useQueryClient();
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawType, setWithdrawType] = useState("wallet");
+  const [withdrawType, setWithdrawType] = useState("bank");
 
   // Fetch earnings data
   const { data: bookings = [] } = useQuery({
@@ -192,16 +192,13 @@ export default function EarningsSection({ currentUser }) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => setWithdrawType('wallet')}
-                    className={`p-4 rounded-xl border-2 transition ${
-                      withdrawType === 'wallet'
-                        ? 'border-purple-500 bg-purple-500/20'
-                        : 'border-white/10 bg-white/5'
-                    }`}
+                    disabled
+                    title="SoFloCoin is coming soon"
+                    className="p-4 rounded-xl border-2 border-white/10 bg-white/5 opacity-50 cursor-not-allowed"
                   >
                     <Coins className="w-8 h-8 text-purple-400 mx-auto mb-2" />
                     <p className="text-white font-medium mb-1">To Wallet</p>
-                    <p className="text-gray-400 text-xs">Get SoFloCoin rewards</p>
+                    <p className="text-gray-400 text-xs">SoFloCoin rewards (Coming Soon)</p>
                   </button>
 
                   <button

@@ -131,7 +131,7 @@ export default function PPVTicketGate({ stream, currentUser, children }) {
                       {tier.price_soflo > 0 && (
                         <div className="flex items-center justify-center gap-1 text-purple-400 text-sm">
                           <Coins className="w-4 h-4" />
-                          {tier.price_soflo} SoFloCoin
+                          {tier.price_soflo} SoFloCoin <span className="text-[10px] uppercase tracking-wide opacity-70">(Coming Soon)</span>
                         </div>
                       )}
                     </div>

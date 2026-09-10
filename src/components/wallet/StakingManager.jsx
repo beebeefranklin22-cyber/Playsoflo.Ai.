@@ -303,13 +303,20 @@ export default function StakingManager({ currentUser, onClose }) {
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {stakingOptions.map((option) => (
+              {stakingOptions.map((option) => {
+                const comingSoon = option.currency === 'SoFloCoin';
+                return (
                 <Card key={option.currency} className="bg-white/5 border-white/10 hover:bg-white/10 transition">
                   <CardContent className="p-6">
                     <div className={`text-4xl mb-3 bg-gradient-to-r ${option.color} bg-clip-text text-transparent font-bold`}>
                       {option.icon}
                     </div>
-                    <h4 className="text-white font-bold text-lg mb-1">{option.currency}</h4>
+                    <h4 className="text-white font-bold text-lg mb-1 flex items-center gap-2">
+                      {option.currency}
+                      {comingSoon && (
+                        <Badge className="bg-purple-500/20 text-purple-300 text-[10px]">Coming Soon</Badge>
+                      )}
+                    </h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-400">APY</span>
@@ -321,7 +328,7 @@ export default function StakingManager({ currentUser, onClose }) {
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-400">Available</span>
-                        <span className="text-white">{getAvailableBalance(option.currency).toFixed(4)}</span>
+                        <span className="text-white">{comingSoon ? '—' : getAvailableBalance(option.currency).toFixed(4)}</span>
                       </div>
                     </div>
                     <Button
@@ -330,14 +337,17 @@ export default function StakingManager({ currentUser, onClose }) {
                         setLockPeriod(option.minLock);
                         setShowStakeModal(true);
                       }}
-                      className="w-full mt-4 bg-purple-600 hover:bg-purple-700"
+                      disabled={comingSoon}
+                      title={comingSoon ? 'SoFloCoin staking is coming soon' : undefined}
+                      className={`w-full mt-4 ${comingSoon ? 'bg-gray-700 text-gray-400 cursor-not-allowed hover:bg-gray-700' : 'bg-purple-600 hover:bg-purple-700'}`}
                       size="sm"
                     >
-                      Stake Now
+                      {comingSoon ? 'Coming Soon' : 'Stake Now'}
                     </Button>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           </div>
 

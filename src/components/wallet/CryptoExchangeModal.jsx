@@ -260,18 +260,25 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
               <div className="flex gap-2 flex-wrap">
                 {cryptos.map((curr) => {
                   const price = prices[curr]?.usd;
+                  const comingSoon = curr === 'SoFloCoin';
                   return (
                     <button
                       key={curr}
-                      onClick={() => setFromCurrency(curr)}
+                      onClick={() => !comingSoon && setFromCurrency(curr)}
+                      disabled={comingSoon}
+                      title={comingSoon ? 'SoFloCoin is coming soon' : undefined}
                       className={`px-3 py-2 rounded-lg text-sm transition ${
-                        fromCurrency === curr
-                          ? "bg-blue-600 text-white"
-                          : "bg-white/10 text-gray-300 hover:bg-white/20"
+                        comingSoon
+                          ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                          : fromCurrency === curr
+                            ? "bg-blue-600 text-white"
+                            : "bg-white/10 text-gray-300 hover:bg-white/20"
                       }`}
                     >
                       <div>{curr}</div>
-                      {price && curr !== 'USD' && (
+                      {comingSoon ? (
+                        <div className="text-[10px] uppercase tracking-wide opacity-70">Coming Soon</div>
+                      ) : price && curr !== 'USD' && (
                         <div className="text-xs opacity-70">${price.toLocaleString()}</div>
                       )}
                     </button>
@@ -301,18 +308,25 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
               <div className="flex gap-2 flex-wrap">
                 {cryptos.map((curr) => {
                   const price = prices[curr]?.usd;
+                  const comingSoon = curr === 'SoFloCoin';
                   return (
                     <button
                       key={curr}
-                      onClick={() => setToCurrency(curr)}
+                      onClick={() => !comingSoon && setToCurrency(curr)}
+                      disabled={comingSoon}
+                      title={comingSoon ? 'SoFloCoin is coming soon' : undefined}
                       className={`px-3 py-2 rounded-lg text-sm transition ${
-                        toCurrency === curr
-                          ? "bg-blue-600 text-white"
-                          : "bg-white/10 text-gray-300 hover:bg-white/20"
+                        comingSoon
+                          ? "bg-white/5 text-gray-500 cursor-not-allowed"
+                          : toCurrency === curr
+                            ? "bg-blue-600 text-white"
+                            : "bg-white/10 text-gray-300 hover:bg-white/20"
                       }`}
                     >
                       <div>{curr}</div>
-                      {price && curr !== 'USD' && (
+                      {comingSoon ? (
+                        <div className="text-[10px] uppercase tracking-wide opacity-70">Coming Soon</div>
+                      ) : price && curr !== 'USD' && (
                         <div className="text-xs opacity-70">${price.toLocaleString()}</div>
                       )}
                     </button>

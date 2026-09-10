@@ -216,15 +216,12 @@ export default function TipButton({
                     USD
                   </button>
                   <button
-                    onClick={() => setPaymentMethod("soflo")}
-                    className={`p-3 rounded-xl font-medium transition flex items-center justify-center gap-2 ${
-                      paymentMethod === "soflo"
-                        ? "bg-purple-500 text-white"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                    disabled
+                    title="SoFloCoin is coming soon"
+                    className="p-3 rounded-xl font-medium transition flex items-center justify-center gap-2 bg-white/5 text-gray-500 cursor-not-allowed"
                   >
                     <Coins className="w-4 h-4" />
-                    SoFloCoin
+                    SoFloCoin <span className="text-[10px] uppercase tracking-wide">Coming Soon</span>
                   </button>
                 </div>
               </div>

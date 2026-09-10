@@ -214,7 +214,7 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
                     </CardHeader>
                     <CardContent>
                       <p className="text-3xl font-bold text-white">
-                        ${((currentUser?.usd_balance || 0) + ((currentUser?.soflo_coins || 0) * 2.45)).toFixed(2)}
+                        ${(currentUser?.usd_balance || 0).toFixed(2)}
                       </p>
                       <p className="text-green-400 text-sm mt-2">Available funds</p>
                     </CardContent>

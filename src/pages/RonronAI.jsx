@@ -79,7 +79,7 @@ export default function RonronAI() {
   const quickCommands = [
     { icon: Navigation, label: "Plan Trip", command: "Plan me a fun adventurous weekend in Miami", color: "from-blue-500 to-cyan-500" },
     { icon: Calendar, label: "Book Experience", command: "Show me available experiences", color: "from-purple-500 to-pink-500" },
-    { icon: Wallet, label: "Check Balance", command: "What's my SoFloCoin balance?", color: "from-green-500 to-emerald-500" },
+    { icon: Wallet, label: "Check Balance", command: "What's my wallet balance?", color: "from-green-500 to-emerald-500" },
     { icon: ShoppingBag, label: "Find Services", command: "Find services near me", color: "from-orange-500 to-amber-500" },
     { icon: MapPin, label: "Book a Ride", command: "I need a ride", color: "from-red-500 to-rose-500" },
     { icon: Languages, label: "Translate", command: "Translate to Spanish: How are you?", color: "from-indigo-500 to-purple-500" },
@@ -256,7 +256,7 @@ ADVANCED CAPABILITIES YOU MUST HANDLE:
    - Check provider availability for new times
    - Suggest 3 alternative time slots
    - Explain that provider approval is needed
-4. PAYMENTS: If asking about wallet/balance, explain SoFloCoin balance and payment methods with exact numbers
+4. PAYMENTS: If asking about wallet/balance, explain their USD wallet balance and payment methods with exact numbers. If asked about SoFloCoin specifically, let them know it's coming soon and not yet live.
 5. TRANSLATION: Provide accurate translations with cultural context in ${selectedLanguage}
 6. NAVIGATION & DIRECTIONS: If user asks to navigate to a place, address, business, or coordinates (e.g., "navigate to Miami Beach", "directions to Starbucks", "take me to 123 Main St"), provide detailed turn-by-turn directions with the exact destination address or coordinates
 7. SEARCH: Provide detailed, relevant results using REAL-TIME data from internet with current info
@@ -628,7 +628,7 @@ Respond naturally and conversationally in ${selectedLanguage}, using local slang
       setTimeout(() => {
         setMessages(prev => [...prev, {
           role: "assistant",
-          content: `Your current SoFloCoin balance is ${currentUser.soflo_coins || 0} SFC. You can use this for payments across the platform. Need to add more funds?`
+          content: `Your current wallet balance is $${(currentUser.usd_balance || 0).toFixed(2)}. You can use this for payments across the platform. (SoFloCoin is coming soon!) Need to add more funds?`
         }]);
       }, 1000);
     }
