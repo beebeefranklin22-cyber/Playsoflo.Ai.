@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -30,6 +30,19 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
   const [processing, setProcessing] = useState(false);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
+  const [savedCards, setSavedCards] = useState([]);
+  const [selectedCardId, setSelectedCardId] = useState(null);
+
+  useEffect(() => {
+    if (!currentUser?.email) return;
+    base44.entities.PaymentMethod.filter({ user_email: currentUser.email, type: 'card', status: 'active' })
+      .then((cards) => {
+        const sorted = cards.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+        setSavedCards(sorted);
+        if (sorted.length > 0) setSelectedCardId(sorted[0].id);
+      })
+      .catch(() => {});
+  }, [currentUser?.email]);
 
   const unitPrice = item.price || 0;
   const subtotal = unitPrice * quantity;
@@ -159,6 +172,21 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
       toast.success('Payment successful!');
     } catch (err) {
       toast.error(err.message || 'Failed to finalize order');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSavedCardPay = async () => {
+    setProcessing(true);
+    try {
+      const res = await base44.functions.invoke('processUnifiedCheckout', checkoutBody({ payment_method: 'stripe', saved_payment_method_id: selectedCardId }));
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizeOrder(data.order_id, null);
+      toast.success('Payment successful!');
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
     } finally {
       setProcessing(false);
     }
@@ -379,7 +407,7 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
 
                 {!clientSecret && (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className={`grid gap-3 ${savedCards.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <button
                         onClick={() => setPaymentMethod('wallet')}
                         className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
@@ -390,6 +418,18 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                         <span className="text-white text-sm font-medium">Wallet</span>
                         <span className="text-gray-400 text-xs">${(currentUser?.usd_balance || 0).toFixed(2)} available</span>
                       </button>
+                      {savedCards.length > 0 && (
+                        <button
+                          onClick={() => setPaymentMethod('saved_card')}
+                          className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                            paymentMethod === 'saved_card' ? 'border-blue-500 bg-blue-500/20' : 'border-white/10 bg-white/5'
+                          }`}
+                        >
+                          <CreditCard className="w-5 h-5 text-blue-300" />
+                          <span className="text-white text-sm font-medium">Saved Card</span>
+                          <span className="text-gray-400 text-xs">{savedCards.length} on file</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setPaymentMethod('stripe')}
                         className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
@@ -397,7 +437,7 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                         }`}
                       >
                         <CreditCard className="w-5 h-5 text-blue-300" />
-                        <span className="text-white text-sm font-medium">Card</span>
+                        <span className="text-white text-sm font-medium">New Card</span>
                         <span className="text-gray-400 text-xs">Visa, Mastercard...</span>
                       </button>
                     </div>
@@ -406,9 +446,26 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
                       <p className="text-amber-400 text-xs text-center">Insufficient wallet balance — pay by card instead.</p>
                     )}
 
+                    {paymentMethod === 'saved_card' && (
+                      <div className="space-y-2">
+                        {savedCards.map((card) => (
+                          <button
+                            key={card.id}
+                            onClick={() => setSelectedCardId(card.id)}
+                            className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition ${
+                              selectedCardId === card.id ? 'border-blue-500 bg-blue-500/20' : 'border-white/10 bg-white/5'
+                            }`}
+                          >
+                            <span className="text-white text-sm capitalize">{card.card_details?.brand} •••• {card.card_details?.last4}</span>
+                            <span className="text-gray-400 text-xs">{String(card.card_details?.exp_month).padStart(2, '0')}/{card.card_details?.exp_year}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <button
-                      onClick={paymentMethod === 'wallet' ? handleWalletPay : handleStripeInitiate}
-                      disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total)}
+                      onClick={paymentMethod === 'wallet' ? handleWalletPay : paymentMethod === 'saved_card' ? handleSavedCardPay : handleStripeInitiate}
+                      disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total) || (paymentMethod === 'saved_card' && !selectedCardId)}
                       className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl text-white font-bold hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}

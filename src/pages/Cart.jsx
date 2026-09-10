@@ -33,6 +33,19 @@ export default function Cart() {
     enabled: !!currentUser
   });
 
+  const { data: savedCards = [] } = useQuery({
+    queryKey: ['payment-methods-cards', currentUser?.email],
+    queryFn: async () => {
+      const methods = await base44.entities.PaymentMethod.filter({ user_email: currentUser.email, type: 'card', status: 'active' });
+      return methods.sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+    },
+    enabled: !!currentUser
+  });
+  const [selectedCardId, setSelectedCardId] = React.useState(null);
+  React.useEffect(() => {
+    if (savedCards.length > 0 && !selectedCardId) setSelectedCardId(savedCards[0].id);
+  }, [savedCards, selectedCardId]);
+
   const updateQuantityMutation = useMutation({
     mutationFn: ({ id, quantity }) => base44.entities.Cart.update(id, { quantity }),
     onSuccess: () => {
@@ -114,6 +127,21 @@ export default function Cart() {
     }
   };
 
+  const handleSavedCardCheckout = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await checkoutCart({ payment_method: 'stripe', saved_payment_method_id: selectedCardId });
+      if (data?.error) throw new Error(data.error);
+      queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      setOrderComplete(true);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleCheckout = () => {
     if (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < grandTotal) {
       toast.error('Insufficient wallet balance. Add funds or pay by card instead.');
@@ -121,6 +149,9 @@ export default function Cart() {
     }
     if (paymentMethod === 'wallet') {
       handleWalletCheckout();
+    } else if (paymentMethod === 'saved_card') {
+      if (!selectedCardId) { toast.error('Select a saved card'); return; }
+      handleSavedCardCheckout();
     } else {
       handleStripeInitiate();
     }
@@ -316,7 +347,7 @@ export default function Cart() {
 
                 {!clientSecret && (
                   <>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className={`grid gap-2 ${savedCards.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <button
                         onClick={() => setPaymentMethod('wallet')}
                         className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
@@ -327,6 +358,18 @@ export default function Cart() {
                         <span className="text-white text-sm font-medium">Wallet</span>
                         <span className="text-gray-400 text-xs">${(currentUser?.usd_balance || 0).toFixed(2)} available</span>
                       </button>
+                      {savedCards.length > 0 && (
+                        <button
+                          onClick={() => setPaymentMethod('saved_card')}
+                          className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                            paymentMethod === 'saved_card' ? 'border-purple-500 bg-purple-500/20' : 'border-white/10 bg-white/5'
+                          }`}
+                        >
+                          <CreditCard className="w-5 h-5 text-purple-400" />
+                          <span className="text-white text-sm font-medium">Saved Card</span>
+                          <span className="text-gray-400 text-xs">{savedCards.length} on file</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setPaymentMethod('stripe')}
                         className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
@@ -334,13 +377,30 @@ export default function Cart() {
                         }`}
                       >
                         <CreditCard className="w-5 h-5 text-purple-400" />
-                        <span className="text-white text-sm font-medium">Card</span>
+                        <span className="text-white text-sm font-medium">New Card</span>
                         <span className="text-gray-400 text-xs">Visa, Mastercard...</span>
                       </button>
                     </div>
 
                     {paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < grandTotal && (
                       <p className="text-amber-400 text-xs text-center">Insufficient wallet balance — pay by card instead.</p>
+                    )}
+
+                    {paymentMethod === 'saved_card' && (
+                      <div className="space-y-2">
+                        {savedCards.map((card) => (
+                          <button
+                            key={card.id}
+                            onClick={() => setSelectedCardId(card.id)}
+                            className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition ${
+                              selectedCardId === card.id ? 'border-purple-500 bg-purple-500/20' : 'border-white/10 bg-white/5'
+                            }`}
+                          >
+                            <span className="text-white text-sm capitalize">{card.card_details?.brand} •••• {card.card_details?.last4}</span>
+                            <span className="text-gray-400 text-xs">{String(card.card_details?.exp_month).padStart(2, '0')}/{card.card_details?.exp_year}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
 
                     <Button

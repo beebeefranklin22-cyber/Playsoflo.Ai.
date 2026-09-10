@@ -9,16 +9,28 @@ function authHeader() {
   return `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`;
 }
 
-export async function createPaymentIntent({ amountCents, currency = 'usd', metadata = {} }) {
+// customerId + paymentMethodId together charge a previously-saved card
+// off-session (confirmed immediately, no client-side Stripe Elements round
+// trip needed) instead of starting a fresh "enter your card" flow.
+export async function createPaymentIntent({ amountCents, currency = 'usd', metadata = {}, customerId, paymentMethodId, offSession }) {
+  const body = {
+    amount: String(amountCents),
+    currency,
+    ...Object.entries(metadata).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
+  };
+  if (paymentMethodId) {
+    body.customer = customerId;
+    body.payment_method = paymentMethodId;
+    body.confirm = 'true';
+    if (offSession) body.off_session = 'true';
+  } else {
+    body['automatic_payment_methods[enabled]'] = 'true';
+  }
+
   const response = await fetch(`${STRIPE_API}/payment_intents`, {
     method: 'POST',
     headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      amount: String(amountCents),
-      currency,
-      'automatic_payment_methods[enabled]': 'true',
-      ...Object.entries(metadata).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
-    }),
+    body: new URLSearchParams(body),
   });
   const intent = await response.json();
   if (!response.ok) throw new Error(intent.error?.message ?? 'Stripe error creating payment intent');
@@ -32,4 +44,44 @@ export async function retrievePaymentIntent(id) {
   const intent = await response.json();
   if (!response.ok) throw new Error(intent.error?.message ?? 'Stripe error retrieving payment intent');
   return intent;
+}
+
+export async function createCustomer({ email, name }) {
+  const response = await fetch(`${STRIPE_API}/customers`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ email, ...(name ? { name } : {}) }),
+  });
+  const customer = await response.json();
+  if (!response.ok) throw new Error(customer.error?.message ?? 'Stripe error creating customer');
+  return customer;
+}
+
+export async function createSetupIntent({ customerId }) {
+  const response = await fetch(`${STRIPE_API}/setup_intents`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ customer: customerId, 'automatic_payment_methods[enabled]': 'true' }),
+  });
+  const intent = await response.json();
+  if (!response.ok) throw new Error(intent.error?.message ?? 'Stripe error creating setup intent');
+  return intent;
+}
+
+export async function retrieveSetupIntent(id) {
+  const response = await fetch(`${STRIPE_API}/setup_intents/${encodeURIComponent(id)}`, {
+    headers: { Authorization: authHeader() },
+  });
+  const intent = await response.json();
+  if (!response.ok) throw new Error(intent.error?.message ?? 'Stripe error retrieving setup intent');
+  return intent;
+}
+
+export async function retrievePaymentMethod(id) {
+  const response = await fetch(`${STRIPE_API}/payment_methods/${encodeURIComponent(id)}`, {
+    headers: { Authorization: authHeader() },
+  });
+  const pm = await response.json();
+  if (!response.ok) throw new Error(pm.error?.message ?? 'Stripe error retrieving payment method');
+  return pm;
 }

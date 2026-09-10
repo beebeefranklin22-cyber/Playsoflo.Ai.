@@ -85,12 +85,7 @@ export default async function handler(req, res) {
     }
 
     if (body.payment_method === 'stripe') {
-      if (body.confirm_payment_intent_id) {
-        const intent = await retrievePaymentIntent(body.confirm_payment_intent_id);
-        if (intent.status !== 'succeeded') {
-          return res.status(400).json({ error: `Payment not completed (status: ${intent.status})` });
-        }
-
+      const finalizeStripeCartOrder = async (intent) => {
         for (const li of lineItems) {
           const { error: creditError } = await admin.rpc('wallet_move', {
             p_from_email: null,
@@ -107,6 +102,41 @@ export default async function handler(req, res) {
         const orderIds = await createOrderRows(admin, lineItems, user.email, 'stripe', intent.id);
         await clearCartRows(admin, cartRows);
         return res.status(200).json({ success: true, order_ids: orderIds, total_charged: grandTotal });
+      };
+
+      if (body.confirm_payment_intent_id) {
+        const intent = await retrievePaymentIntent(body.confirm_payment_intent_id);
+        if (intent.status !== 'succeeded') {
+          return res.status(400).json({ error: `Payment not completed (status: ${intent.status})` });
+        }
+        return finalizeStripeCartOrder(intent);
+      }
+
+      if (body.saved_payment_method_id) {
+        const { data: pmRow, error: pmError } = await admin
+          .from('payment_methods')
+          .select('stripe_customer_id, stripe_payment_method_id')
+          .eq('id', body.saved_payment_method_id)
+          .eq('user_email', user.email)
+          .eq('status', 'active')
+          .single();
+        if (pmError || !pmRow?.stripe_payment_method_id || !pmRow?.stripe_customer_id) {
+          return res.status(400).json({ error: 'Saved payment method not found' });
+        }
+
+        const intent = await createPaymentIntent({
+          amountCents: Math.round(grandTotal * 100),
+          currency: 'usd',
+          metadata: { order_type: 'cart', customer_email: user.email, item_count: String(cartRows.length) },
+          customerId: pmRow.stripe_customer_id,
+          paymentMethodId: pmRow.stripe_payment_method_id,
+          offSession: true,
+        });
+
+        if (intent.status !== 'succeeded') {
+          return res.status(400).json({ error: `This card needs additional verification (status: ${intent.status}). Please use a new card instead.` });
+        }
+        return finalizeStripeCartOrder(intent);
       }
 
       const intent = await createPaymentIntent({
