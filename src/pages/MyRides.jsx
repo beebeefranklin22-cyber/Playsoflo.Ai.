@@ -65,6 +65,8 @@ export default function MyRides() {
       const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
       return await base44.entities.RideRequest.create({
         ...rideData,
+        created_by: currentUser?.email,
+        passenger_email: currentUser?.email,
         ride_type: "car",
         status: "scheduled",
         passenger_verification_code: verificationCode,

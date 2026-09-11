@@ -208,64 +208,18 @@ export default function HailRideModal({ open, onClose }) {
     setShowPaymentModal(true);
   };
 
-  const confirmPaymentAndRequestRide = async () => {
-    // Ensure we always have valid numbers — never let fare be 0 or NaN
-    const baseFare = selectedVehicle.basePrice || 0;
-    const distanceFare = (selectedVehicle.pricePerMile || 0) * (estimatedDistance || 0);
-    const timeFare = (selectedVehicle.pricePerMinute || 0) * (estimatedDuration || 0);
-    const totalFare = Math.max(baseFare + distanceFare + timeFare, 1.00); // minimum $1
-    const driverEarnings = totalFare * 0.88;
-    const platformFee = totalFare * 0.12;
-    
-    try {
-      const ride = await base44.entities.RideRequest.create({
-        pickup_address: pickup,
-        dropoff_address: dropoff,
-        ride_type: selectedVehicle.id,
-        vehicle_class_details: {
-          name: selectedVehicle.name,
-          base_price: selectedVehicle.basePrice,
-          price_per_mile: selectedVehicle.pricePerMile,
-          price_per_minute: selectedVehicle.pricePerMinute,
-          capacity: selectedVehicle.capacity,
-          description: selectedVehicle.description
-        },
-        status: "requested",
-        is_shared: selectedVehicle.id === 'shared',
-        max_passengers: selectedVehicle.id === 'shared' ? 2 : 1,
-        is_for_someone_else: rideForSomeoneElse.isForSomeoneElse,
-        recipient_name: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientName : null,
-        recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
-        pickup_coords: pickupCoords || [25.7617, -80.1918],
-        dropoff_coords: dropoffCoords || [25.7743, -80.1937],
-        route_geometry: routeGeometry || null,
-        estimated_distance_miles: estimatedDistance,
-        estimated_duration_minutes: estimatedDuration,
-        rider_preferences: riderPreferences,
-        fare_breakdown: {
-          base_fare: baseFare,
-          distance_fare: distanceFare,
-          time_fare: timeFare,
-          surge_multiplier: 1.0,
-          total_fare: totalFare,
-          driver_earnings: driverEarnings,
-          platform_fee: platformFee
-        }
-      });
-      
-      setCurrentRide(ride);
-      setShowPaymentModal(false);
-      setShowWaitScreen(true);
-      
-      // Match optimal drivers using smart algorithm
-      await base44.functions.invoke('matchOptimalDriver', {
-        ride_id: ride.id
-      });
-      
-      toast.success("🚗 Ride requested! Finding you a driver...", { position: "bottom-center", duration: 5000 });
-    } catch (error) {
-      toast.error(error.message || 'Failed to request ride');
-    }
+  // PaymentConfirmationModal already charged the fare and created the real
+  // ride_requests row server-side (api/rides.js's request_ride action) --
+  // this just picks up from there and kicks off driver matching.
+  const onRideCreated = async (ride) => {
+    setCurrentRide(ride);
+    setShowWaitScreen(true);
+
+    await base44.functions.invoke('matchOptimalDriver', {
+      ride_id: ride.id
+    });
+
+    toast.success("🚗 Ride requested! Finding you a driver...", { position: "bottom-center", duration: 5000 });
   };
 
   return (
@@ -484,7 +438,7 @@ export default function HailRideModal({ open, onClose }) {
       <PaymentConfirmationModal
         open={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        onConfirm={confirmPaymentAndRequestRide}
+        onConfirm={onRideCreated}
         currentUser={currentUser}
         rideDetails={{
           pickup,
@@ -492,9 +446,30 @@ export default function HailRideModal({ open, onClose }) {
           vehicleName: selectedVehicle?.name,
           distance: estimatedDistance?.toFixed(1),
           duration: Math.round(estimatedDuration),
-          totalFare: selectedVehicle && estimatedDistance 
+          totalFare: selectedVehicle && estimatedDistance
             ? selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration
-            : 0
+            : 0,
+          // Raw fields api/rides.js's request_ride action needs to create + charge the ride.
+          ride_type: selectedVehicle?.id,
+          vehicle_class_details: selectedVehicle ? {
+            name: selectedVehicle.name,
+            base_price: selectedVehicle.basePrice,
+            price_per_mile: selectedVehicle.pricePerMile,
+            price_per_minute: selectedVehicle.pricePerMinute,
+            capacity: selectedVehicle.capacity,
+            description: selectedVehicle.description
+          } : null,
+          is_shared: selectedVehicle?.id === 'shared',
+          max_passengers: selectedVehicle?.id === 'shared' ? 2 : 1,
+          is_for_someone_else: rideForSomeoneElse.isForSomeoneElse,
+          recipient_name: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientName : null,
+          recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
+          pickup_coords: pickupCoords || [25.7617, -80.1918],
+          dropoff_coords: dropoffCoords || [25.7743, -80.1937],
+          route_geometry: routeGeometry || null,
+          estimated_distance_miles: estimatedDistance,
+          estimated_duration_minutes: estimatedDuration,
+          rider_preferences: riderPreferences,
         }}
       />
     </>

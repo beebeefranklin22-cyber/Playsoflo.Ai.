@@ -66,6 +66,8 @@ export default function RideHistory() {
   const handleRebook = async (ride) => {
     try {
       const newRide = await base44.entities.RideRequest.create({
+        created_by: currentUser?.email,
+        passenger_email: currentUser?.email,
         pickup_address: ride.pickup_address,
         dropoff_address: ride.dropoff_address,
         pickup_coords: ride.pickup_coords,

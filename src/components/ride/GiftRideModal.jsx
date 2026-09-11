@@ -29,8 +29,10 @@ export default function GiftRideModal({ open, onClose }) {
     try {
       const code = generateGiftCode();
       const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const currentUser = await base44.auth.me();
 
       await base44.entities.RideRequest.create({
+        created_by: currentUser.email,
         pickup_address: pickupAddress,
         dropoff_address: dropoffAddress,
         ride_type: "car",

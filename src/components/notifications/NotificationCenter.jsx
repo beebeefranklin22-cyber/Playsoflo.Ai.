@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import UniversalReviewModal from "../reviews/UniversalReviewModal";
+import { acceptRideSecure } from "@/functions/acceptRideSecure";
 
 const notificationIcons = {
   'ride_request': Car,
@@ -109,17 +110,19 @@ export default function NotificationCenter({ currentUser, compact = false }) {
 
   const handleRideAction = useMutation({
     mutationFn: async ({ rideId, action, notificationId }) => {
-      const status = action === 'accept' ? 'accepted' : 'declined_by_customer';
-      await base44.entities.RideRequest.update(rideId, { 
-        driver_status: action === 'accept' ? 'accepted' : 'declined',
-        status 
-      });
+      if (action === 'accept') {
+        const { data } = await acceptRideSecure({ ride_id: rideId });
+        if (data?.error) throw new Error(data.error);
+      } else {
+        await base44.entities.RideRequest.update(rideId, { driver_status: 'declined', status: 'declined_by_customer' });
+      }
       await base44.entities.Notification.update(notificationId, { read: true });
     },
     onSuccess: (_, { action }) => {
       queryClient.invalidateQueries(['notifications']);
       toast.success(action === 'accept' ? 'Ride accepted!' : 'Ride declined');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Action failed'),
   });
 
   const handleBookingAction = useMutation({
