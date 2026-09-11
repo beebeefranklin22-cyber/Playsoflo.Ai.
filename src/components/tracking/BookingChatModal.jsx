@@ -39,6 +39,7 @@ export default function BookingChatModal({ currentUser, providerEmail, providerN
         // Create a new conversation
         const conv = await base44.entities.ChatConversation.create({
           participants: [currentUser.email, providerEmail],
+          created_by: currentUser.email,
           name: `${contextType === 'ride' ? 'Ride' : contextType === 'delivery' ? 'Delivery' : 'Rental'} Chat`,
           is_group: false,
           context_type: contextType,

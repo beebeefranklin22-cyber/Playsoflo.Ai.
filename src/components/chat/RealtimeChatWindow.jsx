@@ -57,7 +57,7 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
       
       // Mark all as read
       msgs.forEach(msg => {
-        if (msg.sender_email !== currentUser.email && !msg.read_by.includes(currentUser.email)) {
+        if (msg.sender_email !== currentUser.email && !(msg.read_by || []).includes(currentUser.email)) {
           markAsRead(msg.id);
         }
       });
@@ -70,8 +70,8 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
     try {
       const message = messages.find(m => m.id === messageId);
       if (!message) return;
-      
-      const readBy = [...new Set([...message.read_by, currentUser.email])];
+
+      const readBy = [...new Set([...(message.read_by || []), currentUser.email])];
       await base44.entities.ChatMessage.update(messageId, { read_by: readBy });
       
       // Update conversation unread count
@@ -227,7 +227,7 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
                 </div>
                 <div className="flex items-center gap-2 mt-1 px-2">
                   <span className="text-xs text-gray-400">{formatTime(message.created_date)}</span>
-                  {isMine && message.read_by.length > 1 && (
+                  {isMine && (message.read_by || []).length > 1 && (
                     <span className="text-xs text-blue-400">Read</span>
                   )}
                 </div>

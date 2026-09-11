@@ -110,9 +110,25 @@ class Entity {
 
   async orderByDesc(field, limit = 100) { return this.list({}, { orderBy: field, orderDesc: true, limit }); }
 
+  // Every caller across the app (Messages.jsx, RealtimeChatWindow.jsx,
+  // CustomerBookings.jsx, LivestreamViewer.jsx, BookingProgressTracker.jsx,
+  // and more) has always been written against a {type, data, id} shape
+  // ("event.type === 'create'", "event.data.x", "event.id") -- but Supabase's
+  // raw postgres_changes payload is {eventType: 'INSERT'|'UPDATE'|'DELETE',
+  // new, old, schema, table, ...}, with no `type`/`data`/`id` fields at all.
+  // That mismatch meant every .subscribe() callback in the app either
+  // silently never matched (call sites using `event.data?.x`) or threw
+  // immediately on any row change while mounted (call sites using
+  // `event.data.x` with no optional chaining). Translate the real payload
+  // into the shape every caller already expects, rather than touching
+  // dozens of call sites.
   subscribe(callback) {
     const channel = supabase.channel(`${this.tableName}-changes`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, (payload) => {
+        const type = payload.eventType === 'INSERT' ? 'create' : payload.eventType === 'UPDATE' ? 'update' : payload.eventType === 'DELETE' ? 'delete' : payload.eventType;
+        const data = payload.new && Object.keys(payload.new).length > 0 ? payload.new : payload.old;
+        callback({ type, data, id: data?.id, new: payload.new, old: payload.old });
+      })
       .subscribe();
     return () => supabase.removeChannel(channel);
   }

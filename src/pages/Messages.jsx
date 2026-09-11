@@ -365,6 +365,7 @@ export default function Messages() {
       
       const newConv = await base44.entities.ChatConversation.create({
         participants: [currentUser.email, participantEmail],
+        created_by: currentUser.email,
         name: participant?.full_name || participantEmail,
         is_group: false,
         type: "general",
@@ -392,6 +393,7 @@ export default function Messages() {
     mutationFn: async () => {
       return await base44.entities.ChatConversation.create({
         participants: [currentUser.email, ...selectedParticipants],
+        created_by: currentUser.email,
         name: groupName,
         is_group: true,
         type: "general",
