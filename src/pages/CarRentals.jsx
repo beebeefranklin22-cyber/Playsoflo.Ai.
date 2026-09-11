@@ -13,14 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Car, Shield, Camera, MapPin, Star,
   AlertTriangle, CheckCircle, Upload, Key, Smartphone,
-  ChevronLeft, FileText, Sparkles
+  ChevronLeft, FileText, Sparkles, Wallet, CreditCard, Loader2, Plus
 } from "lucide-react";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import StripePaymentForm from "../components/payment/StripePaymentForm";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "../components/payment/StripeCheckoutForm";
+import { payCarRental } from "@/functions/payCarRental";
+import { cancelCarRentalSecure } from "@/functions/cancelCarRentalSecure";
 import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 import RonronVehicleRecommendations from "../components/car/RonronVehicleRecommendations";
 import ListCarModal from "../components/car/ListCarModal";
@@ -65,6 +69,12 @@ export default function CarRentals() {
   const [photoDocRental, setPhotoDocRental] = useState(null);
   const [showListCar, setShowListCar] = useState(false);
   const [dateConflictError, setDateConflictError] = useState(false);
+
+  const [rentalPaymentMethod, setRentalPaymentMethod] = useState("wallet");
+  const [rentalPaymentProcessing, setRentalPaymentProcessing] = useState(false);
+  const [rentalStripePromise, setRentalStripePromise] = useState(null);
+  const [rentalClientSecret, setRentalClientSecret] = useState(null);
+  const [rentalLoadingStripe, setRentalLoadingStripe] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
@@ -134,6 +144,14 @@ export default function CarRentals() {
     refetchInterval: 30000,
     refetchOnWindowFocus: true
   });
+
+  const { data: savedPaymentMethods = [] } = useQuery({
+    queryKey: ['payment-methods', currentUser?.email],
+    queryFn: () => base44.entities.PaymentMethod.filter({ user_email: currentUser.email, status: 'active' }),
+    enabled: !!currentUser
+  });
+  const defaultSavedCard = savedPaymentMethods.find(m => m.type === 'card' && m.card_details);
+  const walletBalance = currentUser?.usd_balance || 0;
 
   const createRentalMutation = useMutation({
     mutationFn: async (rentalData) => {
@@ -299,13 +317,76 @@ export default function CarRentals() {
     });
   };
 
-  const handlePaymentSuccess = async () => {
+  const finishRentalPayment = (rental) => {
+    setRentalClientSecret(null);
+    setRentalStripePromise(null);
     setShowPaymentModal(false);
-    if (selectedRental) {
-      // Trigger pre-rental photo documentation
-      setPhotoDocRental(selectedRental);
-      setPhotoDocStage('pre');
-      setShowPhotoDoc(true);
+    queryClient.invalidateQueries(['my-rentals']);
+    // Trigger pre-rental photo documentation
+    setPhotoDocRental(rental || selectedRental);
+    setPhotoDocStage('pre');
+    setShowPhotoDoc(true);
+  };
+
+  const handleRentalWalletPay = async () => {
+    if (walletBalance < (selectedRental?.total_amount || 0)) {
+      toast.error("Insufficient wallet balance. Please use a card.");
+      return;
+    }
+    setRentalPaymentProcessing(true);
+    try {
+      const { data } = await payCarRental({ rental_id: selectedRental.id, payment_method: 'wallet' });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed!");
+      finishRentalPayment(data.rental);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"));
+    } finally {
+      setRentalPaymentProcessing(false);
+    }
+  };
+
+  const handleRentalSavedCardPay = async () => {
+    setRentalPaymentProcessing(true);
+    try {
+      const { data } = await payCarRental({ rental_id: selectedRental.id, payment_method: 'stripe', saved_payment_method_id: defaultSavedCard.id });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed!");
+      finishRentalPayment(data.rental);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"));
+    } finally {
+      setRentalPaymentProcessing(false);
+    }
+  };
+
+  const loadRentalCardForm = async () => {
+    setRentalLoadingStripe(true);
+    try {
+      const { data } = await payCarRental({ rental_id: selectedRental.id, payment_method: 'stripe' });
+      if (data?.error) throw new Error(data.error);
+      if (!data?.needsClientAction || !data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed');
+      const sp = await loadStripe(data.publishable_key);
+      setRentalStripePromise(sp);
+      setRentalClientSecret(data.client_secret);
+    } catch (error) {
+      toast.error("Could not load card form: " + error.message);
+    } finally {
+      setRentalLoadingStripe(false);
+    }
+  };
+
+  const handleRentalNewCardSuccess = async (paymentIntentId) => {
+    setRentalPaymentProcessing(true);
+    try {
+      const { data } = await payCarRental({ rental_id: selectedRental.id, payment_method: 'stripe', confirm_payment_intent_id: paymentIntentId });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed!");
+      finishRentalPayment(data.rental);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"));
+    } finally {
+      setRentalPaymentProcessing(false);
     }
   };
 
@@ -547,12 +628,14 @@ export default function CarRentals() {
                             </p>
                           </div>
                           <Badge className={
-                            rental.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                            rental.status === 'in_progress' ? 'bg-green-500/20 text-green-400' :
+                            rental.status === 'completed' ? 'bg-gray-500/20 text-gray-300' :
                             rental.status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
-                            rental.status === 'disputed' ? 'bg-red-500/20 text-red-400' :
+                            rental.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                            rental.status === 'pending_payment' ? 'bg-yellow-500/20 text-yellow-400' :
                             'bg-gray-500/20 text-gray-400'
                           }>
-                            {rental.status}
+                            {rental.status?.replace('_', ' ')}
                           </Badge>
                         </div>
 
@@ -589,7 +672,7 @@ export default function CarRentals() {
                           </div>
                         )}
 
-                        {rental.unlock_code && rental.status === 'active' && (
+                        {rental.unlock_code && rental.status === 'in_progress' && (
                           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
                             <div className="flex items-center gap-2">
                               <Key className="w-4 h-4 text-blue-400" />
@@ -599,14 +682,38 @@ export default function CarRentals() {
                           </div>
                         )}
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <MessageProviderButton
                             providerEmail={rental.provider_email}
                             providerName={`${rental.car_make} ${rental.car_model} Host`}
                             currentUser={currentUser}
                             className="bg-white/5 text-sm"
                           />
-                          {rental.status === 'active' && (
+                          {rental.status === 'pending_payment' && (
+                            <Button
+                              size="sm"
+                              onClick={() => { setSelectedRental(rental); setShowPaymentModal(true); }}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              Complete Payment
+                            </Button>
+                          )}
+                          {rental.status === 'confirmed' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setPhotoDocRental(rental);
+                                setPhotoDocStage('pre');
+                                setShowPhotoDoc(true);
+                              }}
+                              className="bg-blue-500/10 border-blue-500/30 text-blue-400"
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              Confirm Pickup (Photos)
+                            </Button>
+                          )}
+                          {rental.status === 'in_progress' && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -621,18 +728,36 @@ export default function CarRentals() {
                               End Rental (Photos)
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedRental(rental);
-                              setShowDamageModal(true);
-                            }}
-                            className="bg-white/5"
-                          >
-                            <Camera className="w-4 h-4 mr-2" />
-                            Report Damage
-                          </Button>
+                          {['pending_payment', 'confirmed'].includes(rental.status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (!confirm('Cancel this rental?')) return;
+                                const { data } = await cancelCarRentalSecure({ rental_id: rental.id });
+                                if (data?.error) { toast.error(data.error); return; }
+                                toast.success(data.refund_amount > 0 ? `Rental cancelled. $${data.refund_amount.toFixed(2)} refunded.` : 'Rental cancelled.');
+                                queryClient.invalidateQueries(['my-rentals']);
+                              }}
+                              className="bg-red-500/10 border-red-500/30 text-red-400"
+                            >
+                              Cancel Rental
+                            </Button>
+                          )}
+                          {['in_progress', 'completed'].includes(rental.status) && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedRental(rental);
+                                setShowDamageModal(true);
+                              }}
+                              className="bg-white/5"
+                            >
+                              <Camera className="w-4 h-4 mr-2" />
+                              Report Damage
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1073,7 +1198,7 @@ export default function CarRentals() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-              onClick={() => setShowPaymentModal(false)}
+              onClick={() => { setShowPaymentModal(false); setRentalClientSecret(null); setRentalStripePromise(null); }}
             >
               <motion.div
                 initial={{ scale: 0.9 }}
@@ -1082,23 +1207,78 @@ export default function CarRentals() {
                 onClick={(e) => e.stopPropagation()}
                 className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8"
               >
-                <h2 className="text-3xl font-bold text-white mb-6">Complete Payment</h2>
+                <h2 className="text-3xl font-bold text-white mb-2">Complete Payment</h2>
+                <p className="text-gray-400 text-sm mb-6">
+                  {selectedRental.car_make} {selectedRental.car_model} — ${selectedRental.total_amount?.toFixed(2)}
+                </p>
 
-                <StripePaymentForm
-                  amount={selectedRental.total_amount}
-                  referenceType="car_rental"
-                  referenceId={selectedRental.id}
-                  description={`Car Rental: ${selectedRental.car_make} ${selectedRental.car_model}`}
-                  onSuccess={handlePaymentSuccess}
-                  onError={(error) => {
-                    console.error('Payment error:', error);
-                    alert('Payment failed. Please try again.');
-                  }}
-                  metadata={{
-                    rental_id: selectedRental.id,
-                    car: `${selectedRental.car_make} ${selectedRental.car_model}`
-                  }}
-                />
+                {rentalClientSecret && rentalStripePromise ? (
+                  <Elements stripe={rentalStripePromise} options={{ clientSecret: rentalClientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#2563eb' } } }}>
+                    <StripeCheckoutForm
+                      amount={selectedRental.total_amount}
+                      onSuccess={handleRentalNewCardSuccess}
+                      onCancel={() => { setRentalClientSecret(null); setRentalStripePromise(null); }}
+                      isProcessing={rentalPaymentProcessing}
+                      setIsProcessing={setRentalPaymentProcessing}
+                    />
+                  </Elements>
+                ) : (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => setRentalPaymentMethod("wallet")}
+                      className={`w-full p-4 rounded-lg border transition ${rentalPaymentMethod === "wallet" ? "bg-blue-600/20 border-blue-500" : "bg-white/5 border-white/10 hover:bg-white/10"}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Wallet className="w-5 h-5 text-blue-400" />
+                          <div className="text-left">
+                            <div className="text-white font-medium">SoFlo Wallet</div>
+                            <div className="text-gray-400 text-xs">Balance: ${walletBalance.toFixed(2)}</div>
+                          </div>
+                        </div>
+                        {rentalPaymentMethod === "wallet" && <CheckCircle className="w-5 h-5 text-blue-400" />}
+                      </div>
+                    </button>
+
+                    {defaultSavedCard && (
+                      <button
+                        onClick={() => setRentalPaymentMethod("card")}
+                        className={`w-full p-4 rounded-lg border transition ${rentalPaymentMethod === "card" ? "bg-purple-600/20 border-purple-500" : "bg-white/5 border-white/10 hover:bg-white/10"}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="w-5 h-5 text-purple-400" />
+                            <div className="text-left">
+                              <div className="text-white font-medium capitalize">{defaultSavedCard.card_details?.brand} •••• {defaultSavedCard.card_details?.last4}</div>
+                            </div>
+                          </div>
+                          {rentalPaymentMethod === "card" && <CheckCircle className="w-5 h-5 text-purple-400" />}
+                        </div>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => { setRentalPaymentMethod("card"); loadRentalCardForm(); }}
+                      className="w-full p-3 rounded-lg border border-dashed border-white/20 hover:border-white/40 transition flex items-center justify-center gap-2 text-gray-400 hover:text-white text-sm"
+                      disabled={rentalLoadingStripe}
+                    >
+                      {rentalLoadingStripe ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      {rentalLoadingStripe ? "Loading…" : "Pay with New Card"}
+                    </button>
+
+                    <Button
+                      onClick={() => (rentalPaymentMethod === "wallet" ? handleRentalWalletPay() : defaultSavedCard ? handleRentalSavedCardPay() : loadRentalCardForm())}
+                      disabled={rentalPaymentProcessing || rentalLoadingStripe}
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 py-6 text-lg font-bold"
+                    >
+                      {rentalPaymentProcessing ? (
+                        <><Loader2 className="w-5 h-5 mr-2 animate-spin" />Processing...</>
+                      ) : (
+                        `Pay $${selectedRental.total_amount?.toFixed(2)}`
+                      )}
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             </motion.div>
           )}

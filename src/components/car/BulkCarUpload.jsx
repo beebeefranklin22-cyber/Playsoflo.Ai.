@@ -6,6 +6,38 @@ import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+// The browse query on CarRentals.jsx reads MarketplaceItem rows with
+// is_rental:true -- this used to write to the "assets" table instead,
+// which has no relation to car listings at all and is never read by any
+// browse/booking flow, so every bulk-uploaded car was completely
+// invisible everywhere.
+function csvCarToListing(car, currentUser) {
+  const title = `${car.year} ${car.make} ${car.model}`.trim();
+  const images = car.images || [];
+  return {
+    title,
+    description: `${car.year} ${car.make} ${car.model}${car.color ? ` in ${car.color}` : ''}`,
+    category: car.category || 'automotive',
+    price: car.daily_rate,
+    price_type: 'per_day',
+    image_url: images[0] || '',
+    portfolio_images: images.slice(1),
+    availability: 'available',
+    is_rental: true,
+    provider_email: currentUser.email,
+    provider_name: currentUser.full_name || currentUser.email,
+    car_year: car.year,
+    car_make: car.make,
+    car_model: car.model,
+    car_color: car.color || null,
+    transmission: (car.transmission || 'automatic').toLowerCase(),
+    fuel_type: (car.fuel_type || 'gasoline').toLowerCase(),
+    seats: car.seats,
+    features: car.features || [],
+    security_deposit: car.daily_rate || 500,
+  };
+}
+
 export default function BulkCarUpload({ currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [file, setFile] = useState(null);
@@ -87,7 +119,7 @@ Honda,Civic,2021,economy,Blue,Automatic,Gasoline,5,50,300,1000,30000,Miami FL,"b
       const created = [];
       for (const car of cars) {
         try {
-          const result = await base44.entities.Asset.create(car);
+          const result = await base44.entities.MarketplaceItem.create(csvCarToListing(car, currentUser));
           created.push(result);
         } catch (err) {
           errors.push({ car: `${car.make} ${car.model}`, error: err.message });
@@ -96,6 +128,7 @@ Honda,Civic,2021,economy,Blue,Automatic,Gasoline,5,50,300,1000,30000,Miami FL,"b
 
       setResults({ created: created.length, errors });
       queryClient.invalidateQueries(['fleet-cars']);
+      queryClient.invalidateQueries(['available-cars']);
       
       if (created.length > 0) {
         toast.success(`✅ ${created.length} cars uploaded!`);

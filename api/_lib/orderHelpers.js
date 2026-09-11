@@ -9,6 +9,7 @@ export const PLATFORM_FEE_RATES = {
   experience: 0.19,
   food_order: 0.10,
   property_booking: 0.12,
+  car_rental: 0.15,
 };
 
 export const TABLE_BY_ORDER_TYPE = {

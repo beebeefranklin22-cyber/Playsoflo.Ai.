@@ -5,6 +5,8 @@ import { base44 } from "@/api/base44Client";
 import { Camera, X, Upload, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { confirmCarPickup } from "@/functions/confirmCarPickup";
+import { confirmCarDropoff } from "@/functions/confirmCarDropoff";
 
 export default function VehiclePhotoDocumentation({ open, onClose, rental, stage, onComplete }) {
   const [photos, setPhotos] = useState([]);
@@ -236,19 +238,19 @@ Return JSON:
     }
 
     try {
-      // Save documentation
-      await base44.entities.CarRental.update(rental.id, {
-        [`${stage}_rental_photos`]: photos,
-        [`${stage}_rental_videos`]: videos,
-        [`${stage}_rental_inspection`]: {
-          ...aiAnalysis,
-          completed_at: new Date().toISOString()
-        },
-        ...(comparison && {
+      const inspection = { ...aiAnalysis, completed_at: new Date().toISOString() };
+      const confirmFn = stage === 'pre' ? confirmCarPickup : confirmCarDropoff;
+      const { data } = await confirmFn({
+        rental_id: rental.id,
+        photos,
+        videos,
+        inspection,
+        ...(stage === 'post' && comparison && {
           photo_comparison: comparison,
-          new_damages_detected: comparison.new_damages_count > 0
-        })
+          new_damages_detected: comparison.new_damages_count > 0,
+        }),
       });
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Documentation saved!");
       onComplete({ photos, videos, analysis: aiAnalysis, comparison });
