@@ -20,9 +20,9 @@ export async function createCarRental(data = {}) {
     const e = new Date(r.end_date);
     return newStart < e && s < newEnd;
   });
-  // Note: this check-then-insert isn't atomic, so two simultaneous bookings
-  // for the same dates could both slip through in rare cases — acceptable
-  // for now, but a unique exclusion constraint would close it properly.
+  // This check is just for a fast, friendly error -- the real guard is the
+  // car_rentals_no_overlap GiST exclusion constraint on the table (handled
+  // as a 23P01 error below), which closes the race this check alone can't.
   if (overlaps) return { data: { error: 'These dates are already booked. Please choose different dates.' } };
 
   const { error, data: row } = await supabase
@@ -62,6 +62,11 @@ export async function createCarRental(data = {}) {
     .select()
     .single();
 
-  if (error) return { data: { error: error.message } };
+  if (error) {
+    // 23P01 = exclusion_violation -- the real DB-level guard
+    // (car_rentals_no_overlap) catching what the check above raced past.
+    if (error.code === '23P01') return { data: { error: 'These dates are already booked. Please choose different dates.' } };
+    return { data: { error: error.message } };
+  }
   return { data: { rental: row } };
 }
