@@ -3,10 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Globe, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { CheckCircle, Globe, ExternalLink, Upload, Loader2, Wallet, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
+import { requestMusicDistribution } from "@/functions/requestMusicDistribution";
 
 const platforms = [
   { 
@@ -113,6 +117,9 @@ export default function DistributionManager({ tracks, currentUser }) {
   const [showDistributeModal, setShowDistributeModal] = useState(false);
   const [releaseDate, setReleaseDate] = useState('');
   const [distributions, setDistributions] = useState([]);
+  const [distPaymentMethod, setDistPaymentMethod] = useState('wallet');
+  const [distStripePromise, setDistStripePromise] = useState(null);
+  const [distClientSecret, setDistClientSecret] = useState(null);
 
   React.useEffect(() => {
     if (currentUser) {
@@ -122,59 +129,65 @@ export default function DistributionManager({ tracks, currentUser }) {
     }
   }, [currentUser]);
 
+  const finishDistribution = async () => {
+    setDistClientSecret(null);
+    setDistStripePromise(null);
+    const updatedDistributions = await base44.entities.MusicDistribution.filter({ artist_email: currentUser.email });
+    setDistributions(updatedDistributions);
+    setShowDistributeModal(false);
+    setSelectedTrack(null);
+    setSelectedPlatforms([]);
+    setReleaseDate('');
+  };
+
+  const distributionParams = () => ({
+    track_id: selectedTrack.id,
+    platforms: selectedPlatforms,
+    distributor: selectedDistributor,
+    release_date: releaseDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+
   const handleDistribute = async () => {
     if (!selectedTrack || selectedPlatforms.length === 0) {
       toast.error('Please select a track and at least one platform');
       return;
     }
-
     if (!selectedDistributor) {
       toast.error('Please select a distribution service first');
       return;
     }
 
-    const distributorPricing = {
-      distrokid: { single: 22.99, album: 22.99 },
-      tunecore: { single: 9.99, album: 29.99 },
-      cdbaby: { single: 9.95, album: 29.00 }
-    };
-
-    const PLAYSO_FLO_FEE = 2.22;
-    const distributorFee = distributorPricing[selectedDistributor]?.single || 9.99;
-    const totalFee = distributorFee + PLAYSO_FLO_FEE;
-
-    if (!currentUser || currentUser.usd_balance < totalFee) {
-      toast.error(`Insufficient balance. Need $${totalFee.toFixed(2)} ($${distributorFee} + $${PLAYSO_FLO_FEE} service fee)`);
-      return;
-    }
-
     setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: true });
-    
     try {
-      const response = await base44.functions.invoke('processMusicDistribution', {
-        track_id: selectedTrack.id,
-        distribution_type: 'single',
-        release_date: releaseDate || new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        platforms: selectedPlatforms,
-        distributor: selectedDistributor
-      });
-
-      const data = response.data;
-      
-      toast.success(`${data.message} • ISRC: ${data.isrc_code}`);
-      
-      // Refresh distributions list
-      const updatedDistributions = await base44.entities.MusicDistribution.filter({ 
-        artist_email: currentUser.email 
-      });
-      setDistributions(updatedDistributions);
-
-      setShowDistributeModal(false);
-      setSelectedTrack(null);
-      setSelectedPlatforms([]);
-      setReleaseDate('');
+      if (distPaymentMethod === 'wallet') {
+        const { data } = await requestMusicDistribution({ ...distributionParams(), payment_method: 'wallet' });
+        if (data?.error) throw new Error(data.error);
+        toast.success('Distribution request submitted! Our team will process it with the distributor.');
+        await finishDistribution();
+      } else {
+        const { data } = await requestMusicDistribution({ ...distributionParams(), payment_method: 'stripe' });
+        if (data?.error) throw new Error(data.error);
+        if (!data?.needsClientAction || !data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed');
+        const sp = await loadStripe(data.publishable_key);
+        setDistStripePromise(sp);
+        setDistClientSecret(data.client_secret);
+      }
     } catch (error) {
-      toast.error(error?.response?.data?.error || error.message || 'Distribution failed. Please try again.');
+      toast.error(error.message || 'Distribution failed. Please try again.');
+    } finally {
+      setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: false });
+    }
+  };
+
+  const handleDistributeCardSuccess = async (paymentIntentId) => {
+    setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: true });
+    try {
+      const { data } = await requestMusicDistribution({ ...distributionParams(), payment_method: 'stripe', confirm_payment_intent_id: paymentIntentId });
+      if (data?.error) throw new Error(data.error);
+      toast.success('Distribution request submitted! Our team will process it with the distributor.');
+      await finishDistribution();
+    } catch (error) {
+      toast.error(error.message || 'Distribution failed. Please try again.');
     } finally {
       setDistributingTracks({ ...distributingTracks, [selectedTrack.id]: false });
     }
@@ -275,11 +288,13 @@ export default function DistributionManager({ tracks, currentUser }) {
                             distribution.status === 'live' ? 'bg-green-500/20 text-green-400' :
                             distribution.status === 'submitted' ? 'bg-blue-500/20 text-blue-400' :
                             distribution.status === 'processing' ? 'bg-yellow-500/20 text-yellow-400' :
+                            distribution.status === 'pending_fulfillment' ? 'bg-yellow-500/20 text-yellow-400' :
                             'bg-gray-500/20 text-gray-400'
                           }`}>
-                            {distribution.status === 'live' ? '🎉 Live' : 
+                            {distribution.status === 'live' ? '🎉 Live' :
                              distribution.status === 'submitted' ? '📤 Submitted' :
                              distribution.status === 'processing' ? '⏳ Processing' :
+                             distribution.status === 'pending_fulfillment' ? '⏳ Pending Fulfillment' :
                              distribution.status}
                           </Badge>
                           {distribution.isrc_code && (
@@ -491,32 +506,60 @@ export default function DistributionManager({ tracks, currentUser }) {
                 </div>
               )}
 
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDistributeModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleDistribute}
-                  disabled={selectedPlatforms.length === 0 || distributingTracks[selectedTrack?.id] || !selectedDistributor}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700"
-                >
-                  {distributingTracks[selectedTrack?.id] ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Distributing...
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="w-4 h-4 mr-2" />
-                      Distribute to {selectedPlatforms.length} Platform{selectedPlatforms.length !== 1 ? 's' : ''}
-                    </>
-                  )}
-                </Button>
-              </div>
+              {distClientSecret && distStripePromise ? (
+                <Elements stripe={distStripePromise} options={{ clientSecret: distClientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#9333ea' } } }}>
+                  <StripeCheckoutForm
+                    amount={(selectedDistributor === 'distrokid' ? 22.99 : selectedDistributor === 'tunecore' ? 9.99 : 9.95) + 2.22}
+                    onSuccess={handleDistributeCardSuccess}
+                    onCancel={() => { setDistClientSecret(null); setDistStripePromise(null); }}
+                    isProcessing={distributingTracks[selectedTrack?.id]}
+                    setIsProcessing={(v) => setDistributingTracks({ ...distributingTracks, [selectedTrack?.id]: v })}
+                  />
+                </Elements>
+              ) : (
+                <>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => setDistPaymentMethod('wallet')}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 text-sm ${distPaymentMethod === 'wallet' ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    >
+                      <Wallet className="w-4 h-4" /> Wallet
+                    </button>
+                    <button
+                      onClick={() => setDistPaymentMethod('stripe')}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 text-sm ${distPaymentMethod === 'stripe' ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    >
+                      <CreditCard className="w-4 h-4" /> Card
+                    </button>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDistributeModal(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleDistribute}
+                      disabled={selectedPlatforms.length === 0 || distributingTracks[selectedTrack?.id] || !selectedDistributor}
+                      className="flex-1 bg-purple-600 hover:bg-purple-700"
+                    >
+                      {distributingTracks[selectedTrack?.id] ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="w-4 h-4 mr-2" />
+                          Distribute to {selectedPlatforms.length} Platform{selectedPlatforms.length !== 1 ? 's' : ''}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

@@ -177,12 +177,20 @@ export default function AIMasteringStudio({ currentUser, tracks }) {
           <p className="text-gray-400">Professional-quality mastering powered by AI • $4.99 per track</p>
         </div>
         <Button
-          onClick={() => setShowUploadModal(true)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600"
+          disabled
+          title="AI mastering is coming soon"
+          className="bg-white/10 text-gray-500 cursor-not-allowed"
         >
           <Upload className="w-4 h-4 mr-2" />
-          Master New Track
+          Master New Track (Coming Soon)
         </Button>
+      </div>
+
+      <div className="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4 flex items-center gap-3">
+        <Wand2 className="w-5 h-5 text-purple-400 flex-shrink-0" />
+        <p className="text-purple-200 text-sm">
+          AI mastering isn't live yet — it needs a real audio-processing integration we haven't connected. Nothing here charges you or processes a file.
+        </p>
       </div>
 
       {/* Mastering History */}
@@ -280,10 +288,7 @@ export default function AIMasteringStudio({ currentUser, tracks }) {
             <CardContent className="p-12 text-center">
               <Wand2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">No mastered tracks yet</h3>
-              <p className="text-gray-400 mb-4">Upload your first track to experience AI mastering</p>
-              <Button onClick={() => setShowUploadModal(true)} className="bg-purple-600">
-                Get Started
-              </Button>
+              <p className="text-gray-400 mb-4">AI mastering is coming soon</p>
             </CardContent>
           </Card>
         )}
