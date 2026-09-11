@@ -2,96 +2,19 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { base44 } from "@/api/base44Client";
-import { CreditCard, Wallet, Lock } from "lucide-react";
+import { Elements } from "@stripe/react-stripe-js";
+import { CreditCard, Wallet, Lock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import StripeCheckoutForm from "./StripeCheckoutForm";
+import { processUnifiedCheckout } from "@/functions/processUnifiedCheckout";
 
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-  : null;
-
-function PaymentForm({ amount, onSuccess, onCancel, itemDetails }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setProcessing(true);
-
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + "/payment-success",
-        },
-        redirect: "if_required",
-      });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Payment successful!");
-        onSuccess();
-      }
-    } catch (err) {
-      toast.error("Payment failed: " + err.message);
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-gray-300">Total Amount</span>
-          <span className="text-3xl font-bold text-white">${amount.toFixed(2)}</span>
-        </div>
-        {itemDetails && (
-          <div className="text-sm text-gray-400">
-            <p>{itemDetails.name}</p>
-            {itemDetails.description && <p className="text-gray-500">{itemDetails.description}</p>}
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        <PaymentElement />
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={processing}
-          className="flex-1"
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={!stripe || processing}
-          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
-        >
-          {processing ? (
-            "Processing..."
-          ) : (
-            <>
-              <Lock className="w-4 h-4 mr-2" />
-              Pay ${amount.toFixed(2)}
-            </>
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-}
+// Generic purchase modal backed by the real /api/checkout endpoint
+// (order_type "digital_product" -> content_purchases, wallet_move credits
+// the seller for their cut). itemType maps 1:1 to order_type today since
+// the only real caller is ArtistProfile's music track purchase.
+const ORDER_TYPE_BY_ITEM_TYPE = {
+  music_track: 'digital_product',
+};
 
 export default function UniversalPaymentGate({
   isOpen,
@@ -103,75 +26,43 @@ export default function UniversalPaymentGate({
   onPaymentSuccess,
   currentUser
 }) {
-  const [clientSecret, setClientSecret] = useState(null);
-  const [useWallet, setUseWallet] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("wallet");
   const [processingWallet, setProcessingWallet] = useState(false);
+  const [loadingStripe, setLoadingStripe] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [processingCard, setProcessingCard] = useState(false);
 
-  React.useEffect(() => {
-    if (isOpen && !useWallet) {
-      createPaymentIntent();
-    }
-  }, [isOpen, useWallet]);
+  const orderType = ORDER_TYPE_BY_ITEM_TYPE[itemType];
+  const walletBalance = currentUser?.usd_balance || 0;
+  const hasEnoughBalance = walletBalance >= amount;
 
-  const createPaymentIntent = async () => {
-    try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100),
-          currency: 'usd',
-          metadata: {
-            item_type: itemType,
-            item_id: itemId,
-            user_email: currentUser?.email
-          }
-        })
-      });
-      const data = await response.json();
-      setClientSecret(data.clientSecret);
-    } catch (error) {
-      toast.error("Failed to initialize payment");
-    }
+  const checkoutBody = () => ({
+    order_type: orderType,
+    amount,
+    provider_email: itemDetails?.seller_email,
+    item_id: itemId,
+    item_type: itemType,
+    item_title: itemDetails?.name,
+  });
+
+  const finish = () => {
+    setClientSecret(null);
+    setStripePromise(null);
+    onPaymentSuccess();
+    onClose();
   };
 
   const handleWalletPayment = async () => {
-    if (!currentUser) {
-      toast.error("Please log in to use wallet payment");
-      return;
-    }
+    if (!currentUser) { toast.error("Please log in to use wallet payment"); return; }
+    if (!hasEnoughBalance) { toast.error(`Insufficient wallet balance. You have $${walletBalance.toFixed(2)}, need $${amount.toFixed(2)}`); return; }
 
     setProcessingWallet(true);
-
     try {
-      // Check wallet balance
-      const balance = currentUser.wallet_balance_usd || 0;
-      if (balance < amount) {
-        toast.error(`Insufficient wallet balance. You have $${balance.toFixed(2)}, need $${amount.toFixed(2)}`);
-        setProcessingWallet(false);
-        return;
-      }
-
-      // Deduct from wallet
-      const newBalance = balance - amount;
-      await base44.auth.updateMe({
-        wallet_balance_usd: newBalance
-      });
-
-      // Create payment record
-      await base44.entities.Payment.create({
-        payer_email: currentUser.email,
-        amount_usd: amount,
-        payment_method: "wallet",
-        status: "completed",
-        item_type: itemType,
-        item_id: itemId,
-        metadata: itemDetails
-      });
-
+      const { data } = await processUnifiedCheckout({ ...checkoutBody(), payment_method: 'wallet' });
+      if (data?.error) throw new Error(data.error);
       toast.success("Payment successful from wallet!");
-      onPaymentSuccess();
-      onClose();
+      finish();
     } catch (error) {
       toast.error("Wallet payment failed: " + error.message);
     } finally {
@@ -179,8 +70,46 @@ export default function UniversalPaymentGate({
     }
   };
 
-  const walletBalance = currentUser?.wallet_balance_usd || 0;
-  const hasEnoughBalance = walletBalance >= amount;
+  const loadCardForm = async () => {
+    setLoadingStripe(true);
+    try {
+      const { data } = await processUnifiedCheckout({ ...checkoutBody(), payment_method: 'stripe' });
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed');
+      const sp = await loadStripe(data.publishable_key);
+      setStripePromise(sp);
+      setClientSecret(data.client_secret);
+    } catch (error) {
+      toast.error("Failed to initialize payment: " + error.message);
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
+
+  const handleCardSuccess = async (paymentIntentId) => {
+    setProcessingCard(true);
+    try {
+      const { data } = await processUnifiedCheckout({ ...checkoutBody(), payment_method: 'stripe', confirm_payment_intent_id: paymentIntentId });
+      if (data?.error) throw new Error(data.error);
+      toast.success("Payment successful!");
+      finish();
+    } catch (error) {
+      toast.error("Payment failed: " + error.message);
+    } finally {
+      setProcessingCard(false);
+    }
+  };
+
+  if (!orderType) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-md">
+          <DialogHeader><DialogTitle>Purchase Unavailable</DialogTitle></DialogHeader>
+          <p className="text-gray-400 text-sm">This item type isn't set up for checkout yet.</p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -189,70 +118,29 @@ export default function UniversalPaymentGate({
           <DialogTitle className="text-2xl font-bold">Complete Payment</DialogTitle>
         </DialogHeader>
 
-        {!useWallet ? (
+        {clientSecret && stripePromise ? (
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#a855f7' } } }}>
+            <StripeCheckoutForm
+              amount={amount}
+              onSuccess={handleCardSuccess}
+              onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+              isProcessing={processingCard}
+              setIsProcessing={setProcessingCard}
+            />
+          </Elements>
+        ) : paymentMethod === "wallet" ? (
           <div className="space-y-6">
-            {/* Payment Method Selection */}
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setUseWallet(false)}
-                variant={!useWallet ? "default" : "outline"}
-                className="flex-1"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Card
-              </Button>
-              <Button
-                onClick={() => setUseWallet(true)}
-                variant={useWallet ? "default" : "outline"}
-                className="flex-1"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Wallet
-              </Button>
-            </div>
-
-            {clientSecret && stripePromise ? (
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PaymentForm
-                  amount={amount}
-                  onSuccess={() => {
-                    onPaymentSuccess();
-                    onClose();
-                  }}
-                  onCancel={onClose}
-                  itemDetails={itemDetails}
-                />
-              </Elements>
-            ) : !stripePromise ? (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
-                <p className="text-red-400 text-sm">Stripe is not configured. Please use wallet payment.</p>
-                <Button onClick={() => setUseWallet(true)} className="mt-3">
-                  Switch to Wallet
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto" />
-                <p className="text-gray-400 mt-4">Initializing payment...</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Wallet Payment */}
             <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <span className="text-gray-300">Amount to Pay</span>
                 <span className="text-3xl font-bold text-white">${amount.toFixed(2)}</span>
               </div>
-
               <div className="flex items-center justify-between py-4 border-t border-white/10">
                 <span className="text-gray-400">Wallet Balance</span>
                 <span className={`text-xl font-semibold ${hasEnoughBalance ? 'text-green-400' : 'text-red-400'}`}>
                   ${walletBalance.toFixed(2)}
                 </span>
               </div>
-
               {itemDetails && (
                 <div className="mt-4 pt-4 border-t border-white/10 text-sm text-gray-400">
                   <p className="font-semibold text-white">{itemDetails.name}</p>
@@ -265,42 +153,51 @@ export default function UniversalPaymentGate({
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-sm text-red-300">
                 <p className="font-semibold mb-2">Insufficient Balance</p>
                 <p>You need ${(amount - walletBalance).toFixed(2)} more in your wallet.</p>
-                <Button
-                  onClick={() => {
-                    onClose();
-                    window.location.href = "/Wallet";
-                  }}
-                  variant="outline"
-                  className="w-full mt-3 border-red-500/30 text-red-300"
-                >
-                  Add Money to Wallet
-                </Button>
               </div>
             )}
 
             <div className="flex gap-3">
-              <Button
-                onClick={() => setUseWallet(false)}
-                variant="outline"
-                className="flex-1"
-              >
-                Back
+              <Button onClick={() => setPaymentMethod("card")} variant="outline" className="flex-1">
+                <CreditCard className="w-4 h-4 mr-2" />Pay with Card
               </Button>
               <Button
                 onClick={handleWalletPayment}
                 disabled={!hasEnoughBalance || processingWallet}
                 className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
               >
-                {processingWallet ? "Processing..." : `Pay from Wallet`}
+                {processingWallet ? "Processing..." : "Pay from Wallet"}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-gray-300">Total Amount</span>
+                <span className="text-3xl font-bold text-white">${amount.toFixed(2)}</span>
+              </div>
+              {itemDetails && (
+                <div className="text-sm text-gray-400">
+                  <p>{itemDetails.name}</p>
+                  {itemDetails.description && <p className="text-gray-500">{itemDetails.description}</p>}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => setPaymentMethod("wallet")} variant="outline" className="flex-1">
+                <Wallet className="w-4 h-4 mr-2" />Pay with Wallet
+              </Button>
+              <Button onClick={loadCardForm} disabled={loadingStripe} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600">
+                {loadingStripe ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                {loadingStripe ? "Loading…" : "Continue"}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Security Badge */}
         <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-4 border-t border-white/10">
           <Lock className="w-3 h-3" />
-          <span>Secured by Stripe & Base44</span>
+          <span>Secured by Stripe</span>
         </div>
       </DialogContent>
     </Dialog>

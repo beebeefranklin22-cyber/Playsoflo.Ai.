@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import RelatedTracksSidebar from "./music/RelatedTracksSidebar";
 
 export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomingTracks = [], onPlayTrack }) {
@@ -53,11 +54,14 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
             played_at: new Date().toISOString()
           });
 
-          // Increment stream count for app-uploaded tracks
+          // Increment stream count for app-uploaded tracks. This has to go
+          // through a SECURITY DEFINER RPC rather than a direct table
+          // update -- music_tracks' RLS only lets the artist update their
+          // own row, so a listener's own update would always be rejected.
           if (track.id && !track.video_id) {
-            base44.entities.MusicTrack.update(track.id, {
-              stream_count: (track.stream_count || 0) + 1
-            }).catch(() => {});
+            supabase.rpc('increment_track_stream', { p_track_id: track.id }).then(({ error }) => {
+              if (error) console.error('Failed to increment stream count:', error);
+            });
           }
 
           // Keep only last 20 entries per user
@@ -242,21 +246,58 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  // Likes/comments only exist for real app-uploaded tracks (a stable
+  // UUID id), not YouTube/demo entries.
+  const isAppTrack = track?.id && !track?.video_id;
+
+  useEffect(() => {
+    if (!isAppTrack || !currentUser) { setIsLiked(false); return; }
+    base44.entities.TrackLike.filter({ track_id: track.id, user_email: currentUser.email })
+      .then((rows) => setIsLiked(rows.length > 0))
+      .catch(() => setIsLiked(false));
+  }, [track?.id, currentUser?.email, isAppTrack]);
+
+  useEffect(() => {
+    if (!isAppTrack) { setComments([]); return; }
+    base44.entities.TrackComment.filter({ track_id: track.id }, { orderBy: 'created_at', orderDesc: true })
+      .then(setComments)
+      .catch(() => setComments([]));
+  }, [track?.id, isAppTrack]);
+
   if (!track) return null;
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
+  const handleLike = async () => {
+    if (!isAppTrack || !currentUser) return;
+    const wasLiked = isLiked;
+    setIsLiked(!wasLiked);
+    try {
+      if (wasLiked) {
+        const rows = await base44.entities.TrackLike.filter({ track_id: track.id, user_email: currentUser.email });
+        for (const row of rows) await base44.entities.TrackLike.delete(row.id);
+      } else {
+        await base44.entities.TrackLike.create({ track_id: track.id, user_email: currentUser.email });
+      }
+    } catch (err) {
+      console.error('Failed to update like:', err);
+      setIsLiked(wasLiked);
+    }
   };
 
-  const handleAddComment = () => {
-    if (newComment.trim()) {
-      const userName = isAnonymous ? 'Anonymous' : (currentUser?.full_name || 'User');
-      setComments([...comments, { 
-        text: newComment, 
-        date: new Date().toISOString(),
-        author: userName
-      }]);
+  const handleAddComment = async () => {
+    if (!newComment.trim() || !isAppTrack || !currentUser) return;
+    const userName = isAnonymous ? 'Anonymous' : (currentUser?.full_name || 'User');
+    try {
+      const row = await base44.entities.TrackComment.create({
+        track_id: track.id,
+        user_email: currentUser.email,
+        user_name: userName,
+        comment_text: newComment,
+        is_anonymous: isAnonymous,
+      });
+      setComments([row, ...comments]);
       setNewComment('');
+    } catch (err) {
+      console.error('Failed to post comment:', err);
     }
   };
 
@@ -388,15 +429,15 @@ export default function MusicPlayer({ track, onNext, onPrevious, onClose, upcomi
 
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {comments.map((comment, idx) => (
-                      <div key={idx} className="bg-white/5 rounded-lg p-3">
+                      <div key={comment.id || idx} className="bg-white/5 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-purple-400 text-sm font-semibold">{comment.author || 'User'}</p>
+                          <p className="text-purple-400 text-sm font-semibold">{comment.user_name || 'User'}</p>
                           <span className="text-gray-500 text-xs">•</span>
                           <p className="text-gray-400 text-xs">
-                            {new Date(comment.date).toLocaleString()}
+                            {new Date(comment.created_at).toLocaleString()}
                           </p>
                         </div>
-                        <p className="text-white text-sm">{comment.text}</p>
+                        <p className="text-white text-sm">{comment.comment_text}</p>
                       </div>
                     ))}
                     {comments.length === 0 && (

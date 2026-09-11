@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -213,9 +214,10 @@ export default function ArtistProfile() {
       });
     }
 
-    // Increment stream count
-    base44.entities.MusicTrack.update(track.id, {
-      stream_count: (track.stream_count || 0) + 1
+    // Increment stream count -- goes through a SECURITY DEFINER RPC since
+    // music_tracks' RLS only lets the artist update their own row.
+    supabase.rpc('increment_track_stream', { p_track_id: track.id }).then(({ error }) => {
+      if (error) console.error('Failed to increment stream count:', error);
     });
   };
 

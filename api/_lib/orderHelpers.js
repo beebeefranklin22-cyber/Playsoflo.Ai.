@@ -37,9 +37,16 @@ export async function createOrderRow(admin, orderType, ctx) {
   if (table === 'content_purchases') {
     row = {
       content_id: ctx.item_id,
+      // Also stamp item_id/item_type (content_purchases carries both
+      // column sets) since PurchaseAccessGate/ArtistProfile's "already
+      // purchased?" check queries by item_type + item_id, not content_id.
+      item_id: ctx.item_id,
+      item_type: ctx.item_type || orderType,
       buyer_email: ctx.customerEmail,
       creator_email: ctx.provider_email,
+      seller_email: ctx.provider_email,
       amount_usd: ctx.totalAmount,
+      price_paid: ctx.totalAmount,
       purchase_type: orderType === 'subscription' ? 'subscribe' : 'buy',
       payment_method: ctx.paymentMethod,
       payment_intent_id: ctx.paymentIntentId,
