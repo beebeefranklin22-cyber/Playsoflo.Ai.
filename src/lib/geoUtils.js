@@ -33,6 +33,24 @@ export function distanceInMiles(a, b) {
   return R * c;
 }
 
+// Best-effort browser geolocation as a plain {latitude, longitude} object
+// (or null if unsupported/denied/timed out). Never throws -- callers use
+// this to opportunistically stamp lat/lng onto a new listing or booking
+// without blocking the flow when permission isn't granted.
+export function getCurrentCoords({ timeout = 5000 } = {}) {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout }
+    );
+  });
+}
+
 // Default radius (miles) a driver will see requests within.
 export const DEFAULT_DRIVER_RADIUS_MILES = 30;
 

@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import { getCurrentCoords } from "@/lib/geoUtils";
 import BookingRequestsSection from "../components/provider/BookingRequestsSection";
 import EarningsSection from "../components/provider/EarningsSection";
 import PerformanceDashboard from "../components/provider/PerformanceDashboard";
@@ -296,7 +297,10 @@ export default function ProviderHub() {
     category: "consulting",
     price: 100,
     price_type: "fixed",
+    duration: "",
+    location: "",
     image_url: "",
+    video_url: "",
     description: "",
     escrow_required: false,
     portfolio_images: [],
@@ -382,24 +386,29 @@ export default function ProviderHub() {
         toast.error("Only verified businesses can offer Logistics. Please verify your business in your profile.");
         return Promise.reject("Not verified for logistics");
       }
+      // Best-effort: stamp lat/lng from the browser so the browse page's
+      // radius filter has something to compute distance against.
+      const coords = await getCurrentCoords();
       const serviceData = {
         ...data,
+        duration: data.duration ? Number(data.duration) : null,
         provider_email: currentUser.email,
         provider_name: currentUser.provider_business_name || currentUser.full_name,
         verified_provider: verifiedCount > 0,
         availability: "available",
         rating: 5.0,
         reviews_count: 0,
-        response_time: "within 1 hour"
+        response_time: "within 1 hour",
+        ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
       };
       return base44.entities.MarketplaceItem.create(serviceData);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["my-services"] });
       qc.invalidateQueries({ queryKey: ["marketplace-items"] });
-      setForm({ 
-        title: "", category: "consulting", price: 100, price_type: "fixed", 
-        image_url: "", description: "", escrow_required: false, 
+      setForm({
+        title: "", category: "consulting", price: 100, price_type: "fixed",
+        duration: "", location: "", image_url: "", video_url: "", description: "", escrow_required: false,
         portfolio_images: [], variations: [], add_ons: [],
         is_rental: false, rental_details: {}, blocked_dates: []
       });
@@ -793,6 +802,17 @@ export default function ProviderHub() {
                     </Button>
                   </div>
                   <Input type="number" placeholder="Price (USD)" value={form.price} onChange={(e) => setForm({...form, price: Number(e.target.value)})} className="bg-white/10 border-white/20 text-white" />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Duration (minutes)</label>
+                    <Input type="number" placeholder="e.g., 60" value={form.duration} onChange={(e) => setForm({...form, duration: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-sm mb-2 block">Location / Service Area</label>
+                    <Input placeholder="e.g., Miami, FL" value={form.location} onChange={(e) => setForm({...form, location: e.target.value})} className="bg-white/10 border-white/20 text-white" />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
