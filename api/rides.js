@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     if (action === 'accept') return res.status(200).json(await acceptRide(admin, user, req.body));
     if (action === 'complete') return res.status(200).json(await completeRide(admin, user, req.body));
     if (action === 'cancel') return res.status(200).json(await cancelRide(admin, user, req.body));
+    if (action === 'driver_cancel') return res.status(200).json(await driverCancelRide(admin, user, req.body));
     if (action === 'match_driver') return res.status(200).json(await matchDriver(admin, req.body));
     if (action === 'rate_driver') return res.status(200).json(await rateDriver(admin, user, req.body));
     return res.status(400).json({ error: `Unknown action "${action}"` });
@@ -256,6 +257,33 @@ async function cancelRide(admin, user, { ride_id, cancellation_reason }) {
   if (error) throw error;
 
   return { success: true, fee_charged: fee };
+}
+
+// A driver backing out doesn't charge the passenger anything -- it just
+// releases the ride back to "requested" so matching can find another
+// driver. (Previously the only reachable driver-side cancel button,
+// CancellationModal.jsx, wrote directly to ride_requests from the client
+// with no ownership check at all.)
+async function driverCancelRide(admin, user, { ride_id, cancellation_reason }) {
+  const { data: ride, error: fetchError } = await admin.from('ride_requests').select('*').eq('id', ride_id).single();
+  if (fetchError || !ride) throw new Error('Ride not found');
+  if (ride.driver_email !== user.email) throw new Error('You are not the driver on this ride');
+  if (['completed', 'cancelled'].includes(ride.status)) return { success: true };
+
+  const { error } = await admin
+    .from('ride_requests')
+    .update({
+      status: 'requested', driver_status: 'pending', driver_email: null, driver_name: null,
+      driver_profile_picture: null, driver_vehicle_info: null, matched_at: null,
+      cancellation_reason, cancelled_by: user.email,
+    })
+    .eq('id', ride_id);
+  if (error) throw error;
+
+  await notify(admin, ride.created_by || ride.passenger_email, 'ride_update', 'Driver Cancelled',
+    `Your driver had to cancel. We're finding you another one now.`, ride_id);
+
+  return { success: true };
 }
 
 function haversineMiles([lat1, lon1], [lat2, lon2]) {

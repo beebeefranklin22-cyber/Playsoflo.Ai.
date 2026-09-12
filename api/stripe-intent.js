@@ -1,5 +1,15 @@
+import { requireUser } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  let user;
+  try {
+    user = await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
+
   const { amount, currency = 'usd', metadata = {} } = req.body;
   if (!amount) return res.status(400).json({ error: 'amount required' });
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -12,7 +22,7 @@ export default async function handler(req, res) {
       body: new URLSearchParams({
         amount: String(amount), currency,
         'automatic_payment_methods[enabled]': 'true',
-        ...Object.entries(metadata).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
+        ...Object.entries({ ...metadata, created_by: user.email }).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
       }),
     });
     const intent = await response.json();

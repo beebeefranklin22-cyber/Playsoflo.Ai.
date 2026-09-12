@@ -1,9 +1,17 @@
 import agoraAccessToken from 'agora-access-token';
+import { requireUser } from './_lib/auth.js';
 
 const { RtcTokenBuilder, RtcRole } = agoraAccessToken;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  try {
+    await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
+
   const { channelName, uid = 0, role = 'publisher' } = req.body;
   if (!channelName) return res.status(400).json({ error: 'channelName required' });
   const appId = process.env.AGORA_APP_ID;

@@ -43,10 +43,11 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
 
       return await base44.entities.Story.create({
         ...data,
+        creator_email: currentUser.email,
         creator_profile_picture: currentUser.profile_picture || currentUser.profile_photo,
         creator_name: currentUser.full_name || currentUser.username,
         expires_at: expiresAt.toISOString(),
-        views: []
+        views: 0
       });
     },
     onSuccess: () => {

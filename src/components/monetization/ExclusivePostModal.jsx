@@ -25,7 +25,13 @@ export default function ExclusivePostModal({ currentUser, onClose }) {
       const post = await base44.entities.SocialPost.create({
         ...data,
         likes_count: 0,
-        comments_count: 0
+        comments_count: 0,
+        author_email: currentUser?.email,
+        author_name: currentUser?.full_name,
+        created_by: currentUser?.email,
+        creator_name: currentUser?.full_name,
+        creator_username: currentUser?.username || currentUser?.email?.split('@')[0],
+        creator_profile_picture: currentUser?.profile_picture,
       });
       return post;
     },

@@ -1,7 +1,15 @@
 // api/extract.js — Structured data extraction from an uploaded file via Claude.
 // Used by ExtractDataFromUploadedFile() in src/api/integrations.js.
+import { requireUser } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
 
   const { file_url, json_schema } = req.body;
 

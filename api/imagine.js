@@ -2,8 +2,16 @@
 // src/api/integrations.js. Requires OPENAI_API_KEY to be configured; no
 // image-generation provider was wired into this project previously, so the
 // feature returns a clear "not configured" error until a key is added.
+import { requireUser } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
 
   const { prompt, width = 1024, height = 1024 } = req.body;
   if (!prompt) return res.status(400).json({ error: 'prompt is required' });

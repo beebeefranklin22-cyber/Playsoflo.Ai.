@@ -1,6 +1,14 @@
 // api/ronron.js — Ronron AI powered by Anthropic Claude
+import { requireUser } from './_lib/auth.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
 
   const { prompt, systemPrompt, response_json_schema, model } = req.body;
 

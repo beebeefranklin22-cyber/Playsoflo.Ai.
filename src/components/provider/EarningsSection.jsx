@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { processWithdrawal } from "@/functions/processWithdrawal";
 
 export default function EarningsSection({ currentUser }) {
   const queryClient = useQueryClient();
@@ -51,56 +52,41 @@ export default function EarningsSection({ currentUser }) {
     earnings
   })).slice(-6);
 
-  // Withdraw mutation
+  // Withdraw mutation — previously this wrote provider_wallet_balance
+  // directly via updateMe(), which the protect_balance_columns trigger
+  // silently reverts for anyone but the service role: the screen showed a
+  // "success" toast while the real balance never moved. Now it goes
+  // through the same secure /api/wallet "withdraw" action Wallet.jsx uses,
+  // which atomically debits the balance server-side and queues a real
+  // payout_requests row.
   const withdrawMutation = useMutation({
-    mutationFn: async ({ amount, type }) => {
-      const newBalance = availableBalance - amount;
-      
-      if (type === 'wallet') {
-        // Transfer to main wallet and convert to SoFloCoin
-        const sofloCoinRate = 0.01; // $1 = 100 SFC (example)
-        const sofloCoinAmount = amount / sofloCoinRate;
-        
-        // Create crypto transaction
-        await base44.entities.CryptoTransaction.create({
-          currency: 'SFC',
-          amount: sofloCoinAmount,
-          transaction_type: 'provider_earnings_transfer',
-          status: 'completed',
-          usd_value: amount,
-          memo: `Provider earnings transfer: $${amount} → ${sofloCoinAmount.toFixed(2)} SFC`
-        });
-      } else {
-        // Withdraw to bank (would integrate with Stripe)
-        await base44.entities.Payment.create({
-          amount_usd: amount,
-          method: 'bank_transfer',
-          status: 'pending',
-          reference_type: 'provider_withdrawal',
-          memo: 'Provider withdrawal to bank account'
-        });
-      }
-      
-      // Update provider wallet balance
-      await base44.auth.updateMe({
-        provider_wallet_balance: newBalance
+    mutationFn: async ({ amount }) => {
+      const methods = await base44.entities.PaymentMethod.filter({
+        user_email: currentUser.email,
+        status: 'active'
       });
-      
-      return { type, amount };
+      if (!methods.length) {
+        throw new Error('Add a payout method in Wallet before withdrawing.');
+      }
+
+      const { data: result } = await processWithdrawal({
+        amount,
+        method: 'bank',
+        payment_method_id: methods[0].id,
+      });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Withdrawal failed');
+      }
+      return { amount };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['current-user']);
       setShowWithdraw(false);
       setWithdrawAmount("");
-      
-      if (data.type === 'wallet') {
-        toast.success(`Transferred $${data.amount} to wallet as SoFloCoin!`);
-      } else {
-        toast.success(`Withdrawal of $${data.amount} initiated!`);
-      }
+      toast.success(`Withdrawal of $${data.amount} initiated!`);
     },
-    onError: () => {
-      toast.error('Withdrawal failed');
+    onError: (error) => {
+      toast.error(error.message || 'Withdrawal failed');
     }
   });
 
@@ -110,7 +96,7 @@ export default function EarningsSection({ currentUser }) {
       toast.error('Invalid amount');
       return;
     }
-    withdrawMutation.mutate({ amount, type: withdrawType });
+    withdrawMutation.mutate({ amount });
   };
 
   return (

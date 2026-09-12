@@ -154,21 +154,38 @@ async function handleCreditFromPayment(admin, { payment_intent_id, recipient_ema
   if (!payment_intent_id) throw new Error('payment_intent_id is required');
   if (!recipient_email) throw new Error('recipient_email is required');
 
-  const { data: existing } = await admin
-    .from('wallet_transactions')
-    .select('id')
-    .eq('reference_id', payment_intent_id)
-    .eq('reference_type', reference_type || 'stripe_credit')
-    .limit(1)
-    .maybeSingle();
-  if (existing) return { success: true, already_processed: true };
-
   const intent = await retrievePaymentIntent(payment_intent_id);
   if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+
+  // Defense in depth: if the PaymentIntent was created with a
+  // recipient_email in its metadata (api/stripe-intent.js now stamps
+  // created_by; tipping/purchase flows that pass recipient info at intent
+  // creation do the same), refuse to credit a different email than the one
+  // the charge was actually collected for.
+  if (intent.metadata?.recipient_email && intent.metadata.recipient_email !== recipient_email) {
+    throw new Error('This payment was not collected for that recipient');
+  }
 
   const grossAmount = intent.amount / 100;
   const rate = Number.isFinite(fee_rate) ? fee_rate : 0.1;
   const creditAmount = Math.round(grossAmount * (1 - rate) * 100) / 100;
+
+  // A single Stripe payment_intent_id must credit a wallet AT MOST ONCE,
+  // full stop -- not once per (payment_intent_id, reference_type) pair.
+  // reference_type is a client-supplied string, so keying the old
+  // idempotency check on that pair let one real charge be credited an
+  // unlimited number of times just by varying reference_type on repeat
+  // calls. This ledger has a unique constraint on payment_intent_id alone
+  // (migration 0020), and the insert is the atomic lock: if two requests
+  // race, only one insert can win, closing the TOCTOU window a
+  // check-then-move approach would leave open.
+  const { error: ledgerError } = await admin
+    .from('stripe_credit_ledger')
+    .insert({ payment_intent_id, recipient_email, credited_amount: creditAmount, reference_type: reference_type || 'stripe_credit' });
+  if (ledgerError) {
+    if (ledgerError.code === '23505') return { success: true, already_processed: true };
+    throw ledgerError;
+  }
 
   const { error: moveError } = await admin.rpc('wallet_move', {
     p_from_email: null,

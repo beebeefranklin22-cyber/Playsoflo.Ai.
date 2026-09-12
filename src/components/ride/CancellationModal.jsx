@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { cancelRideSecure } from "@/functions/cancelRideSecure";
+import { driverCancelRideSecure } from "@/functions/driverCancelRideSecure";
 
 export default function CancellationModal({ open, onClose, ride, userType }) {
   const [reason, setReason] = useState("");
@@ -40,14 +42,17 @@ export default function CancellationModal({ open, onClose, ride, userType }) {
     setLoading(true);
     try {
       const currentUser = await base44.auth.me();
-      
-      // Update ride status
-      await base44.entities.RideRequest.update(ride.id, {
-        status: userType === "passenger" ? "declined_by_customer" : "cancelled",
-        cancellation_reason: reason,
-        cancellation_details: details,
-        cancelled_by: currentUser.email
+
+      // Goes through the same secure server endpoint CancelRideModal uses,
+      // so the real cancellation fee is actually charged (previously this
+      // wrote directly to ride_requests from the client with no fee at
+      // all, even though it's the button most people actually see).
+      const cancelFn = userType === "passenger" ? cancelRideSecure : driverCancelRideSecure;
+      const { data: result } = await cancelFn({
+        ride_id: ride.id,
+        cancellation_reason: details ? `${reason}: ${details}` : reason,
       });
+      if (result?.error) throw new Error(result.error);
 
       // Track driver cancellation rate
       if (userType === "driver") {

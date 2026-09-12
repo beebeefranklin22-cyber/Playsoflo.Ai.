@@ -67,24 +67,23 @@ export default function HailRideModal({ open, onClose }) {
       const { latitude, longitude } = position.coords;
       setPickupCoords([latitude, longitude]);
 
-      // Reverse geocode to get address
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${await getGoogleMapsKey()}`
-      );
+      // Reverse geocode via our own keyless geocoding endpoint (no Google
+      // Maps key is configured for this project — see api/geo.js).
+      const response = await fetch('/api/geo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reverse', lat: latitude, lon: longitude }),
+      });
       const data = await response.json();
-      
-      if (data.status === 'OK' && data.results[0]) {
-        setPickup(data.results[0].formatted_address);
+
+      if (data.formatted_address) {
+        setPickup(data.formatted_address);
       }
     } catch (error) {
       console.log("Location access denied or failed");
     } finally {
       setGettingLocation(false);
     }
-  };
-
-  const getGoogleMapsKey = async () => {
-    return "YOUR_API_KEY"; // Placeholder - actual implementation uses backend
   };
 
   const fetchSuggestions = async (input, setSuggestions, setLoading) => {

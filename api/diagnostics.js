@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
 import { askClaudeForJson } from './_lib/anthropic.js';
+import { requireUser } from './_lib/auth.js';
 
 // Backs systemDiagnostics, infrastructureHealthCheck, and aiDiagnostics —
 // admin-facing tooling, not core user flows. health_check/proactive_scan
@@ -8,6 +9,12 @@ import { askClaudeForJson } from './_lib/anthropic.js';
 // client already collected and suggest likely causes.
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    await requireUser(req);
+  } catch (err) {
+    return res.status(err.statusCode || 401).json({ error: err.message });
+  }
 
   const { action, errorLogs, systemMetrics } = req.body || {};
 
