@@ -81,7 +81,8 @@ export default function NewsCreatorDashboard() {
       setShowCreateModal(false);
       setFormData({ title: "", content: "", category: "local", featured_image: "", video_url: "", source_url: "", status: "published" });
       toast.success('Post created!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to create post')
   });
 
   const updateMutation = useMutation({
@@ -93,7 +94,8 @@ export default function NewsCreatorDashboard() {
       setEditingPost(null);
       setShowCreateModal(false);
       toast.success('Post updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update post')
   });
 
   const deleteMutation = useMutation({
@@ -103,7 +105,8 @@ export default function NewsCreatorDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries(['my-news-posts']);
       toast.success('Post deleted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to delete post')
   });
 
   const handleSubmit = (e) => {
