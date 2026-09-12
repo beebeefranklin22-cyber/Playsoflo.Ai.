@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Star, Clock, Shield, Check, Users, SlidersHorizontal } from "lucide-react";
-import BookingModal from "../components/BookingModal";
+import UnifiedBookingModal from "../components/booking/UnifiedBookingModal";
 import MessageProviderButton from "../components/provider/MessageProviderButton";
 import AdvancedFilters from "../components/marketplace/AdvancedFilters";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";
+import { getCurrentCoords, distanceInMiles } from "../lib/geoUtils";
 import { motion } from "framer-motion";
 
 export default function ServiceProviders() {
@@ -28,15 +29,24 @@ export default function ServiceProviders() {
     availability: null,
     verification: null,
     serviceArea: null,
+    category: null,
     instantBooking: false,
     escrowProtected: false
   });
-  
+  const [userCoords, setUserCoords] = useState(null);
+
   const serviceName = new URLSearchParams(location.search).get('service');
 
   useEffect(() => {
     base44.auth.me().then(setCurrentUser).catch(() => {});
   }, []);
+
+  // Best-effort — only needed when the radius filter is actually applied.
+  useEffect(() => {
+    if (locationRadius && !userCoords) {
+      getCurrentCoords().then(setUserCoords);
+    }
+  }, [locationRadius]);
 
   const { data: allProviders = [], isLoading } = useQuery({
     queryKey: ['service-providers', serviceName],
@@ -116,9 +126,24 @@ export default function ServiceProviders() {
     const matchesInstantBooking = !filters.instantBooking || provider.instant_booking === true;
     const matchesEscrow = !filters.escrowProtected || provider.escrow_required === true;
 
+    const matchesCategory = !filters.category || provider.category === filters.category;
+
+    // Radius filter: only actually excludes a listing when we have coords
+    // for both the customer and the listing (best-effort, like the city
+    // filter above -- an un-located listing always passes rather than
+    // being hidden).
+    let matchesRadius = true;
+    if (locationRadius && userCoords && provider.latitude != null && provider.longitude != null) {
+      const dist = distanceInMiles(userCoords, { latitude: provider.latitude, longitude: provider.longitude });
+      matchesRadius = dist === null || dist <= locationRadius;
+    }
+
     return matchesPrice && matchesRating && matchesAvailability &&
-           matchesVerification && matchesServiceArea && matchesInstantBooking && matchesEscrow;
+           matchesVerification && matchesServiceArea && matchesInstantBooking && matchesEscrow &&
+           matchesCategory && matchesRadius;
   });
+
+  const categoryOptions = [...new Set(allProviders.map(p => p.category).filter(Boolean))];
 
   if (isLoading) {
     return (
@@ -182,12 +207,14 @@ export default function ServiceProviders() {
           <AdvancedFilters
             filters={filters}
             onFiltersChange={setFilters}
+            categoryOptions={categoryOptions}
             onClear={() => setFilters({
               priceRange: [0, 10000],
               minRating: null,
               availability: null,
               verification: null,
               serviceArea: null,
+              category: null,
               instantBooking: false,
               escrowProtected: false
             })}
@@ -304,11 +331,28 @@ export default function ServiceProviders() {
         )}
       </div>
 
-      {/* Booking Modal */}
+      {/* Booking Modal — the real, secure, money-correct path (writes to
+          service_bookings via processUnifiedCheckout), same one used from
+          ProviderStorefront/ProviderProfile. selectedProvider here is a
+          marketplace_items row (this page lists listings, not a separate
+          provider record), so it doubles as both `provider` (via
+          provider_email) and `item`. */}
       {showBookingModal && selectedProvider && (
-        <BookingModal
-          service={selectedProvider}
+        <UnifiedBookingModal
+          isOpen={showBookingModal}
+          provider={{
+            email: selectedProvider.provider_email || selectedProvider.created_by,
+            full_name: selectedProvider.provider_name,
+            provider_business_name: selectedProvider.provider_name,
+            location: selectedProvider.location || selectedProvider.service_area,
+          }}
+          item={selectedProvider}
+          orderType="service_booking"
           onClose={() => {
+            setShowBookingModal(false);
+            setSelectedProvider(null);
+          }}
+          onSuccess={() => {
             setShowBookingModal(false);
             setSelectedProvider(null);
           }}

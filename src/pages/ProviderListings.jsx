@@ -14,6 +14,7 @@ import {
   Image as ImageIcon, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getCurrentCoords } from "@/lib/geoUtils";
 
 export default function ProviderListings() {
   const navigate = useNavigate();
@@ -118,19 +119,35 @@ export default function ProviderListings() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!listingForm.title || !listingForm.description || !listingForm.price) {
       alert('Please fill in all required fields');
       return;
     }
 
+    // price_in_soflo isn't a real marketplace_items column -- SoFloCoin
+    // pricing is Coming Soon app-wide (the field above is disabled), so
+    // don't send a fake value that would make the whole insert/update fail.
+    const { price_in_soflo: _price_in_soflo, ...payload } = listingForm;
+
+    // Best-effort: stamp lat/lng from the browser so the browse page's
+    // radius filter has something to compute distance against. Silently
+    // skipped if geolocation is unavailable/denied.
+    if (!editingListing) {
+      const coords = await getCurrentCoords();
+      if (coords) {
+        payload.latitude = coords.latitude;
+        payload.longitude = coords.longitude;
+      }
+    }
+
     if (editingListing) {
       updateListingMutation.mutate({
         id: editingListing.id,
-        data: listingForm
+        data: payload
       });
     } else {
-      createListingMutation.mutate(listingForm);
+      createListingMutation.mutate(payload);
     }
   };
 
