@@ -718,6 +718,23 @@ export default function UnifiedBookingModal({
                     {form.fulfillment_method === 'local_delivery' && (
                       <p className="text-blue-300 text-sm mt-2">🚗 A driver is being dispatched and will be assigned to your delivery.</p>
                     )}
+                    {/* Location details for items that carry a structured location_type
+                        (e.g. Health & Wellness services — see 0021_wellness_hub_fixes.sql).
+                        Renders nothing for items/hubs that don't set this field. */}
+                    {item?.location_type && (
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-3 mt-3 text-left text-sm text-gray-300">
+                        <p className="text-white font-semibold mb-1 flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4" /> Location
+                        </p>
+                        {item.location_type === 'virtual' ? (
+                          <p>{item.virtual_meeting_note || 'Virtual session — meeting details will be sent to you.'}</p>
+                        ) : item.location_type === 'mobile' ? (
+                          <p>Provider comes to you{item.service_area ? ` (${item.service_area})` : ''}.</p>
+                        ) : (
+                          <p>{item.location || item.service_area || "In-person at the provider's location."}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-3">
                     {orderType === 'service_booking' && (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -6,15 +6,79 @@ import { createPageUrl } from "@/utils";
 import {
   Star, Clock, Activity, Heart, Shield,
   Users, Home, Package, MessageSquare,
-  CheckCircle, ShieldCheck, Plus
+  CheckCircle, ShieldCheck, Plus, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import PageWrapper from "@/components/PageWrapper";
 import WellnessProviderOnboardingModal from "@/components/wellness/WellnessProviderOnboardingModal";
 import WellnessChatModal from "@/components/wellness/WellnessChatModal";
+import UnifiedBookingModal from "@/components/booking/UnifiedBookingModal";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";
+
+// Distance in miles between two lat/lng points. Self-contained here (rather
+// than a shared util) since it's only meaningful once a service actually
+// carries latitude/longitude -- see 0021_wellness_hub_fixes.sql.
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const R = 3958.8; // Earth radius, miles
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function locationLabel(service) {
+  if (service.location_type === "virtual") {
+    return service.virtual_meeting_note ? `Virtual — ${service.virtual_meeting_note}` : "Virtual session";
+  }
+  if (service.location_type === "mobile") {
+    return service.service_area ? `Mobile — comes to you (${service.service_area})` : "Mobile — provider comes to you";
+  }
+  return service.location || service.service_area || "In-person";
+}
+
+// Sends a booking-confirmation email using the same real, working
+// Resend-backed api/email.js every other booking-confirmation call site in
+// the app already POSTs to (see src/functions/sendBookingEmails.js). The
+// checkout call (UnifiedBookingModal -> processUnifiedCheckout ->
+// api/checkout.js) already wrote the real service_bookings row with
+// customer_email set correctly -- fetch it back by the returned order_id so
+// the email has the actual confirmed date/time, and pair it with the
+// service's structured location (added in 0021_wellness_hub_fixes.sql) so
+// the customer actually sees where/how to show up. Best-effort: the booking
+// itself is already paid for, so a failed email must never surface as an
+// error to the customer.
+async function sendWellnessBookingConfirmation(checkoutResult, service) {
+  try {
+    const orderId = checkoutResult?.order_id;
+    if (!orderId) return;
+    const booking = await base44.entities.ServiceBooking.get(orderId);
+    if (!booking?.customer_email) return;
+
+    const when = booking.booking_date
+      ? `${booking.booking_date}${booking.booking_time ? ` at ${booking.booking_time}` : ""}`
+      : "a time to be confirmed with your provider";
+
+    const body = `
+      <p>Your booking for <strong>${service.title}</strong> with ${service.provider_name || "your provider"} is confirmed.</p>
+      <p><strong>When:</strong> ${when}</p>
+      <p><strong>Where:</strong> ${locationLabel(service)}</p>
+      <p><strong>Total paid:</strong> $${Number(booking.total_price || 0).toFixed(2)}</p>
+    `;
+
+    await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to: booking.customer_email, subject: "Your wellness booking is confirmed", body }),
+    });
+  } catch (err) {
+    console.error("Failed to send wellness booking confirmation email:", err);
+  }
+}
 
 const wellnessCategories = [
   { id: "acupuncture", label: "Acupuncture", icon: Activity, color: "from-green-500 to-emerald-500" },
@@ -52,6 +116,20 @@ export default function Wellness() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [chatService, setChatService] = useState(null);
+  const [bookingService, setBookingService] = useState(null);
+  const [userCoords, setUserCoords] = useState(null);
+
+  // For the radius filter to do real distance math (rather than being
+  // decorative) we need the customer's coordinates, mirroring how
+  // UnifiedBookingModal already asks for GPS to price delivery.
+  useEffect(() => {
+    if (!locationRadius || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserCoords([pos.coords.latitude, pos.coords.longitude]),
+      () => setUserCoords(null),
+      { timeout: 5000 }
+    );
+  }, [locationRadius]);
 
   const { data: services = [], isLoading } = useQuery({
     queryKey: ['wellness-services'],
@@ -101,7 +179,15 @@ export default function Wellness() {
       const hay = [service.location, service.service_area].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(q);
     })();
-    return matchesCategory && matchesSearch && matchesLocation;
+    // Radius filter: only actually excludes a service once we have both the
+    // customer's coordinates and the service's (latitude/longitude, added in
+    // 0021_wellness_hub_fixes.sql). A service with no coordinates yet always
+    // passes rather than being hidden — same "don't strand un-located items"
+    // rule useUserLocation.js's filterByLocation already uses.
+    const matchesRadius = !locationRadius || !userCoords || service.latitude == null || service.longitude == null || (
+      haversineMiles(userCoords[0], userCoords[1], service.latitude, service.longitude) <= locationRadius
+    );
+    return matchesCategory && matchesSearch && matchesLocation && matchesRadius;
   });
 
   return (
@@ -237,7 +323,14 @@ export default function Wellness() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence>
             {filteredServices.map((service, idx) => {
-              const providerVers = providerVerifications[service.created_by] || [];
+              // ProviderVerification rows are keyed by provider_email (that's
+              // what the onboarding modal writes and what the map below is
+              // built from), but this used to look them up by
+              // service.created_by -- a column MarketplaceItem.create()
+              // never actually populated, so verificationCount was always 0
+              // and the "N License(s)" badge could never render even for a
+              // fully verified provider.
+              const providerVers = providerVerifications[service.provider_email || service.created_by] || [];
               const verificationCount = providerVers.length;
               const trustScore = service.verified_provider ? 95 : 75;
 
@@ -299,12 +392,24 @@ export default function Wellness() {
                         by {service.provider_name}
                       </p>
 
-                      {service.response_time && (
-                        <div className="flex items-center gap-2 text-gray-400 text-xs mb-3">
-                          <Clock className="w-3 h-3" />
-                          Responds in {service.response_time}
-                        </div>
-                      )}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-400 text-xs mb-3">
+                        {service.response_time && (
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            Responds in {service.response_time}
+                          </span>
+                        )}
+                        {service.duration_minutes && (
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {service.duration_minutes} min
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-3 h-3" />
+                          {locationLabel(service)}
+                        </span>
+                      </div>
 
                       <div className="flex items-center justify-between">
                         <div>
@@ -329,17 +434,9 @@ export default function Wellness() {
                           </button>
                           <button
                             className="px-6 py-3 bg-green-500 rounded-full text-white font-semibold hover:bg-green-600 transition"
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              await base44.entities.Booking.create({
-                                experience_id: service.id,
-                                experience_title: service.title,
-                                booking_date: new Date().toISOString().split('T')[0],
-                                number_of_guests: 1,
-                                total_price_usd: service.price,
-                                provider_email: service.created_by
-                              });
-                              alert("✅ Service booked successfully!");
+                              setBookingService(service);
                             }}
                           >
                             Book Now
@@ -381,6 +478,21 @@ export default function Wellness() {
         )}
         {chatService && (
           <WellnessChatModal service={chatService} onClose={() => setChatService(null)} />
+        )}
+        {bookingService && (
+          <UnifiedBookingModal
+            isOpen={!!bookingService}
+            onClose={() => setBookingService(null)}
+            provider={{
+              email: bookingService.provider_email || bookingService.created_by,
+              full_name: bookingService.provider_name,
+              provider_business_name: bookingService.provider_name,
+              location: locationLabel(bookingService),
+            }}
+            item={bookingService}
+            orderType="service_booking"
+            onSuccess={(data) => sendWellnessBookingConfirmation(data, bookingService)}
+          />
         )}
         {showCitySelector && (
           <CitySelector
