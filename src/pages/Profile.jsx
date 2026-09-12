@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ReviewsList from "../components/reviews/ReviewsList";
@@ -25,6 +24,7 @@ import UsernameSetup from "../components/profile/UsernameSetup";
 import ProfileBusinessHub from "../components/profile/ProfileBusinessHub";
 import EditProfileModal from "../components/profile/EditProfileModal";
 import StripePayoutCard from "../components/profile/StripePayoutCard";
+import { linkifyText } from "@/lib/linkify";
 
 // Skeleton shimmer for fast perceived loading
 function ProfileSkeleton() {
@@ -81,6 +81,7 @@ export default function Profile() {
     phone: "",
     address: "",
     interests: [],
+    is_private: false,
     privacy_settings: {
       profile_visibility: "public",
       show_email: false,
@@ -127,6 +128,7 @@ export default function Profile() {
           phone: user.phone || "",
           address: user.address || "",
           interests: user.interests || [],
+          is_private: !!user.is_private,
           privacy_settings: user.privacy_settings || {
             profile_visibility: "public",
             show_email: false,
@@ -176,7 +178,9 @@ export default function Profile() {
     },
     onError: (err) => {
       const msg = err?.message || '';
-      if (msg.includes('network') || msg.includes('fetch')) {
+      if (err?.code === '23505') {
+        toast.error('That username is already taken');
+      } else if (msg.includes('network') || msg.includes('fetch')) {
         toast.error('No connection. Please check your internet and try again.');
       } else if (msg.includes('unauthorized') || msg.includes('401')) {
         toast.error('Session expired. Please sign in again.');
@@ -396,7 +400,7 @@ export default function Profile() {
               <p className="text-gray-500 text-sm mb-2">{currentUser?.email}</p>
             )}
             {currentUser?.bio && (
-              <p className="text-gray-300">{currentUser.bio}</p>
+              <p className="text-gray-300 whitespace-pre-wrap break-words">{linkifyText(currentUser.bio)}</p>
             )}
           </div>
 
@@ -585,7 +589,7 @@ export default function Profile() {
               </CardHeader>
               <CardContent>
                 {currentUser?.bio ? (
-                  <p className="text-gray-300">{currentUser.bio}</p>
+                  <p className="text-gray-300 whitespace-pre-wrap break-words">{linkifyText(currentUser.bio)}</p>
                 ) : (
                   <p className="text-gray-400 text-sm">No bio yet. Click Edit to add one!</p>
                 )}
@@ -1014,24 +1018,21 @@ export default function Profile() {
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Profile Visibility</label>
-                  <Select
-                    value={editedUser.privacy_settings.profile_visibility}
-                    onValueChange={(v) => setEditedUser({
-                      ...editedUser,
-                      privacy_settings: { ...editedUser.privacy_settings, profile_visibility: v }
-                    })}
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <div>
+                    <span className="text-white block">Private Account</span>
+                    <span className="text-gray-500 text-xs">Only approved followers can see your posts, videos, and reels.</span>
+                  </div>
+                  <button
+                    onClick={() => setEditedUser({ ...editedUser, is_private: !editedUser.is_private })}
+                    className={`w-12 h-6 rounded-full transition flex-shrink-0 ${
+                      editedUser.is_private ? 'bg-purple-600' : 'bg-gray-600'
+                    }`}
                   >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="friends">Friends Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <div className={`w-5 h-5 bg-white rounded-full transform transition ${
+                      editedUser.is_private ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
@@ -1087,7 +1088,11 @@ export default function Profile() {
 
                 <Button
                   onClick={async () => {
-                    await updateUserMutation.mutateAsync({ privacy_settings: editedUser.privacy_settings });
+                    // Only `is_private` is a real, enforced column on profiles —
+                    // the show_email/show_phone/show_activity toggles above write
+                    // to a `privacy_settings` field that was never a real DB
+                    // column, so it never persisted; that's unchanged here.
+                    await updateUserMutation.mutateAsync({ is_private: editedUser.is_private });
                     setShowPrivacySettings(false);
                   }}
                   className="w-full bg-purple-600 hover:bg-purple-700"

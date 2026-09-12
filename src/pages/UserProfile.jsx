@@ -17,6 +17,7 @@ import AddFriendButton from "../components/friends/AddFriendButton";
 import FollowersModal from "../components/social/FollowersModal";
 import ShowcasePostModal from "../components/profile/ShowcasePostModal";
 import ProfileHighlights from "../components/profile/ProfileHighlights";
+import { linkifyText } from "@/lib/linkify";
 
 const SHOWCASE_TYPE_COLORS = {
   product: "from-purple-500 to-pink-500",
@@ -80,6 +81,20 @@ export default function UserProfile() {
   const isOwnProfile = currentUser?.email === profileUser?.email;
   const isPrivate = !!(profileUser?.is_private || profileUser?.privacy_settings?.is_private);
 
+  // Blocking is bidirectional: neither party should be able to view the
+  // other's profile once either has blocked the other.
+  const { data: isBlocked = false } = useQuery({
+    queryKey: ["is-blocked", currentUser?.email, profileUser?.email],
+    queryFn: async () => {
+      const [asBlocker, asBlocked] = await Promise.all([
+        base44.entities.Block.filter({ blocker_email: currentUser.email, blocked_email: profileUser.email }),
+        base44.entities.Block.filter({ blocker_email: profileUser.email, blocked_email: currentUser.email }),
+      ]);
+      return asBlocker.length > 0 || asBlocked.length > 0;
+    },
+    enabled: !!currentUser && !!profileUser?.email && !isOwnProfile,
+  });
+
   const deletePostMutation = useMutation({
     mutationFn: async ({ type, id }) => {
       if (type === 'post') await base44.entities.SocialPost.delete(id);
@@ -115,7 +130,7 @@ export default function UserProfile() {
     enabled: !!currentUser && !!profileUser?.email && !isOwnProfile,
   });
 
-  const canViewContent = isOwnProfile || !isPrivate || isFollowing;
+  const canViewContent = !isBlocked && (isOwnProfile || !isPrivate || isFollowing);
 
   const { data: followersData = [] } = useQuery({
     queryKey: ["followers", profileUser?.email],
@@ -177,6 +192,22 @@ export default function UserProfile() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-white text-xl mb-2">User not found</p>
+          <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isBlocked && !isOwnProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-8">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+          <p className="text-white text-xl mb-2">This profile isn't available</p>
           <Button onClick={() => navigate(-1)} className="bg-purple-600 hover:bg-purple-700">Go Back</Button>
         </div>
       </div>
@@ -275,7 +306,7 @@ export default function UserProfile() {
 
         </div>
 
-        {profileUser.bio && <p className="text-gray-300 text-sm mb-3">{profileUser.bio}</p>}
+        {profileUser.bio && <p className="text-gray-300 text-sm mb-3 whitespace-pre-wrap break-words">{linkifyText(profileUser.bio)}</p>}
 
         {/* Link in bio */}
         {profileUser.link_in_bio && (

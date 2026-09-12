@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -62,6 +63,8 @@ export default function Home() {
   const [sharingPost, setSharingPost] = useState(null);
   const [postMenuOpen, setPostMenuOpen] = useState(null); // postId of open context menu
   const [hiddenPosts, setHiddenPosts] = useState(new Set());
+  const [savedPosts, setSavedPosts] = useState(new Set());
+  const [savedRowIds, setSavedRowIds] = useState({});
   const [visibleCount, setVisibleCount] = useState(10);
   const loadMoreRef = useRef(null);
   const [fullScreenMode, setFullScreenMode] = useState(false);
@@ -199,6 +202,81 @@ export default function Home() {
       setLikedPosts(likedSet);
     }
   }, [posts, currentUser?.email]);
+
+  // Initialise hidden set from the persisted per-viewer hidden_by list so a
+  // hidden post stays hidden across reloads, not just for this session.
+  useEffect(() => {
+    if (posts.length > 0 && currentUser?.email) {
+      const hiddenSet = new Set(
+        posts.filter(p => Array.isArray(p.hidden_by) && p.hidden_by.includes(currentUser.email)).map(p => p.id)
+      );
+      setHiddenPosts(prev => new Set([...prev, ...hiddenSet]));
+    }
+  }, [posts, currentUser?.email]);
+
+  // Load which of these posts the user has actually saved before, so the
+  // Bookmark button reflects real, persisted state rather than resetting on
+  // every reload.
+  useEffect(() => {
+    if (!currentUser?.email || posts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('user_interactions')
+        .select('id, target_id')
+        .eq('user_email', currentUser.email)
+        .eq('interaction_type', 'save')
+        .in('target_id', posts.map(p => p.id));
+      if (cancelled || !data) return;
+      setSavedPosts(new Set(data.map(r => r.target_id)));
+      setSavedRowIds(Object.fromEntries(data.map(r => [r.target_id, r.id])));
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.email, posts]);
+
+  const handleSavePost = async (post) => {
+    if (!currentUser?.email) { toast.error("Sign in to save posts"); return; }
+    const alreadySaved = savedPosts.has(post.id);
+
+    if (alreadySaved) {
+      const rowId = savedRowIds[post.id];
+      setSavedPosts(prev => { const next = new Set(prev); next.delete(post.id); return next; });
+      if (rowId) await supabase.from('user_interactions').delete().eq('id', rowId);
+      toast.success("Removed from saved");
+    } else {
+      setSavedPosts(prev => new Set(prev).add(post.id));
+      const { data } = await supabase
+        .from('user_interactions')
+        .insert({ user_email: currentUser.email, interaction_type: 'save', target_id: post.id })
+        .select('id')
+        .single();
+      if (data) setSavedRowIds(prev => ({ ...prev, [post.id]: data.id }));
+      toast.success("Post saved!");
+    }
+  };
+
+  const handleHidePost = (post) => {
+    setHiddenPosts(p => new Set([...p, post.id]));
+    toast.success("Post hidden");
+    const existingHidden = Array.isArray(post.hidden_by) ? post.hidden_by : [];
+    if (currentUser?.email && !existingHidden.includes(currentUser.email)) {
+      base44.entities.SocialPost.update(post.id, {
+        hidden_by: [...existingHidden, currentUser.email],
+      }).catch(() => {});
+    }
+  };
+
+  const handleReportPost = (post) => {
+    toast.success("Post reported — we'll review it.");
+    if (!currentUser?.email) return;
+    base44.entities.ModerationFlag.create({
+      reporter_email: currentUser.email,
+      content_type: 'post',
+      content_id: post.id,
+      reason: 'user_reported',
+      status: 'pending',
+    }).catch(() => {});
+  };
 
   const likeMutation = useMutation({
     mutationFn: async ({ postId, isLiked, post }) => {
@@ -655,13 +733,13 @@ export default function Home() {
                           <Share2 className="w-4 h-4 text-blue-400" /> Share
                         </button>
                         <button
-                          onClick={() => { setHiddenPosts(p => new Set([...p, post.id])); setPostMenuOpen(null); toast.success("Post hidden"); }}
+                          onClick={() => { handleHidePost(post); setPostMenuOpen(null); }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition"
                         >
                           <EyeOff className="w-4 h-4 text-gray-400" /> Hide post
                         </button>
                         <button
-                          onClick={() => { toast.success("Post reported — we'll review it."); setPostMenuOpen(null); }}
+                          onClick={() => { handleReportPost(post); setPostMenuOpen(null); }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition"
                         >
                           <Flag className="w-4 h-4" /> Report
@@ -763,8 +841,12 @@ export default function Home() {
                 </button>
               </div>
               {/* Bookmark */}
-              <button title="Save post" className="active:scale-110 transition-transform">
-                <Bookmark className="w-6 h-6 text-white" />
+              <button
+                onClick={() => handleSavePost(post)}
+                title={savedPosts.has(post.id) ? "Remove from saved" : "Save post"}
+                className="active:scale-110 transition-transform"
+              >
+                <Bookmark className={`w-6 h-6 ${savedPosts.has(post.id) ? "fill-yellow-400 text-yellow-400" : "text-white"}`} />
               </button>
             </div>
 
@@ -839,7 +921,11 @@ export default function Home() {
             onToggleLike={toggleLike}
             onComment={(post) => setCommentingPost(post)}
             onShare={(post) => setSharingPost(post)}
-            onHide={(postId) => setHiddenPosts(p => new Set([...p, postId]))}
+            onHide={(postId) => {
+              const hiddenPost = posts.find(p => p.id === postId);
+              if (hiddenPost) handleHidePost(hiddenPost);
+            }}
+            onReport={(reportedPost) => handleReportPost(reportedPost)}
             onClose={() => setFullScreenMode(false)}
             startIndex={fullScreenStartIndex}
           />

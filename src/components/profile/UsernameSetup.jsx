@@ -47,7 +47,12 @@ export default function UsernameSetup({ currentUser, onComplete }) {
       onComplete?.();
     },
     onError: (error) => {
-      toast.error('Failed to set username: ' + error.message);
+      if (error?.code === '23505') {
+        setAvailable(false);
+        toast.error('That username is already taken');
+      } else {
+        toast.error('Failed to set username: ' + error.message);
+      }
     }
   });
 
