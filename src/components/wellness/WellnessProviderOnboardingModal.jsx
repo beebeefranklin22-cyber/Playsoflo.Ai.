@@ -59,7 +59,10 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
     portfolio_images: [],
     instant_booking: true,
     service_area: "",
-    response_time: "within 1 hour"
+    response_time: "within 1 hour",
+    location_type: "in_person",
+    virtual_meeting_note: "",
+    duration_minutes: 60
   });
 
   const [pricing, setPricing] = useState({
@@ -94,12 +97,19 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
   const publishMutation = useMutation({
     mutationFn: async () => {
       if (!currentUser) throw new Error("Not authenticated");
-      await base44.auth.updateMe({ ...profile, is_provider: true, provider_onboarding_completed: true });
 
+      // Create the listing FIRST. Only mark the provider "onboarded" once
+      // this actually succeeds -- previously updateMe({ is_provider: true,
+      // provider_onboarding_completed: true }) ran unconditionally before
+      // the listing insert, so a failed insert (e.g. the response_time /
+      // portfolio_images / add_ons columns not existing) still left the
+      // user's profile claiming they were a fully onboarded, live provider
+      // with no actual listing to show for it.
       const serviceData = {
         ...service,
         ...pricing,
         provider_email: currentUser.email,
+        created_by: currentUser.email,
         provider_name: profile.provider_business_name || currentUser.full_name,
         verified_provider: !!verification.license_number,
         availability: "available",
@@ -116,6 +126,9 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
           status: "pending"
         });
       }
+
+      // Only reached if the listing (and verification, if any) actually saved.
+      await base44.auth.updateMe({ ...profile, is_provider: true, provider_onboarding_completed: true });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["wellness-services"] });
@@ -288,8 +301,58 @@ export default function WellnessProviderOnboardingModal({ onClose }) {
                 />
               </div>
               <div>
-                <label className="text-gray-400 text-sm mb-1 block">Service Area / Location</label>
-                <Input value={service.service_area} onChange={e => setService(s => ({ ...s, service_area: e.target.value }))} placeholder="e.g., Miami, FL — In-office & home visits" className="bg-white/10 border-white/20 text-white" />
+                <label className="text-gray-400 text-sm mb-2 block">How do you deliver this service? *</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: "in_person", label: "In-Person" },
+                    { id: "mobile", label: "Mobile (I travel)" },
+                    { id: "virtual", label: "Virtual" }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setService(s => ({ ...s, location_type: opt.id }))}
+                      className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition ${
+                        service.location_type === opt.id
+                          ? "border-green-500 bg-green-500/20 text-white"
+                          : "border-white/10 bg-white/5 text-gray-300 hover:bg-white/10"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">
+                  {service.location_type === "virtual" ? "Meeting Details" : "Service Area / Location"}
+                </label>
+                {service.location_type === "virtual" ? (
+                  <Input
+                    value={service.virtual_meeting_note}
+                    onChange={e => setService(s => ({ ...s, virtual_meeting_note: e.target.value }))}
+                    placeholder="e.g., Video call link sent after booking"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                ) : (
+                  <Input
+                    value={service.service_area}
+                    onChange={e => setService(s => ({ ...s, service_area: e.target.value }))}
+                    placeholder={service.location_type === "mobile" ? "e.g., Miami-Dade & Broward — I come to you" : "e.g., Miami, FL — In-office visits"}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Session Duration (minutes)</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={service.duration_minutes}
+                  onChange={e => setService(s => ({ ...s, duration_minutes: Number(e.target.value) || 0 }))}
+                  placeholder="e.g., 60"
+                  className="bg-white/10 border-white/20 text-white"
+                />
               </div>
 
               {/* Cover Image */}
