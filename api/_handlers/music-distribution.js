@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { createPaymentIntent, retrievePaymentIntent } from './_lib/stripe.js';
-import { round2, cleanError } from './_lib/orderHelpers.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
+import { round2, cleanError } from '../_lib/orderHelpers.js';
 
 // There's no real integration with any external distributor (DistroKid/
 // TuneCore/CD Baby have no self-serve partner API a platform like this can

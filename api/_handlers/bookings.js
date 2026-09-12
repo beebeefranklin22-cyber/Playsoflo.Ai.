@@ -1,5 +1,5 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
 
 // Backs updateBookingStatus and cancelOrderSecure. Cancelling a paid order
 // reverses the earnings api/checkout.js already credited to the provider

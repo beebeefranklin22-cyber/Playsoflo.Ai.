@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { createPaymentIntent, retrievePaymentIntent } from './_lib/stripe.js';
-import { PLATFORM_FEE_RATES, createOrderRow, round2, cleanError } from './_lib/orderHelpers.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
+import { PLATFORM_FEE_RATES, createOrderRow, round2, cleanError } from '../_lib/orderHelpers.js';
 
 // Backs processUnifiedCheckout, the core booking/purchase flow used by
 // UnifiedBookingModal for every order_type. Mirrors the fee math already

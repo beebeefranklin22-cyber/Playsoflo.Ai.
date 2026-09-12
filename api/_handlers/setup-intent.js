@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { createSetupIntent } from './_lib/stripe.js';
-import { getOrCreateStripeCustomer } from './_lib/stripeCustomer.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { createSetupIntent } from '../_lib/stripe.js';
+import { getOrCreateStripeCustomer } from '../_lib/stripeCustomer.js';
 
 // Creates a Stripe SetupIntent for saving a card without charging it yet,
 // attached to the caller's Stripe Customer so the resulting PaymentMethod

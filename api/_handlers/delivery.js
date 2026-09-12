@@ -1,5 +1,5 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
 
 // Backs completeDelivery. Only the assigned driver can update their own
 // delivery's status; reaching 'delivered' credits the driver's earnings

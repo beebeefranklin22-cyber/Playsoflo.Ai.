@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { createPaymentIntent, retrievePaymentIntent } from './_lib/stripe.js';
-import { round2, cleanError } from './_lib/orderHelpers.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
+import { round2, cleanError } from '../_lib/orderHelpers.js';
 
 // Backs cancelRideSecure, matchOptimalDriver, and rateDriver.
 const CANCELLATION_FEE_BY_STATUS = {

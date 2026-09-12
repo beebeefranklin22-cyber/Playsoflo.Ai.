@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { askClaudeForJson } from './_lib/anthropic.js';
-import { damageAnalysis } from './_lib/damageAnalysis.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { askClaudeForJson } from '../_lib/anthropic.js';
+import { damageAnalysis } from '../_lib/damageAnalysis.js';
 
 // Consolidates several AI-flavored functions the frontend calls
 // (translateChatMessage, getAIDisputeResolution, smartTripPlanner,

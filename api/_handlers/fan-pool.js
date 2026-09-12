@@ -1,7 +1,7 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { createPaymentIntent, retrievePaymentIntent } from './_lib/stripe.js';
-import { round2, cleanError } from './_lib/orderHelpers.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
+import { round2, cleanError } from '../_lib/orderHelpers.js';
 
 // Fan pool contributions. FanPoolManager.jsx used to call a Supabase Edge
 // Function (processFanPoolPayment) that doesn't exist anywhere in this

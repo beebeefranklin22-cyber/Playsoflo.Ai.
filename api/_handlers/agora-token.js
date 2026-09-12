@@ -1,5 +1,5 @@
 import agoraAccessToken from 'agora-access-token';
-import { requireUser } from './_lib/auth.js';
+import { requireUser } from '../_lib/auth.js';
 
 const { RtcTokenBuilder, RtcRole } = agoraAccessToken;
 

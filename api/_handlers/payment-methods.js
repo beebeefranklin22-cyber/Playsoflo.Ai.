@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { retrieveSetupIntent, retrievePaymentMethod } from './_lib/stripe.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { retrieveSetupIntent, retrievePaymentMethod } from '../_lib/stripe.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });

@@ -1,5 +1,5 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
 
 // Deleting a user's own auth.users row (and therefore their session) can
 // only be done with the admin API, which requires the service-role key —

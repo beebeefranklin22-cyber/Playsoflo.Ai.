@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 
 // Deliberately NOT behind requireUser — anonymous visitors can open a
 // share link, and the random token itself is the capability/authorization

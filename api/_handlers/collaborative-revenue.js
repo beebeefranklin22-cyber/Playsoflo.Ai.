@@ -1,5 +1,5 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
 
 // Backs processCollaborativeRevenue. This is the actual payment collection
 // for a PPV purchase (the frontend only creates a purchase record and

@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { retrievePaymentIntent } from './_lib/stripe.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { retrievePaymentIntent } from '../_lib/stripe.js';
 
 // Backs secureBalanceUpdate (action: 'transfer'), processWithdrawal
 // (action: 'withdraw'), and payMoneyRequest (action: 'pay_request'). All

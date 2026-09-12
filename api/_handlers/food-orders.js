@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { round2 } from './_lib/orderHelpers.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { round2 } from '../_lib/orderHelpers.js';
 
 // Restaurant + driver side of the food order lifecycle, plus dispatching a
 // paid order to delivery. food_orders' direct-insert/update policies were

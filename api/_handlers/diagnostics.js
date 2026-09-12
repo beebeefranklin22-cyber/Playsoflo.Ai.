@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { askClaudeForJson } from './_lib/anthropic.js';
-import { requireUser } from './_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { askClaudeForJson } from '../_lib/anthropic.js';
+import { requireUser } from '../_lib/auth.js';
 
 // Backs systemDiagnostics, infrastructureHealthCheck, and aiDiagnostics —
 // admin-facing tooling, not core user flows. health_check/proactive_scan

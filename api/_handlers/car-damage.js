@@ -1,6 +1,6 @@
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js';
-import { requireUser } from './_lib/auth.js';
-import { damageAnalysis } from './_lib/damageAnalysis.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { requireUser } from '../_lib/auth.js';
+import { damageAnalysis } from '../_lib/damageAnalysis.js';
 
 // Backs reportCarDamage and respondToSettlement for the car rental damage
 // arbitration flow.
