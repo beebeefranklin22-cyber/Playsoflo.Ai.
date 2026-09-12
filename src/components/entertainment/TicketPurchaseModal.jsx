@@ -2,14 +2,21 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Ticket, CheckCircle, Sparkles } from "lucide-react";
+import { X, Ticket, CheckCircle, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
-import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
-import { useMutation } from "@tanstack/react-query";
-import StripePaymentForm from "../payment/StripePaymentForm";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import { processUnifiedCheckout } from "@/functions/processUnifiedCheckout";
+import StripeCheckoutForm from "../payment/StripeCheckoutForm";
 import TicketPurchaseWalletIntegration from "./TicketPurchaseWalletIntegration";
+
+// Matches PLATFORM_FEE_RATES.entertainment_ticket in api/_lib/orderHelpers.js
+// — kept in sync there since the server is the source of truth for what's
+// actually charged; this is only used to show the buyer an accurate total
+// before they pay.
+const PLATFORM_FEE_RATE = 0.19;
 
 export default function TicketPurchaseModal({ isOpen, onClose, experience, currentUser }) {
   const [step, setStep] = useState(1);
@@ -19,221 +26,167 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
   const [quantity, setQuantity] = useState(1);
   const [selectedDate, setSelectedDate] = useState(null);
   const [purchaseComplete, setPurchaseComplete] = useState(false);
-  const [generatedTickets, setGeneratedTickets] = useState([]);
+  const [completedTicket, setCompletedTicket] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
 
   // Non-ticket (direct booking) mode: no ticket types defined
   const isDirectBooking = !experience?.requires_tickets || !experience?.ticket_types?.length;
 
-  const totalPrice = isDirectBooking
+  const itemSubtotal = isDirectBooking
     ? (experience?.price || 0) * quantity
-    : isPurchasingPass 
+    : isPurchasingPass
       ? (selectedPass ? selectedPass.price * quantity : 0)
       : (selectedTicketType ? selectedTicketType.price * quantity : 0);
+  // Kept as `totalPrice` too — a lot of the selection UI below was written
+  // against that name and it's still exactly the item subtotal.
+  const totalPrice = itemSubtotal;
+  const platformFee = Math.round(itemSubtotal * PLATFORM_FEE_RATE * 100) / 100;
+  const lineTotal = Math.round((itemSubtotal + platformFee) * 100) / 100;
 
-  const generateBatchId = () => {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-    return `${experience.batch_prefix || 'EXP'}-B${timestamp}-${random}`;
-  };
-
-  const generateTicketNumber = (batchId, index) => {
-    const ticketNum = `${batchId}-T${String(index).padStart(4, '0')}`;
-    return ticketNum;
-  };
-
-  const generateSecurityHash = async (ticketNumber, accessCode, timestamp) => {
-    const data = `${ticketNumber}:${accessCode}:${timestamp}:${experience.id}:${currentUser.email}`;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16).toUpperCase();
-  };
-
-  const generateQRCode = async (ticketData) => {
-    const qrData = JSON.stringify({
-      ticket_number: ticketData.ticket_number,
-      security_hash: ticketData.security_hash,
-      access_code: ticketData.access_code,
-      experience_id: experience.id,
-      buyer_email: currentUser.email,
-      timestamp: ticketData.timestamp
-    });
-    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="white"/><text x="100" y="90" font-size="10" text-anchor="middle" font-family="monospace">${ticketData.ticket_number}</text><text x="100" y="110" font-size="8" text-anchor="middle" fill="#666">${ticketData.access_code}</text></svg>`)}`;
-  };
-
-  const createTicketsMutation = useMutation({
-    mutationFn: async ({ paymentIntentId, useWallet = false }) => {
-      // Process wallet payment if applicable
-      if (useWallet) {
-        // Atomic transfer: the server checks the buyer's balance and moves
-        // funds to the provider in one step (direct client-side balance
-        // writes can't safely credit another user's account under RLS).
-        const { data: result } = await secureBalanceUpdate({
-          amount: totalPrice,
-          recipient_email: experience.provider_email,
-          reference_type: 'entertainment_ticket',
-          reference_id: experience.id,
-          memo: `${isPurchasingPass ? 'Pass' : 'Ticket'} purchase: ${experience.title}`,
-        });
-        if (!result?.success) throw new Error(result?.error || 'Insufficient wallet balance');
-
-        // Create payment record
-        await base44.entities.Payment.create({
-          sender_email: currentUser.email,
-          recipient_email: experience.provider_email,
-          amount: totalPrice,
-          currency: 'USD',
-          payment_method: 'wallet',
-          status: 'completed',
-          transaction_type: 'purchase',
-          reference_type: 'entertainment_ticket',
-          reference_id: experience.id,
-          description: `${isPurchasingPass ? 'Pass' : 'Ticket'} purchase: ${experience.title}`
-        });
-      }
-      const tickets = [];
-      const batchId = generateBatchId();
-      const timestamp = new Date().toISOString();
-      
-      for (let i = 0; i < quantity; i++) {
-        const accessCode = Math.random().toString(36).substr(2, 6).toUpperCase();
-        const ticketNumber = generateTicketNumber(batchId, i + 1);
-        const securityHash = await generateSecurityHash(ticketNumber, accessCode, timestamp);
-        const ticketData = { ticket_number: ticketNumber, security_hash: securityHash, access_code: accessCode, timestamp };
-        const qrCode = await generateQRCode(ticketData);
-        
-        const ticketBase = {
-          experience_id: experience.id,
-          experience_title: experience.title,
-          buyer_email: currentUser.email,
-          buyer_name: currentUser.full_name,
-          provider_email: experience.provider_email,
-          ticket_number: ticketNumber,
-          batch_id: batchId,
-          qr_code: qrCode,
-          security_hash: securityHash,
-          quantity: 1,
-          venue_name: experience.venue_name,
-          venue_address: experience.venue_address,
-          status: 'active',
-          payment_intent_id: paymentIntentId,
-          access_code: accessCode,
-          verification_timestamp: timestamp
-        };
-
-        if (isPurchasingPass) {
-          const validFrom = new Date();
-          const validUntil = new Date(validFrom);
-          validUntil.setDate(validUntil.getDate() + selectedPass.validity_days);
-
-          const ticket = await base44.entities.EntertainmentTicket.create({
-            ...ticketBase,
-            is_pass: true,
-            pass_type: selectedPass.pass_type,
-            pass_valid_from: validFrom.toISOString(),
-            pass_valid_until: validUntil.toISOString(),
-            pass_visits_allowed: selectedPass.visit_limit,
-            pass_visits_used: 0,
-            pass_perks: selectedPass.perks || [],
-            price_paid: selectedPass.price,
-            ticket_type: selectedPass.pass_type
-          });
-          tickets.push(ticket);
-        } else {
-          const ticket = await base44.entities.EntertainmentTicket.create({
-            ...ticketBase,
-            ticket_type: selectedTicketType.type,
-            price_paid: selectedTicketType.price,
-            event_date: selectedDate?.date || experience.event_dates[0]?.date,
-            event_time: selectedDate?.start_time || experience.event_dates[0]?.start_time,
-            is_pass: false
-          });
-          tickets.push(ticket);
+  // Everything api/_lib/orderHelpers.js's entertainment_ticket branch needs
+  // to build the ticket row — money moves first (Stripe/wallet, inside
+  // api/checkout.js), and only after that succeeds does the server insert
+  // this ticket. If the charge fails, nothing here ever runs, so there's no
+  // way to be charged without getting a ticket anymore.
+  const buildCheckoutPayload = () => ({
+    order_type: 'entertainment_ticket',
+    amount: itemSubtotal,
+    provider_email: experience.provider_email,
+    provider_name: experience.provider_name,
+    item_id: experience.id,
+    item_title: experience.title,
+    item_description: experience.description,
+    quantity,
+    buyer_name: currentUser?.full_name,
+    venue_name: experience.venue_name,
+    venue_address: experience.venue_address,
+    ...(isPurchasingPass
+      ? {
+          is_pass: true,
+          pass_type: selectedPass?.pass_type,
+          pass_validity_days: selectedPass?.validity_days,
+          pass_visit_limit: selectedPass?.visit_limit,
+          pass_perks: selectedPass?.perks || [],
         }
-      }
-      return tickets;
-    },
-    onSuccess: async (tickets) => {
-      setGeneratedTickets(tickets);
-      
-      // Send email confirmation
-      const emailBody = isPurchasingPass ? `
+      : {
+          is_pass: false,
+          ticket_type: selectedTicketType?.type,
+          event_date: selectedDate?.date || experience.event_dates?.[0]?.date,
+          event_time: selectedDate?.start_time || experience.event_dates?.[0]?.start_time,
+        }),
+  });
+
+  const sendConfirmationEmails = async (ticket) => {
+    // Best-effort — the purchase has already fully succeeded server-side by
+    // the time this runs, so a failed email here never costs anyone money
+    // or a ticket.
+    try {
+      const emailBody = ticket.is_pass ? `
         <h1>Pass Purchase Confirmation</h1>
         <p>Thank you for your purchase!</p>
         <p><strong>Experience:</strong> ${experience.title}</p>
-        <p><strong>Pass Type:</strong> ${selectedPass.pass_name} (${selectedPass.pass_type.replace(/_/g, ' ')})</p>
-        <p><strong>Valid From:</strong> ${new Date(tickets[0].pass_valid_from).toLocaleDateString()}</p>
-        <p><strong>Valid Until:</strong> ${new Date(tickets[0].pass_valid_until).toLocaleDateString()}</p>
-        <p><strong>Visit Limit:</strong> ${selectedPass.visit_limit === 999 ? 'Unlimited' : selectedPass.visit_limit} visits</p>
-        ${selectedPass.perks?.length > 0 ? `<p><strong>VIP Perks:</strong> ${selectedPass.perks.join(', ')}</p>` : ''}
+        <p><strong>Pass Type:</strong> ${selectedPass?.pass_name || ticket.pass_type}</p>
+        ${ticket.pass_valid_until ? `<p><strong>Valid Until:</strong> ${new Date(ticket.pass_valid_until).toLocaleDateString()}</p>` : ''}
         <p><strong>Passes:</strong> ${quantity}</p>
-        <p><strong>Total Paid:</strong> $${totalPrice}</p>
-        <hr/>
-        <p><strong>Security:</strong> Each pass has a unique batch ID and security hash for verification.</p>
-        <p>Your passes are available in your account. Show your QR code at the venue for entry.</p>
+        <p><strong>Total Paid:</strong> $${lineTotal.toFixed(2)}</p>
+        <p><strong>Access Code:</strong> ${ticket.access_code}</p>
+        <p>Your pass is available in your account. Show your QR code at the venue for entry.</p>
       ` : `
         <h1>Ticket Confirmation</h1>
         <p>Thank you for your purchase!</p>
         <p><strong>Experience:</strong> ${experience.title}</p>
-        <p><strong>Date:</strong> ${selectedDate?.date || experience.event_dates[0]?.date}</p>
-        <p><strong>Time:</strong> ${selectedDate?.start_time || experience.event_dates[0]?.start_time}</p>
-        <p><strong>Venue:</strong> ${experience.venue_name}</p>
-        <p><strong>Address:</strong> ${experience.venue_address}</p>
-        <p><strong>Tickets:</strong> ${quantity} x ${selectedTicketType.type}</p>
-        <p><strong>Total Paid:</strong> $${totalPrice}</p>
-        <p><strong>Batch ID:</strong> ${tickets[0].batch_id}</p>
-        <hr/>
-        <p><strong>Security:</strong> Your tickets include unique security hashes and access codes for authenticity.</p>
+        <p><strong>Date:</strong> ${ticket.event_date || ''}</p>
+        <p><strong>Time:</strong> ${ticket.event_time || ''}</p>
+        <p><strong>Venue:</strong> ${experience.venue_name || ''}</p>
+        <p><strong>Tickets:</strong> ${quantity} x ${ticket.ticket_type || ''}</p>
+        <p><strong>Total Paid:</strong> $${lineTotal.toFixed(2)}</p>
+        <p><strong>Ticket Number:</strong> ${ticket.ticket_number}</p>
         <p>Your tickets are available in your account. Show your QR code at the venue for entry.</p>
       `;
 
       await base44.integrations.Core.SendEmail({
         to: currentUser.email,
-        subject: isPurchasingPass ? `Your Pass for ${experience.title}` : `Your Tickets for ${experience.title}`,
-        body: emailBody
+        subject: ticket.is_pass ? `Your Pass for ${experience.title}` : `Your Tickets for ${experience.title}`,
+        body: emailBody,
       });
 
-      // Notify provider
-      const providerEmailBody = isPurchasingPass ? `
-        <h1>New Pass Purchase</h1>
-        <p><strong>Customer:</strong> ${currentUser.full_name} (${currentUser.email})</p>
-        <p><strong>Experience:</strong> ${experience.title}</p>
-        <p><strong>Pass Type:</strong> ${quantity} x ${selectedPass.pass_name}</p>
-        <p><strong>Total:</strong> $${totalPrice}</p>
-        <p><strong>Batch ID:</strong> ${tickets[0].batch_id}</p>
-        <p><strong>Valid Until:</strong> ${new Date(tickets[0].pass_valid_until).toLocaleDateString()}</p>
-      ` : `
-        <h1>New Ticket Purchase</h1>
-        <p><strong>Customer:</strong> ${currentUser.full_name} (${currentUser.email})</p>
-        <p><strong>Experience:</strong> ${experience.title}</p>
-        <p><strong>Tickets:</strong> ${quantity} x ${selectedTicketType.type}</p>
-        <p><strong>Total:</strong> $${totalPrice}</p>
-        <p><strong>Date:</strong> ${selectedDate?.date || experience.event_dates[0]?.date}</p>
-        <p><strong>Batch ID:</strong> ${tickets[0].batch_id}</p>
-      `;
-      
       await base44.integrations.Core.SendEmail({
         to: experience.provider_email,
-        subject: isPurchasingPass ? `New Pass Purchase - ${experience.title}` : `New Ticket Purchase - ${experience.title}`,
-        body: providerEmailBody
+        subject: ticket.is_pass ? `New Pass Purchase - ${experience.title}` : `New Ticket Purchase - ${experience.title}`,
+        body: `
+          <h1>New ${ticket.is_pass ? 'Pass' : 'Ticket'} Purchase</h1>
+          <p><strong>Customer:</strong> ${currentUser.full_name} (${currentUser.email})</p>
+          <p><strong>Experience:</strong> ${experience.title}</p>
+          <p><strong>Quantity:</strong> ${quantity}</p>
+          <p><strong>Total:</strong> $${lineTotal.toFixed(2)}</p>
+          <p><strong>Ticket Number:</strong> ${ticket.ticket_number}</p>
+        `,
       });
-
-      setPurchaseComplete(true);
-      toast.success('Tickets purchased successfully!');
-    },
-    onError: (error) => {
-      toast.error('Failed to generate tickets: ' + error.message);
+    } catch (err) {
+      console.error('Failed to send confirmation email:', err);
     }
-  });
+  };
 
-  const handlePaymentSuccess = async (paymentIntentId) => {
-    await createTicketsMutation.mutateAsync({ paymentIntentId, useWallet: false });
+  const finalizePurchase = async (data) => {
+    const ticket = data?.ticket || null;
+    setCompletedTicket(ticket);
+    setPurchaseComplete(true);
+    toast.success('Purchase complete!');
+    if (ticket) await sendConfirmationEmails(ticket);
   };
 
   const handleWalletPayment = async () => {
-    await createTicketsMutation.mutateAsync({ paymentIntentId: null, useWallet: true });
+    setProcessing(true);
+    try {
+      const res = await processUnifiedCheckout({ ...buildCheckoutPayload(), payment_method: 'wallet' });
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizePurchase(data);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCardPayment = async () => {
+    setPaymentMethod('card');
+    setProcessing(true);
+    try {
+      const res = await processUnifiedCheckout({ ...buildCheckoutPayload(), payment_method: 'stripe' });
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed — missing credentials');
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+      setPaymentMethod(null);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const onStripeSuccess = async (intentId) => {
+    setProcessing(true);
+    try {
+      const res = await processUnifiedCheckout({
+        ...buildCheckoutPayload(),
+        payment_method: 'stripe',
+        confirm_payment_intent_id: intentId,
+      });
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizePurchase(data);
+    } catch (err) {
+      toast.error(err.message || 'Failed to finalize purchase');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -279,13 +232,8 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                         className="bg-white/10 border-white/20 text-white"
                       />
                     </div>
-                    <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-bold text-lg">Total</span>
-                        <span className="text-green-400 font-bold text-2xl">${totalPrice.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    <Button onClick={() => setStep(2)} disabled={totalPrice <= 0} className="w-full bg-purple-600 hover:bg-purple-700">
+                    <PriceBreakdown subtotal={itemSubtotal} fee={platformFee} total={lineTotal} />
+                    <Button onClick={() => setStep(2)} disabled={itemSubtotal <= 0} className="w-full bg-purple-600 hover:bg-purple-700">
                       Continue to Payment
                     </Button>
                   </>
@@ -452,21 +400,7 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                       />
                     </div>
 
-                    <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-300">Subtotal</span>
-                        <span className="text-white font-bold">${totalPrice.toFixed(2)}</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-300">Service Fee</span>
-                        <span className="text-white font-bold">$0.00</span>
-                      </div>
-                      <hr className="border-white/10 my-3" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-bold text-lg">Total</span>
-                        <span className="text-green-400 font-bold text-2xl">${totalPrice.toFixed(2)}</span>
-                      </div>
-                    </div>
+                    <PriceBreakdown subtotal={itemSubtotal} fee={platformFee} total={lineTotal} />
 
                     <Button
                       onClick={() => setStep(2)}
@@ -480,11 +414,11 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
 
                 {step === 2 && !paymentMethod && (
                   <TicketPurchaseWalletIntegration
-                    totalPrice={totalPrice}
+                    totalPrice={lineTotal}
                     currentUser={currentUser}
                     onWalletPayment={handleWalletPayment}
-                    onCardPayment={() => setPaymentMethod('card')}
-                    isProcessing={createTicketsMutation.isPending}
+                    onCardPayment={handleCardPayment}
+                    isProcessing={processing}
                   />
                 )}
 
@@ -512,7 +446,7 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                               <span className="text-white">{selectedPass.visit_limit === 999 ? 'Unlimited' : selectedPass.visit_limit}</span>
                             </div>
                           </>
-                        ) : (
+                        ) : !isDirectBooking ? (
                           <>
                             <div className="flex justify-between">
                               <span className="text-gray-400">Ticket Type</span>
@@ -523,25 +457,44 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
                               <span className="text-white">{selectedDate?.date} at {selectedDate?.start_time}</span>
                             </div>
                           </>
-                        )}
+                        ) : null}
                         <div className="flex justify-between">
                           <span className="text-gray-400">Quantity</span>
                           <span className="text-white">{quantity}</span>
                         </div>
                         <hr className="border-white/10 my-2" />
                         <div className="flex justify-between">
+                          <span className="text-gray-400">Subtotal</span>
+                          <span className="text-white">${itemSubtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Platform Fee ({Math.round(PLATFORM_FEE_RATE * 100)}%)</span>
+                          <span className="text-white">${platformFee.toFixed(2)}</span>
+                        </div>
+                        <hr className="border-white/10 my-2" />
+                        <div className="flex justify-between">
                           <span className="text-white font-bold">Total</span>
-                          <span className="text-green-400 font-bold">${totalPrice.toFixed(2)}</span>
+                          <span className="text-green-400 font-bold">${lineTotal.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
 
-                    <StripePaymentForm
-                      amount={totalPrice}
-                      description={isDirectBooking ? `${quantity} guest(s) - ${experience.title}` : `${quantity}x ${selectedTicketType?.type} - ${experience.title}`}
-                      onSuccess={handlePaymentSuccess}
-                      onCancel={() => setStep(1)}
-                    />
+                    {clientSecret && stripePromise ? (
+                      <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#8b5cf6' } } }}>
+                        <StripeCheckoutForm
+                          amount={lineTotal}
+                          onSuccess={onStripeSuccess}
+                          onCancel={() => { setPaymentMethod(null); setClientSecret(null); setStripePromise(null); }}
+                          isProcessing={processing}
+                          setIsProcessing={setProcessing}
+                        />
+                      </Elements>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                        <p className="text-gray-400 text-sm">Setting up secure payment...</p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -553,21 +506,23 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
               <p className="text-gray-300 mb-6">
                 Your tickets have been sent to your email and are available in your account.
               </p>
-              <div className="bg-white/5 rounded-xl p-6 mb-6">
-                <h3 className="text-white font-bold mb-3">Ticket Details</h3>
-                {generatedTickets.map((ticket, idx) => (
-                  <div key={idx} className="bg-white/10 rounded-lg p-4 mb-2">
-                    <p className="text-purple-400 font-mono text-sm">{ticket.ticket_number}</p>
-                    <p className="text-gray-400 text-xs">Batch: {ticket.batch_id}</p>
-                    <p className="text-gray-400 text-xs">Access Code: {ticket.access_code}</p>
-                    {ticket.is_pass && (
+              {completedTicket && (
+                <div className="bg-white/5 rounded-xl p-6 mb-6">
+                  <h3 className="text-white font-bold mb-3">Ticket Details</h3>
+                  <div className="bg-white/10 rounded-lg p-4">
+                    <p className="text-purple-400 font-mono text-sm">{completedTicket.ticket_number}</p>
+                    <p className="text-gray-400 text-xs">Access Code: {completedTicket.access_code}</p>
+                    {completedTicket.quantity > 1 && (
+                      <p className="text-gray-400 text-xs">Covers {completedTicket.quantity} {completedTicket.is_pass ? 'passes' : 'tickets'}</p>
+                    )}
+                    {completedTicket.is_pass && completedTicket.pass_valid_until && (
                       <p className="text-green-400 text-xs mt-1">
-                        Valid until {new Date(ticket.pass_valid_until).toLocaleDateString()}
+                        Valid until {new Date(completedTicket.pass_valid_until).toLocaleDateString()}
                       </p>
                     )}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
               <Button onClick={onClose} className="bg-purple-600 hover:bg-purple-700">
                 Done
               </Button>
@@ -576,5 +531,25 @@ export default function TicketPurchaseModal({ isOpen, onClose, experience, curre
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+function PriceBreakdown({ subtotal, fee, total }) {
+  return (
+    <div className="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-gray-300">Subtotal</span>
+        <span className="text-white font-bold">${subtotal.toFixed(2)}</span>
+      </div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-gray-300">Platform Fee ({Math.round(PLATFORM_FEE_RATE * 100)}%)</span>
+        <span className="text-white font-bold">${fee.toFixed(2)}</span>
+      </div>
+      <hr className="border-white/10 my-3" />
+      <div className="flex items-center justify-between">
+        <span className="text-white font-bold text-lg">Total</span>
+        <span className="text-green-400 font-bold text-2xl">${total.toFixed(2)}</span>
+      </div>
+    </div>
   );
 }

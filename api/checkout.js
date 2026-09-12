@@ -60,14 +60,17 @@ export default async function handler(req, res) {
       });
       if (moveError) throw moveError;
 
-      const orderId = await createOrderRow(admin, orderType, {
+      const order = await createOrderRow(admin, orderType, {
         ...body,
         customerEmail: user.email,
         itemSubtotal, platformFee, providerEarnings, totalAmount,
         paymentMethod: 'wallet',
         paymentIntentId: null,
       });
-      return res.status(200).json({ success: true, order_id: orderId });
+      return res.status(200).json({
+        success: true, order_id: order.id,
+        ...(orderType === 'entertainment_ticket' ? { ticket: order.row } : {}),
+      });
     }
 
     if (body.payment_method === 'stripe') {
@@ -85,14 +88,17 @@ export default async function handler(req, res) {
           if (creditError) console.error('Failed to credit provider earnings for', intent.id, creditError);
         }
 
-        const orderId = await createOrderRow(admin, orderType, {
+        const order = await createOrderRow(admin, orderType, {
           ...body,
           customerEmail: user.email,
           itemSubtotal, platformFee, providerEarnings, totalAmount,
           paymentMethod: 'stripe',
           paymentIntentId: intent.id,
         });
-        return res.status(200).json({ success: true, order_id: orderId });
+        return res.status(200).json({
+          success: true, order_id: order.id,
+          ...(orderType === 'entertainment_ticket' ? { ticket: order.row } : {}),
+        });
       };
 
       if (body.confirm_payment_intent_id) {

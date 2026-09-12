@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 async function createOrderRows(admin, lineItems, customerEmail, paymentMethod, paymentIntentId) {
   const orderIds = [];
   for (const li of lineItems) {
-    const orderId = await createOrderRow(admin, 'product_order', {
+    const order = await createOrderRow(admin, 'product_order', {
       customerEmail,
       provider_email: li.row.provider_email,
       item_id: li.row.item_id,
@@ -176,7 +176,7 @@ async function createOrderRows(admin, lineItems, customerEmail, paymentMethod, p
       paymentIntentId,
       customer_notes: li.row.notes || null,
     });
-    orderIds.push(orderId);
+    orderIds.push(order.id);
   }
   return orderIds;
 }

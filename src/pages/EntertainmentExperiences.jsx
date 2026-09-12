@@ -23,6 +23,7 @@ import TicketPurchaseModal from "../components/entertainment/TicketPurchaseModal
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
 import { useUserLocation } from "../hooks/useUserLocation";
+import { useGeoDistance } from "../hooks/useGeoDistance";
 
 const entertainmentCategories = [
   { id: "all", label: "All Experiences", icon: Sparkles },
@@ -82,6 +83,7 @@ export default function EntertainmentExperiences() {
   const initialCategory = params.get('category') || 'all';
   
   const { userCity, refreshLocation } = useUserLocation();
+  const { distanceTo } = useGeoDistance();
   const [locationCity, setLocationCity] = useState("");
   const [locationRadius, setLocationRadius] = useState(null);
   const [showCitySelector, setShowCitySelector] = useState(false);
@@ -152,6 +154,22 @@ export default function EntertainmentExperiences() {
       // Experiences with no location data always pass through
       if (hay && !hay.includes(q)) return false;
     }
+
+    // GPS radius filter (works once the browser grants location AND the
+    // experience has venue_latitude/venue_longitude set — ListExperienceModal
+    // doesn't capture those yet since this codebase has no geocoding
+    // integration to turn a typed venue address into coordinates, so this
+    // is a no-op for every experience until that's added; items with no
+    // coordinates always pass through rather than being hidden).
+    if (locationRadius) {
+      const lat = exp.venue_latitude;
+      const lon = exp.venue_longitude;
+      if (lat && lon) {
+        const d = distanceTo(lat, lon);
+        if (d !== null && d > locationRadius) return false;
+      }
+    }
+
     const searchMatch = searchQuery ? exp.title.toLowerCase().includes(searchQuery.toLowerCase()) : true;
     
     // Duration filter
