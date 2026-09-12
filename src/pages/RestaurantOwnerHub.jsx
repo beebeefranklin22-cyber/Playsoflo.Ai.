@@ -15,6 +15,7 @@ import MenuWidgetEmbed from "../components/restaurant/MenuWidgetEmbed";
 import MenuBulkUpload from "../components/restaurant/MenuBulkUpload";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { updateFoodOrderStatus } from "@/functions/updateFoodOrderStatus";
 
 export default function RestaurantOwnerHub() {
   const navigate = useNavigate();
@@ -233,7 +234,13 @@ export default function RestaurantOwnerHub() {
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, newStatus, customerEmail }) => {
       try {
-        await base44.entities.FoodOrder.update(orderId, { status: newStatus });
+        // Was a direct base44.entities.FoodOrder.update(...) call — food_orders
+        // is a money table with authenticated writes revoked in
+        // 0004_lock_down_money_tables.sql, so it silently failed. Now goes
+        // through the secure api/food-orders.js endpoint, which verifies the
+        // caller is actually this order's restaurant before updating it.
+        const { data } = await updateFoodOrderStatus({ order_id: orderId, new_status: newStatus });
+        if (data?.error) throw new Error(data.error);
 
         const statusMessages = {
           'confirmed': '✅ Order Confirmed - Your order is being prepared',

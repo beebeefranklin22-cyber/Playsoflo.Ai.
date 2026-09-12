@@ -9,7 +9,8 @@ import { Bike, DollarSign, Clock, MapPin, CheckCircle, Package, Camera, Store, F
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
-import { settleDeliveryPayment } from "@/functions/settleDeliveryPayment";
+import { updateFoodOrderStatus } from "@/functions/updateFoodOrderStatus";
+import { acceptFoodOrder } from "@/functions/acceptFoodOrder";
 
 export default function FoodDriverHub() {
   const navigate = useNavigate();
@@ -73,12 +74,13 @@ export default function FoodDriverHub() {
   const acceptOrderMutation = useMutation({
     mutationFn: async (order) => {
       const user = await base44.auth.me();
-      
-      await base44.entities.FoodOrder.update(order.id, {
-        driver_email: user.email,
-        driver_name: user.full_name || user.email.split('@')[0],
-        status: 'ready'
-      });
+
+      // Was a direct base44.entities.FoodOrder.update(...) call — food_orders
+      // is a money table with authenticated writes revoked in
+      // 0004_lock_down_money_tables.sql, so it silently failed. Now goes
+      // through the secure api/food-orders.js endpoint.
+      const { data } = await acceptFoodOrder({ order_id: order.id, driver_name: user.full_name || user.email.split('@')[0] });
+      if (data?.error) throw new Error(data.error);
 
       // Notify customer
       await base44.entities.Notification.create({
@@ -101,10 +103,14 @@ export default function FoodDriverHub() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, newStatus, customerEmail, restaurantName, deliveryPhotoUrl }) => {
-      const updateData = { status: newStatus };
-      if (deliveryPhotoUrl) updateData.delivery_photo_url = deliveryPhotoUrl;
-
-      await base44.entities.FoodOrder.update(orderId, updateData);
+      // Was a direct base44.entities.FoodOrder.update(...) call, plus a
+      // client-side "credit the driver's wallet balance" fallback that the
+      // usd_balance-protecting trigger in 0004_lock_down_money_tables.sql
+      // silently no-ops anyway. The secure endpoint now updates the status
+      // and — on 'delivered' — credits driver earnings via wallet_move and
+      // syncs the linked delivery_orders row itself.
+      const { data } = await updateFoodOrderStatus({ order_id: orderId, new_status: newStatus, delivery_photo_url: deliveryPhotoUrl });
+      if (data?.error) throw new Error(data.error);
 
       const statusMessages = {
         'picked_up': '📦 Order Picked Up - Your delivery is on the way!',
@@ -113,46 +119,17 @@ export default function FoodDriverHub() {
       };
 
       if (statusMessages[newStatus]) {
-        await base44.entities.Notification.create({
-          recipient_email: customerEmail,
-          type: 'order_update',
-          title: statusMessages[newStatus].split(' - ')[0],
-          message: `${restaurantName}: ${statusMessages[newStatus].split(' - ')[1]}`,
-          reference_id: orderId,
-          reference_type: 'food_order'
-        });
-      }
-
-      // On delivery: update linked DeliveryOrder and settle driver payment
-      if (newStatus === 'delivered') {
         try {
-          // Fetch the food order to get linked delivery_order_id
-          const foodOrders = await base44.entities.FoodOrder.filter({ id: orderId });
-          const foodOrder = foodOrders[0];
-          if (foodOrder?.delivery_order_id) {
-            await base44.entities.DeliveryOrder.update(foodOrder.delivery_order_id, { status: 'delivered' });
-            await settleDeliveryPayment({ order_id: foodOrder.delivery_order_id });
-          } else {
-            // Fallback: directly credit driver wallet from food order driver_earnings
-            const user = await base44.auth.me();
-            const earnings = parseFloat(foodOrder?.driver_earnings || foodOrder?.delivery_fee * 0.8 || 0);
-            if (earnings > 0) {
-              const currentBalance = parseFloat(user.usd_balance || 0);
-              await base44.auth.updateMe({ usd_balance: parseFloat((currentBalance + earnings).toFixed(2)) });
-              await base44.entities.Notification.create({
-                recipient_email: user.email,
-                type: 'payment_received',
-                title: '💰 Earnings Credited!',
-                message: `$${earnings.toFixed(2)} added to your wallet for delivering from ${foodOrder?.restaurant_name}.`,
-                reference_id: orderId,
-                reference_type: 'order',
-                read: false
-              });
-            }
-          }
-          await base44.entities.FoodOrder.update(orderId, { payment_settled: true });
+          await base44.entities.Notification.create({
+            recipient_email: customerEmail,
+            type: 'order_update',
+            title: statusMessages[newStatus].split(' - ')[0],
+            message: `${restaurantName}: ${statusMessages[newStatus].split(' - ')[1]}`,
+            reference_id: orderId,
+            reference_type: 'food_order'
+          });
         } catch (err) {
-          console.warn('Settlement error (non-fatal):', err);
+          console.warn('Notification error (non-fatal):', err);
         }
       }
     },
