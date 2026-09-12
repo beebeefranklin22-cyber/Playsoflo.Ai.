@@ -72,7 +72,8 @@ export default function ForumGroups() {
       setShowCreateModal(false);
       setFormData({ name: "", description: "", category: "other", icon: "", banner_image: "", rules: "", is_private: false, require_approval: false });
       toast.success('Group created!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to create group')
   });
 
   const updateMutation = useMutation({
@@ -85,7 +86,8 @@ export default function ForumGroups() {
       setEditingGroup(null);
       setShowCreateModal(false);
       toast.success('Group updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update group')
   });
 
   const joinMutation = useMutation({
@@ -110,7 +112,8 @@ export default function ForumGroups() {
     onSuccess: () => {
       queryClient.invalidateQueries(['forum-groups']);
       toast.success('Group membership updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update membership')
   });
 
   const saveGroupMutation = useMutation({
@@ -130,7 +133,8 @@ export default function ForumGroups() {
     onSuccess: () => {
       queryClient.invalidateQueries(['saved-groups']);
       toast.success('Saved groups updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update saved groups')
   });
 
   const handleSubmit = (e) => {
