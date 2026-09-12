@@ -19,6 +19,7 @@ export default function FullScreenFeed({
   onComment,
   onShare,
   onHide,
+  onReport,
   onClose,
   startIndex = 0,
 }) {
@@ -209,13 +210,17 @@ export default function FullScreenFeed({
               <Share2 className="w-4 h-4 text-blue-400" /> Share
             </button>
             <button
-              onClick={() => { onHide(post.id); setShowMenu(false); onClose(); toast.success("Post hidden"); }}
+              onClick={() => { onHide(post.id); setShowMenu(false); onClose(); }}
               className="w-full flex items-center gap-3 px-4 py-3 text-white text-sm hover:bg-white/10 transition"
             >
               <EyeOff className="w-4 h-4 text-gray-400" /> Hide post
             </button>
             <button
-              onClick={() => { toast.success("Reported — we'll review it."); setShowMenu(false); }}
+              onClick={() => {
+                if (onReport) onReport(post);
+                else toast.success("Reported — we'll review it.");
+                setShowMenu(false);
+              }}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 text-sm hover:bg-white/10 transition"
             >
               <Flag className="w-4 h-4" /> Report

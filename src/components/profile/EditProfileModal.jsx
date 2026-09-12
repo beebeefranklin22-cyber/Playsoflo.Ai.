@@ -76,7 +76,13 @@ export default function EditProfileModal({ currentUser, onClose, onSaved }) {
       onSaved?.();
       onClose();
     } catch (err) {
-      toast.error("Failed to save profile");
+      if (err?.code === '23505') {
+        setUsernameError("That username is already taken");
+        setTab("Profile");
+        toast.error("That username is already taken");
+      } else {
+        toast.error("Failed to save profile");
+      }
     } finally {
       setSaving(false);
     }
