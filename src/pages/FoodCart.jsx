@@ -1,24 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Minus, Trash2, MapPin, Store, Clock, Phone } from "lucide-react";
+import {
+  ArrowLeft, Plus, Minus, Trash2, MapPin, Store, Clock, Phone,
+  CreditCard, Wallet, Loader2, AlertCircle
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import StripePaymentForm from "../components/payment/StripePaymentForm";
+import StripeCheckoutForm from "../components/payment/StripeCheckoutForm";
 import { dispatchFoodOrder } from "@/functions/dispatchFoodOrder";
 
+// Food ordering used to insert directly into food_orders from the client
+// (base44.entities.FoodOrder.create(...)). That table is a money table
+// locked down in 0004_lock_down_money_tables.sql — authenticated INSERT was
+// revoked — so every checkout attempt threw a permission-denied error the
+// customer never saw (it was swallowed) and never reached payment. This now
+// goes through the same secure api/checkout.js flow UnifiedBookingModal uses
+// for every other hub: money moves first (wallet_move or a Stripe
+// PaymentIntent), and only then does the server (service role) create the
+// food_orders row.
 export default function FoodCart() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const [orderId, setOrderId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("stripe");
+  const [processing, setProcessing] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [paymentIntentId, setPaymentIntentId] = useState(null);
+  const [customerCoords, setCustomerCoords] = useState(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
@@ -26,9 +45,11 @@ export default function FoodCart() {
   });
 
   const { data: cartItems = [] } = useQuery({
-    queryKey: ['cart-items', currentUser?.email],
-    queryFn: () => base44.entities.CartItem.filter({ user_email: currentUser.email }),
-    enabled: !!currentUser
+    queryKey: ['cart-items'],
+    queryFn: async () => {
+      const user = await base44.auth.me();
+      return base44.entities.CartItem.list();
+    }
   });
 
   const { data: restaurant } = useQuery({
@@ -60,55 +81,58 @@ export default function FoodCart() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['cart-items']);
-      toast.success('Cart cleared');
     }
   });
 
-  const createOrderMutation = useMutation({
-    mutationFn: async () => {
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.menu_item_price * item.quantity), 0);
-      const deliveryFee = restaurant?.delivery_fee || 3.99;
-      // Platform charges 15% from merchant, not from customer
-      const commissionAmount = parseFloat((subtotal * 0.15).toFixed(2));
-      const total = subtotal + deliveryFee;
+  // Best-effort GPS fix so drivers can be radius-matched to this delivery
+  // (see FoodDriverHub/geoUtils.filterNearbyRequests) — same approach
+  // UnifiedBookingModal already uses for local_delivery orders.
+  useEffect(() => {
+    if (!showPayment || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setCustomerCoords([pos.coords.latitude, pos.coords.longitude]),
+      () => setCustomerCoords(null),
+      { timeout: 5000 }
+    );
+  }, [showPayment]);
 
-      const order = await base44.entities.FoodOrder.create({
-        restaurant_id: restaurant.id,
-        restaurant_name: restaurant.name,
-        restaurant_address: restaurant.address || restaurant.name,
-        restaurant_owner_email: restaurant.owner_email || restaurant.created_by || '',
-        restaurant_phone: restaurant.phone || '',
-        items: cartItems.map(item => ({
-          menu_item_id: item.menu_item_id,
-          name: item.menu_item_name,
-          price: item.menu_item_price,
-          quantity: item.quantity
-        })),
-        subtotal,
-        delivery_fee: deliveryFee,
-        commission_amount: commissionAmount,
-        total,
-        delivery_address: deliveryAddress,
-        special_instructions: specialInstructions,
-        status: 'pending',
-        estimated_delivery_time: restaurant.estimated_delivery_time,
-        driver_earnings: parseFloat((deliveryFee * 0.80).toFixed(2))
-      });
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.menu_item_price * item.quantity), 0);
+  const deliveryFee = restaurant?.delivery_fee || 3.99;
+  const total = subtotal + deliveryFee;
+  const totalItemCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
-      return order;
-    },
-    onSuccess: (order) => {
-      setOrderId(order.id);
-      setShowPayment(true);
-    }
+  const buildCheckoutBody = (extra) => ({
+    order_type: 'food_order',
+    amount: subtotal,
+    provider_email: restaurant?.owner_email || restaurant?.created_by || '',
+    item_id: restaurant?.id,
+    item_title: `${totalItemCount} item${totalItemCount !== 1 ? 's' : ''} from ${restaurant?.name || 'restaurant'}`,
+    quantity: totalItemCount,
+    delivery_address: deliveryAddress,
+    customer_notes: specialInstructions,
+    customer_phone: currentUser?.phone || currentUser?.provider_phone || '',
+    restaurant_address: restaurant?.address || '',
+    restaurant_phone: restaurant?.phone || '',
+    estimated_delivery_time: restaurant?.estimated_delivery_time || '',
+    delivery_fee: deliveryFee,
+    delivery_coords: customerCoords,
+    items: cartItems.map(item => ({
+      menu_item_id: item.menu_item_id,
+      name: item.menu_item_name,
+      price: item.menu_item_price,
+      quantity: item.quantity,
+    })),
+    ...extra,
   });
 
-  const handlePaymentSuccess = async (paymentResult) => {
+  const finalizeOrder = async (newOrderId, intentId) => {
     try {
-      // Dispatch: creates DeliveryOrder, notifies restaurant + drivers
+      // Dispatch: creates the DeliveryOrder that makes this order
+      // dispatchable to a driver. Non-fatal — the order itself is already
+      // placed and paid for even if dispatch has a hiccup.
       await dispatchFoodOrder({
-        food_order_id: orderId,
-        payment_intent_id: paymentResult?.payment_intent_id || paymentResult?.id || ''
+        food_order_id: newOrderId,
+        payment_intent_id: intentId || paymentIntentId || ''
       });
     } catch (err) {
       console.warn('Dispatch non-fatal error:', err);
@@ -116,12 +140,50 @@ export default function FoodCart() {
 
     await clearCartMutation.mutateAsync();
     toast.success('Order placed! Restaurant and drivers notified.');
-    navigate(createPageUrl("FoodOrderTracking") + `?id=${orderId}`);
+    navigate(createPageUrl("FoodOrderTracking") + `?id=${newOrderId}`);
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.menu_item_price * item.quantity), 0);
-  const deliveryFee = restaurant?.delivery_fee || 3.99;
-  const total = subtotal + deliveryFee;
+  const initiatePayment = async () => {
+    setProcessing(true);
+    try {
+      if (paymentMethod === 'wallet') {
+        const res = await base44.functions.invoke('processUnifiedCheckout', buildCheckoutBody({ payment_method: 'wallet' }));
+        const data = res?.data || res;
+        if (data?.error) throw new Error(data.error);
+        await finalizeOrder(data.order_id);
+      } else {
+        const res = await base44.functions.invoke('processUnifiedCheckout', buildCheckoutBody({ payment_method: 'stripe' }));
+        const data = res?.data || res;
+        if (data?.error) throw new Error(data.error);
+        if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed — missing credentials');
+        const stripe = await loadStripe(data.publishable_key);
+        setStripePromise(stripe);
+        setClientSecret(data.client_secret);
+        setPaymentIntentId(data.payment_intent_id);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const onStripeSuccess = async (intentId) => {
+    setProcessing(true);
+    try {
+      const res = await base44.functions.invoke('processUnifiedCheckout', buildCheckoutBody({
+        payment_method: 'stripe',
+        confirm_payment_intent_id: intentId,
+      }));
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      await finalizeOrder(data.order_id, intentId);
+    } catch (err) {
+      toast.error(err.message || 'Failed to finalize order');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (cartItems.length === 0 && !showPayment) {
     return (
@@ -137,27 +199,87 @@ export default function FoodCart() {
     );
   }
 
-  if (showPayment && orderId) {
+  if (showPayment) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-6">
         <div className="max-w-2xl mx-auto">
           <button
-            onClick={() => setShowPayment(false)}
+            onClick={() => { setShowPayment(false); setClientSecret(null); setStripePromise(null); }}
             className="mb-4 p-2 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/20 transition"
           >
             <ArrowLeft className="w-6 h-6 text-white" />
           </button>
-          
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-white mb-6">Complete Payment</h2>
-            <StripePaymentForm
-              amount={total}
-              referenceType="order"
-              referenceId={orderId}
-              description={`Food delivery from ${restaurant?.name}`}
-              onSuccess={handlePaymentSuccess}
-              onError={(error) => toast.error(error.message)}
-            />
+
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 space-y-5">
+            <h2 className="text-2xl font-bold text-white mb-2">Complete Payment</h2>
+
+            <div className="space-y-2 text-sm bg-white/5 rounded-xl p-4">
+              <div className="flex justify-between text-gray-300">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>Delivery Fee</span>
+                <span>${deliveryFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {!clientSecret && (
+              <>
+                <label className="text-gray-300 text-sm font-medium block">Payment Method</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'stripe', label: 'Card / Bank', icon: CreditCard, desc: 'Visa, Mastercard, ACH' },
+                    { value: 'wallet', label: 'SoFlo Wallet', icon: Wallet, desc: `Balance: $${parseFloat(currentUser?.usd_balance || 0).toFixed(2)}` },
+                  ].map(pm => (
+                    <button
+                      key={pm.value}
+                      onClick={() => setPaymentMethod(pm.value)}
+                      className={`p-4 rounded-xl border transition text-left ${paymentMethod === pm.value ? 'border-orange-500 bg-orange-500/20' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}
+                    >
+                      <pm.icon className={`w-5 h-5 mb-2 ${paymentMethod === pm.value ? 'text-orange-400' : 'text-gray-400'}`} />
+                      <p className="text-white font-semibold text-sm">{pm.label}</p>
+                      <p className="text-gray-400 text-xs">{pm.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < subtotal && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <p className="text-red-400 text-sm">Insufficient balance. Need ${(subtotal - parseFloat(currentUser?.usd_balance || 0)).toFixed(2)} more.</p>
+                  </div>
+                )}
+
+                <Button
+                  onClick={initiatePayment}
+                  disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < subtotal)}
+                  className="w-full bg-orange-600 hover:bg-orange-700 py-6 text-lg"
+                >
+                  {processing ? (
+                    <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Processing...</>
+                  ) : (
+                    <>{paymentMethod === 'wallet' ? <Wallet className="w-5 h-5 mr-2" /> : <CreditCard className="w-5 h-5 mr-2" />} Pay ${total.toFixed(2)}</>
+                  )}
+                </Button>
+              </>
+            )}
+
+            {clientSecret && stripePromise && (
+              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#f97316' } } }}>
+                <StripeCheckoutForm
+                  amount={total}
+                  onSuccess={onStripeSuccess}
+                  onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+                  isProcessing={processing}
+                  setIsProcessing={setProcessing}
+                />
+              </Elements>
+            )}
           </div>
         </div>
       </div>
@@ -249,7 +371,7 @@ export default function FoodCart() {
             <MapPin className="w-5 h-5" />
             Delivery Details
           </h3>
-          
+
           <Input
             value={deliveryAddress}
             onChange={(e) => setDeliveryAddress(e.target.value)}
@@ -267,10 +389,10 @@ export default function FoodCart() {
 
         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 mb-6">
           <h3 className="text-lg font-bold text-white mb-4">Order Summary</h3>
-          
+
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-gray-300">
-              <span>Subtotal ({cartItems.reduce((s, i) => s + i.quantity, 0)} item{cartItems.reduce((s, i) => s + i.quantity, 0) !== 1 ? 's' : ''})</span>
+              <span>Subtotal ({totalItemCount} item{totalItemCount !== 1 ? 's' : ''})</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-300">
@@ -287,11 +409,11 @@ export default function FoodCart() {
         </div>
 
         <Button
-          onClick={() => createOrderMutation.mutate()}
-          disabled={!deliveryAddress || createOrderMutation.isPending}
+          onClick={() => setShowPayment(true)}
+          disabled={!deliveryAddress}
           className="w-full bg-orange-600 hover:bg-orange-700 py-6 text-lg"
         >
-          {createOrderMutation.isPending ? 'Processing...' : 'Proceed to Payment'}
+          Proceed to Payment
         </Button>
       </div>
     </div>

@@ -86,8 +86,55 @@ export async function createOrderRow(admin, orderType, ctx) {
       special_requirements: ctx.customer_notes || null,
       quantity: ctx.quantity || 1,
     };
+  } else if (orderType === 'food_order') {
+    // food_orders predates this generic checkout path — FoodCart.jsx used to
+    // insert directly into it with a richer, restaurant-specific shape, and
+    // the rest of the food ordering UI (FoodOrderTracking, RestaurantOwnerHub,
+    // FoodDriverHub, ProviderEarningsSummary, SidebarQuickStats) still reads
+    // that shape (restaurant_name/address/phone, delivery_fee, items,
+    // commission_amount, total, driver_earnings, created_by, owner_email,
+    // etc). Populate both the standard checkout columns and those legacy
+    // display columns from the same values so nothing downstream needs
+    // rewriting. Starts at 'pending' (not 'confirmed' like other order
+    // types) because RestaurantOwnerHub's own "Confirm Order" step and
+    // FoodDriverHub's "available orders" query both expect that first state.
+    const deliveryFee = ctx.delivery_fee || 0;
+    row = {
+      customer_email: ctx.customerEmail,
+      provider_email: ctx.provider_email,
+      item_id: ctx.item_id,
+      item_title: ctx.item_title,
+      quantity: ctx.quantity || 1,
+      subtotal: ctx.itemSubtotal,
+      platform_fee: ctx.platformFee,
+      provider_earnings: ctx.providerEarnings,
+      total_amount: ctx.totalAmount,
+      status: 'pending',
+      payment_method: ctx.paymentMethod,
+      payment_intent_id: ctx.paymentIntentId,
+      delivery_address: ctx.delivery_address || null,
+      customer_notes: ctx.customer_notes || null,
+      customer_phone: ctx.customer_phone || null,
+      delivery_coords: ctx.delivery_coords || null,
+      // Legacy/display columns the food ordering UI already reads.
+      created_by: ctx.customerEmail,
+      user_email: ctx.customerEmail,
+      owner_email: ctx.provider_email,
+      restaurant_owner_email: ctx.provider_email,
+      restaurant_id: ctx.item_id,
+      restaurant_name: ctx.item_title,
+      restaurant_address: ctx.restaurant_address || null,
+      restaurant_phone: ctx.restaurant_phone || null,
+      estimated_delivery_time: ctx.estimated_delivery_time || null,
+      delivery_fee: deliveryFee,
+      special_instructions: ctx.customer_notes || null,
+      commission_amount: ctx.platformFee,
+      total: ctx.totalAmount,
+      driver_earnings: deliveryFee ? round2(deliveryFee * 0.8) : null,
+      items: ctx.items || [],
+    };
   } else {
-    // orders (product_order) and food_orders share the same shape
+    // orders (product_order) share this generic shape
     row = {
       customer_email: ctx.customerEmail,
       provider_email: ctx.provider_email,
