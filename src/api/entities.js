@@ -123,7 +123,15 @@ class Entity {
   // into the shape every caller already expects, rather than touching
   // dozens of call sites.
   subscribe(callback) {
-    const channel = supabase.channel(`${this.tableName}-changes`)
+    // The topic must be unique per subscription, not per table: pages like
+    // LivestreamViewer subscribe to the same entity from two places at once
+    // (the page itself and a child component such as LivestreamChat). Two
+    // channels sharing one topic string crash with "cannot add
+    // postgres_changes callbacks ... after subscribe()" the moment the
+    // second one joins -- the topic is just a client-side socket label, not
+    // part of the postgres_changes filter, so a random suffix is safe.
+    const topic = `${this.tableName}-changes-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(topic)
       .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, (payload) => {
         const type = payload.eventType === 'INSERT' ? 'create' : payload.eventType === 'UPDATE' ? 'update' : payload.eventType === 'DELETE' ? 'delete' : payload.eventType;
         const data = payload.new && Object.keys(payload.new).length > 0 ? payload.new : payload.old;
