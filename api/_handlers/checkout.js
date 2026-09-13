@@ -1,21 +1,24 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, createOrderRow, round2, cleanError } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, createOrderRow, checkTicketCapacity, round2, cleanError } from '../_lib/orderHelpers.js';
 
 // Backs processUnifiedCheckout, the core booking/purchase flow used by
-// UnifiedBookingModal for every order_type. Mirrors the fee math already
-// computed client-side (see UnifiedBookingModal.jsx's platformFeeRate
-// table) so the charged/credited amounts match what the customer was
-// shown, while keeping the actual money movement server-side and
-// authenticated.
+// UnifiedBookingModal (and FoodCart, TicketPurchaseModal) for every
+// order_type. Mirrors the fee math already computed client-side (see
+// UnifiedBookingModal.jsx's/FoodCart.jsx's platformFeeRate) so the
+// charged/credited amounts match what the customer was shown, while
+// keeping the actual money movement server-side and authenticated.
 //
-// Known limitation: delivery fee isn't added here yet (calculateDeliveryPrice
-// needs a maps/geocoding key that isn't configured) — only item subtotal +
-// platform fee is charged for now. Also, `amount` (item subtotal) is trusted
-// from the client rather than re-priced from a catalog table server-side,
-// consistent with how the rest of this app's payment integrations already
-// work; tightening that is a follow-up, not a regression.
+// delivery_fee (a flat per-restaurant value, not a distance-priced one --
+// no geocoding key needed) is added to the charged total here so a food
+// order's driver_earnings credit (paid out later in food-orders.js on
+// delivery) is always backed by money actually collected from the
+// customer, not created from nothing in the wallet ledger. `amount` (item
+// subtotal) is trusted from the client rather than re-priced from a
+// catalog table server-side, consistent with how the rest of this app's
+// payment integrations already work; tightening that is a follow-up, not
+// a regression.
 //
 // For multi-item cart checkout (several products, possibly from different
 // providers, in one purchase), see api/cart-checkout.js instead — this file
@@ -38,17 +41,24 @@ export default async function handler(req, res) {
 
   const itemSubtotal = Number(body.amount);
   if (!itemSubtotal || itemSubtotal <= 0) return res.status(400).json({ error: 'amount must be a positive number' });
+  if (!body.provider_email) return res.status(400).json({ error: 'provider_email is required' });
 
+  const deliveryFee = round2(Number(body.delivery_fee) || 0);
   const platformFee = round2(itemSubtotal * feeRate);
   const providerEarnings = round2(itemSubtotal - platformFee);
-  const totalAmount = round2(itemSubtotal + platformFee);
-
-  const admin = getSupabaseAdmin();
+  const totalAmount = round2(itemSubtotal + platformFee + deliveryFee);
 
   try {
-    if (body.payment_method === 'wallet') {
-      if (!body.provider_email) return res.status(400).json({ error: 'provider_email is required' });
+    const admin = getSupabaseAdmin();
 
+    // Reject a sold-out/over-capacity ticket purchase before any money
+    // moves, not after (see checkTicketCapacity's own comment for the
+    // residual race this doesn't close).
+    if (orderType === 'entertainment_ticket') {
+      await checkTicketCapacity(admin, body.item_id, Number(body.quantity) || 1);
+    }
+
+    if (body.payment_method === 'wallet') {
       const { error: moveError } = await admin.rpc('wallet_move', {
         p_from_email: user.email,
         p_to_email: body.provider_email,
@@ -75,18 +85,16 @@ export default async function handler(req, res) {
 
     if (body.payment_method === 'stripe') {
       const finalizeStripeOrder = async (intent) => {
-        if (body.provider_email) {
-          const { error: creditError } = await admin.rpc('wallet_move', {
-            p_from_email: null,
-            p_to_email: body.provider_email,
-            p_debit_amount: null,
-            p_credit_amount: providerEarnings,
-            p_reference_type: orderType,
-            p_reference_id: intent.id,
-            p_memo: body.item_title || null,
-          });
-          if (creditError) console.error('Failed to credit provider earnings for', intent.id, creditError);
-        }
+        const { error: creditError } = await admin.rpc('wallet_move', {
+          p_from_email: null,
+          p_to_email: body.provider_email,
+          p_debit_amount: null,
+          p_credit_amount: providerEarnings,
+          p_reference_type: orderType,
+          p_reference_id: intent.id,
+          p_memo: body.item_title || null,
+        });
+        if (creditError) console.error('Failed to credit provider earnings for', intent.id, creditError);
 
         const order = await createOrderRow(admin, orderType, {
           ...body,
