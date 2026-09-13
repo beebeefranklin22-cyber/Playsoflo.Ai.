@@ -102,8 +102,15 @@ export default function UnifiedBookingModal({
         provider_email: provider.email,
         day_of_week: dayOfWeek,
       });
-      if (!avails.length || !avails[0].is_available) { setAvailableSlots([]); return; }
-      const avail = avails[0];
+      // No row for this day means the provider never touched it in
+      // BusinessHubProviderSection's availability tab -- which itself shows
+      // every day as available 9am-5pm by default until explicitly turned
+      // off (existingAvail?.is_available ?? true there). Match that same
+      // default here instead of treating "never configured" as "no slots",
+      // so a freshly onboarded provider (instant_booking defaults to true)
+      // is actually bookable instead of silently showing zero slots.
+      const avail = avails[0] || { is_available: true, start_time: '09:00', end_time: '17:00', slot_duration_minutes: 60 };
+      if (!avail.is_available) { setAvailableSlots([]); return; }
       const duration = avail.slot_duration_minutes || 60;
       const existing = await base44.entities.ServiceBooking.filter({
         provider_email: provider.email,

@@ -34,6 +34,7 @@ export function round2(n) {
 export function cleanError(message) {
   if (!message) return 'Checkout failed';
   if (message.includes('insufficient balance')) return 'Insufficient wallet balance';
+  if (message.includes('STRIPE_SECRET_KEY')) return 'Card payments are temporarily unavailable — please try Wallet instead.';
   return message;
 }
 
