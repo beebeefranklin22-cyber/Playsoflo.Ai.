@@ -38,6 +38,7 @@ import PhysicalCardRequest from "../components/wallet/PhysicalCardRequest";
 import RecurringTransfersManager from "../components/wallet/RecurringTransfersManager";
 import CurrencyConverter from "../components/wallet/CurrencyConverter";
 import CDPCryptoWallet from "../components/wallet/CDPCryptoWallet";
+import RealWalletConnect from "../components/wallet/RealWalletConnect";
 import PaymentMethodStatusChecker from "../components/wallet/PaymentMethodStatusChecker";
 
 const formatCurrency = (amount) => {
@@ -472,7 +473,14 @@ export default function Wallet() {
         </div>
       )}
 
-      {/* On-chain USDC Wallet (Coinbase) */}
+      {/* Real on-chain wallet (Ethereum mainnet / Base) -- non-custodial:
+          connects the user's own wallet, real money, real blockchain. */}
+      <div className="px-4 sm:px-6 mb-6">
+        <RealWalletConnect />
+      </div>
+
+      {/* Testnet sandbox wallet (Coinbase CDP, Base Sepolia) -- fake
+          money, useful for trying the send/receive flow risk-free. */}
       <div className="px-4 sm:px-6 mb-6">
         <CDPCryptoWallet />
       </div>

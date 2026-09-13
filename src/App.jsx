@@ -1,6 +1,10 @@
 import React from 'react'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from 'wagmi'
+import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit'
+import '@rainbow-me/rainbowkit/styles.css'
+import { wagmiConfig } from '@/lib/wagmiConfig'
 import { queryClientInstance } from '@/lib/query-client'
 import { AuthProvider, useAuth } from '@/lib/AuthContext'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -115,19 +119,23 @@ const AuthenticatedApp = () => {
 
 function App() {
   return (
-    <AuthProvider>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <NavigationTracker />
-          <ErrorBoundary>
-            <AuthenticatedApp />
-          </ErrorBoundary>
-        </Router>
-        <Toaster />
-        <SonnerToaster position="bottom-center" richColors closeButton />
-        <VisualEditAgent />
+        <RainbowKitProvider theme={darkTheme({ accentColor: '#9333ea' })}>
+          <AuthProvider>
+            <Router>
+              <NavigationTracker />
+              <ErrorBoundary>
+                <AuthenticatedApp />
+              </ErrorBoundary>
+            </Router>
+            <Toaster />
+            <SonnerToaster position="bottom-center" richColors closeButton />
+            <VisualEditAgent />
+          </AuthProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
-    </AuthProvider>
+    </WagmiProvider>
   )
 }
 
