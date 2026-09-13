@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { cdpCreateWallet } from "@/functions/cdpCreateWallet";
 import { cdpGetBalance } from "@/functions/cdpGetBalance";
 import { cdpSendCrypto } from "@/functions/cdpSendCrypto";
+import { cdpRequestFaucet } from "@/functions/cdpRequestFaucet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Wallet, Copy, Send, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
+import { Wallet, Copy, Send, RefreshCw, Loader2, CheckCircle2, Droplets } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CDPCryptoWallet() {
   const [creating, setCreating] = useState(false);
   const [sending, setSending] = useState(false);
+  const [requestingFunds, setRequestingFunds] = useState(false);
   const [toAddress, setToAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [createMessage, setCreateMessage] = useState(null); // { type: 'error' | 'success', text }
@@ -58,13 +60,28 @@ export default function CDPCryptoWallet() {
     setSending(true);
     try {
       const res = await cdpSendCrypto({ to_address: toAddress.trim(), amount: parseFloat(amount) });
+      if (res?.data?.error) { toast.error(res.data.error); return; }
       toast.success(`Sent! Tx: ${String(res.data.tx_hash).slice(0, 12)}...`);
       setToAddress(""); setAmount("");
       refetch();
     } catch (e) {
-      toast.error(e?.response?.data?.error || "Send failed");
+      toast.error(e?.message || "Send failed");
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleRequestFunds = async () => {
+    setRequestingFunds(true);
+    try {
+      const res = await cdpRequestFaucet({ token: "usdc" });
+      if (res?.data?.error) { toast.error(res.data.error); return; }
+      toast.success("Testnet USDC on the way! Refreshing balance...");
+      setTimeout(() => refetch(), 4000);
+    } catch (e) {
+      toast.error(e?.message || "Faucet request failed");
+    } finally {
+      setRequestingFunds(false);
     }
   };
 
@@ -122,6 +139,19 @@ export default function CDPCryptoWallet() {
               <Copy className="w-4 h-4" />
             </button>
           </div>
+
+          {(data.usdc_balance || 0) < 0.01 && (
+            <Button
+              onClick={handleRequestFunds}
+              disabled={requestingFunds}
+              variant="outline"
+              className="w-full mb-4 border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            >
+              {requestingFunds
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Requesting testnet funds...</>
+                : <><Droplets className="w-4 h-4 mr-2" />Get Free Testnet USDC</>}
+            </Button>
+          )}
 
           {/* Send */}
           <div className="space-y-2">

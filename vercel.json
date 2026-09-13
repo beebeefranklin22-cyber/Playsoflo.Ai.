@@ -18,6 +18,7 @@
     { "source": "/api/cart-checkout", "destination": "/api/money?__fn=cart-checkout" },
     { "source": "/api/wallet", "destination": "/api/money?__fn=wallet" },
     { "source": "/api/food-orders", "destination": "/api/money?__fn=food-orders" },
+    { "source": "/api/crypto-wallet", "destination": "/api/money?__fn=crypto-wallet" },
 
     { "source": "/api/rides", "destination": "/api/mobility?__fn=rides" },
     { "source": "/api/delivery", "destination": "/api/mobility?__fn=delivery" },
