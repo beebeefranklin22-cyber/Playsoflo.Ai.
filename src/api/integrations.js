@@ -8,7 +8,11 @@ export async function UploadFile({ file, bucket = 'media', path: customPath } = 
   const { error } = await supabase.storage.from(bucket).upload(fileName, file, { upsert: true, contentType: file.type });
   if (error) throw error;
   const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-  return data.publicUrl;
+  // Every call site across the app destructures { file_url } (or reads
+  // .file_url off the returned object) -- this used to return a bare
+  // string, which silently produced `undefined` at every single upload
+  // call site instead of throwing.
+  return { file_url: data.publicUrl };
 }
 
 export async function InvokeLLM({ prompt, systemPrompt = "You are Ronron AI, the helpful assistant for PlaySoFlo.", response_json_schema, model } = {}) {
@@ -53,7 +57,10 @@ export async function GenerateImage({ prompt, width = 1024, height = 1024, model
     throw new Error(err.error || `GenerateImage failed: ${res.statusText}`);
   }
   const { url } = await res.json();
-  return url;
+  // Every call site reads .url off the returned object (AIStudio.jsx's
+  // imageResult.url, scene1.url, etc.) -- this used to return a bare
+  // string, which silently produced `undefined` instead of the image URL.
+  return { url };
 }
 
 export async function ExtractDataFromUploadedFile({ file_url, json_schema } = {}) {
