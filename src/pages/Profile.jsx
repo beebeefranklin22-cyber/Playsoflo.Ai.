@@ -101,6 +101,50 @@ export default function Profile() {
     }
   });
 
+  // Shared by the initial load below and updateUserMutation's onSuccess --
+  // every array/object field here can come back null from the database for
+  // any account that never set it (every brand-new signup), and several
+  // places in this file read straight through them (editedUser.interests
+  // .length, editedUser.notification_preferences.app_updates, etc.) with no
+  // optional chaining. Normalizing in one place, used everywhere editedUser
+  // is built from a server response, keeps those reads safe.
+  const normalizeUser = (user) => ({
+    full_name: user.full_name || "",
+    username: user.username || "",
+    bio: user.bio || "",
+    link_in_bio: user.link_in_bio || "",
+    website: user.website || "",
+    social_links: user.social_links || {
+      twitter: "",
+      instagram: "",
+      facebook: "",
+      tiktok: "",
+      youtube: "",
+      linkedin: ""
+    },
+    phone: user.phone || "",
+    address: user.address || "",
+    interests: user.interests || [],
+    is_private: !!user.is_private,
+    privacy_settings: user.privacy_settings || {
+      profile_visibility: "public",
+      show_email: false,
+      show_phone: false,
+      show_activity: true,
+      allow_messages: "everyone"
+    },
+    notification_preferences: user.notification_preferences || {
+      app_updates: true,
+      promotions: true,
+      new_features: true,
+      ride_alerts: true,
+      booking_reminders: true,
+      payment_alerts: true,
+      social_updates: false,
+      marketing_emails: false
+    }
+  });
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -111,42 +155,7 @@ export default function Profile() {
           return;
         }
         setCurrentUser(user);
-        setEditedUser({
-          full_name: user.full_name || "",
-          username: user.username || "",
-          bio: user.bio || "",
-          link_in_bio: user.link_in_bio || "",
-          website: user.website || "",
-          social_links: user.social_links || {
-            twitter: "",
-            instagram: "",
-            facebook: "",
-            tiktok: "",
-            youtube: "",
-            linkedin: ""
-          },
-          phone: user.phone || "",
-          address: user.address || "",
-          interests: user.interests || [],
-          is_private: !!user.is_private,
-          privacy_settings: user.privacy_settings || {
-            profile_visibility: "public",
-            show_email: false,
-            show_phone: false,
-            show_activity: true,
-            allow_messages: "everyone"
-          },
-          notification_preferences: user.notification_preferences || {
-            app_updates: true,
-            promotions: true,
-            new_features: true,
-            ride_alerts: true,
-            booking_reminders: true,
-            payment_alerts: true,
-            social_updates: false,
-            marketing_emails: false
-          }
-        });
+        setEditedUser(normalizeUser(user));
       } catch (error) {
         console.log("Error fetching user:", error);
         setLoadError("We couldn't load your profile. Please check your connection and try again.");
@@ -173,7 +182,7 @@ export default function Profile() {
     },
     onSuccess: (user) => {
       setCurrentUser(user);
-      setEditedUser(prev => ({ ...prev, ...user }));
+      setEditedUser(normalizeUser(user));
       toast.success('Profile saved!');
     },
     onError: (err) => {
