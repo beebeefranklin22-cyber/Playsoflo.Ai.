@@ -8,12 +8,14 @@ import checkout from './_handlers/checkout.js';
 import cartCheckout from './_handlers/cart-checkout.js';
 import wallet from './_handlers/wallet.js';
 import foodOrders from './_handlers/food-orders.js';
+import cryptoWallet from './_handlers/crypto-wallet.js';
 
 const ROUTES = {
   checkout,
   'cart-checkout': cartCheckout,
   wallet,
   'food-orders': foodOrders,
+  'crypto-wallet': cryptoWallet,
 };
 
 export default async function handler(req, res) {

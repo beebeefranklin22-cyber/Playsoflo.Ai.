@@ -1,11 +1,16 @@
-import { getEdgeFunctionUrl } from '@/lib/apiClient';
+import { getAuthHeaders } from '@/lib/apiClient';
+
 export async function cdpGetBalance(data) {
   try {
-    const response = await fetch(
-      getEdgeFunctionUrl('cdpGetBalance'),
-      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }, body: JSON.stringify(data) }
-    );
+    const response = await fetch('/api/crypto-wallet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+      body: JSON.stringify({ action: 'balance', ...data }),
+    });
     if (!response.ok) { const e = await response.json(); throw new Error(e.error || 'cdpGetBalance failed'); }
-    return await response.json();
-  } catch (error) { console.error('cdpGetBalance error:', error); throw error; }
+    return { data: await response.json() };
+  } catch (error) {
+    console.error('cdpGetBalance error:', error);
+    throw error;
+  }
 }
