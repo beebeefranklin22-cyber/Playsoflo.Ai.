@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/apiClient';
+
 // Creates a Stripe PaymentIntent for a generic dollar-amount charge (wallet
 // deposits, tips, etc). `amount` is in dollars, matching how the rest of the
 // app displays and computes totals; this converts to cents for Stripe.
@@ -5,7 +7,7 @@ export async function processStripePayment({ amount, description, metadata } = {
   try {
     const res = await fetch('/api/stripe-intent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({
         amount: Math.round(Number(amount) * 100),
         currency: 'usd',

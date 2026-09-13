@@ -6,6 +6,7 @@
 
 import * as entities from './entities';
 import { Core as integrationsCore } from './integrations';
+import { getAuthHeaders } from '@/lib/apiClient';
 
 const { User } = entities;
 
@@ -71,7 +72,7 @@ export const base44 = {
       ProcessPayment: async ({ amount, currency = 'usd', ...rest }) => {
         const res = await fetch('/api/stripe-intent', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
           body: JSON.stringify({
             amount: Math.round(Number(amount) * 100),
             currency,

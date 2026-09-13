@@ -1,8 +1,10 @@
+import { getAuthHeaders } from '@/lib/apiClient';
+
 export async function infrastructureHealthCheck() {
   try {
     const res = await fetch('/api/diagnostics', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ action: 'infrastructure_check' }),
     });
     const data = await res.json();

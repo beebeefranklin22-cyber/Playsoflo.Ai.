@@ -1,7 +1,9 @@
+import { getAuthHeaders } from '@/lib/apiClient';
+
 async function callDiagnostics(action, extra) {
   const res = await fetch('/api/diagnostics', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
     body: JSON.stringify({ action, ...extra }),
   });
   return res.json();

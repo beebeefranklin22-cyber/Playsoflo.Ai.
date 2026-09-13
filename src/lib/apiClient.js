@@ -1,5 +1,15 @@
 import { supabase } from './supabaseClient';
 
+// For call sites that need to keep their own fetch/response handling (custom
+// error shapes, non-JSON-throwing behavior, etc.) but still must attach the
+// caller's identity now that their target endpoint requires requireUser().
+// Returns {} if signed out -- the server will correctly reject with 401
+// rather than this silently omitting the header.
+export async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
 // Calls one of our own /api/*.js serverless functions, attaching the
 // current Supabase session's access token so the server can verify who is
 // actually calling (never trust a client-supplied email/id for identity).

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { getAuthHeaders } from "@/lib/apiClient";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
@@ -72,7 +73,7 @@ async function sendWellnessBookingConfirmation(checkoutResult, service) {
 
     await fetch("/api/email", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
       body: JSON.stringify({ to: booking.customer_email, subject: "Your wellness booking is confirmed", body }),
     });
   } catch (err) {

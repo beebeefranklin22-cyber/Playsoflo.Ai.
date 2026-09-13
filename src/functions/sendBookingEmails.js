@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient';
+import { getAuthHeaders } from '@/lib/apiClient';
 
 const SUBJECTS = {
   cancellation: 'Your booking has been cancelled',
@@ -16,7 +17,7 @@ export async function sendBookingEmails({ booking_id, email_type } = {}) {
   try {
     const res = await fetch('/api/email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
       body: JSON.stringify({ to: booking.guest_email, subject, body }),
     });
     const json = await res.json();
