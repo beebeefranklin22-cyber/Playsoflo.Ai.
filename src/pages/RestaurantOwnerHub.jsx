@@ -120,7 +120,11 @@ export default function RestaurantOwnerHub() {
 
   const createRestaurantMutation = useMutation({
     mutationFn: async (data) => {
-      const restaurant = await base44.entities.Restaurant.create(data);
+      const restaurant = await base44.entities.Restaurant.create({
+        ...data,
+        owner_email: currentUser.email,
+        created_by: currentUser.email,
+      });
       // Mark user as restaurant owner so it shows up in Food Delivery
       await base44.auth.updateMe({ is_restaurant_owner: true });
       return restaurant;
