@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Wallet, CreditCard, CheckCircle, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
 
 export default function TicketPurchaseWalletIntegration({ 
   totalPrice, 
@@ -20,7 +19,7 @@ export default function TicketPurchaseWalletIntegration({
         try {
           const users = await base44.entities.User.filter({ email: currentUser.email });
           if (users.length > 0) {
-            setWalletBalance(users[0].soflo_balance || 0);
+            setWalletBalance(users[0].usd_balance || 0);
           }
         } catch (error) {
           console.error('Failed to fetch wallet balance:', error);

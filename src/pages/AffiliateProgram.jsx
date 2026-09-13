@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Share2, Copy, DollarSign, Users, TrendingUp, 
-  ExternalLink, CheckCircle, Gift, Sparkles, Link2, 
+  Share2, Copy, DollarSign, Users, TrendingUp, CheckCircle, Gift, Link2, 
   BarChart3, UserPlus
 } from "lucide-react";
 import { motion } from "framer-motion";

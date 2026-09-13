@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building, Users, DollarSign, FileText, CheckCircle, XCircle, AlertTriangle, Shield, Plus, X, Send } from "lucide-react";
+import { Building, Users, DollarSign, FileText, CheckCircle, XCircle, Shield, Plus, X, Send } from "lucide-react";
 import SendLeaseModal from "../components/realestate/SendLeaseModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";

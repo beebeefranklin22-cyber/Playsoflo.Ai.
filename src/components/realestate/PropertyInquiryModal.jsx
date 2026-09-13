@@ -43,20 +43,22 @@ export default function PropertyInquiryModal({ property, currentUser, onClose })
         read: false,
       });
 
-      // 2. Find or create a direct chat conversation
+      // 2. Find or create a direct chat conversation. Standardize on
+      // `participants` — Messages.jsx (the inbox this hands off to) only
+      // ever reads that field, never `participant_emails`.
       const existingConvos = await base44.entities.ChatConversation.filter({
-        participant_emails: { $in: [currentUser?.email] }
+        participants: { $contains: currentUser?.email }
       }).catch(() => []);
 
       let conversation = existingConvos.find((c) =>
-        Array.isArray(c.participant_emails) &&
-        c.participant_emails.includes(currentUser?.email) &&
-        c.participant_emails.includes(hostEmail)
+        Array.isArray(c.participants) &&
+        c.participants.includes(hostEmail)
       );
 
       if (!conversation) {
         conversation = await base44.entities.ChatConversation.create({
-          participant_emails: [currentUser?.email, hostEmail],
+          created_by: currentUser?.email,
+          participants: [currentUser?.email, hostEmail],
           participant_names: [currentUser?.full_name, property?.host_name || "Host"],
           last_message: fullMessage,
           last_message_time: new Date().toISOString(),
@@ -81,7 +83,7 @@ export default function PropertyInquiryModal({ property, currentUser, onClose })
       toast.success("Message sent! The host will be in touch.");
       onClose();
       // Navigate to Messages to continue the conversation
-      navigate(createPageUrl("Messages") + `?conversation=${conversationId}`);
+      navigate(createPageUrl("Messages") + `?conv=${conversationId}`);
     },
     onError: (err) => {
       toast.error(err.message || "Failed to send message");

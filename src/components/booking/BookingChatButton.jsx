@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Send, X, Zap, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Send, Zap, ChevronDown, ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import DirectChatModal from "@/components/chat/DirectChatModal";
@@ -31,6 +31,7 @@ export default function BookingChatButton({
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [targetUser, setTargetUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState(null);
 
   const openChat = async (prefillMessage = null) => {
     if (!currentUser) {
@@ -47,44 +48,9 @@ export default function BookingChatButton({
       setTargetUser(user);
       setLoading(false);
     }
+    setPendingMessage(prefillMessage ? (bookingTitle ? `[Re: ${bookingTitle}] ${prefillMessage}` : prefillMessage) : null);
     setShowChat(true);
     setShowQuickReplies(false);
-
-    // If a prefill message was selected, send it after a brief delay so the modal opens first
-    if (prefillMessage) {
-      setTimeout(async () => {
-        try {
-          const conversationId = [currentUser.email, providerEmail].sort().join('_');
-          await base44.entities.DirectMessage.create({
-            conversation_id: conversationId,
-            sender_email: currentUser.email,
-            sender_name: currentUser.full_name,
-            sender_photo: currentUser.profile_photo,
-            recipient_email: providerEmail,
-            content: bookingTitle
-              ? `[Re: ${bookingTitle}] ${prefillMessage}`
-              : prefillMessage,
-            read: false,
-          });
-          // Notify provider
-          await base44.entities.Notification.create({
-            recipient_email: providerEmail,
-            type: "direct_message",
-            title: `💬 Message from ${currentUser.full_name}`,
-            message: prefillMessage.slice(0, 100),
-            reference_type: "booking",
-            reference_id: bookingId || null,
-            sender_email: currentUser.email,
-            sender_name: currentUser.full_name,
-            sender_photo: currentUser.profile_photo,
-            read: false,
-            action_url: "/ProviderHub",
-          });
-        } catch (e) {
-          console.error("Quick reply send failed", e);
-        }
-      }, 500);
-    }
   };
 
   const statusLabel = bookingStatus === 'confirmed'
@@ -213,6 +179,7 @@ export default function BookingChatButton({
             onClose={() => setShowChat(false)}
             targetUser={targetUser}
             currentUser={currentUser}
+            initialMessage={pendingMessage}
           />
         )}
       </AnimatePresence>

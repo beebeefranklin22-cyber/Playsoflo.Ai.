@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Phone, MapPin, Clock, Package, DollarSign, MessageCircle } from "lucide-react";
+import { Phone, MapPin, Clock, Package, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import OrderStatusBadge from "./OrderStatusBadge";
 

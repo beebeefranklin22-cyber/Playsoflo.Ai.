@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Lock, DollarSign, TrendingUp, Eye, Plus } from "lucide-react";
+import { Lock, DollarSign, Eye, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function PPVContentManager({ currentUser }) {
@@ -146,12 +146,14 @@ export default function PPVContentManager({ currentUser }) {
               />
             </div>
             <div>
-              <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin)</label>
+              <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin) <span className="text-purple-400 text-xs">(Coming Soon)</span></label>
               <Input
                 type="number"
                 value={form.price_rri}
-                onChange={(e) => setForm({...form, price_rri: Number(e.target.value)})}
-                className="bg-white/10 border-white/20 text-white"
+                disabled
+                title="SoFloCoin pricing is coming soon"
+                placeholder="Coming soon"
+                className="bg-white/5 border-white/10 text-gray-500 cursor-not-allowed"
               />
             </div>
             <div>

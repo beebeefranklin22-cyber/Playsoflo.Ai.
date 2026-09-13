@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { base44 } from "@/api/base44Client";
-import { Brain, Send, X, Loader2, MapPin, DollarSign, Clock, AlertTriangle, TrendingUp, Zap, Target } from "lucide-react";
+import { Brain, Send, X, Loader2, MapPin, DollarSign, TrendingUp, Zap, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 

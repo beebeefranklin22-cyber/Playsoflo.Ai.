@@ -1,10 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Upload, Users, Scissors, Loader2, Send } from "lucide-react";
+import { X, Upload, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 

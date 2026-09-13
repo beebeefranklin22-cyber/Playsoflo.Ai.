@@ -3,9 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar as CalendarIcon, Plus, X, Clock, Repeat } from "lucide-react";
+import { Plus, X, Repeat } from "lucide-react";
 import { toast } from "sonner";
 
 export default function RecurringEventScheduler({ schedule, onChange }) {

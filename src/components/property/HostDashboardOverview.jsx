@@ -2,8 +2,8 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Calendar, Users, DollarSign, TrendingUp, 
-  Clock, CheckCircle, XCircle, Home
+  Calendar, Users, DollarSign, 
+  Clock, CheckCircle, XCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";

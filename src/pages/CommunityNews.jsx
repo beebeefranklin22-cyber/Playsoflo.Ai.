@@ -115,7 +115,8 @@ export default function CommunityNews() {
       setShowCreateModal(false);
       setFormData({ title: "", content: "", category: "other", featured_image: "", images: [], documents: [], video_url: "", source_url: "" });
       toast.success('News post created!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to create news post')
   });
 
   const updateMutation = useMutation({
@@ -126,7 +127,8 @@ export default function CommunityNews() {
       queryClient.invalidateQueries(['news-posts']);
       setEditingPost(null);
       toast.success('Post updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update post')
   });
 
   const deleteMutation = useMutation({
@@ -137,7 +139,8 @@ export default function CommunityNews() {
       queryClient.invalidateQueries(['news-posts']);
       setSelectedPost(null);
       toast.success('Post deleted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to delete post')
   });
 
   const likeMutation = useMutation({
@@ -154,7 +157,8 @@ export default function CommunityNews() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['news-posts']);
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update like')
   });
 
   const commentMutation = useMutation({
@@ -185,7 +189,8 @@ export default function CommunityNews() {
       queryClient.invalidateQueries(['news-comments']);
       setComment("");
       toast.success('Comment posted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to post comment')
   });
 
   const handleVideoUpload = async (e) => {

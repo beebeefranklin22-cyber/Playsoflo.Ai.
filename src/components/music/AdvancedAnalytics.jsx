@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, Users, Play, Download, DollarSign, MapPin, Clock, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, Play, Download, DollarSign, MapPin } from "lucide-react";
 
 export default function AdvancedAnalytics({ tracks, fanPools }) {
   const [timeRange, setTimeRange] = useState("30d");

@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, DollarSign, Calendar } from "lucide-react";
+import { TrendingUp, DollarSign, Calendar } from "lucide-react";
 
 export default function FleetAnalytics({ cars, rentals }) {
   const completedRentals = rentals.filter(r => r.status === 'completed');

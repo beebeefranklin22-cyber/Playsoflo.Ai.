@@ -3,16 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useSearchParams } from "react-router-dom";
 import { formatTimeOnly } from "../components/utils/dateUtils";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   MessageCircle, Send, Phone, Video, MoreVertical,
-  Plus, Search, Image as ImageIcon, Paperclip,
-  Smile, Check, CheckCheck, ArrowLeft, Users,
-  X, Camera, Mic, MapPin, Edit2, Trash2, FileText,
-  Download, Lock, Pin, BellOff, Reply, Forward
+  Plus, Search, Image as ImageIcon, Paperclip, Check, CheckCheck, ArrowLeft, Users,
+  X, Camera, Mic, Edit2, Trash2, FileText,
+  Download, Lock, Pin, BellOff, Reply
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoCallModal from "../components/VideoCallModal";
@@ -116,8 +114,8 @@ export default function Messages() {
         setSelectedConversation(conv);
       }
     } else if (userParam) {
-      const conv = conversations.find(c => 
-        !c.is_group && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
+      const conv = conversations.find(c =>
+        !c.is_group && Array.isArray(c.participants) && c.participants.includes(userParam) && c.participants.includes(currentUser.email)
       );
       if (conv) {
         handledParamRef.current = paramKey;
@@ -201,7 +199,7 @@ export default function Messages() {
       console.log('Message created:', message);
       
       // Update conversation — also bump unread_count for all other participants
-      const otherEmails = selectedConversation.participants.filter(p => p !== currentUser.email);
+      const otherEmails = (selectedConversation.participants || []).filter(p => p !== currentUser.email);
       const existingUnread = selectedConversation.unread_count || {};
       const updatedUnread = { ...existingUnread };
       otherEmails.forEach(email => {
@@ -221,7 +219,7 @@ export default function Messages() {
       });
 
       // Send notifications to other participants
-      const otherParticipants = selectedConversation.participants.filter(
+      const otherParticipants = (selectedConversation.participants || []).filter(
         p => p !== currentUser.email
       );
       
@@ -349,8 +347,9 @@ export default function Messages() {
       
       // Check if conversation already exists
       const allConvs = await base44.entities.ChatConversation.list();
-      const existing = allConvs.find(conv => 
+      const existing = allConvs.find(conv =>
         !conv.is_group &&
+        Array.isArray(conv.participants) &&
         conv.participants.length === 2 &&
         conv.participants.includes(currentUser.email) &&
         conv.participants.includes(participantEmail)
@@ -366,6 +365,7 @@ export default function Messages() {
       
       const newConv = await base44.entities.ChatConversation.create({
         participants: [currentUser.email, participantEmail],
+        created_by: currentUser.email,
         name: participant?.full_name || participantEmail,
         is_group: false,
         type: "general",
@@ -393,6 +393,7 @@ export default function Messages() {
     mutationFn: async () => {
       return await base44.entities.ChatConversation.create({
         participants: [currentUser.email, ...selectedParticipants],
+        created_by: currentUser.email,
         name: groupName,
         is_group: true,
         type: "general",
@@ -727,7 +728,7 @@ export default function Messages() {
   const filteredConversations = conversations
     .filter(conv =>
       conv.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase()))
+      (Array.isArray(conv.participants) && conv.participants.some(p => p.toLowerCase().includes(searchQuery.toLowerCase())))
     )
     .sort((a, b) => {
       // Sort pinned first

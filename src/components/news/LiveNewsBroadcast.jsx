@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { Button } from "@/components/ui/button";
-import { Video, VideoOff, Mic, MicOff, X, Users, Eye } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, X, Eye } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 

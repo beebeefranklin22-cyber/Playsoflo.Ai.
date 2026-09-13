@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { Bell, Calendar, MessageCircle, DollarSign, XCircle, CheckCircle, AlertCircle, UserPlus, Package, Car } from "lucide-react";
+import { Bell, Calendar, MessageCircle, DollarSign, XCircle, CheckCircle, AlertCircle, Package, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { playSoundForType } from "./notificationSounds";
+import { acceptRideSecure } from "@/functions/acceptRideSecure";
 
 const notificationIcons = {
   booking_confirmed: CheckCircle,
@@ -100,16 +101,17 @@ export default function RealtimeNotificationManager({ currentUser }) {
 
   const handleRideAction = async (rideId, action, notificationId) => {
     try {
-      const status = action === 'accept' ? 'accepted' : 'declined_by_customer';
-      await base44.entities.RideRequest.update(rideId, { 
-        driver_status: action === 'accept' ? 'accepted' : 'declined',
-        status 
-      });
+      if (action === 'accept') {
+        const { data } = await acceptRideSecure({ ride_id: rideId });
+        if (data?.error) throw new Error(data.error);
+      } else {
+        await base44.entities.RideRequest.update(rideId, { driver_status: 'declined', status: 'declined_by_customer' });
+      }
       await base44.entities.Notification.update(notificationId, { read: true });
       queryClient.invalidateQueries(['notifications']);
       toast.success(action === 'accept' ? 'Ride accepted!' : 'Ride declined');
     } catch (error) {
-      toast.error('Action failed');
+      toast.error(error.message || 'Action failed');
     }
   };
 

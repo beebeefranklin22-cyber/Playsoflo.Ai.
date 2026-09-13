@@ -12,8 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  TrendingUp, Eye, ThumbsUp, Edit2, Trash2, Plus, Play, Video,
-  BarChart3, Users, MessageSquare, Calendar, Radio, PauseCircle
+  TrendingUp, Eye, ThumbsUp, Edit2, Trash2, Plus, Play, Calendar, Radio
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -82,7 +81,8 @@ export default function NewsCreatorDashboard() {
       setShowCreateModal(false);
       setFormData({ title: "", content: "", category: "local", featured_image: "", video_url: "", source_url: "", status: "published" });
       toast.success('Post created!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to create post')
   });
 
   const updateMutation = useMutation({
@@ -94,7 +94,8 @@ export default function NewsCreatorDashboard() {
       setEditingPost(null);
       setShowCreateModal(false);
       toast.success('Post updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update post')
   });
 
   const deleteMutation = useMutation({
@@ -104,7 +105,8 @@ export default function NewsCreatorDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries(['my-news-posts']);
       toast.success('Post deleted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to delete post')
   });
 
   const handleSubmit = (e) => {

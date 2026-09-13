@@ -5,10 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
 import {
-  TrendingUp, Radio, Play, Heart, Eye, MessageCircle,
-  Flame, Users, Music, Video, Filter, Crown
+  TrendingUp, Radio, Play, Heart, Eye, MessageCircle, Users, Video
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 function computeScore(item) {
   const hoursSinceCreated = (Date.now() - new Date(item.created_date).getTime()) / 3600000;

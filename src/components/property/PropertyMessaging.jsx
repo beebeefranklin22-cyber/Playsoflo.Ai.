@@ -3,11 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Clock, User, X } from "lucide-react";
-import { toast } from "sonner";
+import { Send, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const MESSAGE_TEMPLATES = [
@@ -62,13 +59,14 @@ export default function PropertyMessaging({ booking, currentUser, isHost = false
       // Create new conversation if doesn't exist
       const newConv = await base44.entities.ChatConversation.create({
         booking_id: booking.id,
+        created_by: currentUser.email,
         participants: [booking.created_by, booking.provider_email],
         type: "property_booking",
         title: booking.experience_title
       });
       return newConv;
     },
-    enabled: !!booking
+    enabled: !!booking && !!currentUser
   });
 
   useEffect(() => {

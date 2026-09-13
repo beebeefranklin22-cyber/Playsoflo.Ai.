@@ -1,16 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, Navigation, Users, Share2, Clock, Crown, Calendar, CheckCircle, Loader2, X, Settings } from "lucide-react";
+import { MapPin, Navigation, Loader2, Settings } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import RideTrackingModal from "./RideTrackingModal";
-import VehicleTypeSelector, { vehicleTypes } from "./VehicleTypeSelector";
+import VehicleTypeSelector from "./VehicleTypeSelector";
 import SavedAddresses from "./SavedAddresses";
 import PaymentConfirmationModal from "./PaymentConfirmationModal";
 import RideWaitScreen from "./RideWaitScreen";
@@ -69,24 +67,23 @@ export default function HailRideModal({ open, onClose }) {
       const { latitude, longitude } = position.coords;
       setPickupCoords([latitude, longitude]);
 
-      // Reverse geocode to get address
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${await getGoogleMapsKey()}`
-      );
+      // Reverse geocode via our own keyless geocoding endpoint (no Google
+      // Maps key is configured for this project — see api/geo.js).
+      const response = await fetch('/api/geo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reverse', lat: latitude, lon: longitude }),
+      });
       const data = await response.json();
-      
-      if (data.status === 'OK' && data.results[0]) {
-        setPickup(data.results[0].formatted_address);
+
+      if (data.formatted_address) {
+        setPickup(data.formatted_address);
       }
     } catch (error) {
       console.log("Location access denied or failed");
     } finally {
       setGettingLocation(false);
     }
-  };
-
-  const getGoogleMapsKey = async () => {
-    return "YOUR_API_KEY"; // Placeholder - actual implementation uses backend
   };
 
   const fetchSuggestions = async (input, setSuggestions, setLoading) => {
@@ -210,64 +207,18 @@ export default function HailRideModal({ open, onClose }) {
     setShowPaymentModal(true);
   };
 
-  const confirmPaymentAndRequestRide = async () => {
-    // Ensure we always have valid numbers — never let fare be 0 or NaN
-    const baseFare = selectedVehicle.basePrice || 0;
-    const distanceFare = (selectedVehicle.pricePerMile || 0) * (estimatedDistance || 0);
-    const timeFare = (selectedVehicle.pricePerMinute || 0) * (estimatedDuration || 0);
-    const totalFare = Math.max(baseFare + distanceFare + timeFare, 1.00); // minimum $1
-    const driverEarnings = totalFare * 0.88;
-    const platformFee = totalFare * 0.12;
-    
-    try {
-      const ride = await base44.entities.RideRequest.create({
-        pickup_address: pickup,
-        dropoff_address: dropoff,
-        ride_type: selectedVehicle.id,
-        vehicle_class_details: {
-          name: selectedVehicle.name,
-          base_price: selectedVehicle.basePrice,
-          price_per_mile: selectedVehicle.pricePerMile,
-          price_per_minute: selectedVehicle.pricePerMinute,
-          capacity: selectedVehicle.capacity,
-          description: selectedVehicle.description
-        },
-        status: "requested",
-        is_shared: selectedVehicle.id === 'shared',
-        max_passengers: selectedVehicle.id === 'shared' ? 2 : 1,
-        is_for_someone_else: rideForSomeoneElse.isForSomeoneElse,
-        recipient_name: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientName : null,
-        recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
-        pickup_coords: pickupCoords || [25.7617, -80.1918],
-        dropoff_coords: dropoffCoords || [25.7743, -80.1937],
-        route_geometry: routeGeometry || null,
-        estimated_distance_miles: estimatedDistance,
-        estimated_duration_minutes: estimatedDuration,
-        rider_preferences: riderPreferences,
-        fare_breakdown: {
-          base_fare: baseFare,
-          distance_fare: distanceFare,
-          time_fare: timeFare,
-          surge_multiplier: 1.0,
-          total_fare: totalFare,
-          driver_earnings: driverEarnings,
-          platform_fee: platformFee
-        }
-      });
-      
-      setCurrentRide(ride);
-      setShowPaymentModal(false);
-      setShowWaitScreen(true);
-      
-      // Match optimal drivers using smart algorithm
-      await base44.functions.invoke('matchOptimalDriver', {
-        ride_id: ride.id
-      });
-      
-      toast.success("🚗 Ride requested! Finding you a driver...", { position: "bottom-center", duration: 5000 });
-    } catch (error) {
-      toast.error(error.message || 'Failed to request ride');
-    }
+  // PaymentConfirmationModal already charged the fare and created the real
+  // ride_requests row server-side (api/rides.js's request_ride action) --
+  // this just picks up from there and kicks off driver matching.
+  const onRideCreated = async (ride) => {
+    setCurrentRide(ride);
+    setShowWaitScreen(true);
+
+    await base44.functions.invoke('matchOptimalDriver', {
+      ride_id: ride.id
+    });
+
+    toast.success("🚗 Ride requested! Finding you a driver...", { position: "bottom-center", duration: 5000 });
   };
 
   return (
@@ -486,7 +437,7 @@ export default function HailRideModal({ open, onClose }) {
       <PaymentConfirmationModal
         open={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
-        onConfirm={confirmPaymentAndRequestRide}
+        onConfirm={onRideCreated}
         currentUser={currentUser}
         rideDetails={{
           pickup,
@@ -494,9 +445,30 @@ export default function HailRideModal({ open, onClose }) {
           vehicleName: selectedVehicle?.name,
           distance: estimatedDistance?.toFixed(1),
           duration: Math.round(estimatedDuration),
-          totalFare: selectedVehicle && estimatedDistance 
+          totalFare: selectedVehicle && estimatedDistance
             ? selectedVehicle.basePrice + selectedVehicle.pricePerMile * estimatedDistance + selectedVehicle.pricePerMinute * estimatedDuration
-            : 0
+            : 0,
+          // Raw fields api/rides.js's request_ride action needs to create + charge the ride.
+          ride_type: selectedVehicle?.id,
+          vehicle_class_details: selectedVehicle ? {
+            name: selectedVehicle.name,
+            base_price: selectedVehicle.basePrice,
+            price_per_mile: selectedVehicle.pricePerMile,
+            price_per_minute: selectedVehicle.pricePerMinute,
+            capacity: selectedVehicle.capacity,
+            description: selectedVehicle.description
+          } : null,
+          is_shared: selectedVehicle?.id === 'shared',
+          max_passengers: selectedVehicle?.id === 'shared' ? 2 : 1,
+          is_for_someone_else: rideForSomeoneElse.isForSomeoneElse,
+          recipient_name: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientName : null,
+          recipient_phone: rideForSomeoneElse.isForSomeoneElse ? rideForSomeoneElse.recipientPhone : null,
+          pickup_coords: pickupCoords || [25.7617, -80.1918],
+          dropoff_coords: dropoffCoords || [25.7743, -80.1937],
+          route_geometry: routeGeometry || null,
+          estimated_distance_miles: estimatedDistance,
+          estimated_duration_minutes: estimatedDuration,
+          rider_preferences: riderPreferences,
         }}
       />
     </>

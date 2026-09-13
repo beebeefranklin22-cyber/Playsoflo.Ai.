@@ -2,22 +2,21 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { createPageUrl } from "@/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Music, Play, Heart, Share2, MoreVertical, ExternalLink,
+  Music, Play, Heart, Share2,
   Calendar, MapPin, Ticket, ShoppingBag, TrendingUp, Video,
-  Bell, BellOff, Users, DollarSign, Star, Award, Clock,
-  Instagram, Twitter, Youtube, Facebook, Globe, Verified,
-  Download, Plus, MessageCircle, ShoppingCart, X
+  Bell, BellOff, Users, DollarSign, Award, Clock,
+  Instagram, Twitter, Youtube, Facebook, Globe, Verified, MessageCircle, ShoppingCart, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatLocalTime, formatDateOnly } from "../components/utils/dateUtils";
-import PurchaseAccessGate from "../components/payment/PurchaseAccessGate";
 import UniversalPaymentGate from "../components/payment/UniversalPaymentGate";
 
 export default function ArtistProfile() {
@@ -215,9 +214,10 @@ export default function ArtistProfile() {
       });
     }
 
-    // Increment stream count
-    base44.entities.MusicTrack.update(track.id, {
-      stream_count: (track.stream_count || 0) + 1
+    // Increment stream count -- goes through a SECURITY DEFINER RPC since
+    // music_tracks' RLS only lets the artist update their own row.
+    supabase.rpc('increment_track_stream', { p_track_id: track.id }).then(({ error }) => {
+      if (error) console.error('Failed to increment stream count:', error);
     });
   };
 

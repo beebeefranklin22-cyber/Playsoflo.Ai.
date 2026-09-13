@@ -1,7 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { MapPin, AlertCircle, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 
 export default function LocationPermissionManager({ onPermissionGranted }) {
   const [permissionState, setPermissionState] = useState('idle');

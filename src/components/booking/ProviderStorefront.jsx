@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  ShoppingBag, Calendar, Package, Zap, Star, MapPin,
-  ChevronRight, Play, Tag, Truck, RotateCcw
+  ShoppingBag, Calendar, Package, Zap, Star, Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import UnifiedBookingModal from "./UnifiedBookingModal";

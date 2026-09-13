@@ -4,8 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
-  Search, User, Briefcase, Music, Tv, Sparkles,
-  Star, MapPin, DollarSign, ChevronRight, Filter,
+  Search, User, Briefcase, Tv, Sparkles,
+  Star, MapPin, DollarSign, ChevronRight,
   X, TrendingUp, AtSign, Clock, Video, SlidersHorizontal
 } from "lucide-react";
 import { Input } from "@/components/ui/input";

@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Download, Building, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { processWithdrawal } from "@/functions/processWithdrawal";
 import { toast } from "sonner";

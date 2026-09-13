@@ -2,16 +2,17 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, DollarSign, Clock, Users, ArrowRight, X, CheckCircle, Navigation, Volume2, Wind, Droplets, Music, MessageCircle } from "lucide-react";
+import { MapPin, Clock, Users, ArrowRight, X, CheckCircle, Navigation, Volume2, Wind, Droplets, Music, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import RatingModal from "../ride/RatingModal";
 import CancellationModal from "../ride/CancellationModal";
 import PassengerVerificationModal from "../ride/PassengerVerificationModal";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { acceptRideSecure } from "@/functions/acceptRideSecure";
+import { completeRideSecure } from "@/functions/completeRideSecure";
 
 export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate }) {
   const [loading, setLoading] = React.useState(false);
@@ -21,51 +22,31 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
   const [showPreferences, setShowPreferences] = React.useState(false);
   const [showVerification, setShowVerification] = React.useState(false);
 
+  const passengerEmail = ride.created_by || ride.passenger_email;
+
   // Fetch customer preferences
   const { data: customerData } = useQuery({
-    queryKey: ['customer-preferences', ride.created_by],
+    queryKey: ['customer-preferences', passengerEmail],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.find(u => u.email === ride.created_by);
+      return users.find(u => u.email === passengerEmail);
     },
-    enabled: !!ride.created_by
+    enabled: !!passengerEmail
   });
 
   const handleAccept = async () => {
     setLoading(true);
     try {
-      const currentUser = await base44.auth.me();
-      const driverName = currentUser.full_name || "Your driver";
-      const vehicleInfo = currentUser.driver_vehicle_info 
-        ? `${currentUser.driver_vehicle_info.color} ${currentUser.driver_vehicle_info.make} ${currentUser.driver_vehicle_info.model}`
-        : "your vehicle";
-      
-      await base44.entities.RideRequest.update(ride.id, {
-        driver_status: "accepted",
-        status: "en_route",
-        driver_email: currentUser.email,
-        driver_name: currentUser.full_name,
-        driver_profile_picture: currentUser.driver_profile_picture || currentUser.profile_picture,
-        driver_vehicle_info: currentUser.driver_vehicle_info,
-        matched_at: new Date().toISOString()
-      });
-      
-      // Notify customer - Driver Assigned
-      await base44.entities.Notification.create({
-        recipient_email: ride.created_by,
-        type: "ride_update",
-        title: "🚗 Driver Assigned!",
-        message: `${driverName} is your driver! Look for ${vehicleInfo}. They're on their way to ${ride.pickup_address}. ETA: ${ride.estimated_duration_minutes || 5} min.`,
-        reference_type: "ride",
-        reference_id: ride.id,
-        read: false
-      });
-      
+      // Server verifies the driver isn't already on another active ride,
+      // claims this one atomically, and notifies the passenger.
+      const { data } = await acceptRideSecure({ ride_id: ride.id });
+      if (data?.error) throw new Error(data.error);
+
       toast.success('Ride accepted! Passenger notified');
       onAccept?.();
     } catch (err) {
       console.error("Accept failed:", err);
-      toast.error("Failed to accept ride");
+      toast.error(err.message || "Failed to accept ride");
     } finally {
       setLoading(false);
     }
@@ -442,27 +423,16 @@ export default function RideRequestCard({ ride, onAccept, onDecline, onNavigate 
                 onClick={async () => {
                   setLoading(true);
                   try {
-                    const completedTime = new Date().toISOString();
-                    await base44.entities.RideRequest.update(ride.id, {
-                      status: 'completed',
-                      end_time: completedTime
-                    });
-                    
-                    // Notify customer - Ride Completed
-                    await base44.entities.Notification.create({
-                      recipient_email: ride.created_by,
-                      type: "ride_update",
-                      title: "✅ Ride Completed!",
-                      message: `You've arrived at ${ride.dropoff_address}. Total fare: $${ride.fare_breakdown?.total_fare?.toFixed(2) || '0.00'}. How was your ride? Please rate your driver!`,
-                      reference_type: "ride",
-                      reference_id: ride.id,
-                      read: false
-                    });
-                    
+                    // Server credits the driver's earnings from the fare
+                    // already collected at request time and notifies the
+                    // passenger -- this is the only place driver payout happens.
+                    const { data } = await completeRideSecure({ ride_id: ride.id });
+                    if (data?.error) throw new Error(data.error);
+
                     toast.success('Ride completed! Passenger notified');
                     onAccept?.();
                   } catch (err) {
-                    toast.error('Failed to complete ride');
+                    toast.error(err.message || 'Failed to complete ride');
                   } finally {
                     setLoading(false);
                   }

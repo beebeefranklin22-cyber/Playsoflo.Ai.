@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ticket, QrCode, Calendar, MapPin, Clock, Download, CheckCircle, XCircle } from "lucide-react";
+import { Ticket, Calendar, MapPin, Clock, Download, CheckCircle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MyTickets() {

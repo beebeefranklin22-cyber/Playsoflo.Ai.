@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import CollaborativeEditor from '../components/collaboration/CollaborativeEditor';
-import { AlertTriangle, Lock } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 export default function SharedDocument() {
   const [searchParams] = useSearchParams();

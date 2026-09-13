@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { toast } from "sonner";
 
 export default function PerformanceMonitor() {
   const [metrics, setMetrics] = useState({

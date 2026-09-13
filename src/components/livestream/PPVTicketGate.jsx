@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Crown, Star, Zap, Check, DollarSign, Coins } from "lucide-react";
+import { Lock, Crown, Star, Zap, Check, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
@@ -131,7 +131,7 @@ export default function PPVTicketGate({ stream, currentUser, children }) {
                       {tier.price_soflo > 0 && (
                         <div className="flex items-center justify-center gap-1 text-purple-400 text-sm">
                           <Coins className="w-4 h-4" />
-                          {tier.price_soflo} SoFloCoin
+                          {tier.price_soflo} SoFloCoin <span className="text-[10px] uppercase tracking-wide opacity-70">(Coming Soon)</span>
                         </div>
                       )}
                     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Star, Plus, X, Play, Grid, Loader2, Pencil, Check, Image } from "lucide-react";
+import { Star, Plus, X, Play, Grid, Loader2, Check, Image } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 

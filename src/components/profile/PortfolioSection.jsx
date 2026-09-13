@@ -7,8 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, X, ExternalLink, Play, Image as ImageIcon, 
-  Star, Eye, Heart, Trash2, Edit2, Loader2, Upload
+  Plus, X, Play, Image as ImageIcon, 
+  Star, Trash2, Loader2, Upload
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

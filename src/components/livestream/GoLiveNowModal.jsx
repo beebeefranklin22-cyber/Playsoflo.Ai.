@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import MultistreamDestinations from "./MultistreamDestinations";
 import { manageLiveStream } from "@/functions/manageLiveStream";
 import MultistreamSection from "./MultistreamSection";
 

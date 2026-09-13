@@ -11,117 +11,112 @@ import {
   Check, Trash2, Star, X, Shield, Wallet, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { createSetupIntent } from "@/functions/createSetupIntent";
+import { confirmCardSetup } from "@/functions/confirmCardSetup";
 
 import ManualBankPaymentForm from "./ManualBankPaymentForm";
 
-/* ────────── Direct Card Form (saves card details directly, no Stripe blocking) ────────── */
-function DirectCardForm({ onSuccess, onCancel, currentUser }) {
+/* ────────── Stripe Card Setup Form ──────────
+   Tokenizes the card directly with Stripe (PaymentElement, in setup mode)
+   — the raw card number never enters our own React state or a request we
+   control. The server verifies the resulting SetupIntent before saving
+   anything (see api/payment-methods.js), and only brand/last4/expiry plus
+   the Stripe PaymentMethod reference are persisted. */
+function StripeCardSetupInnerForm({ onSuccess, onCancel }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [processing, setProcessing] = useState(false);
-  const [form, setForm] = useState({
-    cardholder_name: currentUser?.full_name || "",
-    card_number: "",
-    exp_month: "",
-    exp_year: "",
-    cvv: "",
-    zip: ""
-  });
-
-  const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const cardNum = form.card_number.replace(/\s/g, "");
-    if (!form.cardholder_name.trim()) { toast.error("Enter cardholder name"); return; }
-    if (cardNum.length < 13 || cardNum.length > 19) { toast.error("Enter a valid card number"); return; }
-    if (!form.exp_month || !form.exp_year) { toast.error("Enter expiration date"); return; }
-    if (!form.cvv || form.cvv.length < 3) { toast.error("Enter CVV"); return; }
-
+    if (!stripe || !elements) return;
     setProcessing(true);
-    toast.loading("Saving your card...");
+    setError(null);
 
-    try {
-      // Detect brand from card number
-      const brand = cardNum.startsWith("4") ? "visa"
-        : cardNum.startsWith("5") || (parseInt(cardNum.slice(0,2)) >= 51 && parseInt(cardNum.slice(0,2)) <= 55) ? "mastercard"
-        : cardNum.startsWith("34") || cardNum.startsWith("37") ? "amex"
-        : cardNum.startsWith("6") ? "discover"
-        : "card";
+    const { error: submitError } = await elements.submit();
+    if (submitError) { setError(submitError.message); setProcessing(false); return; }
 
-      const response = await base44.functions.invoke('savePaymentMethod', {
-        direct_card: {
-          last4: cardNum.slice(-4),
-          brand,
-          exp_month: parseInt(form.exp_month),
-          exp_year: parseInt(form.exp_year),
-          cardholder_name: form.cardholder_name.trim()
-        }
-      });
-
-      if (response?.data?.error) throw new Error(response.data.error);
-
-      toast.dismiss();
-      toast.success("Card saved successfully!");
-      onSuccess(response?.data?.method);
-    } catch (err) {
-      toast.dismiss();
-      toast.error(err.message || "Failed to save card");
+    const { error: confirmError, setupIntent } = await stripe.confirmSetup({
+      elements,
+      redirect: "if_required",
+    });
+    if (confirmError) { setError(confirmError.message); setProcessing(false); return; }
+    if (setupIntent?.status !== "succeeded") {
+      setError("Card setup was not completed. Please try again.");
       setProcessing(false);
+      return;
     }
-  };
 
-  const formatCardNumber = (val) => {
-    return val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+    const { data } = await confirmCardSetup({ setup_intent_id: setupIntent.id });
+    if (data?.error) { setError(data.error); setProcessing(false); return; }
+
+    toast.success("Card saved successfully!");
+    onSuccess(data?.method);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Cardholder Name</label>
-        <input type="text" value={form.cardholder_name} onChange={e => update("cardholder_name", e.target.value)}
-          placeholder="Full name on card"
-          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-      </div>
-      <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Card Number</label>
-        <input type="text" inputMode="numeric" value={form.card_number}
-          onChange={e => update("card_number", formatCardNumber(e.target.value))}
-          placeholder="1234 5678 9012 3456" maxLength={19}
-          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-gray-400 text-sm mb-1.5 block">Month</label>
-          <input type="text" inputMode="numeric" value={form.exp_month}
-            onChange={e => update("exp_month", e.target.value.replace(/\D/g,"").slice(0,2))}
-            placeholder="MM" maxLength={2}
-            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-        </div>
-        <div>
-          <label className="text-gray-400 text-sm mb-1.5 block">Year</label>
-          <input type="text" inputMode="numeric" value={form.exp_year}
-            onChange={e => update("exp_year", e.target.value.replace(/\D/g,"").slice(0,4))}
-            placeholder="YYYY" maxLength={4}
-            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-        </div>
-        <div>
-          <label className="text-gray-400 text-sm mb-1.5 block">CVV</label>
-          <input type="password" inputMode="numeric" value={form.cvv}
-            onChange={e => update("cvv", e.target.value.replace(/\D/g,"").slice(0,4))}
-            placeholder="•••" maxLength={4}
-            className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600" />
-        </div>
-      </div>
+      <PaymentElement options={{ layout: "tabs" }} />
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{error}</div>
+      )}
       <p className="text-gray-400 text-xs">
         <Shield className="w-3 h-3 inline mr-1" />
-        Card info is saved securely. Visa, Mastercard, Amex, Discover accepted.
+        Your card details go directly to Stripe — we never see or store your full card number.
       </p>
       <div className="flex gap-3">
         <Button type="button" onClick={onCancel} variant="outline" className="flex-1 border-white/20 text-white" disabled={processing}>Cancel</Button>
-        <Button type="submit" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" disabled={processing}>
-          {processing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : (<><Shield className="w-4 h-4 mr-2" />Add Card</>)}
+        <Button type="submit" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700" disabled={!stripe || processing}>
+          {processing ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>) : (<><Shield className="w-4 h-4 mr-2" />Save Card</>)}
         </Button>
       </div>
     </form>
+  );
+}
+
+function StripeCardSetupForm({ onSuccess, onCancel }) {
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [initError, setInitError] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await createSetupIntent();
+      if (!mounted) return;
+      if (data?.error || !data?.client_secret) {
+        setInitError(data?.error || "Could not start card setup");
+        setLoading(false);
+        return;
+      }
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading) {
+    return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-purple-400 animate-spin" /></div>;
+  }
+  if (initError) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">{initError}</div>
+        <Button onClick={onCancel} variant="outline" className="w-full border-white/20 text-white">Close</Button>
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#8b5cf6' } } }}>
+      <StripeCardSetupInnerForm onSuccess={onSuccess} onCancel={onCancel} />
+    </Elements>
   );
 }
 
@@ -158,7 +153,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
         bank_name: bankName,
         account_holder_name: holderName,
         routing_number: bankData.routing_number,
-        account_number_last4: bankData.account_number.slice(-4)
+        last4: bankData.account_number.slice(-4)
       }
     });
 
@@ -352,8 +347,7 @@ export default function PaymentMethodsManager({ currentUser, onClose }) {
                         {addMode === 'bank' ? (
                           <ManualBankPaymentForm currentUser={currentUser} saving={savingBank} onSave={handleSaveManualBank} onCancel={() => setShowAddCard(false)} />
                         ) : (
-                          <DirectCardForm
-                            currentUser={currentUser}
+                          <StripeCardSetupForm
                             onSuccess={(savedMethod) => {
                               if (savedMethod) {
                                 queryClient.setQueryData(['payment-methods', currentUser?.email], (old = []) =>

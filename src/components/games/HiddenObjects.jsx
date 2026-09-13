@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Play, Trophy, ShoppingBag, Settings, Eye } from "lucide-react";
+import { X, Play, Trophy, ShoppingBag, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";

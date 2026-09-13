@@ -1,57 +1,66 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Send, MessageSquare, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { X, Send, MessageSquare, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 
 export default function WellnessChatModal({ service, onClose }) {
   const qc = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [message, setMessage] = useState("");
   const [conversationId, setConversationId] = useState(null);
+  const [initError, setInitError] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => {
       setCurrentUser(u);
       initConversation(u, service);
-    }).catch(() => {});
+    }).catch(() => {
+      setInitError(true);
+      toast.error("You need to be signed in to message a provider.");
+    });
   }, []);
 
+  // Find-or-create a conversation between this user and the provider about
+  // this specific service. Was sending `participant_emails` and never
+  // `created_by` -- but chat_conversations' real jsonb array column is
+  // `participants`, and the chat_conversations_insert_own RLS policy
+  // requires `auth.email() = created_by`. So every create silently violated
+  // RLS, the conversation never actually got created, and the modal spun
+  // forever with no error shown. Mirrors the working find-or-create pattern
+  // in src/components/chat/DirectChatModal.jsx, scoped additionally to this
+  // service_id so a customer gets a separate thread per service.
   const initConversation = async (user, svc) => {
     if (!user) return;
-    // Look for existing conversation between this user and provider about this service
+    setInitError(false);
+    const providerEmail = svc.provider_email || svc.created_by;
     try {
-      const convos = await base44.entities.ChatConversation.filter({
-        participant_emails: user.email,
-        service_id: svc.id
+      const existing = await base44.entities.ChatConversation.filter({});
+      const found = (existing || []).find((conv) =>
+        Array.isArray(conv.participants) &&
+        conv.participants.includes(user.email) &&
+        conv.participants.includes(providerEmail) &&
+        conv.service_id === svc.id
+      );
+
+      const convo = found || await base44.entities.ChatConversation.create({
+        participants: [user.email, providerEmail],
+        created_by: user.email,
+        is_group: false,
+        type: "service_inquiry",
+        service_id: svc.id,
+        service_title: svc.title,
+        provider_name: svc.provider_name,
+        last_message: "",
+        last_message_at: new Date().toISOString()
       });
-      if (convos.length > 0) {
-        setConversationId(convos[0].id);
-      } else {
-        const newConvo = await base44.entities.ChatConversation.create({
-          participant_emails: [user.email, svc.provider_email || svc.created_by],
-          service_id: svc.id,
-          service_title: svc.title,
-          provider_name: svc.provider_name,
-          last_message: "",
-          last_message_at: new Date().toISOString()
-        });
-        setConversationId(newConvo.id);
-      }
-    } catch {
-      // Create fresh
-      try {
-        const newConvo = await base44.entities.ChatConversation.create({
-          participant_emails: [user.email, svc.provider_email || svc.created_by],
-          service_id: svc.id,
-          service_title: svc.title,
-          provider_name: svc.provider_name,
-          last_message: "",
-          last_message_at: new Date().toISOString()
-        });
-        setConversationId(newConvo.id);
-      } catch {}
+      setConversationId(convo.id);
+    } catch (err) {
+      console.error("Failed to start wellness chat conversation:", err);
+      setInitError(true);
+      toast.error("Couldn't start the conversation. Please try again.");
     }
   };
 
@@ -84,7 +93,8 @@ export default function WellnessChatModal({ service, onClose }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["wellness-chat-messages", conversationId] });
       setMessage("");
-    }
+    },
+    onError: (err) => toast.error("Message failed to send: " + (err?.message || "please try again"))
   });
 
   const handleSend = () => {
@@ -130,9 +140,22 @@ export default function WellnessChatModal({ service, onClose }) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {!conversationId && (
+          {!conversationId && !initError && (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
+            </div>
+          )}
+
+          {!conversationId && initError && (
+            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+              <AlertCircle className="w-10 h-10 text-red-400" />
+              <p className="text-gray-300 text-sm">Couldn't start this conversation.</p>
+              <button
+                onClick={() => initConversation(currentUser, service)}
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white text-sm transition"
+              >
+                <RotateCcw className="w-4 h-4" /> Try Again
+              </button>
             </div>
           )}
 

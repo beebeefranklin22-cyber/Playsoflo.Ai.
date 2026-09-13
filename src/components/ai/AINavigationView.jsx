@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
-import { Navigation, X, MapPin, Clock, TrendingUp, ExternalLink, ChevronRight, Play, CheckCircle2 } from "lucide-react";
+import { Navigation, X, TrendingUp, ExternalLink, ChevronRight, Play, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";

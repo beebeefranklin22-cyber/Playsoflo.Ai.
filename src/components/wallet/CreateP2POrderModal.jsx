@@ -172,7 +172,7 @@ export default function CreateP2POrderModal({ currentUser, onClose }) {
               >
                 <option value="BTC">Bitcoin (BTC)</option>
                 <option value="ETH">Ethereum (ETH)</option>
-                <option value="SoFloCoin">SoFloCoin (SFC)</option>
+                <option value="SoFloCoin" disabled>SoFloCoin (SFC) — Coming Soon</option>
                 <option value="USDT">Tether (USDT)</option>
                 <option value="SOL">Solana (SOL)</option>
               </select>

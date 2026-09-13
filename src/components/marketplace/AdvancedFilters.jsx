@@ -3,9 +3,8 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Star, Shield, MapPin, Clock, Zap, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
-export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
+export default function AdvancedFilters({ filters, onFiltersChange, onClear, categoryOptions }) {
   const updateFilter = (key, value) => {
     onFiltersChange({ ...filters, [key]: value });
   };
@@ -112,6 +111,32 @@ export default function AdvancedFilters({ filters, onFiltersChange, onClear }) {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Category — only rendered when the caller passes real options
+            (e.g. ServiceProviders.jsx), so other pages using this shared
+            component are unaffected. */}
+        {categoryOptions?.length > 0 && (
+          <div>
+            <label className="text-gray-300 text-sm font-semibold mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-orange-400" />
+              Category
+            </label>
+            <Select
+              value={filters.category || 'all'}
+              onValueChange={(value) => updateFilter('category', value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="All categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Verification Level */}
         <div>

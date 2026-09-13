@@ -2,19 +2,19 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone, Image } from "lucide-react";
+import { ArrowLeft, Check, Clock, ChefHat, Bike, MapPin, Phone } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import { LoadMoreButton } from "../components/Pagination";
+import DirectChatModal from "../components/chat/DirectChatModal";
 
 export default function FoodOrderTracking() {
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
   const orderId = new URLSearchParams(location.search).get('id');
+  const [showDriverChat, setShowDriverChat] = useState(false);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['food-order', orderId],
@@ -29,36 +29,6 @@ export default function FoodOrderTracking() {
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me()
-  });
-
-  const updateOrderStatusMutation = useMutation({
-    mutationFn: async (newStatus) => {
-      await base44.entities.FoodOrder.update(orderId, { status: newStatus });
-
-      const statusMessages = {
-        'confirmed': '✅ Order Confirmed - Your order is being prepared',
-        'preparing': '👨‍🍳 Preparing - Your food is being made',
-        'ready': '📦 Ready - Your order is ready for pickup',
-        'picked_up': '🚴 Picked Up - Driver is heading to you',
-        'on_the_way': '🚗 On The Way - Your delivery will arrive soon',
-        'delivered': '✨ Delivered - Enjoy your meal!'
-      };
-
-      if (statusMessages[newStatus]) {
-        await base44.entities.Notification.create({
-          user_email: order.created_by,
-          type: 'order_update',
-          title: statusMessages[newStatus].split(' - ')[0],
-          message: `${order.restaurant_name}: ${statusMessages[newStatus].split(' - ')[1]}`,
-          reference_id: orderId,
-          reference_type: 'food_order'
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['food-order', orderId]);
-      toast.success('Order status updated');
-    }
   });
 
   const [ordersPage, setOrdersPage] = useState(1);
@@ -287,7 +257,7 @@ export default function FoodOrderTracking() {
                 <p className="text-white font-medium">{order.driver_name || order.driver_email.split('@')[0]}</p>
                 <p className="text-gray-400 text-sm">Delivery driver</p>
               </div>
-              <Button variant="outline" className="flex items-center gap-2">
+              <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowDriverChat(true)}>
                 <Phone className="w-4 h-4" />
                 Contact
               </Button>
@@ -311,6 +281,15 @@ export default function FoodOrderTracking() {
           </div>
         )}
       </div>
+
+      {order.driver_email && (
+        <DirectChatModal
+          isOpen={showDriverChat}
+          onClose={() => setShowDriverChat(false)}
+          currentUser={currentUser}
+          targetUser={{ email: order.driver_email, full_name: order.driver_name || order.driver_email.split('@')[0] }}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building, Check, Loader2, Shield } from "lucide-react";
+import { Check, Loader2, Shield } from "lucide-react";
 
 const QUICK_BANKS = ["Chase", "Bank of America", "Wells Fargo", "Citibank", "US Bank", "PNC", "Capital One", "TD Bank", "Truist"];
 

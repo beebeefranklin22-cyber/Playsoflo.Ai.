@@ -3,16 +3,15 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Music, Upload, Play, DollarSign, TrendingUp, Users, Download,
-  ChevronLeft, Sparkles, Briefcase, FileText, BarChart3, Award,
-  CheckCircle, Plus, Share2, Mic2, Disc3, FileSignature, AlertCircle, X, Trash2, CheckSquare, Square
+  Music, Upload, Play, DollarSign, Users,
+  ChevronLeft, Sparkles, Briefcase,
+  CheckCircle, Mic2, FileSignature, AlertCircle, X, Trash2, CheckSquare, Square
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AdvancedAnalytics from "../components/music/AdvancedAnalytics";

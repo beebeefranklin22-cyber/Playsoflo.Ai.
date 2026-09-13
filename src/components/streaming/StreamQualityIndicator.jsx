@@ -1,4 +1,4 @@
-import { Signal, Wifi, WifiOff, TrendingUp, TrendingDown } from 'lucide-react';
+import { Signal, WifiOff, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function StreamQualityIndicator({ quality, networkQuality, connectionState, compact = false }) {

@@ -4,8 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Truck, Package, DollarSign, MapPin, CheckCircle, 
-  ArrowLeft, Navigation, TrendingUp, Clock, Car, Camera, FileSignature
+  Truck, Package, DollarSign, MapPin, 
+  ArrowLeft, Navigation, TrendingUp, Car, Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

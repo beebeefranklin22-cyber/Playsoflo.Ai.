@@ -1,95 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Wallet, DollarSign, CheckCircle, Loader2, Shield, Plus } from "lucide-react";
+import { CreditCard, Wallet, DollarSign, CheckCircle, Loader2, Plus } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
+import { requestRideSecure } from "@/functions/requestRideSecure";
 
-/* ── Inline card form ── */
-function InlineCardForm({ currentUser, totalFare, onSuccess, onBack }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [processing, setProcessing] = useState(false);
-  const [name, setName] = useState(currentUser?.full_name || "");
-
-  const handlePay = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) { toast.error("Payment form not ready"); return; }
-    if (!name.trim()) { toast.error("Enter cardholder name"); return; }
-    setProcessing(true);
-    toast.loading("Processing payment…");
-    try {
-      const cardElement = elements.getElement(CardElement);
-      const { paymentMethod, error } = await stripe.createPaymentMethod({
-        type: "card",
-        card: cardElement,
-        billing_details: { name, email: currentUser?.email },
-      });
-      if (error) throw new Error(error.message);
-
-      // Record payment
-      await base44.entities.Payment.create({
-        amount_usd: totalFare,
-        method: "card",
-        status: "completed",
-        reference_type: "other",
-        memo: `Ride payment - card ${paymentMethod.card.last4}`
-      });
-
-      toast.dismiss();
-      toast.success("Payment confirmed!");
-      onSuccess();
-    } catch (err) {
-      toast.dismiss();
-      toast.error(err.message || "Payment failed");
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handlePay} className="space-y-4">
-      <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Cardholder Name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Full name on card"
-          className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500 placeholder-gray-600"
-        />
-      </div>
-      <div>
-        <label className="text-gray-400 text-sm mb-1.5 block">Card Details</label>
-        <div className="bg-white rounded-xl p-4">
-          <CardElement options={{
-            style: {
-              base: { fontSize: "16px", color: "#000", "::placeholder": { color: "#6b7280" } },
-              invalid: { color: "#ef4444" }
-            },
-            hidePostalCode: false,
-          }} />
-        </div>
-      </div>
-      <p className="text-gray-500 text-xs flex items-center gap-1">
-        <Shield className="w-3 h-3" /> Secured by Stripe — Visa, MC, Amex, Discover
-      </p>
-      <div className="flex gap-2">
-        <Button type="button" variant="outline" onClick={onBack} className="flex-1 border-white/20 text-white" disabled={processing}>Back</Button>
-        <Button type="submit" className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600" disabled={!stripe || processing}>
-          {processing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing…</> : `Pay $${totalFare.toFixed(2)}`}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
+// rideDetails carries both the display summary (vehicleName, distance,
+// duration, totalFare) and the raw fields api/rides.js's request_ride
+// action needs to actually create + charge the ride
+// (pickup_address, dropoff_address, vehicle_class_details, coords, etc).
 export default function PaymentConfirmationModal({ open, onClose, onConfirm, rideDetails, currentUser }) {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("wallet");
-  const [showCardForm, setShowCardForm] = useState(false);
   const [stripePromise, setStripePromise] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [loadingStripe, setLoadingStripe] = useState(false);
@@ -99,7 +26,7 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
     queryFn: async () => {
       if (!currentUser) return 0;
       const user = await base44.auth.me();
-      return user.balance || 0;
+      return user.usd_balance || 0;
     },
     enabled: !!currentUser
   });
@@ -112,20 +39,92 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
 
   const defaultCard = savedMethods.find(m => m.type === 'card' && m.card_details);
 
-  const loadStripeForm = async () => {
-    if (stripePromise) { setShowCardForm(true); return; }
+  const ridePayload = () => ({
+    pickup_address: rideDetails?.pickup,
+    dropoff_address: rideDetails?.dropoff,
+    ride_type: rideDetails?.ride_type,
+    vehicle_class_details: rideDetails?.vehicle_class_details,
+    is_shared: rideDetails?.is_shared,
+    max_passengers: rideDetails?.max_passengers,
+    is_for_someone_else: rideDetails?.is_for_someone_else,
+    recipient_name: rideDetails?.recipient_name,
+    recipient_phone: rideDetails?.recipient_phone,
+    pickup_coords: rideDetails?.pickup_coords,
+    dropoff_coords: rideDetails?.dropoff_coords,
+    route_geometry: rideDetails?.route_geometry,
+    estimated_distance_miles: rideDetails?.estimated_distance_miles,
+    estimated_duration_minutes: rideDetails?.estimated_duration_minutes,
+    rider_preferences: rideDetails?.rider_preferences,
+  });
+
+  const finish = async (ride) => {
+    setClientSecret(null);
+    setStripePromise(null);
+    onClose();
+    await onConfirm(ride);
+  };
+
+  const handleWalletPay = async () => {
+    if (walletBalance < (rideDetails?.totalFare || 0)) {
+      toast.error("Insufficient wallet balance. Please use a card.");
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { data } = await requestRideSecure({ ...ridePayload(), payment_method: 'wallet' });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed! Finding your driver...", { position: "bottom-center", duration: 4000 });
+      await finish(data.ride);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"), { position: "bottom-center" });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSavedCardPay = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await requestRideSecure({ ...ridePayload(), payment_method: 'card', saved_payment_method_id: defaultCard.id });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed! Finding your driver...", { position: "bottom-center", duration: 4000 });
+      await finish(data.ride);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"), { position: "bottom-center" });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const loadNewCardForm = async () => {
     setLoadingStripe(true);
     try {
-      const { data } = await base44.functions.invoke('createSetupIntent', {});
-      if (!data?.publishable_key || !data?.client_secret) throw new Error("Server error");
+      const { data } = await requestRideSecure({ ...ridePayload(), payment_method: 'card' });
+      if (data?.error) throw new Error(data.error);
+      if (!data?.needsClientAction || !data?.client_secret || !data?.publishable_key) {
+        throw new Error("Server error setting up payment");
+      }
       const sp = await loadStripe(data.publishable_key);
       setStripePromise(sp);
       setClientSecret(data.client_secret);
-      setShowCardForm(true);
     } catch (err) {
       toast.error("Could not load card form: " + err.message);
     } finally {
       setLoadingStripe(false);
+    }
+  };
+
+  const handleNewCardSuccess = async (paymentIntentId) => {
+    setProcessing(true);
+    try {
+      const { data } = await requestRideSecure({ ...ridePayload(), payment_method: 'card', confirm_payment_intent_id: paymentIntentId });
+      if (data?.error) throw new Error(data.error);
+      toast.success("✅ Payment confirmed! Finding your driver...", { position: "bottom-center", duration: 4000 });
+      await finish(data.ride);
+    } catch (error) {
+      toast.error("Payment failed: " + (error.message || "Unknown error"), { position: "bottom-center" });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -134,40 +133,9 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
       toast.error("Invalid ride details. Please recalculate route.");
       return;
     }
-
-    if (paymentMethod === "card" && !defaultCard) {
-      await loadStripeForm();
-      return;
-    }
-
-    setProcessing(true);
-    try {
-      if (paymentMethod === "wallet") {
-        if (walletBalance < rideDetails.totalFare) {
-          toast.error("Insufficient wallet balance. Please use a card.");
-          setProcessing(false);
-          return;
-        }
-        const newBalance = walletBalance - rideDetails.totalFare;
-        await base44.auth.updateMe({ balance: newBalance });
-      }
-
-      await base44.entities.Payment.create({
-        amount_usd: rideDetails.totalFare,
-        method: paymentMethod === "card" ? "card" : "internal_transfer",
-        status: "completed",
-        reference_type: "other",
-        memo: `Ride from ${rideDetails.pickup} to ${rideDetails.dropoff}`
-      });
-
-      toast.success("✅ Payment confirmed! Finding your driver...", { position: "bottom-center", duration: 4000 });
-      onClose(); // close payment modal first
-      await onConfirm(); // then trigger ride creation
-    } catch (error) {
-      toast.error("Payment failed: " + (error.message || "Unknown error"), { position: "bottom-center" });
-    } finally {
-      setProcessing(false);
-    }
+    if (paymentMethod === "wallet") return handleWalletPay();
+    if (paymentMethod === "card" && defaultCard) return handleSavedCardPay();
+    return loadNewCardForm();
   };
 
   if (!open) return null;
@@ -202,18 +170,15 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
             </div>
           </div>
 
-          {/* Show inline card form if selected */}
-          {showCardForm && stripePromise && clientSecret ? (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <InlineCardForm
-                currentUser={currentUser}
-                totalFare={rideDetails?.totalFare || 0}
-                onSuccess={async () => {
-                  setShowCardForm(false);
-                  onClose(); // close payment modal first
-                  await onConfirm(); // then trigger ride creation
-                }}
-                onBack={() => setShowCardForm(false)}
+          {/* Show inline card form if a new-card PaymentIntent was created */}
+          {clientSecret && stripePromise ? (
+            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#8b5cf6' } } }}>
+              <StripeCheckoutForm
+                amount={rideDetails?.totalFare || 0}
+                onSuccess={handleNewCardSuccess}
+                onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+                isProcessing={processing}
+                setIsProcessing={setProcessing}
               />
             </Elements>
           ) : (
@@ -263,7 +228,7 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
 
                 {/* New Card Option */}
                 <button
-                  onClick={() => { setPaymentMethod("card"); loadStripeForm(); }}
+                  onClick={() => { setPaymentMethod("card"); loadNewCardForm(); }}
                   className="w-full p-3 rounded-lg border border-dashed border-white/20 hover:border-white/40 transition flex items-center justify-center gap-2 text-gray-400 hover:text-white text-sm"
                   disabled={loadingStripe}
                 >
@@ -282,7 +247,7 @@ export default function PaymentConfirmationModal({ open, onClose, onConfirm, rid
 
               <Button
                 onClick={handlePayment}
-                disabled={processing}
+                disabled={processing || loadingStripe}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 py-6 text-lg font-bold"
               >
                 {processing ? (

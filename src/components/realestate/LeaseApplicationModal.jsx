@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { X, FileText, User, Briefcase, Home, Calendar } from "lucide-react";
+import { X, FileText, User, Briefcase, Calendar } from "lucide-react";
 
 export default function LeaseApplicationModal({ property, currentUser, onClose }) {
   const [form, setForm] = useState({

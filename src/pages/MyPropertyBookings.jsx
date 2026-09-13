@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -8,8 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  ChevronLeft, Calendar, MapPin, Users, DollarSign,
-  MessageCircle, Star, Home, XCircle
+  ChevronLeft, Calendar, Users,
+  MessageCircle, Star, Home, XCircle, Wallet, CreditCard, Loader2
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
@@ -17,14 +17,21 @@ import PropertyMessaging from "../components/property/PropertyMessaging";
 import PropertyReviewModal from "../components/property/PropertyReviewModal";
 import UserBookingsCalendar from "../components/property/UserBookingsCalendar";
 import BookingCancellationModal from "../components/property/BookingCancellationModal";
+import { mapPropertyBookingToGeneric } from "@/lib/propertyBookingAdapter";
+import { propertyBooking } from "@/functions/propertyBooking";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
 
 export default function MyPropertyBookings() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
   const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState(null);
   const [cancelProperty, setCancelProperty] = useState(null);
+  const [selectedBookingForPay, setSelectedBookingForPay] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
 
   useEffect(() => {
@@ -35,16 +42,14 @@ export default function MyPropertyBookings() {
     queryKey: ["my-property-bookings", currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
-      return await base44.entities.Booking.filter({
-        created_by: currentUser.email,
-        booking_type: "property"
-      });
+      const propertyBookings = await base44.entities.PropertyBooking.filter({ guest_email: currentUser.email });
+      return propertyBookings.map(mapPropertyBookingToGeneric);
     },
     enabled: !!currentUser
   });
 
   const upcomingBookings = bookings.filter(
-    b => new Date(b.booking_date) >= new Date() && 
+    b => new Date(b.booking_date) >= new Date() &&
     (b.booking_status === "confirmed" || b.booking_status === "pending")
   );
 
@@ -118,11 +123,15 @@ export default function MyPropertyBookings() {
                             </div>
                           </div>
                           <Badge className={
-                            booking.booking_status === "confirmed"
+                            booking._raw.status === "confirmed"
                               ? "bg-green-500/20 text-green-400"
+                              : booking._raw.status === "approved_awaiting_payment"
+                              ? "bg-blue-500/20 text-blue-400"
                               : "bg-yellow-500/20 text-yellow-400"
                           }>
-                            {booking.booking_status}
+                            {booking._raw.status === "approved_awaiting_payment" ? "Awaiting Payment"
+                              : booking._raw.status === "pending_review" ? "Pending Review"
+                              : booking.booking_status}
                           </Badge>
                         </div>
 
@@ -134,6 +143,19 @@ export default function MyPropertyBookings() {
                             </span>
                           </div>
                         </div>
+
+                        {booking._raw.status === "approved_awaiting_payment" && (
+                          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+                            <p className="text-blue-300 text-sm mb-2">Your request was approved! Complete payment to confirm your stay.</p>
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedBookingForPay(booking._raw)}
+                              className="w-full bg-blue-600 hover:bg-blue-700"
+                            >
+                              Complete Payment
+                            </Button>
+                          </div>
+                        )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <Button
@@ -154,7 +176,7 @@ export default function MyPropertyBookings() {
                             <Home className="w-4 h-4 mr-2" />
                             Host
                           </Button>
-                          {booking.booking_status === "confirmed" && (
+                          {["confirmed", "pending_review", "approved_awaiting_payment"].includes(booking._raw.status) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -164,7 +186,7 @@ export default function MyPropertyBookings() {
                                   const prop = allProperties.find(p => p.id === booking.experience_id);
                                   if (prop) {
                                     setCancelProperty(prop);
-                                    setSelectedBookingForCancel(booking);
+                                    setSelectedBookingForCancel(booking._raw);
                                   } else {
                                     toast.error("Property not found");
                                   }
@@ -315,6 +337,135 @@ export default function MyPropertyBookings() {
               setCancelProperty(null);
             }}
           />
+        )}
+
+        {/* Payment Modal (for approved_awaiting_payment bookings) */}
+        {selectedBookingForPay && (
+          <PropertyPaymentModal
+            booking={selectedBookingForPay}
+            currentUser={currentUser}
+            onClose={() => setSelectedBookingForPay(null)}
+            onSuccess={() => {
+              setSelectedBookingForPay(null);
+              queryClient.invalidateQueries({ queryKey: ["my-property-bookings"] });
+              queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PropertyPaymentModal({ booking, currentUser, onClose, onSuccess }) {
+  const [paymentMethod, setPaymentMethod] = useState("wallet");
+  const [processing, setProcessing] = useState(false);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
+  const total = Number(booking.total_price || 0);
+
+  const handleWalletPay = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking({ action: 'pay', booking_id: booking.id, payment_method: 'wallet' });
+      if (data?.error) throw new Error(data.error);
+      toast.success('Payment successful! Booking confirmed.');
+      onSuccess();
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStripeInitiate = async () => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking({ action: 'pay', booking_id: booking.id, payment_method: 'stripe' });
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed — missing credentials');
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+    } catch (err) {
+      toast.error(err.message || 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleStripeSuccess = async (intentId) => {
+    setProcessing(true);
+    try {
+      const { data } = await propertyBooking({ action: 'pay', booking_id: booking.id, payment_method: 'stripe', confirm_payment_intent_id: intentId });
+      if (data?.error) throw new Error(data.error);
+      toast.success('Payment successful! Booking confirmed.');
+      onSuccess();
+    } catch (err) {
+      toast.error(err.message || 'Failed to finalize payment');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/90" onClick={onClose}>
+      <div className="w-full max-w-md bg-gray-900 rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-2xl font-bold text-white mb-1">Complete Payment</h2>
+        <p className="text-gray-400 mb-6">{booking.property_title}</p>
+
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <span className="text-white font-bold">Total Due</span>
+          <span className="text-emerald-400 font-bold text-2xl">${total.toFixed(2)}</span>
+        </div>
+
+        {!clientSecret && (
+          <>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => setPaymentMethod('wallet')}
+                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                  paymentMethod === 'wallet' ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5'
+                }`}
+              >
+                <Wallet className="w-5 h-5 text-emerald-400" />
+                <span className="text-white text-sm font-medium">Wallet</span>
+                <span className="text-gray-400 text-xs">${(currentUser?.usd_balance || 0).toFixed(2)} available</span>
+              </button>
+              <button
+                onClick={() => setPaymentMethod('stripe')}
+                className={`p-3 rounded-xl border-2 flex flex-col items-center gap-1 transition ${
+                  paymentMethod === 'stripe' ? 'border-emerald-500 bg-emerald-500/20' : 'border-white/10 bg-white/5'
+                }`}
+              >
+                <CreditCard className="w-5 h-5 text-emerald-400" />
+                <span className="text-white text-sm font-medium">Card</span>
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button
+                onClick={paymentMethod === 'wallet' ? handleWalletPay : handleStripeInitiate}
+                disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total)}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              >
+                {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : `Pay $${total.toFixed(2)}`}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {clientSecret && stripePromise && (
+          <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#10b981' } } }}>
+            <StripeCheckoutForm
+              amount={total}
+              onSuccess={handleStripeSuccess}
+              onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+              isProcessing={processing}
+              setIsProcessing={setProcessing}
+            />
+          </Elements>
         )}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Heart, DollarSign, Coins, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function TipButton({ 
   creatorEmail, 
@@ -29,8 +30,30 @@ export default function TipButton({
 
   const tipMutation = useMutation({
     mutationFn: async (tipData) => {
-      const tip = await base44.entities.TipTransaction.create(tipData);
-      
+      // Atomically move the money first (server verifies balance and debits
+      // the tipper / credits the creator) -- previously this only ever
+      // inserted a TipTransaction row with no wallet_move and no Stripe
+      // charge behind it, so "tip sent successfully" moved zero real money.
+      if (tipData.amount_usd > 0) {
+        const { data: result } = await secureBalanceUpdate({
+          amount: tipData.amount_usd,
+          recipient_email: creatorEmail,
+          reference_type: "content_tip",
+          reference_id: tipData.content_id || null,
+          memo: tipData.message || `Tip from ${currentUser?.full_name || currentUser?.email}`,
+        });
+        if (!result?.success) {
+          throw new Error(result?.error || "Insufficient balance. Please add funds to your wallet.");
+        }
+      }
+
+      const tip = await base44.entities.TipTransaction.create({
+        ...tipData,
+        tipper_email: currentUser?.email,
+        tipper_name: currentUser?.full_name,
+        tipper_username: currentUser?.username,
+      });
+
       // Send notification to creator
       await base44.entities.Notification.create({
         recipient_email: creatorEmail,
@@ -216,15 +239,12 @@ export default function TipButton({
                     USD
                   </button>
                   <button
-                    onClick={() => setPaymentMethod("soflo")}
-                    className={`p-3 rounded-xl font-medium transition flex items-center justify-center gap-2 ${
-                      paymentMethod === "soflo"
-                        ? "bg-purple-500 text-white"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                    disabled
+                    title="SoFloCoin is coming soon"
+                    className="p-3 rounded-xl font-medium transition flex items-center justify-center gap-2 bg-white/5 text-gray-500 cursor-not-allowed"
                   >
                     <Coins className="w-4 h-4" />
-                    SoFloCoin
+                    SoFloCoin <span className="text-[10px] uppercase tracking-wide">Coming Soon</span>
                   </button>
                 </div>
               </div>

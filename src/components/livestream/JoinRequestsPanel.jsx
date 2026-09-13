@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, UserX, Users, Clock, Sparkles, Bell } from "lucide-react";
+import { UserCheck, UserX, Users, Clock, Bell } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -300,7 +300,7 @@ export default function JoinRequestsPanel({ streamId, currentUser, isCreator }) 
         )}
       </AnimatePresence>
 
-      <style jsx>{`
+      <style>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }

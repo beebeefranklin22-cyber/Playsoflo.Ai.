@@ -2,16 +2,13 @@ import React, { useState } from "react";
 import PageWrapper from "@/components/PageWrapper";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
-  Star, Plus, X, Upload, Loader2, MapPin, Users, Clock,
-  ChevronRight, CheckCircle, MessageCircle, Calendar, DollarSign
+  Star, Plus, Loader2, MapPin, Users, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import TravelProviderOnboardingModal from "@/components/travel/TravelProviderOnboardingModal";
 import TravelBookingModal from "@/components/travel/TravelBookingModal";
 import LocationFilter from "../components/location/LocationFilter";

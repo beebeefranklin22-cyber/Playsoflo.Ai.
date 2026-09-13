@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Shield, CheckCircle, Award, Star, MapPin, Phone, 
   Globe, Calendar, TrendingUp, ChevronLeft, ExternalLink,
-  Linkedin, Github, Twitter, Instagram, Edit, Camera, Trophy, X, Upload
+  Linkedin, Github, Twitter, Instagram, Edit, Camera, X
 } from "lucide-react";
 import ReviewsList from "../components/reviews/ReviewsList";
 import { motion, AnimatePresence } from "framer-motion";

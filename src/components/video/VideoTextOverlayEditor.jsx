@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Plus, Pin, Move, AlignCenter, AlignLeft, AlignRight, Type } from "lucide-react";
+import { X, Pin, Move, AlignCenter, AlignLeft, Type } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 

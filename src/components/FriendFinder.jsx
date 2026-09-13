@@ -43,23 +43,26 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
     enabled: isOpen && !!currentUser
   });
 
+  // Real follow state lives in the `follows` table (same table the rest of
+  // the app — follower counts, the privacy-aware feed RLS policy, etc. —
+  // actually relies on), not the `profiles.following` jsonb array.
+  const { data: myFollows = [] } = useQuery({
+    queryKey: ['my-follows', currentUser?.email],
+    queryFn: () => base44.entities.Follow.filter({ follower_email: currentUser.email }),
+    enabled: isOpen && !!currentUser
+  });
+  const followingEmails = new Set(myFollows.map(f => f.following_email));
+
   const followMutation = useMutation({
     mutationFn: async (targetUser) => {
-      const isFollowing = currentUser?.following?.includes(targetUser.email);
-      
-      if (isFollowing) {
+      const existing = myFollows.find(f => f.following_email === targetUser.email);
+
+      if (existing) {
         // Unfollow
-        const newFollowing = currentUser.following.filter(e => e !== targetUser.email);
-        await base44.auth.updateMe({ 
-          following: newFollowing,
-          following_count: newFollowing.length
-        });
-        await base44.asServiceRole.entities.User.update(targetUser.id, {
-          followers_count: (targetUser.followers_count || 0) - 1
-        });
-        return { newFollowing, isFollowing: true, isRequest: false };
+        await base44.entities.Follow.delete(existing.id);
+        return { isFollowing: true, isRequest: false };
       }
-      
+
       // Check if profile is private
       if (targetUser.is_private) {
         // Create follow request
@@ -68,30 +71,47 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
           to_email: targetUser.email,
           status: 'pending'
         });
-        return { newFollowing: currentUser.following, isFollowing: false, isRequest: true };
+        return { isFollowing: false, isRequest: true };
       }
-      
-      // Public profile - follow directly
-      const newFollowing = [...(currentUser.following || []), targetUser.email];
-      await base44.auth.updateMe({ 
-        following: newFollowing,
-        following_count: newFollowing.length
+
+      // Public profile - follow directly, matching the pattern used by
+      // FollowButton/UserFollowButton elsewhere in the app.
+      await base44.entities.Follow.create({
+        follower_email: currentUser.email,
+        following_email: targetUser.email,
+        follower_name: currentUser.full_name || currentUser.email,
+        following_name: targetUser.full_name || targetUser.email,
       });
-      await base44.asServiceRole.entities.User.update(targetUser.id, {
-        followers_count: (targetUser.followers_count || 0) + 1
-      });
-      
-      return { newFollowing, isFollowing: false, isRequest: false };
+      await base44.entities.Notification.create({
+        recipient_email: targetUser.email,
+        type: 'new_follower',
+        title: 'New Follower',
+        message: `${currentUser.full_name || currentUser.email} started following you`,
+        sender_email: currentUser.email,
+        sender_name: currentUser.full_name,
+        sender_photo: currentUser.profile_picture,
+        read: false,
+        action_url: `/UserProfile?email=${encodeURIComponent(currentUser.email)}`
+      }).catch(() => {});
+
+      return { isFollowing: false, isRequest: false };
     },
     onSuccess: ({ isFollowing, isRequest }) => {
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
       queryClient.invalidateQueries({ queryKey: ['suggested-users'] });
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['my-follows'] });
+      queryClient.invalidateQueries({ queryKey: ['followers'] });
+      queryClient.invalidateQueries({ queryKey: ['following'] });
+      queryClient.invalidateQueries({ queryKey: ['is-following'] });
       toast.success(
-        isFollowing ? 'Unfollowed' : 
-        isRequest ? 'Follow request sent' : 
+        isFollowing ? 'Unfollowed' :
+        isRequest ? 'Follow request sent' :
         'Following!'
       );
+    },
+    onError: (error) => {
+      toast.error('Failed to update follow status: ' + error.message);
     }
   });
 
@@ -155,6 +175,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                         user={user}
                         currentUser={currentUser}
                         pendingRequests={pendingRequests}
+                        isFollowing={followingEmails.has(user.email)}
                         onFollow={() => followMutation.mutate(user)}
                         onViewProfile={() => {
                           navigate(createPageUrl("UserProfile") + `?username=${user.username || user.id}`);
@@ -176,6 +197,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
                       user={user}
                       currentUser={currentUser}
                       pendingRequests={pendingRequests}
+                      isFollowing={followingEmails.has(user.email)}
                       onFollow={() => followMutation.mutate(user)}
                       onViewProfile={() => {
                         navigate(createPageUrl("UserProfile") + `?username=${user.username || user.id}`);
@@ -194,8 +216,7 @@ export default function FriendFinder({ isOpen, onClose, currentUser }) {
   );
 }
 
-function UserCard({ user, currentUser, pendingRequests, onFollow, onViewProfile, isLoading }) {
-  const isFollowing = currentUser?.following?.includes(user.email);
+function UserCard({ user, currentUser, pendingRequests, isFollowing, onFollow, onViewProfile, isLoading }) {
   const hasPendingRequest = pendingRequests.some(req => req.to_email === user.email);
 
   return (

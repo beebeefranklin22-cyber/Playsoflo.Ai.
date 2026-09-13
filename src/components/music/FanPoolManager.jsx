@@ -1,19 +1,21 @@
 import React, { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { processFanPoolPayment } from "@/functions/processFanPoolPayment";
+import { contributeFanPool } from "@/functions/contributeFanPool";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Users, DollarSign, Plus, Edit, Trash, Target, Calendar, Share2,
-  Mail, X, Upload, Gift, ShoppingBag, CreditCard, CheckCircle, Star,
-  Package, ChevronDown, ChevronUp, Loader2
+  Users, Plus, Edit, Trash, Target, Share2, X, Upload, ShoppingBag, CreditCard, CheckCircle, Star,
+  Package, ChevronDown, ChevronUp, Loader2, Wallet
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
 
 const TIER_COLORS = [
   { label: "Bronze", value: "#CD7F32" },
@@ -101,6 +103,9 @@ export default function FanPoolManager({ fanPools, currentUser }) {
   const [selectedAddOns, setSelectedAddOns] = useState([]);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [contributePaymentMethod, setContributePaymentMethod] = useState('wallet');
+  const [contributeStripePromise, setContributeStripePromise] = useState(null);
+  const [contributeClientSecret, setContributeClientSecret] = useState(null);
 
   const invalidate = () => {
     queryClient.invalidateQueries(['my-fan-pools']);
@@ -205,21 +210,50 @@ export default function FanPoolManager({ fanPools, currentUser }) {
   };
 
   // ── Payment ──
+  const contributionParams = () => ({
+    pool_id: payingPool.id,
+    tier_name: selectedTier.tier_name,
+    selected_add_ons: selectedAddOns,
+  });
+
+  const finishContribution = () => {
+    setContributeClientSecret(null);
+    setContributeStripePromise(null);
+    setPayingPool(null);
+    setSelectedTier(null);
+    setSelectedAddOns([]);
+    invalidate();
+    toast.success('Thanks for backing this campaign!');
+  };
+
   const handleContribute = async () => {
     if (!selectedTier) { toast.error('Please select a tier'); return; }
     setPaymentLoading(true);
     try {
-      const result = await processFanPoolPayment({
-        pool_id: payingPool.id,
-        tier_name: selectedTier.tier_name,
-        tier_amount: selectedTier.minimum_contribution,
-        selected_add_ons: selectedAddOns
-      });
-      if (result?.data?.checkout_url) {
-        window.location.href = result.data.checkout_url;
+      if (contributePaymentMethod === 'wallet') {
+        const { data } = await contributeFanPool({ ...contributionParams(), payment_method: 'wallet' });
+        if (data?.error) throw new Error(data.error);
+        finishContribution();
       } else {
-        toast.error(result?.data?.error || 'Payment failed');
+        const { data } = await contributeFanPool({ ...contributionParams(), payment_method: 'stripe' });
+        if (data?.error) throw new Error(data.error);
+        if (!data?.needsClientAction || !data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed');
+        const sp = await loadStripe(data.publishable_key);
+        setContributeStripePromise(sp);
+        setContributeClientSecret(data.client_secret);
       }
+    } catch (e) {
+      toast.error(e.message || 'Payment error');
+    }
+    setPaymentLoading(false);
+  };
+
+  const handleContributeCardSuccess = async (paymentIntentId) => {
+    setPaymentLoading(true);
+    try {
+      const { data } = await contributeFanPool({ ...contributionParams(), payment_method: 'stripe', confirm_payment_intent_id: paymentIntentId });
+      if (data?.error) throw new Error(data.error);
+      finishContribution();
     } catch (e) {
       toast.error(e.message || 'Payment error');
     }
@@ -777,6 +811,34 @@ export default function FanPoolManager({ fanPools, currentUser }) {
                   </div>
                 )}
 
+                {contributeClientSecret && contributeStripePromise ? (
+                  <Elements stripe={contributeStripePromise} options={{ clientSecret: contributeClientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#a855f7' } } }}>
+                    <StripeCheckoutForm
+                      amount={selectedTier ? Math.round((selectedTier.minimum_contribution + selectedAddOns.reduce((s, a) => s + a.price, 0)) * 1.05 * 100) / 100 : 0}
+                      onSuccess={handleContributeCardSuccess}
+                      onCancel={() => { setContributeClientSecret(null); setContributeStripePromise(null); }}
+                      isProcessing={paymentLoading}
+                      setIsProcessing={setPaymentLoading}
+                    />
+                  </Elements>
+                ) : (
+                <>
+                {selectedTier && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setContributePaymentMethod('wallet')}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 text-sm ${contributePaymentMethod === 'wallet' ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    >
+                      <Wallet className="w-4 h-4" /> Wallet
+                    </button>
+                    <button
+                      onClick={() => setContributePaymentMethod('stripe')}
+                      className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 text-sm ${contributePaymentMethod === 'stripe' ? 'bg-purple-600/20 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                    >
+                      <CreditCard className="w-4 h-4" /> Card
+                    </button>
+                  </div>
+                )}
                 <Button
                   onClick={handleContribute}
                   disabled={!selectedTier || paymentLoading}
@@ -785,6 +847,8 @@ export default function FanPoolManager({ fanPools, currentUser }) {
                   {paymentLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <CreditCard className="w-5 h-5 mr-2" />}
                   {paymentLoading ? 'Processing...' : `Back This Campaign`}
                 </Button>
+                </>
+                )}
                 <p className="text-center text-gray-500 text-xs">Secured by Stripe • Cancel anytime before deadline</p>
               </div>
             </motion.div>

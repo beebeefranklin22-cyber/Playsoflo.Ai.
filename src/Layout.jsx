@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, Globe, Sparkles, ChevronRight, Menu, X, Package, DollarSign, Store, TrendingUp, Users, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin, BookOpen, FileText } from "lucide-react";
+import { Music, Home, Wallet, User, Search, Brain, MessageCircle, Bell, ChevronRight, X, Package, DollarSign, Store, TrendingUp, Truck, Headphones, Compass, Ticket, Calendar, ShoppingCart, Navigation, UserPlus, MapPin, BookOpen, FileText } from "lucide-react";
 import CitySelector from "./components/location/CitySelector";
 import NavSearchSuggestions from "./components/search/NavSearchSuggestions";
 import { base44 } from "@/api/base44Client";
@@ -18,7 +18,6 @@ import SmartTooltip from "./components/onboarding/SmartTooltip";
 import OnboardingFlow from "./components/onboarding/OnboardingFlow";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
-import DeliveryNotificationHandler from "./components/notifications/DeliveryNotificationHandler";
 import PaymentRequestHandler from "./components/notifications/PaymentRequestHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";

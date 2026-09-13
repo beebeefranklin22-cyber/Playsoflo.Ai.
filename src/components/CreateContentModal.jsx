@@ -4,9 +4,9 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  X, Upload, Loader2, Music, Sparkles, AtSign, MapPin, Search,
+  X, Upload, Loader2, Music, AtSign, MapPin, Search,
   Type, Image as ImageIcon, Video, Smile, Pen, SlidersHorizontal,
-  Clock, ChevronRight, ChevronLeft, Check, Tag, Wand2, Trash2, Plus as PlusIcon,
+  Clock, ChevronRight, ChevronLeft, Check, Tag, Trash2, Plus as PlusIcon,
   Camera
 } from "lucide-react";
 import FaceFiltersCamera from "./camera/FaceFiltersCamera";
@@ -297,10 +297,14 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         likes_count: 0, comments_count: 0,
         is_story: false,
         media_type: mediaFileType,
+        author_email: currentUser?.email,
+        author_name: currentUser?.full_name,
+        created_by: currentUser?.email,
         creator_name: currentUser?.full_name,
         creator_username: currentUser?.username || currentUser?.email?.split('@')[0],
         creator_profile_picture: currentUser?.profile_picture,
         liked_by: [],
+        tags: taggedUsers,
       });
       if (currentUser) {
         const followers = await base44.entities.Follow.filter({ following_email: currentUser.email });
@@ -334,10 +338,11 @@ export default function CreateContentModal({ isOpen, onClose, currentUser, defau
         media_type: mediaUrl ? mediaFileType : "text",
         caption: caption || textOverlays.map(t => t.text).filter(Boolean).join(' | '),
         music,
+        creator_email: currentUser?.email,
         creator_profile_picture: currentUser?.profile_picture || currentUser?.profile_photo,
         creator_name: currentUser?.full_name || currentUser?.username,
         expires_at: expiresAt.toISOString(),
-        views: [], visibility: "followers",
+        views: 0, visibility: "followers",
       });
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["stories"] }); toast.success("Story shared!"); onClose(); },

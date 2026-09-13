@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Star, MapPin, Users, Clock, CheckCircle, MessageCircle, Loader2, Calendar } from "lucide-react";
+import { X, Star, MapPin, CheckCircle, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
 import StripePaymentForm from "@/components/payment/StripePaymentForm";
 
 export default function TravelBookingModal({ listing, onClose }) {

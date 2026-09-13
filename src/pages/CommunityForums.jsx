@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MessageSquare, Plus, Pin, Eye, Edit2, Trash2, ChevronLeft,
-  Send, Lock, ThumbsUp, User, Clock, Users, Heart, Bell, BellOff, Upload, Image as ImageIcon, Loader2, X
+  Send, Lock, ThumbsUp, Clock, Users, Heart, Bell, BellOff, Image as ImageIcon, Loader2, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -122,7 +122,8 @@ export default function CommunityForums() {
       setShowCreateModal(false);
       setFormData({ title: "", content: "", category: "general", images: [], video_url: "" });
       toast.success('Thread created!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to create thread')
   });
 
   const updateMutation = useMutation({
@@ -133,7 +134,8 @@ export default function CommunityForums() {
       queryClient.invalidateQueries(['forum-threads']);
       setEditingThread(null);
       toast.success('Thread updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update thread')
   });
 
   const deleteMutation = useMutation({
@@ -144,7 +146,8 @@ export default function CommunityForums() {
       queryClient.invalidateQueries(['forum-threads']);
       setSelectedThread(null);
       toast.success('Thread deleted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to delete thread')
   });
 
   const replyMutation = useMutation({
@@ -183,7 +186,8 @@ export default function CommunityForums() {
       queryClient.invalidateQueries(['forum-threads']);
       setReplyContent("");
       toast.success('Reply posted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to post reply')
   });
 
   const likeMutation = useMutation({
@@ -195,7 +199,8 @@ export default function CommunityForums() {
         likes: hasLiked ? likes.filter(e => e !== currentUser.email) : [...likes, currentUser.email]
       });
     },
-    onSuccess: () => queryClient.invalidateQueries(['forum-replies'])
+    onSuccess: () => queryClient.invalidateQueries(['forum-replies']),
+    onError: (error) => toast.error(error.message || 'Failed to update like')
   });
 
   const likeThreadMutation = useMutation({
@@ -207,7 +212,8 @@ export default function CommunityForums() {
         likes: hasLiked ? likes.filter(e => e !== currentUser.email) : [...likes, currentUser.email]
       });
     },
-    onSuccess: () => queryClient.invalidateQueries(['forum-threads'])
+    onSuccess: () => queryClient.invalidateQueries(['forum-threads']),
+    onError: (error) => toast.error(error.message || 'Failed to update like')
   });
 
   const followThreadMutation = useMutation({
@@ -219,7 +225,8 @@ export default function CommunityForums() {
         followers: isFollowing ? followers.filter(e => e !== currentUser.email) : [...followers, currentUser.email]
       });
     },
-    onSuccess: () => queryClient.invalidateQueries(['forum-threads'])
+    onSuccess: () => queryClient.invalidateQueries(['forum-threads']),
+    onError: (error) => toast.error(error.message || 'Failed to update follow status')
   });
 
   const handleImageUpload = async (e) => {

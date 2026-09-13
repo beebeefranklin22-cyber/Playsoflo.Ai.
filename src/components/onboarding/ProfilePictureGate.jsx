@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Camera, Upload, Loader2, CheckCircle, AlertCircle, AtSign, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
 
 // Step 1: Username setup
 function UsernameStep({ user, onComplete }) {

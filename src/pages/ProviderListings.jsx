@@ -14,6 +14,7 @@ import {
   Image as ImageIcon, Star
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getCurrentCoords } from "@/lib/geoUtils";
 
 export default function ProviderListings() {
   const navigate = useNavigate();
@@ -118,19 +119,35 @@ export default function ProviderListings() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!listingForm.title || !listingForm.description || !listingForm.price) {
       alert('Please fill in all required fields');
       return;
     }
 
+    // price_in_soflo isn't a real marketplace_items column -- SoFloCoin
+    // pricing is Coming Soon app-wide (the field above is disabled), so
+    // don't send a fake value that would make the whole insert/update fail.
+    const { price_in_soflo: _price_in_soflo, ...payload } = listingForm;
+
+    // Best-effort: stamp lat/lng from the browser so the browse page's
+    // radius filter has something to compute distance against. Silently
+    // skipped if geolocation is unavailable/denied.
+    if (!editingListing) {
+      const coords = await getCurrentCoords();
+      if (coords) {
+        payload.latitude = coords.latitude;
+        payload.longitude = coords.longitude;
+      }
+    }
+
     if (editingListing) {
       updateListingMutation.mutate({
         id: editingListing.id,
-        data: listingForm
+        data: payload
       });
     } else {
-      createListingMutation.mutate(listingForm);
+      createListingMutation.mutate(payload);
     }
   };
 
@@ -438,13 +455,14 @@ export default function ProviderListings() {
                     />
                   </div>
                   <div>
-                    <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin)</label>
+                    <label className="text-gray-400 text-sm mb-2 block">Price (SoFloCoin) <span className="text-purple-400 text-xs">(Coming Soon)</span></label>
                     <Input
                       type="number"
                       value={listingForm.price_in_soflo}
-                      onChange={(e) => setListingForm({...listingForm, price_in_soflo: Number(e.target.value)})}
-                      placeholder="0"
-                      className="bg-white/10 border-white/20 text-white"
+                      disabled
+                      title="SoFloCoin pricing is coming soon"
+                      placeholder="Coming soon"
+                      className="bg-white/5 border-white/10 text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 </div>

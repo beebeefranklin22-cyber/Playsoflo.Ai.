@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Briefcase, Plus, MapPin, DollarSign, Clock, Edit2, Trash2,
-  ChevronLeft, Phone, Mail, ExternalLink, Send, MessageCircle, Image as ImageIcon, Loader2, X, Upload,
+  Briefcase, Plus, MapPin, DollarSign, Edit2, Trash2,
+  ChevronLeft, ExternalLink, Send, MessageCircle, Loader2, X, Upload,
   Bookmark, BookmarkCheck, ClipboardList, CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -123,7 +123,8 @@ export default function CommunityJobs() {
         application_url: "", requirements: "", benefits: "", images: []
       });
       toast.success('Job posted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to post job')
   });
 
   const updateMutation = useMutation({
@@ -136,7 +137,8 @@ export default function CommunityJobs() {
       queryClient.invalidateQueries(['job-listings']);
       setEditingJob(null);
       toast.success('Job updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update job')
   });
 
   const deleteMutation = useMutation({
@@ -147,7 +149,8 @@ export default function CommunityJobs() {
       queryClient.invalidateQueries(['job-listings']);
       setSelectedJob(null);
       toast.success('Job deleted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to delete job')
   });
 
   const commentMutation = useMutation({
@@ -178,7 +181,8 @@ export default function CommunityJobs() {
       queryClient.invalidateQueries(['job-comments']);
       setComment("");
       toast.success('Comment posted!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to post comment')
   });
 
   const handleMessage = async (posterEmail) => {
@@ -199,22 +203,27 @@ export default function CommunityJobs() {
     if (!currentUser) return toast.error('Sign in to save jobs');
     if (savedJobIds.includes(job.id)) return toast.info('Already saved');
     setSavingJob(job.id);
-    await base44.entities.SavedJob.create({
-      user_email: currentUser.email,
-      job_id: job.id,
-      job_title: job.title,
-      company_name: job.company_name || "",
-      job_type: job.type,
-      job_category: job.category,
-      job_location: job.location || "",
-      pay_rate: job.pay_rate || "",
-      pay_type: job.pay_type || "",
-      poster_photo: job.poster_photo || "",
-      application_url: job.application_url || ""
-    });
-    queryClient.invalidateQueries(['saved-job-ids']);
-    setSavingJob(null);
-    toast.success('Job saved!');
+    try {
+      await base44.entities.SavedJob.create({
+        user_email: currentUser.email,
+        job_id: job.id,
+        job_title: job.title,
+        company_name: job.company_name || "",
+        job_type: job.type,
+        job_category: job.category,
+        job_location: job.location || "",
+        pay_rate: job.pay_rate || "",
+        pay_type: job.pay_type || "",
+        poster_photo: job.poster_photo || "",
+        application_url: job.application_url || ""
+      });
+      queryClient.invalidateQueries(['saved-job-ids']);
+      toast.success('Job saved!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to save job');
+    } finally {
+      setSavingJob(null);
+    }
   };
 
   const handleMarkApplied = async (job) => {
@@ -224,22 +233,27 @@ export default function CommunityJobs() {
       return;
     }
     setApplyingJob(job.id);
-    await base44.entities.JobApplication.create({
-      user_email: currentUser.email,
-      job_id: job.id,
-      job_title: job.title,
-      company_name: job.company_name || "",
-      job_type: job.type,
-      job_category: job.category,
-      job_location: job.location || "",
-      pay_rate: job.pay_rate || "",
-      status: "applied",
-      applied_date: new Date().toISOString().split('T')[0],
-      poster_photo: job.poster_photo || ""
-    });
-    queryClient.invalidateQueries(['applied-job-ids']);
-    setApplyingJob(null);
-    toast.success('Added to your Application Tracker!');
+    try {
+      await base44.entities.JobApplication.create({
+        user_email: currentUser.email,
+        job_id: job.id,
+        job_title: job.title,
+        company_name: job.company_name || "",
+        job_type: job.type,
+        job_category: job.category,
+        job_location: job.location || "",
+        pay_rate: job.pay_rate || "",
+        status: "applied",
+        applied_date: new Date().toISOString().split('T')[0],
+        poster_photo: job.poster_photo || ""
+      });
+      queryClient.invalidateQueries(['applied-job-ids']);
+      toast.success('Added to your Application Tracker!');
+    } catch (error) {
+      toast.error(error.message || 'Failed to track application');
+    } finally {
+      setApplyingJob(null);
+    }
   };
 
   const handleImageUpload = async (e) => {

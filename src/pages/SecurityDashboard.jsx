@@ -5,14 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
-  Shield, AlertTriangle, Activity, Lock, Eye, 
-  TrendingUp, Users, FileWarning, CheckCircle2,
-  XCircle, Clock, Map, Zap, RefreshCw
+  Shield, AlertTriangle, Activity, Lock, Eye, FileWarning, CheckCircle2,
+  XCircle, Clock, Zap, RefreshCw
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { threatMonitor } from '../components/security/ThreatMonitor';
-import { sessionManager } from '../components/security/SessionManager';
-import { anomalyDetector } from '../components/security/AnomalyDetector';
 
 export default function SecurityDashboard() {
   const [currentUser, setCurrentUser] = useState(null);

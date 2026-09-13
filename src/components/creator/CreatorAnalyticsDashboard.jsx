@@ -9,11 +9,9 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from "recharts";
-import { 
-  TrendingUp, DollarSign, Users, Activity, Eye, MessageSquare, Radio, Clock,
+import { DollarSign, MessageSquare, Radio,
   Globe, Target, Zap, Crown, Lock
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 
 export default function CreatorAnalyticsDashboard({ currentUser }) {
   const [timeRange, setTimeRange] = useState('30d');

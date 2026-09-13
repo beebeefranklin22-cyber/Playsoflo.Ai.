@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, BarChart3, DollarSign, Eye, Film, Trash2, Edit3, Gift,
-  TrendingUp, Users, Wallet, Download, ToggleLeft, ToggleRight,
-  Star, Clock, Settings, Play, CheckCircle, AlertCircle, Loader2
+  ArrowLeft, DollarSign, Eye, Film, Trash2, Edit3, Gift,
+  TrendingUp, Users, Wallet, Download, ToggleLeft, ToggleRight, Settings, Play, CheckCircle, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPageUrl } from "@/utils";

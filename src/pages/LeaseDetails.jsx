@@ -5,7 +5,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, DollarSign, Download, Pencil } from "lucide-react";
+import { ArrowLeft, FileText, DollarSign, Pencil } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 

@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Car, Home, Ship, Waves, MapPin, DollarSign, Shield, Fuel, Clock } from "lucide-react";
+import { Car, Home, Ship, Waves, MapPin, DollarSign, Shield } from "lucide-react";
 
 const assetIcons = {
   car: Car,

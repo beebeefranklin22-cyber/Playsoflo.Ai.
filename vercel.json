@@ -3,12 +3,54 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    }
+    "api/money.js": { "maxDuration": 30 },
+    "api/mobility.js": { "maxDuration": 30 },
+    "api/property.js": { "maxDuration": 30 },
+    "api/bookings-payments.js": { "maxDuration": 30 },
+    "api/creator-economy.js": { "maxDuration": 30 },
+    "api/ai-tools.js": { "maxDuration": 30 },
+    "api/comms.js": { "maxDuration": 30 },
+    "api/utils.js": { "maxDuration": 30 },
+    "api/stripe-misc.js": { "maxDuration": 30 }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/checkout", "destination": "/api/money?__fn=checkout" },
+    { "source": "/api/cart-checkout", "destination": "/api/money?__fn=cart-checkout" },
+    { "source": "/api/wallet", "destination": "/api/money?__fn=wallet" },
+    { "source": "/api/food-orders", "destination": "/api/money?__fn=food-orders" },
+
+    { "source": "/api/rides", "destination": "/api/mobility?__fn=rides" },
+    { "source": "/api/delivery", "destination": "/api/mobility?__fn=delivery" },
+
+    { "source": "/api/property-booking", "destination": "/api/property?__fn=property-booking" },
+    { "source": "/api/car-rental", "destination": "/api/property?__fn=car-rental" },
+    { "source": "/api/car-damage", "destination": "/api/property?__fn=car-damage" },
+
+    { "source": "/api/bookings", "destination": "/api/bookings-payments?__fn=bookings" },
+    { "source": "/api/payment-methods", "destination": "/api/bookings-payments?__fn=payment-methods" },
+    { "source": "/api/setup-intent", "destination": "/api/bookings-payments?__fn=setup-intent" },
+
+    { "source": "/api/fan-pool", "destination": "/api/creator-economy?__fn=fan-pool" },
+    { "source": "/api/music-distribution", "destination": "/api/creator-economy?__fn=music-distribution" },
+    { "source": "/api/collaborative-revenue", "destination": "/api/creator-economy?__fn=collaborative-revenue" },
+
+    { "source": "/api/ai-assist", "destination": "/api/ai-tools?__fn=ai-assist" },
+    { "source": "/api/extract", "destination": "/api/ai-tools?__fn=extract" },
+    { "source": "/api/imagine", "destination": "/api/ai-tools?__fn=imagine" },
+    { "source": "/api/ronron", "destination": "/api/ai-tools?__fn=ronron" },
+
+    { "source": "/api/email", "destination": "/api/comms?__fn=email" },
+    { "source": "/api/sms", "destination": "/api/comms?__fn=sms" },
+    { "source": "/api/agora-token", "destination": "/api/comms?__fn=agora-token" },
+
+    { "source": "/api/geo", "destination": "/api/utils?__fn=geo" },
+    { "source": "/api/prices", "destination": "/api/utils?__fn=prices" },
+    { "source": "/api/account", "destination": "/api/utils?__fn=account" },
+    { "source": "/api/diagnostics", "destination": "/api/utils?__fn=diagnostics" },
+
+    { "source": "/api/stripe-intent", "destination": "/api/stripe-misc?__fn=stripe-intent" },
+    { "source": "/api/shared", "destination": "/api/stripe-misc?__fn=shared" },
+
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

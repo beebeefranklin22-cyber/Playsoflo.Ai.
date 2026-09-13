@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Plus, X, Edit2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ServiceVariationsManager({ variations = [], onChange }) {

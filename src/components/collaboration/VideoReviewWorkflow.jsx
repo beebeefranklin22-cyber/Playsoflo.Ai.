@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Video, MessageSquare, CheckCircle, XCircle, Clock, 
+  Video, MessageSquare, CheckCircle, XCircle, 
   Play, Pause, Send, User, Eye
 } from "lucide-react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 
 export default function VideoReviewWorkflow({ currentUser }) {
   const queryClient = useQueryClient();

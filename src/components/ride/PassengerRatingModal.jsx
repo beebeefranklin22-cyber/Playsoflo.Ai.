@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { rateDriver } from "@/functions/rateDriver";
 import { toast } from "sonner";
 
 export default function PassengerRatingModal({ ride, onClose }) {
@@ -21,28 +22,13 @@ export default function PassengerRatingModal({ ride, onClose }) {
 
     setSubmitting(true);
     try {
-      // Update ride with rating
-      await base44.entities.RideRequest.update(ride.id, {
-        passenger_rating: rating,
-        passenger_review: review
-      });
+      // Updates the ride's rating fields and the driver's aggregate rating
+      // atomically server-side (a client-side read-then-write here could
+      // race with another passenger rating the same driver at once).
+      const { data: result } = await rateDriver({ ride_id: ride.id, rating, review });
+      if (!result?.success) throw new Error(result?.error || 'Failed to submit rating');
 
-      // Update driver's average rating
       if (ride.driver_email) {
-        const drivers = await base44.entities.User.filter({ email: ride.driver_email });
-        if (drivers.length > 0) {
-          const driver = drivers[0];
-          const currentTotal = driver.driver_total_ratings || 0;
-          const currentAvg = driver.driver_rating || 0;
-          const newTotal = currentTotal + 1;
-          const newAvg = ((currentAvg * currentTotal) + rating) / newTotal;
-
-          await base44.asServiceRole.entities.User.update(driver.id, {
-            driver_rating: newAvg,
-            driver_total_ratings: newTotal
-          });
-        }
-
         // Add to favorites if checked
         if (addToFavorites) {
           const currentUser = await base44.auth.me();

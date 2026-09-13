@@ -1,5 +1,54 @@
 import { supabase } from '@/lib/supabaseClient';
 
+// Base44's original query DSL supported Mongo-style operators
+// ({status: {$in: [...]}}, {$or: [...]}, {$ne: ...}); this app's
+// components still call .filter()/.list() with that syntax throughout.
+// Translate it to real PostgREST filters instead of letting it fall
+// through to .eq(key, {$in: [...]}), which sends the operator object
+// itself as a value and errors.
+const OPERATOR_TO_PG = { $ne: 'neq', $gte: 'gte', $lte: 'lte', $gt: 'gt', $lt: 'lt' };
+
+function applyFilters(q, filters) {
+  const { $or: orConditions, ...plainFilters } = filters ?? {};
+
+  Object.entries(plainFilters).forEach(([key, value]) => {
+    q = applyFieldFilter(q, key, value);
+  });
+
+  if (orConditions?.length) {
+    q = q.or(orConditions.map(conditionToOrClause).join(','));
+  }
+
+  return q;
+}
+
+function applyFieldFilter(q, key, value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const [op, opValue] = Object.entries(value)[0] ?? [];
+    if (op === '$in') return q.in(key, opValue);
+    // {$contains: x} means "this jsonb/array column contains x" (e.g.
+    // participant_emails/participants arrays) — not "column equals x".
+    if (op === '$contains') return q.contains(key, Array.isArray(opValue) ? opValue : [opValue]);
+    if (OPERATOR_TO_PG[op]) return q[OPERATOR_TO_PG[op]](key, opValue);
+  }
+  return q.eq(key, value);
+}
+
+// Builds one PostgREST or-filter branch, e.g. {a: 1, b: {$ne: 2}} ->
+// "and(a.eq.1,b.neq.2)". A single-key branch is returned unwrapped.
+function conditionToOrClause(condition) {
+  const parts = Object.entries(condition).map(([key, value]) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const [op, opValue] = Object.entries(value)[0] ?? [];
+      if (op === '$in') return `${key}.in.(${opValue.join(',')})`;
+      const pgOp = OPERATOR_TO_PG[op] || 'eq';
+      return `${key}.${pgOp}.${opValue}`;
+    }
+    return `${key}.eq.${value}`;
+  });
+  return parts.length > 1 ? `and(${parts.join(',')})` : parts[0];
+}
+
 class Entity {
   constructor(tableName) { this.tableName = tableName; }
 
@@ -24,7 +73,7 @@ class Entity {
     }
 
     let q = supabase.from(this.tableName).select('*');
-    Object.entries(filters).forEach(([k, v]) => { q = q.eq(k, v); });
+    q = applyFilters(q, filters);
     if (orderBy) q = q.order(orderBy, { ascending: !orderDesc });
     if (limit) q = q.limit(limit);
     const { data, error } = await q;
@@ -61,9 +110,25 @@ class Entity {
 
   async orderByDesc(field, limit = 100) { return this.list({}, { orderBy: field, orderDesc: true, limit }); }
 
+  // Every caller across the app (Messages.jsx, RealtimeChatWindow.jsx,
+  // CustomerBookings.jsx, LivestreamViewer.jsx, BookingProgressTracker.jsx,
+  // and more) has always been written against a {type, data, id} shape
+  // ("event.type === 'create'", "event.data.x", "event.id") -- but Supabase's
+  // raw postgres_changes payload is {eventType: 'INSERT'|'UPDATE'|'DELETE',
+  // new, old, schema, table, ...}, with no `type`/`data`/`id` fields at all.
+  // That mismatch meant every .subscribe() callback in the app either
+  // silently never matched (call sites using `event.data?.x`) or threw
+  // immediately on any row change while mounted (call sites using
+  // `event.data.x` with no optional chaining). Translate the real payload
+  // into the shape every caller already expects, rather than touching
+  // dozens of call sites.
   subscribe(callback) {
     const channel = supabase.channel(`${this.tableName}-changes`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, callback)
+      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, (payload) => {
+        const type = payload.eventType === 'INSERT' ? 'create' : payload.eventType === 'UPDATE' ? 'update' : payload.eventType === 'DELETE' ? 'delete' : payload.eventType;
+        const data = payload.new && Object.keys(payload.new).length > 0 ? payload.new : payload.old;
+        callback({ type, data, id: data?.id, new: payload.new, old: payload.old });
+      })
       .subscribe();
     return () => supabase.removeChannel(channel);
   }
@@ -258,6 +323,8 @@ export const TaxReport                   = new Entity('tax_reports');
 export const TicketAffiliate             = new Entity('ticket_affiliates');
 export const TipTransaction              = new Entity('tip_transactions');
 export const TraderRating                = new Entity('trader_ratings');
+export const TrackComment                = new Entity('track_comments');
+export const TrackLike                   = new Entity('track_likes');
 export const TravelAlert                 = new Entity('travel_alerts');
 export const TravelBooking               = new Entity('travel_bookings');
 export const TravelListing               = new Entity('travel_listings');

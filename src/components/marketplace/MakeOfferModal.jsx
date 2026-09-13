@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, HandshakeIcon, DollarSign, MessageSquare, CheckCircle, Loader2, ShieldCheck } from "lucide-react";
+import { X, DollarSign, MessageSquare, CheckCircle, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export default function MakeOfferModal({ item, currentUser, onClose }) {

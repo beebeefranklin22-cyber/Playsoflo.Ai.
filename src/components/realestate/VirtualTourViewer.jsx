@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, ChevronLeft, ChevronRight, Maximize2, Play } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function VirtualTourViewer({ property, onClose }) {

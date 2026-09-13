@@ -5,7 +5,7 @@ import {
   Sparkles, Wallet, Plane, Heart, Cpu,
   ChevronDown, TrendingUp, Globe, Zap,
   ShoppingBag, Tv, Wand2, Activity, Search, UserCircle,
-  Home, ChevronLeft, Building, Car, Music, Users, MapPin
+  Home, Building, Car, Music, Users, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import CardStack from "../components/CardStack";
@@ -49,7 +49,7 @@ const pillars = [
     icon: Wallet,
     gradient: "from-green-600 via-emerald-600 to-green-600",
     image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200",
-    features: ["SoFloCoin", "Private Banking", "Crypto Custody", "Assets"],
+    features: ["SoFloCoin (Coming Soon)", "Private Banking", "Crypto Custody", "Assets"],
     action: "Wallet"
   },
   {

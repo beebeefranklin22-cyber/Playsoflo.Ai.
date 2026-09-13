@@ -22,32 +22,26 @@ export default function TippingIntegration({ creatorEmail, contentId, currentUse
     enabled: !!currentUser && showModal,
   });
 
-  const senderBalance = senderUser?.wallet_balance || 0;
+  const senderBalance = senderUser?.usd_balance || 0;
 
   const tipMutation = useMutation({
     mutationFn: async (data) => {
       if (!currentUser) throw new Error("Must be logged in to tip");
       if (senderBalance < data.amount_usd) throw new Error("Insufficient wallet balance");
 
-      // 1. Deduct from sender's wallet
-      await secureBalanceUpdate({
-        user_email: currentUser.email,
-        amount: -data.amount_usd,
-        transaction_type: "tip_sent",
-        reference_id: contentId,
-        description: `Tip to ${creatorEmail}`
-      });
-
-      // 2. Credit creator's wallet
-      await secureBalanceUpdate({
-        user_email: creatorEmail,
+      // Atomic transfer: debits currentUser and credits creatorEmail in one
+      // step, so there's no window where money could be deducted from the
+      // sender without the creator actually receiving it.
+      const { data: result } = await secureBalanceUpdate({
         amount: data.amount_usd,
-        transaction_type: "tip_received",
+        recipient_email: creatorEmail,
+        reference_type: "tip",
         reference_id: contentId,
-        description: `Tip from ${currentUser.full_name || currentUser.email}`
+        memo: `Tip from ${currentUser.full_name || currentUser.email}`
       });
+      if (!result?.success) throw new Error(result?.error || "Failed to send tip");
 
-      // 3. Record the transaction
+      // Record the transaction
       const tip = await base44.entities.TipTransaction.create({
         ...data,
         from_email: currentUser.email,

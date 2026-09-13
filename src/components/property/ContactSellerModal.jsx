@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Send, Loader2, Phone, Mail } from "lucide-react";
+import { X, Send, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -22,16 +22,23 @@ export default function ContactSellerModal({ property, onClose }) {
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data) => {
-      // Create or get conversation
-      const conversations = await base44.entities.ChatConversation.filter({
-        participants: { $all: [currentUser.email, property.created_by] }
+      // Find or create the 1:1 conversation with this seller. $all isn't a
+      // supported query operator (entities.js only maps $in/$or/$ne/etc),
+      // so fetch conversations this user is already in and check for the
+      // seller client-side instead of filtering for both in one query.
+      const myConversations = await base44.entities.ChatConversation.filter({
+        participants: { $contains: currentUser.email }
       });
+      const existing = myConversations.find(
+        (c) => !c.is_group && Array.isArray(c.participants) && c.participants.includes(property.created_by)
+      );
 
       let conversationId;
-      if (conversations.length > 0) {
-        conversationId = conversations[0].id;
+      if (existing) {
+        conversationId = existing.id;
       } else {
         const newConversation = await base44.entities.ChatConversation.create({
+          created_by: currentUser.email,
           participants: [currentUser.email, property.created_by],
           last_message: data.message,
           last_message_time: new Date().toISOString()

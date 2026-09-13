@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Button } from '@/components/ui/button';
 import { X, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import RealtimeChatWindow from '@/components/chat/RealtimeChatWindow';
@@ -40,6 +39,7 @@ export default function BookingChatModal({ currentUser, providerEmail, providerN
         // Create a new conversation
         const conv = await base44.entities.ChatConversation.create({
           participants: [currentUser.email, providerEmail],
+          created_by: currentUser.email,
           name: `${contextType === 'ride' ? 'Ride' : contextType === 'delivery' ? 'Delivery' : 'Rental'} Chat`,
           is_group: false,
           context_type: contextType,

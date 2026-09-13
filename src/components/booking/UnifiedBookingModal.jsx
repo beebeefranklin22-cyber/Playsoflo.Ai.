@@ -1,69 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  X, ChevronLeft, ChevronRight, CheckCircle, Loader2, Calendar, Clock,
-  ShoppingBag, CreditCard, Wallet, Package, Truck, MapPin, Star, Tag,
-  Zap, RefreshCw, AlertCircle, ArrowRight
+  X, ChevronLeft, CheckCircle, Loader2, Calendar, Clock,
+  ShoppingBag, CreditCard, Wallet, Package, Truck, MapPin, AlertCircle, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-
-// ── Stripe inner form ─────────────────────────────────────────────────────────
-function StripeCheckoutForm({ amount, onSuccess, onCancel, isProcessing, setIsProcessing }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [error, setError] = useState(null);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setIsProcessing(true);
-    setError(null);
-    const { error: submitError } = await elements.submit();
-    if (submitError) { setError(submitError.message); setIsProcessing(false); return; }
-    const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-      confirmParams: { return_url: window.location.href },
-    });
-    if (confirmError) { setError(confirmError.message); setIsProcessing(false); return; }
-    if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
-      onSuccess(paymentIntent.id);
-    } else {
-      setError("Payment was not completed. Please try again.");
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement options={{ layout: "tabs" }} />
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-      <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={onCancel} className="flex-1 border-white/20 text-white">
-          Back
-        </Button>
-        <Button type="submit" disabled={!stripe || isProcessing} className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 font-bold">
-          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />}
-          Pay ${amount?.toFixed(2)}
-        </Button>
-      </div>
-    </form>
-  );
-}
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function UnifiedBookingModal({
@@ -767,6 +717,23 @@ export default function UnifiedBookingModal({
                     </p>
                     {form.fulfillment_method === 'local_delivery' && (
                       <p className="text-blue-300 text-sm mt-2">🚗 A driver is being dispatched and will be assigned to your delivery.</p>
+                    )}
+                    {/* Location details for items that carry a structured location_type
+                        (e.g. Health & Wellness services — see 0021_wellness_hub_fixes.sql).
+                        Renders nothing for items/hubs that don't set this field. */}
+                    {item?.location_type && (
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-3 mt-3 text-left text-sm text-gray-300">
+                        <p className="text-white font-semibold mb-1 flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4" /> Location
+                        </p>
+                        {item.location_type === 'virtual' ? (
+                          <p>{item.virtual_meeting_note || 'Virtual session — meeting details will be sent to you.'}</p>
+                        ) : item.location_type === 'mobile' ? (
+                          <p>Provider comes to you{item.service_area ? ` (${item.service_area})` : ''}.</p>
+                        ) : (
+                          <p>{item.location || item.service_area || "In-person at the provider's location."}</p>
+                        )}
+                      </div>
                     )}
                   </div>
                   <div className="space-y-3">

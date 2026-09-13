@@ -4,12 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  Play, Users, Heart, DollarSign, Calendar, Grid, Film, Radio, 
-  Star, TrendingUp, Share2, ChevronLeft, Plus, MessageCircle
+  Play, Users, Heart, DollarSign, Film, Radio, 
+  Star, TrendingUp, ChevronLeft, MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 

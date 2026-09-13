@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { X, Shield, DollarSign, ArrowRightLeft, Gift, Lock, MessageCircle } from "lucide-react";
+import { X, Shield, DollarSign, ArrowRightLeft, Gift, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function HelpModal({ topic, onClose }) {
@@ -112,7 +112,7 @@ export default function HelpModal({ topic, onClose }) {
           points: [
             "ETH: 4.5% APY • Min 7 days",
             "SOL: 7.2% APY • Min 14 days",
-            "SoFloCoin: 12% APY • Min 30 days",
+            "SoFloCoin: 12% APY • Min 30 days (Coming Soon)",
             "BTC: 3.5% APY • Min 30 days"
           ]
         }

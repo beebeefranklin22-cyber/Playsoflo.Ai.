@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Gift, Heart, Star, Zap, DollarSign, X, Sparkles, Crown, Send } from "lu
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import StripePaymentForm from "../payment/StripePaymentForm";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 const QUICK_TIPS = [
   { amount: 5,   label: "$5",   icon: Heart,    gradient: "from-pink-500 to-rose-500",    emoji: "💗" },
@@ -132,15 +133,20 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
         payment_intent_id: paymentIntentId,
       });
 
-      // Update creator's balance
+      // Credit the creator's wallet. The server re-verifies the payment
+      // with Stripe itself and computes the amount from what was actually
+      // charged — never from finalAmount, which is only a client-side
+      // display value at this point.
       try {
-        const creators = await base44.entities.User.filter({ email: creatorEmail });
-        if (creators[0]) {
-          await base44.entities.User.update(creators[0].id, {
-            usd_balance: (creators[0].usd_balance || 0) + finalAmount * 0.9 // 10% platform fee
-          });
-        }
-      } catch {}
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: creatorEmail,
+          reference_type: 'livestream_tip',
+          fee_rate: 0.1,
+        });
+      } catch (creditError) {
+        console.error('Failed to credit creator for tip:', creditError);
+      }
 
       setSessionTotal(prev => prev + finalAmount);
       toast.success(`🎉 $${finalAmount} tip sent!`);

@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import PageWrapper from "@/components/PageWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { 
-  ChevronLeft, Home, Building, Hotel, Key, MapPin,
-  Bed, Bath, Maximize, Star, Calendar, Check, Sparkles,
-  Search, Loader2, Clock, Play, Calculator, FileText, SlidersHorizontal,
-  TrendingUp, TrendingDown, CalendarClock, Map, LayoutGrid, MessageCircle, Heart
+import { Home, Building, Hotel, Key, MapPin,
+  Bed, Bath, Maximize, Star, Check, Sparkles,
+  Search, Loader2, Play, Calculator, SlidersHorizontal, Map, LayoutGrid, MessageCircle, Heart
 } from "lucide-react";
 import SavePropertyButton from "../components/realestate/SavePropertyButton";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +26,7 @@ import AdvancedPropertyFilters from "../components/realestate/AdvancedPropertyFi
 import PropertyMapView from "../components/realestate/PropertyMapView";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
-import { useUserLocation, filterByLocation } from "../hooks/useUserLocation";
+import { useUserLocation } from "../hooks/useUserLocation";
 
 const categories = [
   { id: "all", label: "All Properties", icon: Building },
@@ -181,13 +179,15 @@ export default function RealEstate() {
                     prop.longitude <= mapBounds.east;
     }
     
-    // Price filter
+    // Price filter — a listing with no price set for its listing_type
+    // (e.g. a for_sale property with no sale_price) always shows, matching
+    // how every other range filter below treats missing data.
     const price = prop.listing_type === "short_term" ? prop.price_per_night :
                   prop.listing_type === "for_rent" ? prop.price_per_month :
                   prop.sale_price;
     const priceMin = advancedFilters.priceMin ? parseFloat(advancedFilters.priceMin) : 0;
     const priceMax = advancedFilters.priceMax ? parseFloat(advancedFilters.priceMax) : Infinity;
-    const priceMatch = price >= priceMin && price <= priceMax;
+    const priceMatch = price == null || (price >= priceMin && price <= priceMax);
     
     // Bedrooms filter
     const bedroomsMin = advancedFilters.bedroomsMin ? parseFloat(advancedFilters.bedroomsMin) : 0;

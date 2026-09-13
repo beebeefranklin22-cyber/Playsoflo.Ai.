@@ -6,9 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  CheckCircle, ArrowRight, ArrowLeft, Upload, Shield,
-  DollarSign, Calendar, Sparkles, Star, Info, Plus,
-  Building2, Clock, Image, CreditCard, ChevronRight, Loader2,
+  CheckCircle, ArrowRight, ArrowLeft, Upload, Sparkles, Info, CreditCard, Loader2,
   CheckCircle2, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

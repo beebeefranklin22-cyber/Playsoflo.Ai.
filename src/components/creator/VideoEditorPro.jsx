@@ -1,13 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { 
   Video, Upload, Scissors, Wand2, Download, Play, Pause,
-  Sparkles, Volume2, VolumeX, Zap, Image, Music, Type,
-  RotateCcw, Loader2, Check, Eye, X, FastForward, Rewind,
-  SkipForward, SkipBack, Maximize, RotateCw
+  Sparkles, Volume2, VolumeX, Zap, Image, Music, Type, Loader2, Eye, X
 } from "lucide-react";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";

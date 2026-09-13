@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { FileText, Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { FileText, Plus, Trash2, Edit2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ContractTemplateManager({ currentUser }) {

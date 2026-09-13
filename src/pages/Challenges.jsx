@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Flame, TrendingUp, Users, Play, Plus, X, 
-  Calendar, Award, Music, Sparkles
+  Flame, TrendingUp, Users, Play, Plus, X, Award, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar, MapPin, Plus, Heart, MessageCircle, Share2,
-  Bookmark, Search, Filter, Clock, Users, Ticket,
-  X, Upload, Eye, EyeOff, ChevronDown, Loader2, Send
+  Bookmark, Search, Ticket,
+  X, Upload, EyeOff, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import PostComments from "../components/social/PostComments";

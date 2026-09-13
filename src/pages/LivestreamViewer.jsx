@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Users, Video, Share2, UserPlus, Maximize2, Minimize2,
-  Heart, MessageCircle, BarChart3, HelpCircle, ShoppingCart, StopCircle,
-  Radio, Gift, Settings, Crown, Send, Scissors
+  Heart, MessageCircle, BarChart3, HelpCircle, ShoppingCart, StopCircle, Gift, Settings, Crown, Send, Scissors
 } from "lucide-react";
 import LivestreamChat from "../components/livestream/LivestreamChat.jsx";
-import LivestreamReactions from "../components/livestream/LivestreamReactions.jsx";
 import LivestreamPolls from "../components/livestream/LivestreamPolls.jsx";
 import LivestreamQA from "../components/livestream/LivestreamQA.jsx";
 import AgoraVideoPlayer from "../components/livestream/AgoraVideoPlayer.jsx";

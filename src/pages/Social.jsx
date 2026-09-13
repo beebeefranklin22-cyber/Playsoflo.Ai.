@@ -4,9 +4,8 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  TrendingUp, Users, Hash, Sparkles, Search, Flame,
-  Heart, MessageCircle, Eye, Clock, Crown, Star,
-  Globe, MapPin, ChevronRight, Radio, Clapperboard
+  TrendingUp, Users, Hash, Search, Flame,
+  Heart, MessageCircle, Crown, ChevronRight, Radio, Clapperboard
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";

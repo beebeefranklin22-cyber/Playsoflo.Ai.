@@ -1,10 +1,15 @@
-export async function processWithdrawal(data) {
+import { callSecureApi } from '@/lib/apiClient';
+
+// Deducts the withdrawal (+ any instant-transfer fee) from the signed-in
+// user's balance and queues a payout request. Actually wiring the payout to
+// a real bank account needs Stripe Connect, which isn't configured yet — see
+// api/wallet.js — so this records the request as pending_manual for now.
+export async function processWithdrawal({ amount, method, payment_method_id } = {}) {
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/processWithdrawal`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }, body: JSON.stringify(data) }
-    );
-    if (!response.ok) { const e = await response.json(); throw new Error(e.error || 'processWithdrawal failed'); }
-    return await response.json();
-  } catch (error) { console.error('processWithdrawal error:', error); throw error; }
+    const data = await callSecureApi('/api/wallet', { action: 'withdraw', amount, method, payment_method_id });
+    return { data };
+  } catch (error) {
+    console.error('processWithdrawal error:', error);
+    return { data: { success: false, error: error.message } };
+  }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { MapPin, Clock, AlertCircle, Package } from "lucide-react";
+import { MapPin, Clock } from "lucide-react";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyB41DcZHwBpC6kv4QksFOJ-0E7MrhLPAEw";
 

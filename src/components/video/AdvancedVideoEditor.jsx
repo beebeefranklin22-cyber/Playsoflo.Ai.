@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { 
-  Video, Upload, Scissors, Download, Play, Pause, Plus,
+  Video, Upload, Scissors, Download, Play, Pause,
   Sparkles, Volume2, VolumeX, RotateCcw, Loader2, X,
-  Music, Layers, FilePlus, Combine, Copy, Split, Type,
-  Wand2, Mic, Sliders, Zap, FileText, Aperture
+  Music, Layers, FilePlus, Copy, Split, Type,
+  Wand2, Mic, Zap, FileText, Aperture
 } from "lucide-react";
 import { stabilizeVideo } from "@/functions/stabilizeVideo";
 import { toast } from "sonner";
@@ -19,6 +18,7 @@ import VideoTextOverlayEditor from "./VideoTextOverlayEditor";
 export default function AdvancedVideoEditor({ currentUser }) {
   const videoRef = useRef(null);
   const audioRef = useRef(null);
+  const voiceoverRef = useRef(null);
   const [clips, setClips] = useState([]);
   const [currentClip, setCurrentClip] = useState(null);
   const [currentClipIndex, setCurrentClipIndex] = useState(0);
@@ -93,7 +93,10 @@ export default function AdvancedVideoEditor({ currentUser }) {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume / 100;
     }
-  }, [volume, isMuted, musicVolume, playbackSpeed]);
+    if (voiceoverRef.current) {
+      voiceoverRef.current.volume = voiceoverVolume / 100;
+    }
+  }, [volume, isMuted, musicVolume, voiceoverVolume, playbackSpeed]);
 
   useEffect(() => {
     if (currentClip && videoRef.current) {
@@ -809,7 +812,7 @@ export default function AdvancedVideoEditor({ currentUser }) {
                   <audio ref={audioRef} src={backgroundMusicUrl} loop />
                 )}
                 {voiceoverUrl && (
-                  <audio src={voiceoverUrl} volume={voiceoverVolume / 100} />
+                  <audio ref={voiceoverRef} src={voiceoverUrl} />
                 )}
 
                 {/* Text Overlays Render */}

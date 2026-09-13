@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { X, Play, Image as ImageIcon, Video, Upload } from "lucide-react";
+import { X, Play, Image as ImageIcon, Video } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { motion, AnimatePresence } from "framer-motion";
 

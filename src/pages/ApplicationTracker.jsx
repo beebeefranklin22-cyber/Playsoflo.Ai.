@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  ClipboardList, ChevronLeft, MapPin, DollarSign, Briefcase,
-  CheckCircle2, MessageSquare, Trophy, XCircle, MinusCircle, Pencil, Trash2, Bookmark
+  ClipboardList, ChevronLeft, MapPin, DollarSign, Briefcase, MessageSquare, Trophy, XCircle, MinusCircle, Pencil, Trash2, Bookmark
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -52,7 +51,8 @@ export default function ApplicationTracker() {
       queryClient.invalidateQueries(['job-applications']);
       setEditingApp(null);
       toast.success('Application updated!');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to update application')
   });
 
   const deleteMutation = useMutation({
@@ -60,7 +60,8 @@ export default function ApplicationTracker() {
     onSuccess: () => {
       queryClient.invalidateQueries(['job-applications']);
       toast.success('Application removed');
-    }
+    },
+    onError: (error) => toast.error(error.message || 'Failed to remove application')
   });
 
   const openEdit = (app) => {

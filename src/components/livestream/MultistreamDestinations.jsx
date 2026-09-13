@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Youtube, Twitch, Instagram, Plus, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Youtube, Twitch, Instagram, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const PLATFORMS = [

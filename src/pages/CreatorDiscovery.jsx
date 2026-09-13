@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Search, Star, Users, Briefcase, Music, Tv, ChevronRight, MapPin, CheckCircle } from "lucide-react";
+import { Search, Users, Briefcase, Music, ChevronRight, MapPin, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 

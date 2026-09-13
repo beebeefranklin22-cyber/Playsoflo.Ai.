@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { X, Gift, TrendingUp, Users, Lock, DollarSign, Award, Calendar, Sparkles, HelpCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -65,7 +65,7 @@ export default function RewardsProgram({ currentUser, onClose }) {
   const totalEarned = claimedRewards.reduce((sum, r) => sum + (r.reward_value_usd || 0), 0);
 
   const rewardCategories = [
-    { icon: Users, label: 'Referrals', desc: 'Invite friends, earn crypto', reward: '10 SFC per referral' },
+    { icon: Users, label: 'Referrals', desc: 'Invite friends, earn crypto', reward: '10 SFC per referral (Coming Soon)' },
     { icon: TrendingUp, label: 'DeFi Activity', desc: 'Stake, farm, provide liquidity', reward: 'Up to 5% bonus' },
     { icon: Lock, label: 'HODLing', desc: 'Hold assets for rewards', reward: '0.1% weekly' },
     { icon: DollarSign, label: 'Trading Volume', desc: 'Trade to earn', reward: '0.05% cashback' },
@@ -185,7 +185,7 @@ export default function RewardsProgram({ currentUser, onClose }) {
                   <Award className="w-6 h-6 text-purple-400" />
                   <h4 className="text-white font-bold text-lg">Referral Program</h4>
                 </div>
-                <p className="text-gray-300 mb-4">Invite friends and earn 10 SFC per successful referral!</p>
+                <p className="text-gray-300 mb-4">Invite friends and earn 10 SFC per successful referral! (SFC rewards coming soon)</p>
                 <div className="flex gap-3">
                   <input
                     readOnly
@@ -237,14 +237,25 @@ export default function RewardsProgram({ currentUser, onClose }) {
                             +{reward.reward_amount} {reward.reward_currency}
                           </p>
                           <p className="text-gray-400 text-sm">${reward.reward_value_usd?.toFixed(2)}</p>
-                          <Button
-                            onClick={() => claimRewardMutation.mutate(reward.id)}
-                            disabled={claimRewardMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 mt-2"
-                            size="sm"
-                          >
-                            Claim
-                          </Button>
+                          {reward.reward_currency === 'SoFloCoin' ? (
+                            <Button
+                              disabled
+                              title="SoFloCoin is coming soon"
+                              className="bg-gray-700 text-gray-400 cursor-not-allowed mt-2"
+                              size="sm"
+                            >
+                              Coming Soon
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => claimRewardMutation.mutate(reward.id)}
+                              disabled={claimRewardMutation.isPending}
+                              className="bg-green-600 hover:bg-green-700 mt-2"
+                              size="sm"
+                            >
+                              Claim
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>

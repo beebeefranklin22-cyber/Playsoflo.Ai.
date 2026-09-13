@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Upload, Loader2, CheckCircle, Plus, Trash2, Building, Video, FileImage, Link } from "lucide-react";
+import { X, Upload, Loader2, CheckCircle, Plus, Building, Video, FileImage } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
@@ -32,6 +31,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
     verified_host: false,
     floor_plan_url: "",
     walkthrough_video_url: "",
+    virtual_tour_url: "",
     security_deposit_months: 1,
     move_in_fee: 0
   });
@@ -43,6 +43,7 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
       const propertyData = {
         ...data,
         host_email: currentUser.email,
+        created_by: currentUser.email,
         rating: 5.0,
         reviews_count: 0,
         verified_host: false,
@@ -565,6 +566,20 @@ export default function ListPropertyModal({ isOpen, onClose, currentUser }) {
                   />
                 </div>
               )}
+            </div>
+
+            {/* Virtual Tour */}
+            <div>
+              <label className="text-white font-semibold mb-2 block flex items-center gap-2">
+                <Video className="w-4 h-4 text-purple-400" />
+                Virtual Tour Link <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <Input
+                value={property.virtual_tour_url}
+                onChange={e => setProperty(p => ({ ...p, virtual_tour_url: e.target.value }))}
+                placeholder="Matterport, Zillow 3D Home, or other virtual tour link"
+                className="bg-white/10 border-white/20 text-white"
+              />
             </div>
 
             {/* Long-term rental extras */}

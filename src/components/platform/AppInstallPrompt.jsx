@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, Smartphone, Tablet, Tv } from 'lucide-react';
+import { Download, X, Smartphone, Tv } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AppInstallPrompt() {

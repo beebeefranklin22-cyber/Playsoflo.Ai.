@@ -4,9 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import {
-  ChevronLeft, Home, DollarSign, FileText, MessageCircle,
-  Calendar, Check, X, AlertCircle, Clock, Bell, Download,
-  Upload, Users, Settings, TrendingUp, Mail, Wrench, Image, 
+  ChevronLeft, Home, DollarSign, FileText, MessageCircle, Check, X, Clock, Users, TrendingUp, Wrench, 
   Pen, FolderOpen, CheckCircle, BarChart3, Activity, Edit, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

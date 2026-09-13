@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Package, AlertTriangle, TrendingUp, DollarSign, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 

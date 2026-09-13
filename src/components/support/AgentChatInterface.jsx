@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
-  X, Send, Loader2, Bot, User, AlertCircle, 
-  CheckCircle, Package, DollarSign, Car, MapPin
+  X, Send, Bot, User, AlertCircle, 
+  CheckCircle, Package, Car
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

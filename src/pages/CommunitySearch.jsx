@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { createPageUrl } from "@/utils";
-import { Search, Newspaper, Briefcase, MessageSquare, TrendingUp, Filter, X, ChevronRight, Calendar, MapPin, DollarSign, Eye, Heart, ExternalLink } from "lucide-react";
+import { Search, Newspaper, Briefcase, MessageSquare, TrendingUp, Filter, X, ChevronRight, MapPin, DollarSign, Eye, Heart, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

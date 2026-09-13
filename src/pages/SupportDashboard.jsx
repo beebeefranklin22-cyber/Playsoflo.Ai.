@@ -4,14 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { 
-  ArrowLeft, Search, Filter, Clock, CheckCircle,
-  AlertCircle, User, MessageCircle, Package, DollarSign, Car
+  ArrowLeft, Clock, CheckCircle,
+  AlertCircle, User, MessageCircle, Package, Car
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import AgentChatInterface from "../components/support/AgentChatInterface";
 

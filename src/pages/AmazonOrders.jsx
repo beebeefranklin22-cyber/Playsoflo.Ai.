@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Package, Truck, CheckCircle2, Clock, XCircle, RotateCcw, Edit2, Save, X, Plus, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Package, Truck, CheckCircle2, Clock, XCircle, RotateCcw, Edit2, Save, X, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, User, DollarSign, MessageCircle, Search, CheckCircle2 } from "lucide-react";
+import { X, User, DollarSign, MessageCircle, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
@@ -270,17 +270,21 @@ export default function SendMoneyModal({ currentUser, onClose }) {
                 className="bg-white/10 border-white/20 text-white text-2xl"
               />
               <div className="flex gap-2 mt-3">
-                {["USD", "SoFloCoin"].map((curr) => (
-                  <button
-                    key={curr}
-                    onClick={() => setCurrency(curr)}
-                    className={`px-4 py-2 rounded-xl transition ${
-                      currency === curr ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
+                <button
+                  onClick={() => setCurrency("USD")}
+                  className={`px-4 py-2 rounded-xl transition ${
+                    currency === "USD" ? "bg-purple-600 text-white" : "bg-white/10 text-gray-300 hover:bg-white/20"
+                  }`}
+                >
+                  USD
+                </button>
+                <button
+                  disabled
+                  title="SoFloCoin is coming soon"
+                  className="px-4 py-2 rounded-xl bg-white/5 text-gray-500 cursor-not-allowed flex items-center gap-1.5"
+                >
+                  SoFloCoin <span className="text-[10px] uppercase tracking-wide">Coming Soon</span>
+                </button>
               </div>
             </div>
 

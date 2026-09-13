@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, Calendar, TrendingUp } from "lucide-react";
+import { Download, TrendingUp } from "lucide-react";
 import ViewerEngagementChart from "./ViewerEngagementChart";
 import RevenueAnalytics from "./RevenueAnalytics";
 import AudienceDemographics from "./AudienceDemographics";

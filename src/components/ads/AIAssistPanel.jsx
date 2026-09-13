@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Brain, Sparkles, TrendingUp, TrendingDown, Minus,
-  Loader2, ChevronDown, ChevronUp, CheckCircle, Lightbulb, DollarSign
+  Loader2, ChevronDown, ChevronUp, CheckCircle, Lightbulb
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";

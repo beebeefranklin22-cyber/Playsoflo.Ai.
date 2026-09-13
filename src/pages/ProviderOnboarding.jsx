@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Plus, ChevronRight, Building2, CheckCircle2, Loader2 } from "lucide-react";
+import { Sparkles, Plus, ChevronRight, CheckCircle2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPageUrl } from "@/utils";
-import { toast } from "sonner";
 import ProviderOnboardingFlow from "@/components/onboarding/ProviderOnboardingFlow";
 import { PROVIDER_CATEGORIES } from "@/components/onboarding/providerCategoryConfig";
 

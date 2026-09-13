@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Loader2, Navigation, Plus, Minus } from "lucide-react";
+import { Loader2, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Fallback to Leaflet (open source) if Mapbox not configured

@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Search, TrendingUp, Clock, Sparkles, Play, Heart, 
-  Filter, Music, Users, ChevronLeft
+  Search, TrendingUp, Clock, Sparkles, Play, Heart, Music, Users, ChevronLeft
 } from "lucide-react";
 import { motion } from "framer-motion";
 
