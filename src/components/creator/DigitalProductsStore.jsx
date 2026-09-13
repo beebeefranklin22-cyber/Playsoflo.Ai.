@@ -110,8 +110,8 @@ export default function DigitalProductsStore({ currentUser }) {
 
     setUploading(true);
     try {
-      const { data } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({...formData, download_url: data.file_url, file_size: (file.size / 1024 / 1024).toFixed(2) + " MB"});
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({...formData, download_url: file_url, file_size: (file.size / 1024 / 1024).toFixed(2) + " MB"});
       toast.success("File uploaded!");
     } catch (error) {
       toast.error("Upload failed");
@@ -126,8 +126,8 @@ export default function DigitalProductsStore({ currentUser }) {
 
     setUploading(true);
     try {
-      const { data } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({...formData, preview_images: [...formData.preview_images, data.file_url]});
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData({...formData, preview_images: [...formData.preview_images, file_url]});
       toast.success("Image uploaded!");
     } catch (error) {
       toast.error("Upload failed");
