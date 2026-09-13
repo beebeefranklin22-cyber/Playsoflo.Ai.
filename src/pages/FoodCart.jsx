@@ -96,9 +96,15 @@ export default function FoodCart() {
     );
   }, [showPayment]);
 
+  const round2 = (n) => Math.round(n * 100) / 100;
   const subtotal = cartItems.reduce((sum, item) => sum + (item.menu_item_price * item.quantity), 0);
   const deliveryFee = restaurant?.delivery_fee || 3.99;
-  const total = subtotal + deliveryFee;
+  // Matches PLATFORM_FEE_RATES.food_order / UnifiedBookingModal's fee table
+  // server-side (api/_lib/orderHelpers.js) -- shown here so what the
+  // customer is quoted matches what api/checkout.js actually charges.
+  const platformFeeRate = 0.10;
+  const platformFee = round2(subtotal * platformFeeRate);
+  const total = round2(subtotal + platformFee + deliveryFee);
   const totalItemCount = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   const buildCheckoutBody = (extra) => ({
@@ -222,6 +228,10 @@ export default function FoodCart() {
                 <span>Delivery Fee</span>
                 <span>${deliveryFee.toFixed(2)}</span>
               </div>
+              <div className="flex justify-between text-gray-400 text-xs">
+                <span>Platform Fee ({Math.round(platformFeeRate * 100)}%)</span>
+                <span>${platformFee.toFixed(2)}</span>
+              </div>
               <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
@@ -248,16 +258,16 @@ export default function FoodCart() {
                   ))}
                 </div>
 
-                {paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < subtotal && (
+                {paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total && (
                   <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    <p className="text-red-400 text-sm">Insufficient balance. Need ${(subtotal - parseFloat(currentUser?.usd_balance || 0)).toFixed(2)} more.</p>
+                    <p className="text-red-400 text-sm">Insufficient balance. Need ${(total - parseFloat(currentUser?.usd_balance || 0)).toFixed(2)} more.</p>
                   </div>
                 )}
 
                 <Button
                   onClick={initiatePayment}
-                  disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < subtotal)}
+                  disabled={processing || (paymentMethod === 'wallet' && parseFloat(currentUser?.usd_balance || 0) < total)}
                   className="w-full bg-orange-600 hover:bg-orange-700 py-6 text-lg"
                 >
                   {processing ? (

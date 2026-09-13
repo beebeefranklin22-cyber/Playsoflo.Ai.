@@ -69,6 +69,37 @@ function generateQrCode(ticketNumber, accessCode) {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+// Called by api/checkout.js BEFORE any money moves (wallet debit or Stripe
+// charge) so a sold-out experience is rejected before the buyer is charged,
+// not after -- it's also re-run inside createOrderRow as a last check right
+// before the insert, since two buyers can still race between this precheck
+// and their own money already having moved; that residual race (charged,
+// then rejected) is now the rare case instead of the every-time case.
+export async function checkTicketCapacity(admin, experienceId, quantity) {
+  const { data: expRow, error: expError } = await admin
+    .from('experiences')
+    .select('total_capacity')
+    .eq('id', experienceId)
+    .maybeSingle();
+  if (expError) throw expError;
+  const capacity = expRow?.total_capacity;
+  if (!capacity || capacity <= 0) return;
+
+  const { data: soldRows, error: soldError } = await admin
+    .from('entertainment_tickets')
+    .select('quantity')
+    .eq('experience_id', experienceId)
+    .eq('status', 'confirmed');
+  if (soldError) throw soldError;
+  const sold = (soldRows || []).reduce((sum, r) => sum + (r.quantity || 1), 0);
+  if (sold + quantity > capacity) {
+    const remaining = Math.max(capacity - sold, 0);
+    throw new Error(remaining > 0
+      ? `Only ${remaining} spot(s) left for this experience`
+      : 'This experience is sold out');
+  }
+}
+
 export async function createOrderRow(admin, orderType, ctx) {
   const table = TABLE_BY_ORDER_TYPE[orderType];
   let row;
@@ -182,34 +213,10 @@ export async function createOrderRow(admin, orderType, ctx) {
     const experienceId = ctx.item_id;
     const quantity = ctx.quantity || 1;
 
-    // Capacity check. This still runs after the charge (same post-charge
-    // insert-failure limitation every other order type in this file
-    // already accepts — see the file-level comment in api/checkout.js) but
-    // it's the best a single-request flow can do without a separate
-    // hold/reserve step, and capacity conflicts should be rare since the
-    // browse UI already shows availability.
-    const { data: expRow, error: expError } = await admin
-      .from('experiences')
-      .select('total_capacity')
-      .eq('id', experienceId)
-      .maybeSingle();
-    if (expError) throw expError;
-    const capacity = expRow?.total_capacity;
-    if (capacity && capacity > 0) {
-      const { data: soldRows, error: soldError } = await admin
-        .from('entertainment_tickets')
-        .select('quantity')
-        .eq('experience_id', experienceId)
-        .eq('status', 'confirmed');
-      if (soldError) throw soldError;
-      const sold = (soldRows || []).reduce((sum, r) => sum + (r.quantity || 1), 0);
-      if (sold + quantity > capacity) {
-        const remaining = Math.max(capacity - sold, 0);
-        throw new Error(remaining > 0
-          ? `Only ${remaining} spot(s) left for this experience`
-          : 'This experience is sold out');
-      }
-    }
+    // Final check right before the insert -- api/checkout.js already ran
+    // this same check before money moved, so this only ever fires on a
+    // genuine race between two concurrent buyers.
+    await checkTicketCapacity(admin, experienceId, quantity);
 
     const isPass = !!ctx.is_pass;
     const timestamp = new Date().toISOString();
