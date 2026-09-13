@@ -1,3 +1,5 @@
+import { getEdgeFunctionUrl } from '@/lib/apiClient';
+
 export async function toggleStreamingEngagement(data) {
   try {
     const { stream_id, action, user_id } = data;
@@ -7,7 +9,7 @@ export async function toggleStreamingEngagement(data) {
     }
 
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/toggleStreamingEngagement`,
+      getEdgeFunctionUrl('toggleStreamingEngagement'),
       {
         method: 'POST',
         headers: {

@@ -134,7 +134,7 @@ export default function CarRentals() {
       const allSettlements = await base44.entities.DamageSettlement.filter({
         $or: [
           { renter_email: currentUser.email },
-          { provider_email: currentUser.email }
+          { owner_email: currentUser.email }
         ]
       });
       return allSettlements;
@@ -435,13 +435,13 @@ export default function CarRentals() {
             <TabsTrigger value="my-rentals">My Rentals</TabsTrigger>
             <TabsTrigger value="settlements">
               Settlements
-              {settlements.filter(s => s.status === 'proposed' && 
+              {settlements.filter(s => s.status === 'proposed' &&
                 ((s.renter_email === currentUser?.email && s.renter_response === 'pending') ||
-                 (s.provider_email === currentUser?.email && s.provider_response === 'pending'))).length > 0 && (
+                 (s.owner_email === currentUser?.email && s.provider_response === 'pending'))).length > 0 && (
                 <Badge className="ml-2 bg-red-500">
-                  {settlements.filter(s => s.status === 'proposed' && 
+                  {settlements.filter(s => s.status === 'proposed' &&
                     ((s.renter_email === currentUser?.email && s.renter_response === 'pending') ||
-                     (s.provider_email === currentUser?.email && s.provider_response === 'pending'))).length}
+                     (s.owner_email === currentUser?.email && s.provider_response === 'pending'))).length}
                 </Badge>
               )}
             </TabsTrigger>

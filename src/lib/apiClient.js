@@ -10,6 +10,14 @@ export async function getAuthHeaders() {
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
+// Builds a Supabase Edge Function URL, stripping any trailing slash from
+// VITE_SUPABASE_URL first -- a trailing slash there produces a double slash
+// (".co//functions/v1/...") that fails CORS preflight against the function.
+export function getEdgeFunctionUrl(name) {
+  const base = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '');
+  return `${base}/functions/v1/${name}`;
+}
+
 // Calls one of our own /api/*.js serverless functions, attaching the
 // current Supabase session's access token so the server can verify who is
 // actually calling (never trust a client-supplied email/id for identity).
