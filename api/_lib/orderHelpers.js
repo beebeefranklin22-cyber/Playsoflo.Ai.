@@ -34,7 +34,14 @@ export function round2(n) {
 export function cleanError(message) {
   if (!message) return 'Checkout failed';
   if (message.includes('insufficient balance')) return 'Insufficient wallet balance';
-  if (message.includes('STRIPE_SECRET_KEY')) return 'Card payments are temporarily unavailable — please try Wallet instead.';
+  // Covers both an unset STRIPE_SECRET_KEY and a set-but-wrong one (e.g. a
+  // key ID pasted instead of the actual secret, which Stripe's API rejects
+  // with "Invalid API key provided") -- confirmed live in production via a
+  // real test purchase, both are a misconfigured account, not something a
+  // customer can do anything about.
+  if (message.includes('STRIPE_SECRET_KEY') || message.includes('Invalid API key provided')) {
+    return 'Card payments are temporarily unavailable — please try Wallet instead.';
+  }
   return message;
 }
 
