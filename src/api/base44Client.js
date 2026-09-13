@@ -58,14 +58,10 @@ export const base44 = {
 
   integrations: {
     Core: {
+      // integrationsCore.UploadFile already returns { file_url } directly
+      // -- do not re-wrap it here, or every caller gets { file_url: {
+      // file_url: "..." } } and every upload preview/attachment breaks.
       ...integrationsCore,
-
-      // Fix: components expect { file_url }, the base implementation
-      // returns a plain URL string.
-      UploadFile: async (args) => {
-        const url = await integrationsCore.UploadFile(args);
-        return { file_url: url };
-      },
 
       // Not implemented in integrations.js yet — wire to the existing
       // Stripe PaymentIntent endpoint.
