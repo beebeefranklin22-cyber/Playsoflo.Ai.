@@ -673,7 +673,15 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       {!isFullScreen && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation', paddingBottom: 'max(0.75rem, var(--safe-area-bottom))' }}>
+        // z-40, not z-50: 138 full-screen modals across the app use z-50 for
+        // their backdrop, and this nav renders after <main> in the DOM, so
+        // at matching z-index it wins the stacking tie and sits on top of
+        // every one of them -- any modal tall enough to reach the bottom of
+        // the viewport (e.g. RestaurantOwnerHub's "Save Restaurant" button)
+        // becomes genuinely unclickable, since the nav bar receives the tap
+        // instead. Confirmed live via document.elementFromPoint() landing on
+        // this nav, not the button underneath it.
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-black/60 backdrop-blur-xl border-t border-white/10" style={{ touchAction: 'manipulation', paddingBottom: 'max(0.75rem, var(--safe-area-bottom))' }}>
           <div className="max-w-7xl mx-auto px-4" style={{ paddingLeft: 'max(1rem, var(--safe-area-left))', paddingRight: 'max(1rem, var(--safe-area-right))' }}>
             <div className="flex items-center justify-around py-4">
               {navItems.map((item) => {
