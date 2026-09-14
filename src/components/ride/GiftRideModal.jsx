@@ -25,51 +25,17 @@ export default function GiftRideModal({ open, onClose }) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const code = generateGiftCode();
-      const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
-      const currentUser = await base44.auth.me();
-
-      await base44.entities.RideRequest.create({
-        created_by: currentUser.email,
-        pickup_address: pickupAddress,
-        dropoff_address: dropoffAddress,
-        ride_type: "car",
-        status: "scheduled",
-        is_gift_ride: true,
-        gift_recipient_name: recipientName,
-        gift_recipient_email: recipientEmail || "",
-        gift_recipient_phone: recipientPhone || "",
-        gift_code: code,
-        passenger_verification_code: verificationCode,
-        is_scheduled: true,
-        fare_breakdown: {
-          total_fare: 15,
-          base_fare: 5,
-          distance_fare: 10
-        }
-      });
-
-      // Send notification to recipient if email provided
-      if (recipientEmail) {
-        await base44.entities.Notification.create({
-          recipient_email: recipientEmail,
-          type: "gift_ride",
-          title: "🎁 You've received a gift ride!",
-          message: `${recipientName}, someone gifted you a ride! Use code: ${code} to redeem.`,
-          reference_type: "ride"
-        });
-      }
-
-      setGiftCode(code);
-      toast.success("Gift ride created!");
-    } catch (error) {
-      toast.error("Failed to create gift ride");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    // This used to insert a RideRequest directly from the browser with a
+    // hardcoded $15 fare_breakdown and no payment collected from the
+    // gifter at all -- so "gifting" a ride cost the gifter nothing, and
+    // since no money ever moved, no driver would actually get paid to
+    // drive it either. Properly charging the gifter needs a real fare
+    // (vehicle class + distance, like the normal ride-request flow
+    // computes) and an actual charge via requestRideSecure, which this
+    // modal doesn't collect -- that's a real feature to build, not a
+    // one-line fix, so this is disabled rather than shipped as a fake
+    // "free ride" generator.
+    toast.error("Gift rides aren't available yet -- check back soon!");
   };
 
   const copyGiftCode = () => {

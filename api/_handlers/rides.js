@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
-import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
+import { createPaymentIntent, retrievePaymentIntent, refundPaymentIntent } from '../_lib/stripe.js';
 import { round2, cleanError } from '../_lib/orderHelpers.js';
 
 // Backs cancelRideSecure, matchOptimalDriver, and rateDriver.
@@ -250,13 +250,32 @@ async function cancelRide(admin, user, { ride_id, cancellation_reason }) {
     }
   }
 
+  // requestRide charges the FULL fare up front as an escrow-style hold --
+  // cancelling only ever moved the small fee above from passenger to
+  // driver, never returning the rest of what was actually collected. That
+  // silently forfeited the whole fare (beyond the fee) on every
+  // cancellation. Refund it back the same way it was collected: a wallet
+  // credit for a wallet-paid ride, a real Stripe refund for a card-paid one.
+  const refundAmount = round2((ride.fare_breakdown?.total_fare || 0) - fee);
+  if (refundAmount > 0) {
+    if (ride.payment_method === 'wallet') {
+      const { error: refundError } = await admin.rpc('wallet_move', {
+        p_from_email: null, p_to_email: user.email, p_debit_amount: null, p_credit_amount: refundAmount,
+        p_reference_type: 'ride_cancellation_refund', p_reference_id: ride_id, p_memo: null,
+      });
+      if (refundError) throw refundError;
+    } else if (ride.payment_method === 'card' && ride.payment_intent_id) {
+      await refundPaymentIntent({ paymentIntentId: ride.payment_intent_id, amountCents: Math.round(refundAmount * 100) });
+    }
+  }
+
   const { error } = await admin
     .from('ride_requests')
     .update({ status: 'cancelled', cancellation_reason, cancelled_by: user.email })
     .eq('id', ride_id);
   if (error) throw error;
 
-  return { success: true, fee_charged: fee };
+  return { success: true, fee_charged: fee, refunded: refundAmount };
 }
 
 // A driver backing out doesn't charge the passenger anything -- it just
