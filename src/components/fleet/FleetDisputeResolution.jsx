@@ -138,35 +138,27 @@ Return comprehensive JSON analysis.`,
 
   const resolveDisputeMutation = useMutation({
     mutationFn: async ({ dispute, resolution, compensationAmount }) => {
-      // Update dispute status
+      // This used to update DamageSettlement.status/settlement_amount
+      // directly from the fleet owner's own browser session and mark it
+      // "resolved" -- completely bypassing api/_handlers/car-damage.js's
+      // respondToSettlement, the only place that actually moves money for
+      // a damage settlement (dual consent from both owner and renter, and
+      // capped at the rental's disclosed security deposit). An owner could
+      // set an arbitrary, uncapped compensation_amount and mark it
+      // "completed" with a fake Payment record while the renter was never
+      // actually charged. Money for a damage settlement can only move
+      // through that safeguarded flow now -- this component still lets an
+      // owner record a resolution note, but never moves money or claims it did.
       if (dispute.type === 'damage_settlement') {
-        await base44.entities.DamageSettlement.update(dispute.id, {
-          status: resolution,
-          settlement_amount: compensationAmount,
-          owner_response: selectedDispute.ai_analysis?.resolution_statement,
-          resolved_at: new Date().toISOString()
-        });
-      } else {
-        await base44.entities.Dispute.update(dispute.id, {
-          status: resolution,
-          resolution: selectedDispute.ai_analysis?.resolution_statement,
-          resolved_at: new Date().toISOString(),
-          resolved_by: currentUser.email
-        });
+        throw new Error('Resolve damage settlements from the rental itself so both parties can accept the amount -- this panel can\'t move money directly.');
       }
 
-      // Create payment if needed
-      if (compensationAmount > 0) {
-        await base44.entities.Payment.create({
-          amount_usd: compensationAmount,
-          amount_rri: 0,
-          method: "deduction",
-          status: "completed",
-          reference_type: dispute.type === 'damage_settlement' ? 'damage' : 'dispute',
-          reference_id: dispute.id,
-          memo: `Dispute resolution - ${resolution}`
-        });
-      }
+      await base44.entities.Dispute.update(dispute.id, {
+        status: resolution,
+        resolution: selectedDispute.ai_analysis?.resolution_statement,
+        resolved_at: new Date().toISOString(),
+        resolved_by: currentUser.email
+      });
 
       // Notify renter
       await base44.entities.Notification.create({

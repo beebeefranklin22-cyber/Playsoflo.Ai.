@@ -67,13 +67,22 @@ export default function AddCarModal({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
+      // Without provider_email/created_by, api/_handlers/car-rental.js's
+      // payRental() has nobody to pay: wallet_move silently no-ops when
+      // p_to_email is null (renter debited in full, nobody credited), and
+      // on the Stripe path the credit call just fails silently while the
+      // rental still gets marked confirmed. BulkCarUpload.jsx already sets
+      // these two fields -- this was the one car-listing path missing them.
+      const currentUser = await base44.auth.me();
       const listing = await base44.entities.MarketplaceItem.create({
         ...formData,
         price: parseFloat(formData.price),
         security_deposit: parseFloat(formData.security_deposit) || 500,
         mileage_limit: parseFloat(formData.mileage_limit) || 200,
         verified_provider: true,
-        is_rental: true
+        is_rental: true,
+        provider_email: currentUser.email,
+        created_by: currentUser.email,
       });
       
       // Notify users about new listing
