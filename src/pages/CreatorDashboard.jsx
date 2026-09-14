@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import WithdrawModal from "@/components/wallet/WithdrawModal";
 
 const TABS = ["overview", "videos", "earnings", "tips"];
 
@@ -21,8 +22,7 @@ export default function CreatorDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [editingVideo, setEditingVideo] = useState(null);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawing, setWithdrawing] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(u => setCurrentUser(u)).catch(() => navigate(createPageUrl("Streaming")));
@@ -82,28 +82,6 @@ export default function CreatorDashboard() {
     onSuccess: () => { toast.success("Pricing updated!"); setEditingVideo(null); refetchVideos(); }
   });
 
-  const handleWithdraw = async () => {
-    const amount = parseFloat(withdrawAmount);
-    if (!amount || amount <= 0) { toast.error("Enter a valid amount"); return; }
-    if (amount > balance) { toast.error("Insufficient balance"); return; }
-    setWithdrawing(true);
-    try {
-      await base44.auth.updateMe({ balance_usd: balance - amount });
-      await base44.entities.Payment.create({
-        amount_usd: amount, method: "wallet", status: "completed",
-        reference_type: "other", sender_email: currentUser.email,
-        recipient_email: currentUser.email, memo: "Creator withdrawal"
-      });
-      toast.success(`$${amount.toFixed(2)} withdrawal initiated!`);
-      setWithdrawAmount("");
-      setCurrentUser(u => ({ ...u, balance_usd: balance - amount }));
-    } catch (e) {
-      toast.error("Withdrawal failed: " + e.message);
-    } finally {
-      setWithdrawing(false);
-    }
-  };
-
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-[#0e0e10] flex items-center justify-center">
@@ -156,18 +134,9 @@ export default function CreatorDashboard() {
               <p className="text-gray-400 text-sm mb-1">Available Balance</p>
               <p className="text-4xl font-extrabold text-white">${balance.toFixed(2)}</p>
               <p className="text-purple-300 text-xs mt-1">${totalEarnings.toFixed(2)} total earned all time</p>
-              <div className="flex gap-2 mt-4">
-                <Input
-                  type="number"
-                  placeholder="Amount to withdraw"
-                  value={withdrawAmount}
-                  onChange={e => setWithdrawAmount(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white flex-1"
-                  min="0"
-                  step="0.01"
-                />
-                <Button onClick={handleWithdraw} disabled={withdrawing || !withdrawAmount} className="bg-green-600 hover:bg-green-700 font-bold">
-                  {withdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Download className="w-4 h-4 mr-1" /> Withdraw</>}
+              <div className="mt-4">
+                <Button onClick={() => setShowWithdrawModal(true)} disabled={balance <= 0} className="bg-green-600 hover:bg-green-700 font-bold">
+                  <Download className="w-4 h-4 mr-1" /> Withdraw
                 </Button>
               </div>
             </div>
@@ -400,6 +369,16 @@ export default function CreatorDashboard() {
           </div>
         )}
       </div>
+
+      {showWithdrawModal && (
+        <WithdrawModal
+          currentUser={currentUser}
+          onClose={() => {
+            setShowWithdrawModal(false);
+            base44.auth.me().then(u => setCurrentUser(u)).catch(() => {});
+          }}
+        />
+      )}
     </div>
   );
 }

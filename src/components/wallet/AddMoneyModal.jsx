@@ -59,11 +59,13 @@ export default function AddMoneyModal({ currentUser, onClose }) {
   const handleSuccess = async (paymentIntentId) => {
     setCrediting(true);
     try {
+      // reference_type: 'wallet_deposit' resolves to 0% server-side
+      // (CREDIT_FEE_RATES) -- adding your own money to your own wallet has
+      // no platform cut.
       await creditWalletFromPayment({
         payment_intent_id: paymentIntentId,
         recipient_email: currentUser.email,
         reference_type: 'wallet_deposit',
-        fee_rate: 0, // adding your own money to your own wallet -- no platform cut
       });
       setStep(3);
       toast.success("Payment successful! Your balance has been updated.");

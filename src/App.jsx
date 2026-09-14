@@ -13,6 +13,7 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
+import ReferralCapture from '@/lib/ReferralCapture'
 import ProfilePictureGate from '@/components/onboarding/ProfilePictureGate'
 import UserNotRegisteredError from '@/components/UserNotRegisteredError'
 import { pagesConfig } from './pages.config'
@@ -125,6 +126,7 @@ function App() {
           <AuthProvider>
             <Router>
               <NavigationTracker />
+              <ReferralCapture />
               <ErrorBoundary>
                 <AuthenticatedApp />
               </ErrorBoundary>

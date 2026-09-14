@@ -46,6 +46,41 @@ export async function retrievePaymentIntent(id) {
   return intent;
 }
 
+// Stripe-hosted Checkout (a full redirect, unlike createPaymentIntent's
+// client-side Elements flow) -- used where the caller wants a `checkout_url`
+// to send the browser to rather than embedding a card form, e.g. ad
+// campaign funding.
+export async function createCheckoutSession({ amountCents, currency = 'usd', productName, successUrl, cancelUrl, metadata = {} }) {
+  const body = {
+    mode: 'payment',
+    'line_items[0][price_data][currency]': currency,
+    'line_items[0][price_data][product_data][name]': productName,
+    'line_items[0][price_data][unit_amount]': String(amountCents),
+    'line_items[0][quantity]': '1',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    ...Object.entries(metadata).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
+  };
+
+  const response = await fetch(`${STRIPE_API}/checkout/sessions`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body),
+  });
+  const session = await response.json();
+  if (!response.ok) throw new Error(session.error?.message ?? 'Stripe error creating checkout session');
+  return session;
+}
+
+export async function retrieveCheckoutSession(id) {
+  const response = await fetch(`${STRIPE_API}/checkout/sessions/${encodeURIComponent(id)}`, {
+    headers: { Authorization: authHeader() },
+  });
+  const session = await response.json();
+  if (!response.ok) throw new Error(session.error?.message ?? 'Stripe error retrieving checkout session');
+  return session;
+}
+
 export async function createCustomer({ email, name }) {
   const response = await fetch(`${STRIPE_API}/customers`, {
     method: 'POST',

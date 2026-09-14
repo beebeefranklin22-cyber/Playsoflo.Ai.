@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, createOrderRow, checkTicketCapacity, round2, cleanError } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, createOrderRow, checkTicketCapacity, round2, cleanError, creditAffiliateCommission } from '../_lib/orderHelpers.js';
 
 // Backs processUnifiedCheckout, the core booking/purchase flow used by
 // UnifiedBookingModal (and FoodCart, TicketPurchaseModal) for every
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
         paymentMethod: 'wallet',
         paymentIntentId: null,
       });
+      await creditAffiliateCommission(admin, { buyerEmail: user.email, platformFee, orderType, orderValue: totalAmount, referenceId: order.id });
       return res.status(200).json({
         success: true, order_id: order.id,
         ...(orderType === 'entertainment_ticket' ? { ticket: order.row } : {}),
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
           paymentMethod: 'stripe',
           paymentIntentId: intent.id,
         });
+        await creditAffiliateCommission(admin, { buyerEmail: user.email, platformFee, orderType, orderValue: totalAmount, referenceId: order.id });
         return res.status(200).json({
           success: true, order_id: order.id,
           ...(orderType === 'entertainment_ticket' ? { ticket: order.row } : {}),

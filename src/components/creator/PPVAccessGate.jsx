@@ -59,17 +59,40 @@ export default function PPVAccessGate({ ppvContentId, currentUser, children }) {
 
   const purchaseMutation = useMutation({
     mutationFn: async () => {
+      // Unlike PPVPurchaseModal (a card payment), this charges the buyer's
+      // PlaySoFlo wallet balance directly -- make that explicit and
+      // confirmable before any money moves, same as other wallet-charging
+      // flows in the app.
+      if (!confirm(`Pay $${finalPrice.toFixed(2)} from your PlaySoFlo wallet balance to unlock this content?`)) {
+        throw new Error('cancelled');
+      }
+
+      // Charge the wallet FIRST and check the result -- this used to create
+      // the purchase record (granting access) before charging anything, so
+      // a failed/insufficient-balance charge still silently granted free
+      // access while reporting success.
+      const referenceId = crypto.randomUUID();
+      const revenueResult = await base44.functions.invoke('processCollaborativeRevenue', {
+        purchaseId: referenceId,
+        contentId: ppvContentId,
+        totalAmount: finalPrice
+      });
+      if (revenueResult?.data?.success === false) {
+        throw new Error(revenueResult.data.error || 'Payment failed');
+      }
+
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + ppvContent.access_duration_hours);
 
       const purchase = await base44.entities.PPVPurchase.create({
+        id: referenceId,
         user_email: currentUser.email,
         ppv_content_id: ppvContentId,
         creator_email: ppvContent.creator_email,
         amount_paid_usd: finalPrice,
         amount_paid_rri: 0,
         access_expires_at: expiresAt.toISOString(),
-        payment_method: 'card'
+        payment_method: 'wallet'
       });
 
       // Update PPV content stats
@@ -78,18 +101,15 @@ export default function PPVAccessGate({ ppvContentId, currentUser, children }) {
         revenue_generated: (ppvContent.revenue_generated || 0) + finalPrice
       });
 
-      // Process collaborative revenue distribution
-      await base44.functions.invoke('processCollaborativeRevenue', {
-        purchaseId: purchase.id,
-        contentId: ppvContentId,
-        totalAmount: finalPrice
-      });
-
       return purchase;
     },
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['ppv-access'] });
       toast.success('Access granted! Enjoy the content.');
+    },
+    onError: (error) => {
+      if (error.message === 'cancelled') return;
+      toast.error(error.message || 'Purchase failed. Please try again.');
     }
   });
 

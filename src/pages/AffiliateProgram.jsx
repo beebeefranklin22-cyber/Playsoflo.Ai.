@@ -102,7 +102,7 @@ export default function AffiliateProgram() {
             <Gift className="w-10 h-10 text-purple-400" />
             Affiliate Program
           </h1>
-          <p className="text-gray-300 text-lg">Earn 5-10% tiered commission + recruitment bonuses</p>
+          <p className="text-gray-300 text-lg">Earn 5% commission on every purchase you refer</p>
         </motion.div>
 
         {/* Stats */}

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from './supabaseClient';
+import { REFERRAL_STORAGE_KEY } from './ReferralCapture';
 
 const AuthContext = createContext();
 
@@ -66,8 +67,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async ({ email, password, full_name, username }) => {
+    // ReferralCapture.jsx stashes ?ref=CODE from a referral link into
+    // localStorage on page load. handle_new_auth_user() (migration 0037)
+    // reads it back out of raw_user_meta_data and stamps it onto the new
+    // profile as referred_by_code -- this is the only point where that
+    // handoff can happen, since the trigger only sees what's in
+    // auth.users at insert time.
+    let referral_code;
+    try {
+      referral_code = localStorage.getItem(REFERRAL_STORAGE_KEY) || undefined;
+    } catch {
+      referral_code = undefined;
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email, password, options: { data: { full_name, username } },
+      email, password, options: { data: { full_name, username, referral_code } },
     });
     if (error) throw error;
     return data;

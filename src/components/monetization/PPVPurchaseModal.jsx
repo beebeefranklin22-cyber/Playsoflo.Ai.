@@ -6,13 +6,30 @@ import { Lock, CreditCard, X, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import StripePaymentForm from "../payment/StripePaymentForm";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 export default function PPVPurchaseModal({ content, currentUser, onClose, onSuccess }) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState("info"); // info, payment, success
 
   const purchaseMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (paymentIntentId) => {
+      // The card has already been charged at this point -- credit the
+      // creator now (server re-verifies the PaymentIntent with Stripe
+      // itself and resolves the 20% platform fee from reference_type: 'ppv'
+      // server-side). This used to be entirely missing: the buyer was
+      // charged but the creator was never paid a cent.
+      try {
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: content.creator_email,
+          reference_type: 'ppv',
+        });
+      } catch (creditError) {
+        console.error('Failed to credit creator for PPV purchase:', creditError);
+        toast.error(`Payment succeeded, but crediting the creator failed. Please contact support with reference: ${paymentIntentId}`);
+      }
+
       // Create purchase record
       const purchase = await base44.entities.PPVPurchase.create({
         user_email: currentUser.email,
@@ -52,8 +69,8 @@ export default function PPVPurchaseModal({ content, currentUser, onClose, onSucc
     }
   });
 
-  const handlePaymentSuccess = () => {
-    purchaseMutation.mutate();
+  const handlePaymentSuccess = (paymentIntentId) => {
+    purchaseMutation.mutate(paymentIntentId);
   };
 
   return (

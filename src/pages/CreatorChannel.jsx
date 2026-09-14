@@ -10,6 +10,7 @@ import {
 import { motion } from "framer-motion";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import MembershipJoinPanel from "@/components/creator/MembershipJoinPanel";
 
 export default function CreatorChannel() {
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export default function CreatorChannel() {
 
       {/* Tabs */}
       <div className="flex border-b border-white/10 px-4">
-        {["videos", "streams"].map(tab => (
+        {["videos", "streams", "membership"].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -208,6 +209,9 @@ export default function CreatorChannel() {
       </div>
 
       {/* Content */}
+      {activeTab === "membership" ? (
+        <MembershipJoinPanel creator={creator} currentUser={currentUser} />
+      ) : (
       <div className="p-4">
         {tabVideos.length === 0 ? (
           <div className="text-center py-16">
@@ -283,6 +287,7 @@ export default function CreatorChannel() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
