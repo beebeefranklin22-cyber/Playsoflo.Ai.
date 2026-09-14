@@ -21,6 +21,11 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
   const [selectedAudioDevice, setSelectedAudioDevice] = useState(null);
   const [showDevicePicker, setShowDevicePicker] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  // Whether the server actually authorized this client to publish -- may
+  // be false even when `role` prop requested "host" (see the token-fetch
+  // effect below). Render logic must key off this, not the `role` prop,
+  // since the prop reflects what was requested, not what's authorized.
+  const [canBroadcast, setCanBroadcast] = useState(false);
   const localVideoRef = useRef(null);
   const remoteVideoContainerRef = useRef(null);
 
@@ -63,10 +68,23 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
           throw new Error(response.error);
         }
 
-        const { token, uid, appId } = response.data || response;
+        const { token, uid, appId, role: serverRole } = response.data || response;
+
+        // api/_handlers/agora-token.js now decides publisher vs. audience
+        // server-side (actually being the stream's owner or an approved
+        // co-host), not from whatever this component was told to request --
+        // this used to trust the `role` prop alone, which for
+        // LivestreamViewer.jsx came straight from a `?broadcaster=true` URL
+        // query param any signed-in viewer could set themselves, letting
+        // anyone join as a publisher and hijack the stream.
+        const isAuthorizedHost = serverRole === "publisher";
+        setCanBroadcast(isAuthorizedHost);
+        if (role === "host" && !isAuthorizedHost) {
+          console.warn("Not authorized to broadcast on this channel -- joining as audience instead.");
+        }
 
         // Set client role
-        if (role === "host") {
+        if (isAuthorizedHost) {
           await client.setClientRole("host");
         } else {
           await client.setClientRole("audience");
@@ -77,7 +95,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
         setIsJoined(true);
 
         // If host, create and publish tracks
-        if (role === "host") {
+        if (isAuthorizedHost) {
           try {
             let videoTrack;
             // Build video config — prefer selectedDeviceId (IRL cam / USB cam) over facingMode
@@ -318,7 +336,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
 
   return (
     <div className="relative w-full h-full bg-black">
-      {role === "host" ? (
+      {canBroadcast ? (
         <>
           <div 
             ref={localVideoRef} 
@@ -438,7 +456,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
       )}
 
       {/* Paused banner for host */}
-      {role === "host" && isPaused && (
+      {canBroadcast && isPaused && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-15 pointer-events-none">
           <div className="text-center">
             <Pause className="w-14 h-14 text-yellow-400 mx-auto mb-3" />
@@ -449,7 +467,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
       )}
 
       {/* Camera Facing Badge (for host only) */}
-      {role === "host" && localVideoTrack && !isPaused && (
+      {canBroadcast && localVideoTrack && !isPaused && (
         <div className="absolute top-4 right-4 bg-purple-500/20 border border-purple-500/50 text-purple-300 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm z-20">
           {cameraFacing === "user" ? "Front Camera" : "Back Camera"}
         </div>
@@ -459,7 +477,7 @@ export default function AgoraVideoPlayer({ channelName, role = "audience", onVie
       {isJoined && (
         <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 z-20">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-          {role === "host" ? "BROADCASTING" : "LIVE"}
+          {canBroadcast ? "BROADCASTING" : "LIVE"}
         </div>
       )}
     </div>

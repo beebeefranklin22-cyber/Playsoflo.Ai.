@@ -64,7 +64,16 @@ export default function LivestreamViewer() {
     setIsBroadcaster(broadcaster);
 
     if (id) {
-      base44.entities.ViewerAnalytics.create({ content_id: id, is_currently_watching: true }).catch(() => {});
+      // created_by was never set here, but the cleanup below looks the row
+      // up by { content_id, created_by } -- that filter always matched
+      // nothing, so is_currently_watching was never flipped back to false
+      // on leave. Viewer counts (computed from is_currently_watching: true
+      // rows) only ever grew, even across the same viewer refreshing or
+      // re-visiting the page.
+      base44.auth.me().then(user => {
+        if (!user?.email) return;
+        base44.entities.ViewerAnalytics.create({ content_id: id, created_by: user.email, is_currently_watching: true }).catch(() => {});
+      }).catch(() => {});
       return () => {
         base44.auth.me().then(user => {
           base44.entities.ViewerAnalytics.filter({ content_id: id, created_by: user?.email })
