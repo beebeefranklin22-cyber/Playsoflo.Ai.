@@ -30,17 +30,30 @@ export default async function handler(req, res) {
     if (updateError) throw updateError;
 
     if (new_status === 'delivered' && order.status !== 'delivered') {
-      const earnings = order.driver_earnings || order.price_total * 0.8 || 5;
-      const { error: moveError } = await admin.rpc('wallet_move', {
-        p_from_email: null,
-        p_to_email: user.email,
-        p_debit_amount: null,
-        p_credit_amount: earnings,
-        p_reference_type: 'delivery_earnings',
-        p_reference_id: order_id,
-        p_memo: null,
-      });
-      if (moveError) console.error('Failed to credit delivery earnings for', order_id, moveError);
+      // createDeliveryOrder.js (the only current writer of delivery_orders)
+      // inserts directly from the browser and never collects any payment
+      // from the sender at all -- no Stripe charge, no wallet debit,
+      // nothing. Paying the driver out of the wallet ledger for a delivery
+      // nobody paid for mints money from nothing. Until package delivery
+      // has a real payment-collection step (matching how food/service
+      // checkout actually charges the customer before anyone gets paid),
+      // refuse to pay out an order with no payment reference rather than
+      // silently funding it from the platform's ledger.
+      if (!order.payment_intent_id) {
+        console.error('Refusing to pay delivery earnings for', order_id, '-- no payment was ever collected for this order');
+      } else {
+        const earnings = order.driver_earnings || order.price_total * 0.8 || 5;
+        const { error: moveError } = await admin.rpc('wallet_move', {
+          p_from_email: null,
+          p_to_email: user.email,
+          p_debit_amount: null,
+          p_credit_amount: earnings,
+          p_reference_type: 'delivery_earnings',
+          p_reference_id: order_id,
+          p_memo: null,
+        });
+        if (moveError) console.error('Failed to credit delivery earnings for', order_id, moveError);
+      }
     }
 
     return res.status(200).json({ success: true });
