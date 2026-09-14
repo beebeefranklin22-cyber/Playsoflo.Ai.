@@ -6,12 +6,14 @@ import { motion } from "framer-motion";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 export default function AddMoneyModal({ currentUser, onClose }) {
   const [step, setStep] = useState(1);
   const [amount, setAmount] = useState("");
   const [method] = useState("card");
   const [paymentError, setPaymentError] = useState(null);
+  const [crediting, setCrediting] = useState(false);
   const queryClient = useQueryClient();
 
   // Block any navigation while modal is open
@@ -47,17 +49,36 @@ export default function AddMoneyModal({ currentUser, onClose }) {
 
   const quickAmounts = [50, 100, 250, 500, 1000];
 
-  const handleSuccess = async (paymentIntent) => {
-    setStep(3);
-    toast.success("Payment successful! Your balance will update shortly.");
-    // Poll for balance update (webhook may take a few seconds)
-    let attempts = 0;
-    const poll = setInterval(async () => {
-      attempts++;
+  // Stripe has already charged the card by the time this fires (paymentIntentId
+  // is a confirmed, succeeded PaymentIntent) -- there is no webhook anywhere in
+  // this app that credits a wallet from a deposit, so this call IS the only
+  // thing that ever moves the charged money into usd_balance. Skipping it (the
+  // previous behavior: show "success" and just poll, hoping something else
+  // would update the balance) meant every card deposit charged the customer
+  // and silently never credited them.
+  const handleSuccess = async (paymentIntentId) => {
+    setCrediting(true);
+    try {
+      await creditWalletFromPayment({
+        payment_intent_id: paymentIntentId,
+        recipient_email: currentUser.email,
+        reference_type: 'wallet_deposit',
+        fee_rate: 0, // adding your own money to your own wallet -- no platform cut
+      });
+      setStep(3);
+      toast.success("Payment successful! Your balance has been updated.");
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      if (attempts >= 6) clearInterval(poll);
-    }, 3000);
+    } catch (err) {
+      // The card was already charged -- never imply nothing happened.
+      setPaymentError(
+        `Your card was charged, but we couldn't add the funds to your balance yet. ` +
+        `Please contact support with this reference: ${paymentIntentId}`
+      );
+      toast.error("Payment went through, but crediting your balance failed. See details below.");
+    } finally {
+      setCrediting(false);
+    }
   };
 
   const handleClose = () => {
@@ -170,7 +191,19 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                   <p className="text-white text-3xl font-bold">${parseFloat(amount).toFixed(2)}</p>
                 </div>
 
-                {amount && parseFloat(amount) > 0 && (
+                {paymentError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+                    <p className="text-red-400 text-sm">{paymentError}</p>
+                  </div>
+                )}
+
+                {crediting && (
+                  <div className="text-center py-4">
+                    <p className="text-gray-300 text-sm">Confirming your deposit...</p>
+                  </div>
+                )}
+
+                {!crediting && amount && parseFloat(amount) > 0 && (
                   <StripePaymentForm
                     key={`payment-${amount}-${Date.now()}`}
                     amount={parseFloat(amount)}
@@ -180,9 +213,9 @@ export default function AddMoneyModal({ currentUser, onClose }) {
                     onSuccess={handleSuccess}
                     onError={(error) => {
                       console.error("💥 Payment error:", error);
-                      const errorMsg = typeof error === 'string' ? error : 
-                                      error?.message || 
-                                      error?.toString() || 
+                      const errorMsg = typeof error === 'string' ? error :
+                                      error?.message ||
+                                      error?.toString() ||
                                       'Payment failed. Please try again.';
                       toast.error(errorMsg);
                       setPaymentError(errorMsg);

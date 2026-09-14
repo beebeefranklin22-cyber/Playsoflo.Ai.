@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
  * Shows Apple Pay / Google Pay button via Stripe's PaymentRequest API.
  * Only renders if the browser/device supports a digital wallet.
  */
-export default function DigitalWalletButton({ amount, description, onSuccess, onError }) {
+export default function DigitalWalletButton({ amount, clientSecret, description, onSuccess, onError }) {
   const stripe = useStripe();
   const [paymentRequest, setPaymentRequest] = useState(null);
   const [canPay, setCanPay] = useState(false);
@@ -41,11 +41,44 @@ export default function DigitalWalletButton({ amount, description, onSuccess, on
     pr.on("paymentmethod", async (event) => {
       setProcessing(true);
       try {
-        // Confirm the payment on the server side via the existing payment intent's client secret.
-        // The parent must pass `clientSecret` for this to work.
-        // We fire onSuccess with the paymentMethod id so the parent can confirm server-side.
+        if (!clientSecret) {
+          event.complete("fail");
+          if (onError) onError("Payment is not ready yet. Please try again.");
+          return;
+        }
+
+        // Confirm immediately with handleActions:false so the Apple/Google
+        // Pay sheet can be dismissed right away (success or fail) instead of
+        // hanging open through any 3DS challenge -- this previously called
+        // event.complete("success") and reported success WITHOUT ever
+        // confirming the PaymentIntent, so the card was never actually
+        // charged at all.
+        const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
+          clientSecret,
+          { payment_method: event.paymentMethod.id },
+          { handleActions: false }
+        );
+
+        if (confirmError) {
+          event.complete("fail");
+          if (onError) onError(confirmError.message || "Digital wallet payment failed");
+          return;
+        }
+
         event.complete("success");
-        if (onSuccess) onSuccess(event.paymentMethod.id, "digital_wallet");
+
+        if (paymentIntent.status === "requires_action") {
+          const { error: actionError, paymentIntent: confirmedIntent } = await stripe.confirmCardPayment(clientSecret);
+          if (actionError) {
+            if (onError) onError(actionError.message || "Additional authentication failed");
+            return;
+          }
+          if (confirmedIntent.status === "succeeded" && onSuccess) onSuccess(confirmedIntent.id);
+        } else if (paymentIntent.status === "succeeded") {
+          if (onSuccess) onSuccess(paymentIntent.id);
+        } else {
+          if (onError) onError(`Payment not completed (status: ${paymentIntent.status})`);
+        }
       } catch (err) {
         event.complete("fail");
         if (onError) onError(err.message || "Digital wallet payment failed");
@@ -61,7 +94,7 @@ export default function DigitalWalletButton({ amount, description, onSuccess, on
     return () => {
       // Cleanup: no explicit destroy needed for PaymentRequest
     };
-  }, [stripe, amount, description]);
+  }, [stripe, amount, description, clientSecret]);
 
   if (checking) {
     return (
