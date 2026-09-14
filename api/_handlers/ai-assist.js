@@ -27,11 +27,11 @@ export default async function handler(req, res) {
   try {
     switch (action) {
       case 'translate': return res.status(200).json(await translate(req.body));
-      case 'dispute_resolution': return res.status(200).json(await disputeResolution(admin, req.body));
+      case 'dispute_resolution': return res.status(200).json(await disputeResolution(admin, user, req.body));
       case 'trip_planner': return res.status(200).json(await tripPlanner(req.body));
       case 'financial_analysis': return res.status(200).json(await financialAnalysis(admin, user, req.body));
       case 'personalized_offers': return res.status(200).json(await personalizedOffers(admin, user));
-      case 'user_preferences': return res.status(200).json(await userPreferences(admin, req.body));
+      case 'user_preferences': return res.status(200).json(await userPreferences(admin, user, req.body));
       case 'damage_analysis': return res.status(200).json(await damageAnalysis(req.body));
       default: return res.status(400).json({ error: `Unknown action "${action}"` });
     }
@@ -49,8 +49,12 @@ async function translate({ message, targetLanguage }) {
   return { success: true, translation: result.translation, detected_language: result.detected_language };
 }
 
-async function disputeResolution(admin, { orderId, disputeReason, userRole }) {
+async function disputeResolution(admin, user, { orderId, disputeReason, userRole }) {
   const { data: order } = await admin.from('p2p_orders').select('*').eq('id', orderId).single();
+  if (!order) throw new Error('Order not found');
+  if (order.buyer_email !== user.email && order.seller_email !== user.email) {
+    throw new Error('You are not part of this order');
+  }
   const result = await askClaudeForJson({
     systemPrompt:
       'You are a neutral P2P marketplace dispute mediator. Given the order details and dispute reason, analyze the situation and suggest a fair resolution. Return {"summary": "...", "recommendation": "...", "suggested_action": "release_to_buyer" | "return_to_seller" | "manual_review", "confidence": "low"|"medium"|"high"}.',
@@ -124,11 +128,14 @@ async function personalizedOffers(admin, user) {
   return { offers: result.offers || [] };
 }
 
-async function userPreferences(admin, { userEmail, userInterests }) {
+async function userPreferences(admin, user, { userInterests }) {
+  // Always the caller's own interactions -- this used to take userEmail
+  // directly from the request body, letting any authenticated user read
+  // another user's recent interaction history.
   const { data: recentPosts } = await admin
     .from('user_interactions')
     .select('interaction_type, target_id')
-    .eq('user_email', userEmail)
+    .eq('user_email', user.email)
     .order('created_at', { ascending: false })
     .limit(30);
 
