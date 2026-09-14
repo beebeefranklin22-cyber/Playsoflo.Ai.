@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
+import { CREDIT_FEE_RATES, round2 } from '../_lib/orderHelpers.js';
 
 // Backs processCollaborativeRevenue. This is the actual payment collection
 // for a PPV purchase (the frontend only creates a purchase record and
@@ -29,9 +30,16 @@ export default async function handler(req, res) {
     const amount = Number(totalAmount);
     if (!amount || amount <= 0) throw new Error('totalAmount must be a positive number');
 
+    // Same platform fee as any other PPV purchase (CREDIT_FEE_RATES.ppv) --
+    // this used to split 100% of the charge between creator and
+    // collaborators with no platform cut at all, unlike every other PPV
+    // purchase path.
+    const platformFeeRate = CREDIT_FEE_RATES.ppv ?? 0.20;
+    const netAmount = round2(amount * (1 - platformFeeRate));
+
     // First split: debit the buyer for the full amount, credit the
-    // primary creator their share, in one atomic step.
-    const creatorAmount = Math.round(amount * (creatorPercent / 100) * 100) / 100;
+    // primary creator their share of the post-fee net, in one atomic step.
+    const creatorAmount = Math.round(netAmount * (creatorPercent / 100) * 100) / 100;
     const { error: moveError } = await admin.rpc('wallet_move', {
       p_from_email: user.email,
       p_to_email: content.creator_email,
@@ -49,7 +57,7 @@ export default async function handler(req, res) {
     // Remaining splits: pure credits to each collaborator (the money was
     // already collected from the buyer above).
     for (const share of shares || []) {
-      const collaboratorAmount = Math.round(amount * ((share.share_percent || 0) / 100) * 100) / 100;
+      const collaboratorAmount = Math.round(netAmount * ((share.share_percent || 0) / 100) * 100) / 100;
       if (collaboratorAmount <= 0) continue;
       const { error: creditError } = await admin.rpc('wallet_move', {
         p_from_email: null,

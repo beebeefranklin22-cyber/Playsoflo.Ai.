@@ -17,6 +17,22 @@ export const PLATFORM_FEE_RATES = {
   entertainment_ticket: 0.19,
 };
 
+// Used by api/_handlers/wallet.js's credit_from_payment action (crediting a
+// recipient's wallet after a Stripe charge that isn't a checkout-flow order
+// row -- tips, PPV, livestream purchases). Keyed by the same reference_type
+// the client already sends, so the RATE itself is resolved server-side
+// instead of trusted from the request body: a client used to be able to
+// send fee_rate: 0 and take the platform's cut on any of these to zero.
+export const CREDIT_FEE_RATES = {
+  wallet_deposit: 0,     // adding your own money to your own wallet — no fee
+  livestream_tip: 0.10,
+  livestream_product: 0.20,
+  travel_booking: 0.15,
+  service_booking: 0.15,
+  luxury_booking: 0.15,
+  ppv: 0.20,             // same rate as digital_product — on-demand paid content
+};
+
 export const TABLE_BY_ORDER_TYPE = {
   service_booking: 'service_bookings',
   experience: 'service_bookings',
@@ -54,6 +70,69 @@ async function notify(admin, recipientEmail, type, title, message, referenceType
     recipient_email: recipientEmail, type, title, message, reference_type: referenceType, reference_id: referenceId, read: false,
   });
   if (error) console.error('Failed to create notification:', error);
+}
+
+// AffiliateProgram.jsx advertises "5% commission instantly credited to your
+// wallet" on a referred purchase — this is the actual crediting, called
+// from checkout.js/cart-checkout.js after an order's platform fee is known.
+// Commission is 5% of the PLATFORM'S FEE (not the gross order value), same
+// shape as any other rev-share in this app: it comes out of what the
+// platform would have kept, never out of the provider's earnings. Best
+// effort and never throws — a referral commission failing must never undo
+// or fail an order that already collected real money.
+export async function creditAffiliateCommission(admin, { buyerEmail, platformFee, orderType, orderValue, referenceId }) {
+  try {
+    if (!platformFee || platformFee <= 0) return;
+
+    const { data: buyer } = await admin
+      .from('profiles')
+      .select('referred_by_code')
+      .eq('email', buyerEmail)
+      .maybeSingle();
+    if (!buyer?.referred_by_code) return;
+
+    const { data: affiliate } = await admin
+      .from('profiles')
+      .select('email')
+      .eq('referral_code', buyer.referred_by_code)
+      .maybeSingle();
+    if (!affiliate?.email || affiliate.email === buyerEmail) return;
+
+    const commission = round2(platformFee * 0.05);
+    if (commission <= 0) return;
+
+    const { error: moveError } = await admin.rpc('wallet_move', {
+      p_from_email: null,
+      p_to_email: affiliate.email,
+      p_debit_amount: null,
+      p_credit_amount: commission,
+      p_reference_type: 'affiliate_commission',
+      p_reference_id: referenceId || null,
+      p_memo: `Referral commission: ${orderType}`,
+    });
+    if (moveError) throw moveError;
+
+    await admin.from('affiliate_referrals').insert({
+      referral_code: buyer.referred_by_code,
+      referred_user_email: buyerEmail,
+      commission_amount: commission,
+      commission_rate: 5,
+      status: 'completed',
+      product_name: orderType,
+      order_value: orderValue || null,
+      conversion_date: new Date().toISOString(),
+    });
+
+    await admin.rpc('increment_referral_earnings', { p_email: affiliate.email, p_amount: commission }).catch(async () => {
+      // Fallback if the increment function isn't present for any reason —
+      // a plain read-then-write is fine here since it's just a display
+      // total, not a balance that needs atomic correctness.
+      const { data: profile } = await admin.from('profiles').select('total_referral_earnings').eq('email', affiliate.email).maybeSingle();
+      await admin.from('profiles').update({ total_referral_earnings: (profile?.total_referral_earnings || 0) + commission }).eq('email', affiliate.email);
+    });
+  } catch (err) {
+    console.error('creditAffiliateCommission failed:', err);
+  }
 }
 
 function generateTicketNumber() {

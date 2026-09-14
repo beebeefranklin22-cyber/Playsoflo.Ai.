@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { purchaseWithWallet } from "@/functions/purchaseWithWallet";
 
 export default function GameShop({ currentUser, gameName, onClose }) {
   const queryClient = useQueryClient();
@@ -44,6 +45,17 @@ export default function GameShop({ currentUser, gameName, onClose }) {
 
   const purchaseItemMutation = useMutation({
     mutationFn: async (item) => {
+      // Charge the wallet FIRST and check the result -- this used to only
+      // insert an inventory row with no charge at all, so every item was
+      // free despite showing a price.
+      const { data } = await purchaseWithWallet({
+        amount: item.price_usd,
+        reference_type: 'game_item',
+        reference_id: item.id,
+        memo: `${gameName}: ${item.item_name}`,
+      });
+      if (!data.success) throw new Error(data.error || 'Purchase failed');
+
       await base44.entities.UserInventory.create({
         user_email: currentUser.email,
         item_id: item.id,
@@ -57,6 +69,9 @@ export default function GameShop({ currentUser, gameName, onClose }) {
     onSuccess: () => {
       queryClient.invalidateQueries(['user-inventory']);
       toast.success('Item purchased! 🎉');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Purchase failed');
     }
   });
 
@@ -83,19 +98,35 @@ export default function GameShop({ currentUser, gameName, onClose }) {
         premium: ['Ad-free gaming', '2x XP boost', 'Exclusive skins'],
         ultimate: ['Ad-free gaming', '3x XP boost', 'All exclusive content', 'Priority support']
       };
-      
+      const price = tier === 'premium' ? 9.99 : 19.99;
+
+      // Charge the wallet FIRST and check the result -- this used to store
+      // price_paid on the subscription row without ever actually charging
+      // it. Note this is a one-time charge for a 30-day period, not a real
+      // recurring subscription -- there's no auto-renewal billing here yet.
+      const { data } = await purchaseWithWallet({
+        amount: price,
+        reference_type: 'game_subscription',
+        reference_id: `${gameName}:${tier}`,
+        memo: `${gameName} ${tier} subscription (30 days)`,
+      });
+      if (!data.success) throw new Error(data.error || 'Purchase failed');
+
       await base44.entities.GamePremiumSubscription.create({
         user_email: currentUser.email,
         subscription_tier: tier,
         start_date: new Date().toISOString(),
         end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        price_paid: tier === 'premium' ? 9.99 : 19.99,
+        price_paid: price,
         benefits: benefits[tier]
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['premium-subscription']);
       toast.success('Premium activated! 👑');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Subscription purchase failed');
     }
   });
 
@@ -186,6 +217,7 @@ export default function GameShop({ currentUser, gameName, onClose }) {
                             <Button
                               size="sm"
                               onClick={() => handlePurchase(item)}
+                              disabled={purchaseItemMutation.isPending}
                               className="bg-purple-600 hover:bg-purple-700"
                             >
                               Buy
@@ -223,7 +255,7 @@ export default function GameShop({ currentUser, gameName, onClose }) {
               </ul>
               <Button
                 onClick={() => subscribeMutation.mutate('premium')}
-                disabled={subscription?.subscription_tier === 'premium' || subscription?.subscription_tier === 'ultimate'}
+                disabled={subscribeMutation.isPending || subscription?.subscription_tier === 'premium' || subscription?.subscription_tier === 'ultimate'}
                 className="w-full bg-purple-600 hover:bg-purple-700"
               >
                 {subscription?.subscription_tier === 'premium' ? 'Active' : 'Subscribe'}
@@ -254,7 +286,7 @@ export default function GameShop({ currentUser, gameName, onClose }) {
               </ul>
               <Button
                 onClick={() => subscribeMutation.mutate('ultimate')}
-                disabled={subscription?.subscription_tier === 'ultimate'}
+                disabled={subscribeMutation.isPending || subscription?.subscription_tier === 'ultimate'}
                 className="w-full bg-yellow-600 hover:bg-yellow-700"
               >
                 {subscription?.subscription_tier === 'ultimate' ? 'Active' : 'Subscribe'}

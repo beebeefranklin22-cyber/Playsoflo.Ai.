@@ -144,7 +144,6 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
           payment_intent_id: paymentIntentId,
           recipient_email: provider.email || provider.created_by,
           reference_type: 'service_booking',
-          fee_rate: 0.15,
         });
       } catch (creditError) {
         console.error('Failed to credit provider for booking:', creditError);

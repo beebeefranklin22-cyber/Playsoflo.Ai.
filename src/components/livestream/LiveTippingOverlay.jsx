@@ -143,7 +143,6 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
           payment_intent_id: paymentIntentId,
           recipient_email: creatorEmail,
           reference_type: 'livestream_tip',
-          fee_rate: 0.1,
         });
       } catch (creditError) {
         console.error('Failed to credit creator for tip:', creditError);

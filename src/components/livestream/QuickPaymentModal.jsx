@@ -8,9 +8,10 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
-// Tips: 10% matches LiveTippingOverlay.jsx's Stripe-paid tip flow. Products:
-// 20% matches digital_product elsewhere (PLATFORM_FEE_RATES in
-// api/_lib/orderHelpers.js).
+// Display-only -- the actual fee is resolved server-side from reference_type
+// (CREDIT_FEE_RATES in api/_lib/orderHelpers.js), which these two numbers
+// must match. Tips: 10% matches LiveTippingOverlay.jsx's Stripe-paid tip
+// flow. Products: 20% matches digital_product elsewhere.
 const FEE_RATE_BY_TYPE = { tip: 0.1, product: 0.2 };
 
 export default function QuickPaymentModal({ 
@@ -73,7 +74,6 @@ export default function QuickPaymentModal({
           payment_intent_id: paymentIntentId,
           recipient_email: creatorEmail,
           reference_type: type === "tip" ? 'livestream_tip' : 'livestream_product',
-          fee_rate: FEE_RATE_BY_TYPE[type] ?? 0.1,
         });
       } catch (creditError) {
         console.error('Failed to credit creator:', creditError);

@@ -17,6 +17,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { updateFoodOrderStatus } from "@/functions/updateFoodOrderStatus";
 
+// Must match PLATFORM_FEE_RATES.food_order (api/_lib/orderHelpers.js) -- the
+// rate actually withheld server-side on every order. This used to be a
+// per-restaurant `commission_rate` field the checkout code never read, so
+// restaurants were shown a stored 12% that had no relationship to the real
+// 10% deducted from their payouts.
+const PLATFORM_FOOD_COMMISSION_RATE = 0.10;
+
 export default function RestaurantOwnerHub() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -45,7 +52,7 @@ export default function RestaurantOwnerHub() {
     image_url: "",
     cuisine_type: "american",
     delivery_fee: 3.99,
-    commission_rate: 0.12,
+    commission_rate: PLATFORM_FOOD_COMMISSION_RATE,
     estimated_delivery_time: "25-35 min",
     min_order: 10,
     is_open: true,
@@ -481,7 +488,7 @@ export default function RestaurantOwnerHub() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm">Commission Rate</p>
-                    <p className="text-white font-bold">{(myRestaurant?.commission_rate * 100).toFixed(0)}%</p>
+                    <p className="text-white font-bold">{(PLATFORM_FOOD_COMMISSION_RATE * 100).toFixed(0)}%</p>
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm">Delivery Time</p>
@@ -576,7 +583,7 @@ export default function RestaurantOwnerHub() {
                         <span className="text-white font-bold">${order.subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Commission ({(myRestaurant.commission_rate * 100).toFixed(0)}%):</span>
+                        <span className="text-gray-400">Commission ({(PLATFORM_FOOD_COMMISSION_RATE * 100).toFixed(0)}%):</span>
                         <span className="text-red-400">-${order.commission_amount.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm font-bold">
@@ -810,7 +817,7 @@ export default function RestaurantOwnerHub() {
                   </div>
                   <div>
                     <p className="text-gray-400 text-sm mb-1">Commission Rate</p>
-                    <p className="text-2xl font-bold text-white">{(myRestaurant?.commission_rate * 100).toFixed(0)}%</p>
+                    <p className="text-2xl font-bold text-white">{(PLATFORM_FOOD_COMMISSION_RATE * 100).toFixed(0)}%</p>
                   </div>
                 </div>
               </div>

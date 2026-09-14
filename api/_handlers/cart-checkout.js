@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, createOrderRow, round2, cleanError } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, createOrderRow, round2, cleanError, creditAffiliateCommission } from '../_lib/orderHelpers.js';
 
 // Checks out everything currently in the caller's `carts` table (added via
 // AddToCartButton / src/pages/Cart.jsx) in one purchase, possibly spanning
@@ -81,6 +81,8 @@ export default async function handler(req, res) {
 
       const orderIds = await createOrderRows(admin, lineItems, user.email, 'wallet', null);
       await clearCartRows(admin, cartRows);
+      const totalPlatformFee = round2(lineItems.reduce((sum, li) => sum + li.platformFee, 0));
+      await creditAffiliateCommission(admin, { buyerEmail: user.email, platformFee: totalPlatformFee, orderType: 'product_order', orderValue: grandTotal, referenceId: orderIds[0] });
       return res.status(200).json({ success: true, order_ids: orderIds, total_charged: grandTotal });
     }
 
@@ -101,6 +103,8 @@ export default async function handler(req, res) {
 
         const orderIds = await createOrderRows(admin, lineItems, user.email, 'stripe', intent.id);
         await clearCartRows(admin, cartRows);
+        const totalPlatformFee = round2(lineItems.reduce((sum, li) => sum + li.platformFee, 0));
+        await creditAffiliateCommission(admin, { buyerEmail: user.email, platformFee: totalPlatformFee, orderType: 'product_order', orderValue: grandTotal, referenceId: orderIds[0] });
         return res.status(200).json({ success: true, order_ids: orderIds, total_charged: grandTotal });
       };
 

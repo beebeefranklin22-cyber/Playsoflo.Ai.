@@ -73,7 +73,6 @@ export default function TravelBookingModal({ listing, onClose }) {
           payment_intent_id: paymentIntentId,
           recipient_email: listing.provider_email,
           reference_type: 'travel_booking',
-          fee_rate: 0.15,
         });
       } catch (creditError) {
         console.error('Failed to credit provider for travel booking:', creditError);

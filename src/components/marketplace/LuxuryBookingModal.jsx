@@ -102,7 +102,6 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
           payment_intent_id: paymentIntentId,
           recipient_email: providerEmail,
           reference_type: 'luxury_booking',
-          fee_rate: 0.15,
         });
       } catch (creditError) {
         console.error('Failed to credit provider for luxury booking:', creditError);

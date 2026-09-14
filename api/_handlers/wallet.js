@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { retrievePaymentIntent, retrieveConnectedAccount, createConnectTransfer, createConnectPayout } from '../_lib/stripe.js';
+import { CREDIT_FEE_RATES } from '../_lib/orderHelpers.js';
 
 // Backs secureBalanceUpdate (action: 'transfer'), processWithdrawal
 // (action: 'withdraw'), and payMoneyRequest (action: 'pay_request'). All
@@ -34,6 +35,9 @@ export default async function handler(req, res) {
     }
     if (action === 'credit_from_payment') {
       return res.status(200).json(await handleCreditFromPayment(admin, req.body));
+    }
+    if (action === 'purchase') {
+      return res.status(200).json(await handlePurchase(admin, user, req.body));
     }
     return res.status(400).json({ error: `Unknown action "${action}"` });
   } catch (err) {
@@ -214,7 +218,7 @@ async function handlePayRequest(admin, user, body) {
 // to recipient_email. Re-verifies the PaymentIntent with Stripe itself
 // (never trusts the client's amount or success claim) and is idempotent
 // on payment_intent_id so a retry or double-click can't double-credit.
-async function handleCreditFromPayment(admin, { payment_intent_id, recipient_email, reference_type, fee_rate }) {
+async function handleCreditFromPayment(admin, { payment_intent_id, recipient_email, reference_type }) {
   if (!payment_intent_id) throw new Error('payment_intent_id is required');
   if (!recipient_email) throw new Error('recipient_email is required');
 
@@ -230,8 +234,12 @@ async function handleCreditFromPayment(admin, { payment_intent_id, recipient_ema
     throw new Error('This payment was not collected for that recipient');
   }
 
+  // The fee rate is resolved server-side from reference_type, never trusted
+  // from the client -- this used to accept a client-supplied fee_rate
+  // directly, which let a tampered request (e.g. fee_rate: 0) take the
+  // platform's cut on any of these purchase types to zero.
   const grossAmount = intent.amount / 100;
-  const rate = Number.isFinite(fee_rate) ? fee_rate : 0.1;
+  const rate = CREDIT_FEE_RATES[reference_type] ?? 0.10;
   const creditAmount = Math.round(grossAmount * (1 - rate) * 100) / 100;
 
   // A single Stripe payment_intent_id must credit a wallet AT MOST ONCE,
@@ -263,6 +271,28 @@ async function handleCreditFromPayment(admin, { payment_intent_id, recipient_ema
   if (moveError) throw moveError;
 
   return { success: true, credited: creditAmount };
+}
+
+// A flat platform-sold purchase with no specific recipient -- a game shop
+// item, a premium game subscription -- where the full amount is platform
+// revenue rather than owed to another user, so there's no counterpart to
+// credit (same debit-only shape as a withdrawal, minus the payout step).
+async function handlePurchase(admin, user, body) {
+  const amount = Number(body.amount);
+  if (!amount || amount <= 0) throw new Error('amount must be a positive number');
+  if (!body.reference_type) throw new Error('reference_type is required');
+
+  const { error: moveError } = await admin.rpc('wallet_move', {
+    p_from_email: user.email,
+    p_to_email: null,
+    p_debit_amount: amount,
+    p_credit_amount: null,
+    p_reference_type: body.reference_type,
+    p_reference_id: body.reference_id || null,
+    p_memo: body.memo || null,
+  });
+  if (moveError) throw moveError;
+  return { success: true };
 }
 
 function cleanPgError(message) {
