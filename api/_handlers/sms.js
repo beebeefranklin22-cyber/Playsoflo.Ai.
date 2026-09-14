@@ -1,11 +1,16 @@
 // api/sms.js — SMS sending via Twilio
 import { requireUser } from '../_lib/auth.js';
+import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
+import { enforceRateLimit } from '../_lib/rateLimit.js';
+
+const MAX_SMS_PER_HOUR = 20;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  let user;
   try {
-    await requireUser(req);
+    user = await requireUser(req);
   } catch (err) {
     return res.status(err.statusCode || 401).json({ error: err.message });
   }
@@ -25,6 +30,11 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Any authenticated user could otherwise fire unlimited SMS (each with
+    // a real per-message Twilio cost) to any phone number through the
+    // platform's own number.
+    await enforceRateLimit(getSupabaseAdmin(), { channel: 'sms', userEmail: user.email, maxPerHour: MAX_SMS_PER_HOUR });
+
     const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
 
     const response = await fetch(

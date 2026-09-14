@@ -15,6 +15,21 @@ export default async function handler(req, res) {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) return res.status(500).json({ error: 'STRIPE_SECRET_KEY not configured' });
   try {
+    // Only reference_type/reference_id (the one thing every real caller of
+    // this generic endpoint -- tips, PPV, deposits, travel/luxury/service
+    // bookings via StripePaymentForm.jsx -- actually needs) pass through
+    // from the client. customer_email is always the real authenticated
+    // caller, never client-suppliable: this used to spread the entire
+    // client-supplied metadata object onto the intent, which let a
+    // tampered request forge customer_email/recipient_email and weaken the
+    // defense-in-depth checks that later re-read this metadata (wallet.js's
+    // credit_from_payment, consumeVerifiedPaymentIntent).
+    const safeMetadata = {
+      customer_email: user.email,
+      created_by: user.email,
+      ...(metadata.reference_type ? { reference_type: String(metadata.reference_type) } : {}),
+      ...(metadata.reference_id ? { reference_id: String(metadata.reference_id) } : {}),
+    };
     const credentials = Buffer.from(`${secretKey}:`).toString('base64');
     const response = await fetch('https://api.stripe.com/v1/payment_intents', {
       method: 'POST',
@@ -22,7 +37,7 @@ export default async function handler(req, res) {
       body: new URLSearchParams({
         amount: String(amount), currency,
         'automatic_payment_methods[enabled]': 'true',
-        ...Object.entries({ ...metadata, created_by: user.email }).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
+        ...Object.entries(safeMetadata).reduce((acc, [k, v]) => { acc[`metadata[${k}]`] = String(v); return acc; }, {}),
       }),
     });
     const intent = await response.json();
