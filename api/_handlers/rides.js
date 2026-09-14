@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent, refundPaymentIntent } from '../_lib/stripe.js';
-import { round2, cleanError } from '../_lib/orderHelpers.js';
+import { round2, cleanError, consumeVerifiedPaymentIntent } from '../_lib/orderHelpers.js';
 
 // Backs cancelRideSecure, matchOptimalDriver, and rateDriver.
 const CANCELLATION_FEE_BY_STATUS = {
@@ -49,13 +49,46 @@ export default async function handler(req, res) {
   }
 }
 
-// Recomputes the fare server-side from the vehicle rate card + route
-// estimate rather than trusting a client-computed total, so editing
-// fare_breakdown.total_fare in the browser can't under-charge a ride.
-function priceRide(vehicleClassDetails, estimatedDistanceMiles, estimatedDurationMinutes) {
-  const baseFare = vehicleClassDetails?.base_price || 0;
-  const distanceFare = (vehicleClassDetails?.price_per_mile || 0) * (estimatedDistanceMiles || 0);
-  const timeFare = (vehicleClassDetails?.price_per_minute || 0) * (estimatedDurationMinutes || 0);
+// Real rate card, matching api/_handlers/geo.js's `pricing` block and
+// VehicleTypeSelector.jsx's multipliers exactly. This USED to accept
+// `vehicle_class_details` -- base_price/price_per_mile/price_per_minute --
+// directly from the client with no cross-check at all, despite a comment
+// here claiming otherwise; `vehicle_class_details` is just echoed back from
+// the browser's vehicle picker. A tampered request could zero out every
+// rate for a $1 ride, or (combined with a replayed card payment) fabricate
+// an arbitrarily large fare to mint into a driver payout. Only `ride_type`
+// (a vehicle id) is trusted from the client now; the actual rates are
+// looked up here.
+const RIDE_BASE_RATE = { basePrice: 2.5, pricePerMile: 1.49, pricePerMinute: 0.3 };
+const VEHICLE_MULTIPLIERS = { standard: 1.0, luxury: 2.2, suv: 1.6, shared: 0.65, green: 1.1 };
+
+// Distance/duration still come from the client (no routing API key
+// available to recompute a real driving route server-side), but they're
+// sanity-checked against the straight-line distance between the pickup/
+// dropoff coordinates (a hard lower bound -- driving distance is never
+// shorter) and a generous max-speed assumption, so they can't be zeroed
+// out to under-price a real, long ride.
+const MAX_PLAUSIBLE_MPH = 80;
+
+function sanitizeDistanceAndDuration(pickupCoords, dropoffCoords, distanceMiles, durationMinutes) {
+  let distance = Number(distanceMiles) || 0;
+  let duration = Number(durationMinutes) || 0;
+  if (Array.isArray(pickupCoords) && Array.isArray(dropoffCoords) && pickupCoords.length === 2 && dropoffCoords.length === 2) {
+    const straightLineMiles = haversineMiles(pickupCoords, dropoffCoords);
+    if (distance < straightLineMiles * 0.9) distance = straightLineMiles;
+  }
+  const minDurationMinutes = (distance / MAX_PLAUSIBLE_MPH) * 60;
+  if (duration < minDurationMinutes) duration = minDurationMinutes;
+  return { distance, duration };
+}
+
+function priceRide(rideType, distanceMiles, durationMinutes) {
+  const multiplier = VEHICLE_MULTIPLIERS[rideType];
+  if (multiplier === undefined) throw new Error(`Unknown ride_type "${rideType}"`);
+
+  const baseFare = RIDE_BASE_RATE.basePrice * multiplier;
+  const distanceFare = RIDE_BASE_RATE.pricePerMile * multiplier * distanceMiles;
+  const timeFare = RIDE_BASE_RATE.pricePerMinute * multiplier * durationMinutes;
   const totalFare = Math.max(round2(baseFare + distanceFare + timeFare), 1.0);
   const driverEarnings = round2(totalFare * DRIVER_EARNINGS_RATE);
   const platformFee = round2(totalFare - driverEarnings);
@@ -73,7 +106,8 @@ async function requestRide(admin, user, body) {
   if (!pickup_address || !dropoff_address) throw new Error('pickup_address and dropoff_address are required');
   if (!payment_method) throw new Error('payment_method is required');
 
-  const fare = priceRide(vehicle_class_details, estimated_distance_miles, estimated_duration_minutes);
+  const { distance, duration } = sanitizeDistanceAndDuration(pickup_coords, dropoff_coords, estimated_distance_miles, estimated_duration_minutes);
+  const fare = priceRide(ride_type, distance, duration);
 
   // Fare is collected up front (like a real rideshare hold) and paid out to
   // whichever driver ends up completing the ride -- there's no driver yet
@@ -91,7 +125,11 @@ async function requestRide(admin, user, body) {
   } else if (payment_method === 'card') {
     if (confirm_payment_intent_id) {
       const intent = await retrievePaymentIntent(confirm_payment_intent_id);
-      if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(fare.totalFare * 100),
+        buyerEmail: user.email,
+        referenceType: 'ride_fare',
+      });
       paymentIntentId = intent.id;
     } else if (saved_payment_method_id) {
       const { data: pmRow, error: pmError } = await admin
@@ -112,6 +150,11 @@ async function requestRide(admin, user, body) {
       if (intent.status !== 'succeeded') {
         throw new Error(`This card needs additional verification (status: ${intent.status}). Please use a new card instead.`);
       }
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(fare.totalFare * 100),
+        buyerEmail: user.email,
+        referenceType: 'ride_fare',
+      });
       paymentIntentId = intent.id;
     } else {
       const intent = await createPaymentIntent({
@@ -144,8 +187,8 @@ async function requestRide(admin, user, body) {
     pickup_coords: pickup_coords || null,
     dropoff_coords: dropoff_coords || null,
     route_geometry: route_geometry || null,
-    estimated_distance_miles: estimated_distance_miles || null,
-    estimated_duration_minutes: estimated_duration_minutes || null,
+    estimated_distance_miles: distance || null,
+    estimated_duration_minutes: duration || null,
     rider_preferences: rider_preferences || null,
     fare_breakdown: {
       base_fare: fare.baseFare, distance_fare: fare.distanceFare, time_fare: fare.timeFare,
@@ -185,6 +228,11 @@ async function acceptRide(admin, user, { ride_id }) {
     .eq('id', ride_id)
     .eq('status', 'requested')
     .is('driver_email', null)
+    // A passenger accepting their own ride request would let them mint
+    // driver_earnings on completion (a pure wallet_move credit funded only
+    // by the assumption a stranger-driver did the work) -- this was never
+    // checked at all.
+    .neq('passenger_email', user.email)
     .select()
     .single();
   if (error || !row) throw new Error('This ride is no longer available');
@@ -336,7 +384,7 @@ async function matchDriver(admin, { ride_id }) {
   const busyDrivers = new Set((busyRows || []).map((r) => r.driver_email));
 
   const withDistance = (candidates || [])
-    .filter((d) => d.driver_current_lat != null && d.driver_current_lng != null && !busyDrivers.has(d.email))
+    .filter((d) => d.driver_current_lat != null && d.driver_current_lng != null && !busyDrivers.has(d.email) && d.email !== ride.passenger_email)
     .map((d) => ({
       driver_email: d.email,
       distance_miles: haversineMiles(ride.pickup_coords, [d.driver_current_lat, d.driver_current_lng]),
@@ -365,16 +413,22 @@ async function matchDriver(admin, { ride_id }) {
 }
 
 async function rateDriver(admin, user, { ride_id, rating, review }) {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error('rating must be a whole number from 1 to 5');
+
   const { data: ride, error: rideError } = await admin.from('ride_requests').select('*').eq('id', ride_id).single();
   if (rideError || !ride) throw new Error('Ride not found');
   if (ride.passenger_email !== user.email) throw new Error('You are not the passenger on this ride');
   if (!ride.driver_email) throw new Error('This ride has no driver to rate');
+  if (ride.status !== 'completed') throw new Error('You can only rate a driver after the ride is completed');
+  if (ride.passenger_rating != null) throw new Error('You already rated this ride');
 
-  const { error: updateError } = await admin
+  const { error: updateError, count } = await admin
     .from('ride_requests')
-    .update({ passenger_rating: rating, passenger_review: review || null })
-    .eq('id', ride_id);
+    .update({ passenger_rating: rating, passenger_review: review || null }, { count: 'exact' })
+    .eq('id', ride_id)
+    .is('passenger_rating', null);
   if (updateError) throw updateError;
+  if (!count) throw new Error('You already rated this ride');
 
   const { data: stats, error: rpcError } = await admin.rpc('rate_driver', {
     p_driver_email: ride.driver_email,

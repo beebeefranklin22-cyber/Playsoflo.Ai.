@@ -75,7 +75,6 @@ export default function PPVAccessGate({ ppvContentId, currentUser, children }) {
       const revenueResult = await base44.functions.invoke('processCollaborativeRevenue', {
         purchaseId: referenceId,
         contentId: ppvContentId,
-        totalAmount: finalPrice
       });
       if (revenueResult?.data?.success === false) {
         throw new Error(revenueResult.data.error || 'Payment failed');

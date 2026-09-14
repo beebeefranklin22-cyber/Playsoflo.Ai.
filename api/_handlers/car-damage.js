@@ -28,6 +28,8 @@ export default async function handler(req, res) {
 }
 
 async function reportDamage(admin, user, { rental_id, description, photos, estimated_cost }) {
+  if (!Number.isFinite(estimated_cost) || estimated_cost <= 0) throw new Error('estimated_cost must be a positive number');
+
   const { data: rental, error: rentalError } = await admin.from('car_rentals').select('*').eq('id', rental_id).single();
   if (rentalError || !rental) throw new Error('Rental not found');
   if (rental.renter_email !== user.email && rental.provider_email !== user.email) {
@@ -35,11 +37,13 @@ async function reportDamage(admin, user, { rental_id, description, photos, estim
   }
 
   let ai_analysis = null;
-  // Cap the AI's suggestion (and the renter's own estimate) at the
-  // rental's disclosed security deposit -- the deposit is the contractual
-  // maximum a renter can be charged for damage, enforced again below when
-  // a settlement is actually accepted.
-  const depositCap = rental.security_deposit > 0 ? rental.security_deposit : Infinity;
+  // Cap the AI's suggestion (and the renter's own estimate) at the LOWER
+  // of the rental's own security_deposit and the listing's advertised
+  // deposit (marketplace_items) -- car_rentals rows are inserted
+  // client-side, so a renter could otherwise lower their own maximum
+  // liability by deflating security_deposit at booking time.
+  const listingDeposit = await getListingDeposit(admin, rental.listing_id);
+  const depositCap = effectiveDepositCap(rental.security_deposit, listingDeposit);
   let suggested_settlement = Math.min(estimated_cost, depositCap);
   try {
     const aiData = await damageAnalysis({ description, estimated_cost, photos });
@@ -118,10 +122,12 @@ async function respondToSettlement(admin, user, { settlement_id, response, count
     return { settlement: updated };
   }
 
-  // Cap at the rental's disclosed security deposit -- a renter can never
-  // be charged more than that through this flow.
-  const { data: rental } = await admin.from('car_rentals').select('security_deposit').eq('id', settlement.rental_id).single();
-  const depositCap = rental?.security_deposit > 0 ? rental.security_deposit : Infinity;
+  // Same dual-source cap as reportDamage -- a renter can never be charged
+  // more than the lower of what their own booking row and the listing
+  // itself say the deposit is.
+  const { data: rental } = await admin.from('car_rentals').select('security_deposit, listing_id').eq('id', settlement.rental_id).single();
+  const listingDeposit = await getListingDeposit(admin, rental?.listing_id);
+  const depositCap = effectiveDepositCap(rental?.security_deposit, listingDeposit);
   const amount = Math.min(settlement.settlement_amount || 0, depositCap);
 
   if (amount > 0) {
@@ -157,6 +163,17 @@ async function respondToSettlement(admin, user, { settlement_id, response, count
     `Both parties accepted the $${amount.toFixed(2)} damage settlement.`, settlement_id);
 
   return { settlement: updated };
+}
+
+async function getListingDeposit(admin, listingId) {
+  if (!listingId) return null;
+  const { data } = await admin.from('marketplace_items').select('security_deposit').eq('id', listingId).maybeSingle();
+  return data?.security_deposit;
+}
+
+function effectiveDepositCap(rentalDeposit, listingDeposit) {
+  const candidates = [rentalDeposit, listingDeposit].filter((v) => v > 0);
+  return candidates.length ? Math.min(...candidates) : Infinity;
 }
 
 async function notify(admin, recipientEmail, type, title, message, referenceId) {

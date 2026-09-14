@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent, refundPaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, round2, cleanError } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, round2, cleanError, consumeVerifiedPaymentIntent } from '../_lib/orderHelpers.js';
 
 // Real Estate Hub short-term-rental booking flow.
 //
@@ -92,7 +92,11 @@ async function chargePayment(admin, { paymentMethod, savedPaymentMethodId, confi
   if (paymentMethod === 'stripe') {
     if (confirmPaymentIntentId) {
       const intent = await retrievePaymentIntent(confirmPaymentIntentId);
-      if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalAmount * 100),
+        buyerEmail: userEmail,
+        referenceType,
+      });
       const { error } = await admin.rpc('wallet_move', {
         p_from_email: null, p_to_email: hostEmail, p_debit_amount: null, p_credit_amount: hostEarnings,
         p_reference_type: referenceType, p_reference_id: intent.id, p_memo: memo,
@@ -120,6 +124,11 @@ async function chargePayment(admin, { paymentMethod, savedPaymentMethodId, confi
       if (intent.status !== 'succeeded') {
         throw new Error(`This card needs additional verification (status: ${intent.status}). Please use a new card instead.`);
       }
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalAmount * 100),
+        buyerEmail: userEmail,
+        referenceType,
+      });
       const { error } = await admin.rpc('wallet_move', {
         p_from_email: null, p_to_email: hostEmail, p_debit_amount: null, p_credit_amount: hostEarnings,
         p_reference_type: referenceType, p_reference_id: intent.id, p_memo: memo,

@@ -135,6 +135,42 @@ export async function creditAffiliateCommission(admin, { buyerEmail, platformFee
   }
 }
 
+// CRITICAL: re-verifies a Stripe PaymentIntent before any handler treats it
+// as proof of payment for an order. Every "confirm_payment_intent_id"
+// branch in this codebase used to check only `intent.status === 'succeeded'`
+// -- nothing compared the intent's actually-charged amount against the
+// order total being confirmed, nothing checked the intent was created for
+// the confirming user, and nothing stopped the same intent from being
+// confirmed more than once. That combination let a client recycle one real,
+// small charge into crediting an arbitrarily large amount: create (and pay)
+// a $1 PaymentIntent, then call confirm again with an inflated order total
+// computed from a tampered request body -- the $1 charge would be recycled
+// into whatever credit the new total implied, repeatably.
+//
+// expectedAmountCents must be computed from the SAME values that will be
+// written to the order row / used in the wallet credit, so a mismatch here
+// means the confirm-time request describes a different order than what was
+// actually paid for. Throws (never returns a soft failure) so every caller
+// fails the same way checkTicketCapacity already does.
+export async function consumeVerifiedPaymentIntent(admin, intent, { expectedAmountCents, buyerEmail, referenceType }) {
+  if (intent.status !== 'succeeded') {
+    throw new Error(`Payment not completed (status: ${intent.status})`);
+  }
+  if (intent.amount !== Math.round(expectedAmountCents)) {
+    throw new Error('Payment amount does not match the order total');
+  }
+  if (intent.metadata?.customer_email !== buyerEmail) {
+    throw new Error('This payment was not made by you');
+  }
+  const { error } = await admin
+    .from('consumed_payment_intents')
+    .insert({ payment_intent_id: intent.id, reference_type: referenceType || null });
+  if (error) {
+    if (error.code === '23505') throw new Error('This payment has already been used for an order');
+    throw error;
+  }
+}
+
 function generateTicketNumber() {
   return `TKT-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 }
