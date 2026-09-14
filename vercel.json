@@ -19,6 +19,7 @@
     { "source": "/api/wallet", "destination": "/api/money?__fn=wallet" },
     { "source": "/api/food-orders", "destination": "/api/money?__fn=food-orders" },
     { "source": "/api/crypto-wallet", "destination": "/api/money?__fn=crypto-wallet" },
+    { "source": "/api/connect", "destination": "/api/money?__fn=connect" },
 
     { "source": "/api/rides", "destination": "/api/mobility?__fn=rides" },
     { "source": "/api/delivery", "destination": "/api/mobility?__fn=delivery" },

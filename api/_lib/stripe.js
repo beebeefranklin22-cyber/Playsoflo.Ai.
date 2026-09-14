@@ -100,3 +100,107 @@ export async function refundPaymentIntent({ paymentIntentId, amountCents }) {
   if (!response.ok) throw new Error(refund.error?.message ?? 'Stripe error creating refund');
   return refund;
 }
+
+// --- Stripe Connect (real payouts to providers/withdrawing users) ---------
+// Express accounts: Stripe hosts identity verification + bank-account
+// collection, so this app never touches or stores raw bank details itself.
+
+export async function createExpressAccount({ email, businessName, country = 'US' }) {
+  const body = {
+    type: 'express',
+    email,
+    country,
+    'capabilities[transfers][requested]': 'true',
+    'capabilities[card_payments][requested]': 'true',
+    ...(businessName ? { 'business_profile[name]': businessName } : {}),
+  };
+  const response = await fetch(`${STRIPE_API}/accounts`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body),
+  });
+  const account = await response.json();
+  if (!response.ok) throw new Error(account.error?.message ?? 'Stripe error creating connected account');
+  return account;
+}
+
+export async function createAccountLink({ accountId, refreshUrl, returnUrl }) {
+  const response = await fetch(`${STRIPE_API}/account_links`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    }),
+  });
+  const link = await response.json();
+  if (!response.ok) throw new Error(link.error?.message ?? 'Stripe error creating account link');
+  return link;
+}
+
+// Lets a connected account holder view their own Stripe Express dashboard
+// (balance, payout history, update bank details) -- single-use, expires
+// quickly, so this is generated fresh on each "Open Dashboard" click.
+export async function createLoginLink(accountId) {
+  const response = await fetch(`${STRIPE_API}/accounts/${encodeURIComponent(accountId)}/login_links`, {
+    method: 'POST',
+    headers: { Authorization: authHeader() },
+  });
+  const link = await response.json();
+  if (!response.ok) throw new Error(link.error?.message ?? 'Stripe error creating login link');
+  return link;
+}
+
+export async function retrieveConnectedAccount(accountId) {
+  const response = await fetch(`${STRIPE_API}/accounts/${encodeURIComponent(accountId)}`, {
+    headers: { Authorization: authHeader() },
+  });
+  const account = await response.json();
+  if (!response.ok) throw new Error(account.error?.message ?? 'Stripe error retrieving connected account');
+  return account;
+}
+
+// Moves money from the platform's own Stripe balance into a connected
+// account. This is step 1 of a real payout -- step 2 (createConnectPayout)
+// is what actually sends it from there to the person's bank.
+export async function createConnectTransfer({ amountCents, destinationAccountId, referenceId, description }) {
+  const body = {
+    amount: String(amountCents),
+    currency: 'usd',
+    destination: destinationAccountId,
+    ...(referenceId ? { transfer_group: referenceId } : {}),
+    ...(description ? { description } : {}),
+  };
+  const response = await fetch(`${STRIPE_API}/transfers`, {
+    method: 'POST',
+    headers: { Authorization: authHeader(), 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(body),
+  });
+  const transfer = await response.json();
+  if (!response.ok) throw new Error(transfer.error?.message ?? 'Stripe error creating transfer');
+  return transfer;
+}
+
+// Step 2: pays out of a connected account's own Stripe balance (which the
+// transfer above just funded) to the bank account they linked during Express
+// onboarding. Must be made "as" the connected account via Stripe-Account.
+export async function createConnectPayout({ amountCents, destinationAccountId, description }) {
+  const response = await fetch(`${STRIPE_API}/payouts`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader(),
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Stripe-Account': destinationAccountId,
+    },
+    body: new URLSearchParams({
+      amount: String(amountCents),
+      currency: 'usd',
+      ...(description ? { description } : {}),
+    }),
+  });
+  const payout = await response.json();
+  if (!response.ok) throw new Error(payout.error?.message ?? 'Stripe error creating payout');
+  return payout;
+}
