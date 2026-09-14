@@ -68,11 +68,28 @@ async function handleTransfer(admin, user, body) {
   return { success: true, ...data };
 }
 
+const MIN_WITHDRAWAL_AMOUNT = 1;
+
 async function handleWithdraw(admin, user, body) {
   const amount = Number(body.amount);
   const method = body.method === 'instant' ? 'instant' : 'bank';
-  if (!amount || amount <= 0) throw new Error('amount must be a positive number');
+  if (!amount || amount < MIN_WITHDRAWAL_AMOUNT) throw new Error(`Minimum withdrawal is $${MIN_WITHDRAWAL_AMOUNT}`);
   if (!body.payment_method_id) throw new Error('payment_method_id is required');
+
+  // A saved card or a Cash App/Venmo/PayPal username isn't a real payout
+  // rail -- the client-side selectors already restrict to bank_account, but
+  // this is the actual boundary: without it, a direct API call could queue
+  // a "withdrawal" against a destination the manual-fulfillment team has no
+  // way to actually pay out to.
+  const { data: payoutMethod, error: pmError } = await admin
+    .from('payment_methods')
+    .select('id, type')
+    .eq('id', body.payment_method_id)
+    .eq('user_email', user.email)
+    .eq('status', 'active')
+    .single();
+  if (pmError || !payoutMethod) throw new Error('Payout method not found');
+  if (payoutMethod.type !== 'bank_account') throw new Error('Withdrawals can only be sent to a linked bank account');
 
   const fee = method === 'instant' ? 0.5 : 0;
   const total = Number((amount + fee).toFixed(2));

@@ -65,14 +65,21 @@ export default function EarningsSection({ currentUser }) {
         user_email: currentUser.email,
         status: 'active'
       });
-      if (!methods.length) {
-        throw new Error('Add a payout method in Wallet before withdrawing.');
+      // A saved card or a Cash App/Venmo username isn't a valid bank payout
+      // destination -- only offer a real bank account here, same
+      // restriction WithdrawModal.jsx applies via CheckoutPaymentSelector's
+      // allowedTypes, rather than blindly using methods[0] (previously
+      // picked whatever came back first, card or otherwise).
+      const bankMethods = methods.filter((m) => m.type === 'bank_account');
+      if (!bankMethods.length) {
+        throw new Error('Add a bank account in Wallet before withdrawing.');
       }
+      const payoutMethod = bankMethods.find((m) => m.is_default) || bankMethods[0];
 
       const { data: result } = await processWithdrawal({
         amount,
         method: 'bank',
-        payment_method_id: methods[0].id,
+        payment_method_id: payoutMethod.id,
       });
       if (!result?.success) {
         throw new Error(result?.error || 'Withdrawal failed');

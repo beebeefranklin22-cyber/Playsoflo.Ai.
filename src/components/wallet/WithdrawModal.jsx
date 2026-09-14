@@ -122,6 +122,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
                   value={selectedMethodId}
                   onChange={setSelectedMethodId}
                   onAddNew={() => setShowAddMethod(true)}
+                  allowedTypes={["bank_account"]}
                   compact
                 />
               </div>
