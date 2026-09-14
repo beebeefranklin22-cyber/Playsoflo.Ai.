@@ -137,6 +137,7 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
       // with Stripe itself and computes the amount from what was actually
       // charged — never from finalAmount, which is only a client-side
       // display value at this point.
+      let creditFailed = false;
       try {
         await creditWalletFromPayment({
           payment_intent_id: paymentIntentId,
@@ -146,10 +147,15 @@ export default function LiveTippingOverlay({ streamId, creatorEmail, currentUser
         });
       } catch (creditError) {
         console.error('Failed to credit creator for tip:', creditError);
+        creditFailed = true;
       }
 
       setSessionTotal(prev => prev + finalAmount);
-      toast.success(`🎉 $${finalAmount} tip sent!`);
+      if (creditFailed) {
+        toast.error(`Tip charged, but crediting the creator failed. Please contact support with reference: ${paymentIntentId}`);
+      } else {
+        toast.success(`🎉 $${finalAmount} tip sent!`);
+      }
       queryClient.invalidateQueries({ queryKey: ["tips"] });
       setShowModal(false);
     } catch (err) {

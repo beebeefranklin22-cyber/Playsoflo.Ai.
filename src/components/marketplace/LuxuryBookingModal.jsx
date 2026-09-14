@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import MessageProviderButton from "../provider/MessageProviderButton";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 const LUXURY_ICONS = {
   yacht_charter: Anchor,
@@ -92,6 +93,21 @@ export default function LuxuryBookingModal({ item, currentUser, onClose, onSucce
       });
 
       setBookingId(booking.id);
+
+      // The card has already been charged -- credit the provider now
+      // (server re-verifies the PaymentIntent with Stripe itself). 15%
+      // platform fee matches service_booking elsewhere.
+      try {
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: providerEmail,
+          reference_type: 'luxury_booking',
+          fee_rate: 0.15,
+        });
+      } catch (creditError) {
+        console.error('Failed to credit provider for luxury booking:', creditError);
+        toast.error(`Payment succeeded, but crediting the provider failed. Please contact support with reference: ${paymentIntentId}`);
+      }
 
       // Notify provider immediately
       try {

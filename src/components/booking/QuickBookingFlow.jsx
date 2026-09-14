@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import StripePaymentForm from "../payment/StripePaymentForm";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 export default function QuickBookingFlow({ service, provider, onClose, onSuccess }) {
   const navigate = useNavigate();
@@ -131,6 +132,23 @@ export default function QuickBookingFlow({ service, provider, onClose, onSuccess
       // Haptic feedback for success
       if (window.NativeAppBridge?.triggerHaptic) {
         window.NativeAppBridge.triggerHaptic('success');
+      }
+
+      // The card has already been charged -- credit the provider now
+      // (server re-verifies the PaymentIntent with Stripe itself). 15%
+      // platform fee matches service_booking elsewhere. A credit failure
+      // here doesn't undo the booking (the card really was charged) --
+      // just warns so it can be manually reconciled.
+      try {
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: provider.email || provider.created_by,
+          reference_type: 'service_booking',
+          fee_rate: 0.15,
+        });
+      } catch (creditError) {
+        console.error('Failed to credit provider for booking:', creditError);
+        toast.error(`Payment succeeded, but crediting the provider failed. Please contact support with reference: ${paymentIntentId}`);
       }
 
       // Send notifications
