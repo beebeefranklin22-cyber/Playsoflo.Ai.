@@ -91,6 +91,12 @@ export default function CheckoutPaymentSelector({
   accentColor = "purple",
   showFilter = true,
   compact = false,
+  // Restricts selectable methods to these `type`s (e.g. ['bank_account'] for
+  // a withdrawal destination, where a saved card or a Cash App username
+  // isn't a valid payout rail). Undefined/empty means no restriction, which
+  // is the right default for checkout, where any saved method is a valid
+  // way to pay.
+  allowedTypes,
 }) {
   const [filter, setFilter] = useState("all");
   const queryClient = useQueryClient();
@@ -102,7 +108,7 @@ export default function CheckoutPaymentSelector({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: methods = [], isLoading } = useQuery({
+  const { data: allMethods = [], isLoading } = useQuery({
     queryKey: ["payment-methods", currentUser?.email],
     queryFn: async () => {
       const list = await base44.entities.PaymentMethod.filter({
@@ -119,6 +125,10 @@ export default function CheckoutPaymentSelector({
     staleTime: 0,
     refetchOnMount: "always",
   });
+
+  const methods = allowedTypes?.length
+    ? allMethods.filter((m) => allowedTypes.includes(m.type))
+    : allMethods;
 
   // Filter tabs that have methods
   const availableTabs = FILTER_TABS.filter(
@@ -156,9 +166,13 @@ export default function CheckoutPaymentSelector({
         <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
           <CreditCard className="w-7 h-7 text-gray-600" />
         </div>
-        <p className="text-gray-400 text-sm mb-1">No payment methods saved</p>
+        <p className="text-gray-400 text-sm mb-1">
+          {allowedTypes?.length ? "No eligible payment methods saved" : "No payment methods saved"}
+        </p>
         <p className="text-gray-600 text-xs mb-4">
-          Add a card or bank account to proceed
+          {allowedTypes?.includes("bank_account") && allowedTypes.length === 1
+            ? "Add a bank account to proceed"
+            : "Add a card or bank account to proceed"}
         </p>
         {onAddNew && (
           <button
