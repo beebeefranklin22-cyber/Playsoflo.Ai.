@@ -230,8 +230,12 @@ export default function RealtimeNotificationManager({ currentUser }) {
         {(metadata.sender_email || notification.type === 'new_message' || notification.type === 'message' || notification.type === 'direct_message') && (
           <button
             onClick={() => {
-              const chatId = metadata.conversation_id || metadata.sender_email || notification.sender_email;
-              navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
+              // Messages.jsx only reads ?conv= and ?user= -- ?chat= is never
+              // read at all, so this always landed on the generic inbox.
+              const conversationId = metadata.conversation_id;
+              const userEmail = metadata.sender_email || notification.sender_email;
+              const query = conversationId ? `?conv=${conversationId}` : userEmail ? `?user=${userEmail}` : '';
+              navigate(createPageUrl('Messages') + query);
               base44.entities.Notification.update(notification.id, { read: true });
             }}
             className="w-full px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-lg transition mt-2"

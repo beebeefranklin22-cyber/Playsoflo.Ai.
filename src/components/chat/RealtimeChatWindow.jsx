@@ -28,7 +28,7 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
           
           // Mark as read if not sent by current user
           if (event.data.sender_email !== currentUser.email) {
-            markAsRead(event.data.id);
+            markAsRead(event.data);
           }
         } else if (event.type === 'update') {
           setMessages(prev => prev.map(m => m.id === event.id ? event.data : m));
@@ -58,7 +58,7 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
       // Mark all as read
       msgs.forEach(msg => {
         if (msg.sender_email !== currentUser.email && !(msg.read_by || []).includes(currentUser.email)) {
-          markAsRead(msg.id);
+          markAsRead(msg);
         }
       });
     } catch (error) {
@@ -66,13 +66,17 @@ export default function RealtimeChatWindow({ conversation, currentUser, onBack }
     }
   };
 
-  const markAsRead = async (messageId) => {
+  // Takes the message object directly rather than looking it up in
+  // `messages` state -- the real-time subscription callback above is
+  // created once per conversation.id and closes over `messages` from
+  // whenever that effect ran, so any message that arrived after mount was
+  // never found by messages.find() and never got marked read.
+  const markAsRead = async (message) => {
     try {
-      const message = messages.find(m => m.id === messageId);
       if (!message) return;
 
       const readBy = [...new Set([...(message.read_by || []), currentUser.email])];
-      await base44.entities.ChatMessage.update(messageId, { read_by: readBy });
+      await base44.entities.ChatMessage.update(message.id, { read_by: readBy });
       
       // Update conversation unread count
       const unreadCount = conversation.unread_count || {};

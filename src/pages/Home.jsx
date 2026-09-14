@@ -110,12 +110,16 @@ export default function Home() {
     post.creator_name || post.creator_username || post.author_name ||
     userMap[post.created_by] || post.created_by?.split("@")[0] || "User";
 
-  // Track post view — increments views_count once per session per post
+  // Track post view — increments views_count once per session per post.
+  // This used to hardcode views_count: 1 on every view, so a post's count
+  // was permanently stuck at 1 forever after its first view instead of
+  // actually incrementing.
   const viewedPostsRef = useRef(new Set());
-  const trackView = (postId) => {
+  const trackView = (post) => {
+    const postId = post?.id;
     if (!postId || viewedPostsRef.current.has(postId)) return;
     viewedPostsRef.current.add(postId);
-    base44.entities.SocialPost.update(postId, { views_count: 1 }).catch(() => {});
+    base44.entities.SocialPost.update(postId, { views_count: (post.views_count || 0) + 1 }).catch(() => {});
   };
 
   const [showFriendFinder, setShowFriendFinder] = useState(false);
@@ -176,7 +180,7 @@ export default function Home() {
 
         // Track post views for the first few posts
         if (currentUser?.email) {
-          feedPosts.slice(0, 3).forEach(post => trackView(post.id));
+          feedPosts.slice(0, 3).forEach(post => trackView(post));
         }
 
         return feedPosts;
@@ -241,15 +245,27 @@ export default function Home() {
     if (alreadySaved) {
       const rowId = savedRowIds[post.id];
       setSavedPosts(prev => { const next = new Set(prev); next.delete(post.id); return next; });
-      if (rowId) await supabase.from('user_interactions').delete().eq('id', rowId);
+      if (rowId) {
+        const { error } = await supabase.from('user_interactions').delete().eq('id', rowId);
+        if (error) {
+          setSavedPosts(prev => new Set(prev).add(post.id));
+          toast.error("Failed to remove saved post");
+          return;
+        }
+      }
       toast.success("Removed from saved");
     } else {
       setSavedPosts(prev => new Set(prev).add(post.id));
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_interactions')
         .insert({ user_email: currentUser.email, interaction_type: 'save', target_id: post.id })
         .select('id')
         .single();
+      if (error) {
+        setSavedPosts(prev => { const next = new Set(prev); next.delete(post.id); return next; });
+        toast.error("Failed to save post");
+        return;
+      }
       if (data) setSavedRowIds(prev => ({ ...prev, [post.id]: data.id }));
       toast.success("Post saved!");
     }
@@ -673,7 +689,7 @@ export default function Home() {
               ref={(el) => {
                 if (el && !viewedPostsRef.current.has(post.id)) {
                   const obs = new IntersectionObserver(([entry]) => {
-                    if (entry.isIntersecting) { trackView(post.id); obs.disconnect(); }
+                    if (entry.isIntersecting) { trackView(post); obs.disconnect(); }
                   }, { threshold: 0.5 });
                   obs.observe(el);
                 }

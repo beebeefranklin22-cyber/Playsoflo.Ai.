@@ -155,7 +155,8 @@ export default function MyP2POrders() {
                           </div>
                           <div>
                             <h3 className="text-white font-bold text-base sm:text-lg">
-                              {order.order_type === 'sell' ? 'Sell' : 'Buy'} {order.crypto_amount} {order.crypto_currency}
+                              {order.order_type === 'sell' ? 'Sell' : 'Buy'}{' '}
+                              {order.crypto_currency ? `${order.crypto_amount} ${order.crypto_currency}` : (order.item_title || 'item')}
                             </h3>
                             <p className="text-gray-400 text-xs sm:text-sm">
                               {isSeller ? 'You are selling' : 'You are buying'}
@@ -170,7 +171,9 @@ export default function MyP2POrders() {
                       <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
                         <div>
                           <p className="text-gray-400 text-xs mb-1">Amount</p>
-                          <p className="text-white font-semibold">{order.crypto_amount} {order.crypto_currency}</p>
+                          <p className="text-white font-semibold">
+                            {order.crypto_currency ? `${order.crypto_amount} ${order.crypto_currency}` : (order.item_title || '—')}
+                          </p>
                         </div>
                         <div>
                           <p className="text-gray-400 text-xs mb-1">Price per Unit</p>
