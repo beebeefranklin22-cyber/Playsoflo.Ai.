@@ -38,6 +38,24 @@ async function payRental(admin, user, body) {
   if (error || !rental) throw new Error('Rental not found');
   if (rental.renter_email !== user.email) throw new Error('Only the renter can pay for this rental');
   if (rental.status !== 'pending_payment') throw new Error(`This rental is not awaiting payment (status: ${rental.status})`);
+  if (!rental.provider_email) throw new Error('This listing has no provider on file and cannot be paid for — contact support');
+
+  // createCarRental.js inserts total_amount as computed by the browser
+  // (CarRentals.jsx's calculateTotalCost), with no server-side check that
+  // it actually reflects the listing's real price -- a tampered request
+  // could set an arbitrary near-zero total_amount and pay only that. This
+  // can't fully re-derive the client's formula (add-ons and delivery fee
+  // legitimately vary), but the car's own price × days × 1.15 (matching
+  // CarRentals.jsx's baseCost + 15% insurance) is a hard floor nothing
+  // legitimate should ever fall under.
+  const { data: listing } = await admin.from('marketplace_items').select('price').eq('id', rental.listing_id).maybeSingle();
+  if (listing?.price) {
+    const days = Math.max(1, Math.ceil((new Date(rental.end_date) - new Date(rental.start_date)) / (1000 * 60 * 60 * 24)));
+    const minimumExpected = round2(listing.price * days * 1.15);
+    if ((rental.total_amount || 0) < minimumExpected * 0.99) {
+      throw new Error('This rental\'s price could not be verified against the listing. Please create a new booking.');
+    }
+  }
 
   const feeRate = PLATFORM_FEE_RATES.car_rental;
   const totalAmount = round2(rental.total_amount || 0);

@@ -20,37 +20,49 @@ export default function AdditionalFeesManager({ rental, rentalType, onClose }) {
 
   const chargeFeeMutation = useMutation({
     mutationFn: async (feeData) => {
-      // Create a payment record for the additional fee
-      const payment = await base44.entities.Payment.create({
-        payer_email: rental.renter_email || rental.guest_email,
-        receiver_email: rental.provider_email || rental.host_email,
+      // A provider can't unilaterally debit a renter's wallet -- that's not
+      // how wallet_move works anywhere in this app (it always debits the
+      // authenticated caller, never a third party), nor should it be: that
+      // would let any provider drain any renter's balance at will. This
+      // used to insert a bare Payment row with status:'pending' and tell
+      // the provider "Fee charged successfully" -- no money ever moved and
+      // nothing ever collected it later. The real mechanism this app
+      // already has for "I'm owed money by someone else" is a
+      // PaymentRequest (same one RequestMoneyModal.jsx uses): the renter
+      // sees it and explicitly pays via the existing pay_request action
+      // (api/_handlers/wallet.js), which is the only thing that actually
+      // moves money.
+      const currentUser = await base44.auth.me();
+      const payerEmail = rental.renter_email || rental.guest_email;
+      const request = await base44.entities.PaymentRequest.create({
+        request_type: "money_request",
+        requester_email: currentUser.email,
+        requester_name: currentUser.full_name || currentUser.email,
+        payer_email: payerEmail,
         amount: feeData.amount,
-        payment_type: feeData.fee_type,
-        description: feeData.description,
-        reference_type: rentalType,
-        reference_id: rental.id,
-        status: 'pending'
+        note: `${feeData.fee_type.replace(/_/g, ' ')}: ${feeData.description}`,
+        status: "pending",
       });
 
-      // Send notification to renter
       await base44.entities.Notification.create({
-        recipient_email: rental.renter_email || rental.guest_email,
-        type: 'additional_fee_charged',
-        title: `Additional Fee: ${feeData.fee_type.replace('_', ' ')}`,
-        message: `You've been charged $${feeData.amount} for ${feeData.description}`,
-        reference_type: 'payment',
-        reference_id: payment.id
+        recipient_email: payerEmail,
+        type: 'additional_fee_requested',
+        title: `Additional Fee Requested: ${feeData.fee_type.replace(/_/g, ' ')}`,
+        message: `${currentUser.full_name || currentUser.email} is requesting $${feeData.amount} for ${feeData.description}. Review and pay in your Wallet.`,
+        reference_type: 'payment_request',
+        reference_id: request.id,
+        action_url: '/Wallet',
       });
 
-      return payment;
+      return request;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['provider-rentals'] });
-      toast.success('Fee charged successfully. Customer notified.');
+      toast.success('Fee request sent. The customer needs to review and pay it from their Wallet.');
       onClose?.();
     },
     onError: (error) => {
-      toast.error('Failed to charge fee: ' + error.message);
+      toast.error('Failed to send fee request: ' + error.message);
     }
   });
 
@@ -84,8 +96,9 @@ export default function AdditionalFeesManager({ rental, rentalType, onClose }) {
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
             <p className="text-yellow-300 text-xs">
-              Additional fees will be charged to the customer's payment method. 
-              Make sure to document the reason with photos or evidence.
+              This sends the customer a payment request they'll need to review and pay from
+              their Wallet — it isn't charged automatically. Make sure to document the reason
+              with photos or evidence.
             </p>
           </div>
         </div>
