@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, createOrderRow, checkTicketCapacity, round2, cleanError, creditAffiliateCommission } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, createOrderRow, checkTicketCapacity, round2, cleanError, creditAffiliateCommission, consumeVerifiedPaymentIntent } from '../_lib/orderHelpers.js';
 
 // Backs processUnifiedCheckout, the core booking/purchase flow used by
 // UnifiedBookingModal (and FoodCart, TicketPurchaseModal) for every
@@ -42,14 +42,24 @@ export default async function handler(req, res) {
   const itemSubtotal = Number(body.amount);
   if (!itemSubtotal || itemSubtotal <= 0) return res.status(400).json({ error: 'amount must be a positive number' });
   if (!body.provider_email) return res.status(400).json({ error: 'provider_email is required' });
-
-  const deliveryFee = round2(Number(body.delivery_fee) || 0);
-  const platformFee = round2(itemSubtotal * feeRate);
-  const providerEarnings = round2(itemSubtotal - platformFee);
-  const totalAmount = round2(itemSubtotal + platformFee + deliveryFee);
+  if (body.provider_email === user.email) return res.status(400).json({ error: "You can't buy from yourself" });
 
   try {
     const admin = getSupabaseAdmin();
+
+    // delivery_fee is a flat, per-restaurant value the client used to send
+    // directly with no cross-check at all -- it funds the driver's payout
+    // dollar-for-dollar (orderHelpers.js's createOrderRow), so a tampered
+    // request could inflate it arbitrarily. Look up the restaurant's real
+    // advertised fee and use that instead of trusting the client's number.
+    let deliveryFee = round2(Number(body.delivery_fee) || 0);
+    if (orderType === 'food_order') {
+      const { data: restaurant } = await admin.from('restaurants').select('delivery_fee').eq('owner_email', body.provider_email).maybeSingle();
+      deliveryFee = round2(restaurant?.delivery_fee || 0);
+    }
+    const platformFee = round2(itemSubtotal * feeRate);
+    const providerEarnings = round2(itemSubtotal - platformFee);
+    const totalAmount = round2(itemSubtotal + platformFee + deliveryFee);
 
     // Reject a sold-out/over-capacity ticket purchase before any money
     // moves, not after (see checkTicketCapacity's own comment for the
@@ -86,6 +96,12 @@ export default async function handler(req, res) {
 
     if (body.payment_method === 'stripe') {
       const finalizeStripeOrder = async (intent) => {
+        await consumeVerifiedPaymentIntent(admin, intent, {
+          expectedAmountCents: Math.round(totalAmount * 100),
+          buyerEmail: user.email,
+          referenceType: orderType,
+        });
+
         const { error: creditError } = await admin.rpc('wallet_move', {
           p_from_email: null,
           p_to_email: body.provider_email,
@@ -113,9 +129,6 @@ export default async function handler(req, res) {
 
       if (body.confirm_payment_intent_id) {
         const intent = await retrievePaymentIntent(body.confirm_payment_intent_id);
-        if (intent.status !== 'succeeded') {
-          return res.status(400).json({ error: `Payment not completed (status: ${intent.status})` });
-        }
         return finalizeStripeOrder(intent);
       }
 

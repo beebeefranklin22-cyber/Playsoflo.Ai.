@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent } from '../_lib/stripe.js';
-import { round2, cleanError } from '../_lib/orderHelpers.js';
+import { round2, cleanError, consumeVerifiedPaymentIntent } from '../_lib/orderHelpers.js';
 
 // There's no real integration with any external distributor (DistroKid/
 // TuneCore/CD Baby have no self-serve partner API a platform like this can
@@ -60,7 +60,11 @@ async function requestDistribution(admin, user, body) {
   } else if (payment_method === 'stripe') {
     if (confirm_payment_intent_id) {
       const intent = await retrievePaymentIntent(confirm_payment_intent_id);
-      if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalFee * 100),
+        buyerEmail: user.email,
+        referenceType: 'music_distribution',
+      });
       paymentIntentId = intent.id;
     } else if (saved_payment_method_id) {
       const { data: pmRow, error: pmError } = await admin
@@ -77,6 +81,11 @@ async function requestDistribution(admin, user, body) {
         customerId: pmRow.stripe_customer_id, paymentMethodId: pmRow.stripe_payment_method_id, offSession: true,
       });
       if (intent.status !== 'succeeded') throw new Error(`This card needs additional verification (status: ${intent.status}). Please use a new card instead.`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalFee * 100),
+        buyerEmail: user.email,
+        referenceType: 'music_distribution',
+      });
       paymentIntentId = intent.id;
     } else {
       const intent = await createPaymentIntent({

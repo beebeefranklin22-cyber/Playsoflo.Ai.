@@ -16,19 +16,38 @@ export default async function handler(req, res) {
     return res.status(err.statusCode || 401).json({ error: err.message });
   }
 
-  const { contentId, totalAmount, purchaseId } = req.body || {};
+  const { contentId, purchaseId } = req.body || {};
   const admin = getSupabaseAdmin();
 
   try {
     const { data: content, error: contentError } = await admin.from('ppv_contents').select('*').eq('id', contentId).single();
     if (contentError || !content) throw new Error('Content not found');
+    if (content.creator_email === user.email) throw new Error("You can't purchase your own content");
 
     const { data: shares } = await admin.from('revenue_shares').select('*').eq('content_id', contentId);
     const collaboratorTotal = (shares || []).reduce((s, r) => s + (r.share_percent || 0), 0);
     const creatorPercent = Math.max(0, 100 - collaboratorTotal);
 
-    const amount = Number(totalAmount);
-    if (!amount || amount <= 0) throw new Error('totalAmount must be a positive number');
+    // Price and membership discount are resolved entirely server-side now --
+    // this used to take `totalAmount` directly from the client with no
+    // cross-check against the content's actual price at all, so a tampered
+    // request could unlock any PPV content for a penny.
+    if (!content.price_usd || content.price_usd <= 0) throw new Error('This content is not available for purchase');
+    let discountPercent = 0;
+    const { data: activeSub } = await admin
+      .from('membership_subscriptions')
+      .select('membership_id')
+      .eq('user_email', user.email)
+      .eq('creator_email', content.creator_email)
+      .eq('status', 'active')
+      .maybeSingle();
+    if (activeSub?.membership_id) {
+      const { data: membership } = await admin.from('creator_memberships').select('perks').eq('id', activeSub.membership_id).maybeSingle();
+      const rawDiscount = Number(membership?.perks?.ppv_discount_percent) || 0;
+      discountPercent = Math.min(100, Math.max(0, rawDiscount));
+    }
+    const amount = round2(content.price_usd * (1 - discountPercent / 100));
+    if (!amount || amount <= 0) throw new Error('Invalid purchase amount');
 
     // Same platform fee as any other PPV purchase (CREDIT_FEE_RATES.ppv) --
     // this used to split 100% of the charge between creator and

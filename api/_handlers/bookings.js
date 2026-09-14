@@ -52,8 +52,16 @@ async function updateStatus(admin, user, body) {
   // Only the customer's own no-questions-asked action; anything else
   // (provider confirming/completing) is a provider-side call we trust
   // them on for now since no fee/refund is involved either way.
-  if (newStatus === 'cancelled' && booking.customer_email === user.email && booking.status !== 'cancelled') {
-    await refundBooking(admin, booking, reason);
+  if (booking.customer_email === user.email) {
+    if (newStatus !== 'cancelled') {
+      // A customer has no legitimate reason to set any status but
+      // "cancelled" on their own booking -- this used to write whatever
+      // status string the client sent with no check at all, letting a
+      // customer self-approve their own booking as "completed".
+      throw new Error('Customers can only cancel a booking, not change its status');
+    }
+    if (booking.status === 'completed') throw new Error('This booking has already been completed and can no longer be cancelled');
+    if (booking.status !== 'cancelled') await refundBooking(admin, booking, reason);
   } else {
     const { error } = await admin
       .from('service_bookings')
@@ -76,18 +84,29 @@ async function cancelOrder(admin, user, body) {
     throw new Error('You are not part of this order');
   }
   if (order.status === 'cancelled') return { success: true };
+  // This used to allow a full refund from ANY status, including
+  // "delivered" -- a customer could receive their food and then call
+  // cancel_order for a complete refund while the restaurant/driver's
+  // earnings were clawed back out from under them.
+  if (order.status === 'delivered') throw new Error('This order has already been delivered and can no longer be cancelled');
 
   await refundBooking(admin, order, cancellation_reason, 'food_orders');
   return { success: true };
 }
 
 async function refundBooking(admin, booking, reason, table = 'service_bookings') {
-  if (booking.payment_method && booking.total_amount) {
+  // service_bookings stores this as total_price, not total_amount (orders/
+  // food_orders use total_amount) -- this gate used to check total_amount
+  // only, so it was always falsy for a service booking and the refund
+  // silently never ran at all: the booking was marked "cancelled" and the
+  // customer was told it succeeded, but no money ever moved back to them.
+  const totalPaid = booking.total_amount ?? booking.total_price;
+  if (booking.payment_method && totalPaid) {
     const { error: moveError } = await admin.rpc('wallet_move', {
       p_from_email: booking.provider_email,
       p_to_email: booking.customer_email,
       p_debit_amount: booking.provider_earnings || 0,
-      p_credit_amount: booking.total_amount ?? booking.total_price,
+      p_credit_amount: totalPaid,
       p_reference_type: 'refund',
       p_reference_id: booking.id,
       p_memo: reason || 'Booking cancelled',

@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
 import { createPaymentIntent, retrievePaymentIntent, refundPaymentIntent } from '../_lib/stripe.js';
-import { PLATFORM_FEE_RATES, round2, cleanError } from '../_lib/orderHelpers.js';
+import { PLATFORM_FEE_RATES, round2, cleanError, consumeVerifiedPaymentIntent } from '../_lib/orderHelpers.js';
 
 // Car rental payment completion, pickup/dropoff state, and
 // cancellation/refunds. createCarRental (src/functions) already inserts
@@ -75,7 +75,11 @@ async function payRental(admin, user, body) {
   } else if (payment_method === 'stripe') {
     if (confirm_payment_intent_id) {
       const intent = await retrievePaymentIntent(confirm_payment_intent_id);
-      if (intent.status !== 'succeeded') throw new Error(`Payment not completed (status: ${intent.status})`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalAmount * 100),
+        buyerEmail: user.email,
+        referenceType: 'car_rental',
+      });
       paymentIntentId = intent.id;
     } else if (saved_payment_method_id) {
       const { data: pmRow, error: pmError } = await admin
@@ -92,6 +96,11 @@ async function payRental(admin, user, body) {
         customerId: pmRow.stripe_customer_id, paymentMethodId: pmRow.stripe_payment_method_id, offSession: true,
       });
       if (intent.status !== 'succeeded') throw new Error(`This card needs additional verification (status: ${intent.status}). Please use a new card instead.`);
+      await consumeVerifiedPaymentIntent(admin, intent, {
+        expectedAmountCents: Math.round(totalAmount * 100),
+        buyerEmail: user.email,
+        referenceType: 'car_rental',
+      });
       paymentIntentId = intent.id;
     } else {
       const intent = await createPaymentIntent({
@@ -189,7 +198,14 @@ async function cancelRental(admin, user, { rental_id, reason }) {
 
   let refundAmount = 0;
   if (rental.status === 'confirmed') {
-    const policy = CANCELLATION_POLICIES[rental.cancellation_policy] || CANCELLATION_POLICIES.moderate;
+    // rental.cancellation_policy is copied onto the client-inserted
+    // car_rentals row at booking time and isn't itself protected -- a
+    // renter could set it to "flexible" regardless of what the owner
+    // actually advertised. The listing's own cancellation_policy
+    // (marketplace_items, set by the owner in ListCarModal.jsx) is the
+    // real source of truth, same pattern property-booking.js already uses.
+    const { data: listingPolicy } = await admin.from('marketplace_items').select('cancellation_policy').eq('id', rental.listing_id).maybeSingle();
+    const policy = CANCELLATION_POLICIES[listingPolicy?.cancellation_policy] || CANCELLATION_POLICIES.moderate;
     const daysUntilStart = Math.ceil((new Date(rental.start_date) - new Date()) / (1000 * 60 * 60 * 24));
     const fee = round2(policy(daysUntilStart, rental.total_amount || 0));
     refundAmount = round2((rental.total_amount || 0) - fee);
