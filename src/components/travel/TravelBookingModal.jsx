@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import StripePaymentForm from "@/components/payment/StripePaymentForm";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
 
 export default function TravelBookingModal({ listing, onClose }) {
   const [step, setStep] = useState(1); // 1=details, 2=payment, 3=confirmed
@@ -63,6 +64,22 @@ export default function TravelBookingModal({ listing, onClose }) {
     try {
       const b = await createBookingRecord();
       await base44.entities.TravelBooking.update(b.id, { payment_status: "paid", status: "confirmed", stripe_session_id: paymentIntentId });
+
+      // The card has already been charged at this point -- credit the
+      // provider now (server re-verifies the PaymentIntent with Stripe
+      // itself). 15% platform fee matches service_booking elsewhere.
+      try {
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: listing.provider_email,
+          reference_type: 'travel_booking',
+          fee_rate: 0.15,
+        });
+      } catch (creditError) {
+        console.error('Failed to credit provider for travel booking:', creditError);
+        toast.error(`Payment succeeded, but crediting the provider failed. Please contact support with reference: ${paymentIntentId}`);
+      }
+
       setCreatedBooking(b);
       setStep(3);
       toast.success("Booking confirmed!");

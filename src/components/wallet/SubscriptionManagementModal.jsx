@@ -67,7 +67,7 @@ export default function SubscriptionManagementModal({ currentUser, onClose }) {
   });
 
   const subscribeMutation = useMutation({
-    mutationFn: async (tier) => {
+    mutationFn: async ({ tier, paymentIntentId }) => {
       // Cancel existing subscription if any
       if (currentSubscription) {
         await base44.entities.UserSubscription.update(currentSubscription.id, {
@@ -75,7 +75,13 @@ export default function SubscriptionManagementModal({ currentUser, onClose }) {
         });
       }
 
-      // Create new subscription
+      // Note: this is a platform subscription (paid features on PlaySoFlo
+      // itself), not a purchase from another user/provider -- the card
+      // charge is real platform revenue collected directly via Stripe, so
+      // unlike the other checkout flows in this app, there's no recipient
+      // wallet to credit here. payment_intent_id is stored for the audit
+      // trail (refunds/reconciliation) even though nothing else consumes it
+      // yet.
       return await base44.entities.UserSubscription.create({
         user_email: currentUser.email,
         tier_name: tier.id,
@@ -83,7 +89,8 @@ export default function SubscriptionManagementModal({ currentUser, onClose }) {
         billing_period: tier.period,
         status: "active",
         start_date: new Date().toISOString(),
-        next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        payment_intent_id: paymentIntentId || null,
       });
     },
     onSuccess: () => {
@@ -96,15 +103,15 @@ export default function SubscriptionManagementModal({ currentUser, onClose }) {
 
   const handleSubscribe = (tier) => {
     if (tier.price === 0) {
-      subscribeMutation.mutate(tier);
+      subscribeMutation.mutate({ tier });
     } else {
       setSelectedTier(tier);
       setPaymentStep(true);
     }
   };
 
-  const handlePaymentSuccess = () => {
-    subscribeMutation.mutate(selectedTier);
+  const handlePaymentSuccess = (paymentIntentId) => {
+    subscribeMutation.mutate({ tier: selectedTier, paymentIntentId });
   };
 
   return (

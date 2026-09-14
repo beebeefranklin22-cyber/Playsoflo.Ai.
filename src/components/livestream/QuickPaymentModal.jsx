@@ -6,6 +6,12 @@ import { Input } from "@/components/ui/input";
 import StripePaymentForm from "../payment/StripePaymentForm";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { creditWalletFromPayment } from "@/functions/creditWalletFromPayment";
+
+// Tips: 10% matches LiveTippingOverlay.jsx's Stripe-paid tip flow. Products:
+// 20% matches digital_product elsewhere (PLATFORM_FEE_RATES in
+// api/_lib/orderHelpers.js).
+const FEE_RATE_BY_TYPE = { tip: 0.1, product: 0.2 };
 
 export default function QuickPaymentModal({ 
   isOpen, 
@@ -58,7 +64,22 @@ export default function QuickPaymentModal({
         });
         toast.success('✅ Purchase complete!');
       }
-      
+
+      // The card has already been charged -- credit the creator now
+      // (server re-verifies the PaymentIntent with Stripe itself, so the
+      // real charged amount is what gets credited, not customAmount).
+      try {
+        await creditWalletFromPayment({
+          payment_intent_id: paymentIntentId,
+          recipient_email: creatorEmail,
+          reference_type: type === "tip" ? 'livestream_tip' : 'livestream_product',
+          fee_rate: FEE_RATE_BY_TYPE[type] ?? 0.1,
+        });
+      } catch (creditError) {
+        console.error('Failed to credit creator:', creditError);
+        toast.error(`Payment succeeded, but crediting the creator failed. Please contact support with reference: ${paymentIntentId}`);
+      }
+
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
@@ -164,8 +185,10 @@ export default function QuickPaymentModal({
                   <span className="text-white font-bold text-xl">${customAmount}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Platform Fee</span>
-                  <span className="text-gray-400">$0.00</span>
+                  <span className="text-gray-400">
+                    Platform Fee ({Math.round((FEE_RATE_BY_TYPE[type] ?? 0.1) * 100)}%, from creator's share)
+                  </span>
+                  <span className="text-gray-400">You pay ${customAmount}</span>
                 </div>
               </div>
 
