@@ -46,8 +46,12 @@ export default function PostComments({ post, currentUser, onClose }) {
         likes_count: 0,
         liked_by: [],
       });
+      // Base this off the live comments list, not post.comments_count --
+      // that prop is closed over from whenever this modal opened, so
+      // posting 2+ comments in one session each computed +1 off the same
+      // stale base and under-counted after the first comment.
       await base44.entities.SocialPost.update(post.id, {
-        comments_count: (post.comments_count || 0) + 1,
+        comments_count: comments.length + 1,
       });
       if (post.created_by && post.created_by !== currentUser.email) {
         base44.entities.Notification.create({

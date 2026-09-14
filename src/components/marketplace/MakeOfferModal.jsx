@@ -26,7 +26,10 @@ export default function MakeOfferModal({ item, currentUser, onClose }) {
         fiat_currency: "USD",
         total_amount: parseFloat(offerAmount),
         price_per_unit: parseFloat(offerAmount),
-        payment_method: "in_app",
+        // payment_methods (plural array) is the real column -- P2POrderDetails.jsx's
+        // accept flow reads order.payment_methods[0], so a singular
+        // payment_method here left that undefined and crashed "Accept"/"Match".
+        payment_methods: ["in_app"],
         seller_email: item.provider_email || item.created_by,
         buyer_email: currentUser.email,
         status: "active",

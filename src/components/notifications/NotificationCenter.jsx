@@ -20,9 +20,14 @@ import { acceptRideSecure } from "@/functions/acceptRideSecure";
 const notificationIcons = {
   'ride_request': Car,
   'ride_update': Car,
+  // Some creators use the plural form (PurchaseModal.jsx, BookingPaymentModal.jsx,
+  // OrderFulfillment.jsx) -- both need an entry or those notifications fall
+  // through to the generic bell icon and don't navigate anywhere on click.
   'booking_request': Home,
+  'booking_requests': Home,
   'booking_confirmed': Home,
   'booking_update': Home,
+  'booking_updates': Home,
   'settlement': AlertCircle,
   'message': MessageCircle,
   'new_message': MessageCircle,
@@ -167,13 +172,23 @@ export default function NotificationCenter({ currentUser, compact = false }) {
       navigate(notification.action_url);
     } else if (notification.type === 'ride_request' || notification.type === 'ride_update') {
       navigate(createPageUrl('DriverHub'));
-    } else if (['booking_request', 'booking_update', 'booking_confirmed'].includes(notification.type)) {
+    } else if (['booking_request', 'booking_requests', 'booking_update', 'booking_updates', 'booking_confirmed'].includes(notification.type)) {
       navigate(createPageUrl('CustomerBookings'));
     } else if (notification.type === 'settlement') {
       navigate(createPageUrl('CarRentals'));
     } else if (['message', 'new_message', 'direct_message'].includes(notification.type)) {
-      const chatId = notification.metadata?.conversation_id || notification.sender_email;
-      navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
+      // Messages.jsx only reads ?conv= (a conversation id) and ?user= (the
+      // other participant's email) -- this used to build ?chat=, which
+      // Messages.jsx never reads at all, so every message notification
+      // landed on the generic inbox instead of the specific conversation.
+      const conversationId = notification.metadata?.conversation_id;
+      if (conversationId) {
+        navigate(createPageUrl('Messages') + `?conv=${conversationId}`);
+      } else if (notification.sender_email) {
+        navigate(createPageUrl('Messages') + `?user=${notification.sender_email}`);
+      } else {
+        navigate(createPageUrl('Messages'));
+      }
     } else if (['post_like', 'comment_like', 'new_comment', 'comment_reply'].includes(notification.type)) {
       navigate(createPageUrl('Home'));
     } else if (notification.type === 'new_follower' || notification.type === 'follow_request') {
@@ -471,8 +486,10 @@ export default function NotificationCenter({ currentUser, compact = false }) {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           markAsReadMutation.mutate(notif.id);
-                                          const chatId = notif.metadata?.conversation_id || notif.metadata?.sender_email || notif.sender_email;
-                                          navigate(createPageUrl('Messages') + (chatId ? `?chat=${chatId}` : ''));
+                                          const conversationId = notif.metadata?.conversation_id;
+                                          const userEmail = notif.metadata?.sender_email || notif.sender_email;
+                                          const query = conversationId ? `?conv=${conversationId}` : userEmail ? `?user=${userEmail}` : '';
+                                          navigate(createPageUrl('Messages') + query);
                                         }}
                                         size="sm"
                                         className="w-full mb-3 bg-purple-600 hover:bg-purple-700"
