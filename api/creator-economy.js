@@ -4,11 +4,13 @@
 import fanPool from './_handlers/fan-pool.js';
 import musicDistribution from './_handlers/music-distribution.js';
 import collaborativeRevenue from './_handlers/collaborative-revenue.js';
+import adCampaign from './_handlers/ad-campaign.js';
 
 const ROUTES = {
   'fan-pool': fanPool,
   'music-distribution': musicDistribution,
   'collaborative-revenue': collaborativeRevenue,
+  'ad-campaign': adCampaign,
 };
 
 export default async function handler(req, res) {

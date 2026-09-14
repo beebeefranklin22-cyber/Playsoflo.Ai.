@@ -17,6 +17,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import CampaignAnalytics from "../components/ads/CampaignAnalytics";
+import { createAdCampaign } from "@/functions/createAdCampaign";
+import { confirmAdCampaign } from "@/functions/confirmAdCampaign";
 
 export default function AdsManager() {
   const navigate = useNavigate();
@@ -63,12 +65,29 @@ export default function AdsManager() {
 
     const paymentStatus = searchParams.get('payment');
     const campaignId = searchParams.get('campaign_id');
-    
-    if (paymentStatus === 'success' && campaignId) {
-      base44.asServiceRole.entities.AdCampaign.update(campaignId, { status: 'active' })
-        .then(() => {
-          toast.success('🎉 Campaign activated and running!');
+    const sessionId = searchParams.get('session_id');
+
+    // The server independently re-verifies the Stripe Checkout Session
+    // before activating anything -- this used to trust the ?payment=success
+    // URL param outright and flip status to 'active' with an
+    // asServiceRole.update() call, which is not a real privilege bypass
+    // (it's the same authenticated client) and, combined with the
+    // ad_campaigns RLS policy letting an advertiser update their own row,
+    // meant any signed-in user could activate any of their own pending
+    // campaigns for free just by visiting that URL with no payment at all.
+    if (paymentStatus === 'pending' && campaignId && sessionId) {
+      confirmAdCampaign({ campaign_id: campaignId, session_id: sessionId })
+        .then(({ data }) => {
+          if (data.success) {
+            toast.success('🎉 Campaign activated and running!');
+          } else {
+            toast.error(data.error || 'Could not confirm payment');
+          }
           queryClient.invalidateQueries(['ad-campaigns']);
+          window.history.replaceState({}, '', '/AdsManager');
+        })
+        .catch((error) => {
+          toast.error('Could not confirm payment: ' + (error.message || 'Unknown error'));
           window.history.replaceState({}, '', '/AdsManager');
         });
     } else if (paymentStatus === 'cancelled') {
@@ -117,10 +136,12 @@ export default function AdsManager() {
 
     setCreatingCampaign(true);
     try {
-      const { data } = await base44.functions.invoke('createAdCampaign', campaignForm);
-      
+      const { data } = await createAdCampaign(campaignForm);
+
       if (data.checkout_url) {
         window.location.href = data.checkout_url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       toast.error('Failed to create campaign: ' + (error.message || 'Unknown error'));
