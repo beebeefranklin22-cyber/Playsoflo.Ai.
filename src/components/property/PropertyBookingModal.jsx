@@ -36,11 +36,17 @@ export default function PropertyBookingModal({ property, onClose }) {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
+  // api/_handlers/property-booking.js's priceBooking() always adds the 12%
+  // platform fee on top of subtotal -- for both instant_book AND
+  // request-to-book properties -- and that's what handlePay actually
+  // charges once a host approves a request. This used to only add the fee
+  // for instant_book, so a request-to-book guest was quoted the bare
+  // subtotal and then charged 12% more once approved.
   const calculateTotal = () => {
     const nights = calculateNights();
     if (property.listing_type === "short_term" && property.price_per_night) {
       const subtotal = nights * property.price_per_night;
-      return property.instant_book ? subtotal * (1 + 0.12) : subtotal;
+      return subtotal * 1.12;
     }
     return 0;
   };
@@ -290,7 +296,7 @@ export default function PropertyBookingModal({ property, onClose }) {
                   </span>
                   <span className="text-white font-semibold">${(property.price_per_night * nights || 0).toFixed(2)}</span>
                 </div>
-                {property.instant_book && nights > 0 && (
+                {nights > 0 && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Service Fee (12%)</span>
                     <span className="text-gray-300">${(property.price_per_night * nights * 0.12).toFixed(2)}</span>
@@ -301,7 +307,7 @@ export default function PropertyBookingModal({ property, onClose }) {
                   <span className="text-emerald-400 font-bold text-2xl">${total.toFixed(2)}</span>
                 </div>
                 {!property.instant_book && nights > 0 && (
-                  <p className="text-gray-400 text-xs">You won't be charged until the host approves your request.</p>
+                  <p className="text-gray-400 text-xs">You won't be charged this amount until the host approves your request.</p>
                 )}
               </div>
 
