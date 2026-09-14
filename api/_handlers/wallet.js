@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from '../_lib/supabaseAdmin.js';
 import { requireUser } from '../_lib/auth.js';
-import { retrievePaymentIntent } from '../_lib/stripe.js';
+import { retrievePaymentIntent, retrieveConnectedAccount, createConnectTransfer, createConnectPayout } from '../_lib/stripe.js';
 
 // Backs secureBalanceUpdate (action: 'transfer'), processWithdrawal
 // (action: 'withdraw'), and payMoneyRequest (action: 'pay_request'). All
@@ -105,9 +105,53 @@ async function handleWithdraw(admin, user, body) {
   });
   if (moveError) throw moveError;
 
-  // Real bank transfer requires Stripe Connect payouts, not configured yet
-  // — this queues the request with the balance already deducted so it can
-  // be fulfilled (and reconciled) once Connect is set up.
+  // Try a real payout via Stripe Connect if this user has a connected
+  // account that's actually ready to receive payouts. Falls back to the
+  // pending_manual queue (unchanged from before) if they haven't connected
+  // one yet, or if the real attempt itself fails for any reason -- the
+  // wallet balance is already debited at this point either way, so a
+  // failure here must never be silently lost, only queued for a human to
+  // sort out.
+  let payoutStatus = 'pending_manual';
+  let stripeTransferId = null;
+  let stripePayoutId = null;
+  let failureReason = null;
+
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('stripe_account_id')
+    .eq('email', user.email)
+    .maybeSingle();
+
+  if (profile?.stripe_account_id) {
+    try {
+      const account = await retrieveConnectedAccount(profile.stripe_account_id);
+      if (account.payouts_enabled) {
+        const amountCents = Math.round(amount * 100);
+        const transfer = await createConnectTransfer({
+          amountCents,
+          destinationAccountId: profile.stripe_account_id,
+          referenceId: body.payment_method_id,
+          description: `${method} withdrawal for ${user.email}`,
+        });
+        stripeTransferId = transfer.id;
+
+        const payoutResult = await createConnectPayout({
+          amountCents,
+          destinationAccountId: profile.stripe_account_id,
+          description: `${method} withdrawal`,
+        });
+        stripePayoutId = payoutResult.id;
+        payoutStatus = 'completed';
+      } else {
+        failureReason = 'Connected account not yet fully verified for payouts';
+      }
+    } catch (payoutError) {
+      console.error('Real payout attempt failed for', user.email, payoutError);
+      failureReason = payoutError.message;
+    }
+  }
+
   const { data: payout, error: insertError } = await admin
     .from('payout_requests')
     .insert({
@@ -117,13 +161,16 @@ async function handleWithdraw(admin, user, body) {
       net_amount: amount,
       method,
       payment_method_id: body.payment_method_id,
-      status: 'pending_manual',
+      status: payoutStatus,
+      stripe_transfer_id: stripeTransferId,
+      stripe_payout_id: stripePayoutId,
+      failure_reason: failureReason,
     })
     .select()
     .single();
   if (insertError) throw insertError;
 
-  return { success: true, payout_request_id: payout.id };
+  return { success: true, payout_request_id: payout.id, status: payoutStatus };
 }
 
 async function handlePayRequest(admin, user, body) {
