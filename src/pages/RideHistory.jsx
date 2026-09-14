@@ -63,26 +63,18 @@ export default function RideHistory() {
     requested: { label: "Pending", color: "bg-yellow-500", icon: Clock }
   };
 
-  const handleRebook = async (ride) => {
-    try {
-      const newRide = await base44.entities.RideRequest.create({
-        created_by: currentUser?.email,
-        passenger_email: currentUser?.email,
-        pickup_address: ride.pickup_address,
-        dropoff_address: ride.dropoff_address,
-        pickup_coords: ride.pickup_coords,
-        dropoff_coords: ride.dropoff_coords,
-        ride_type: ride.ride_type,
-        status: 'requested',
-        estimated_distance_miles: ride.estimated_distance_miles,
-        estimated_duration_minutes: ride.estimated_duration_minutes,
-        fare_breakdown: ride.fare_breakdown
-      });
-      toast.success('Ride rebooked successfully!');
-      navigate(createPageUrl("MyRides"));
-    } catch (error) {
-      toast.error('Failed to rebook ride');
-    }
+  const handleRebook = (ride) => {
+    // This used to insert a RideRequest directly from the browser, copying
+    // the OLD ride's fare_breakdown (including driver_earnings) verbatim
+    // onto a brand new ride nobody paid for -- api/_handlers/rides.js's
+    // requestRideSecure is the only place that actually charges anyone
+    // (wallet debit or a real Stripe PaymentIntent) and prices a ride from
+    // the current rate card, so a real rebook has to go through the normal
+    // ride-hailing flow (vehicle class + payment method), not a one-click
+    // client-side insert. Send the rider there instead of pretending to
+    // book something nobody paid for and no driver could get paid for.
+    toast.info('Set up your ride again to rebook this trip.');
+    navigate(createPageUrl("Travel"));
   };
 
   const handleShare = async (ride) => {

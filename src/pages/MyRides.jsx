@@ -11,6 +11,7 @@ import {
   Settings, Calendar, Gift
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import RideTrackingMap from "../components/ride/RideTrackingMap";
 import RatingModal from "../components/ride/RatingModal";
 import PassengerRatingModal from "../components/ride/PassengerRatingModal";
@@ -60,27 +61,21 @@ export default function MyRides() {
     }
   });
 
+  // This used to insert a RideRequest directly from the browser with a
+  // hardcoded $15 fare_breakdown and no payment collected -- so a
+  // "scheduled" ride charged nobody, yet completeRide would still have
+  // paid a driver_earnings figure that was never actually funded.
+  // requestRideSecure (api/_handlers/rides.js) is the only place that
+  // prices a ride from the real rate card and actually charges the rider,
+  // but it has no concept of a future scheduled_time yet -- that's real
+  // feature work (server-side scheduling + matching a driver later, not
+  // immediately), not a one-line fix, so this is disabled for now rather
+  // than shipped as a free, unpaid ride generator.
   const scheduleRideMutation = useMutation({
-    mutationFn: async (rideData) => {
-      const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
-      return await base44.entities.RideRequest.create({
-        ...rideData,
-        created_by: currentUser?.email,
-        passenger_email: currentUser?.email,
-        ride_type: "car",
-        status: "scheduled",
-        passenger_verification_code: verificationCode,
-        rider_preferences: currentUser?.ride_preferences || {},
-        fare_breakdown: {
-          total_fare: 15,
-          base_fare: 5,
-          distance_fare: 10
-        }
-      });
+    mutationFn: async () => {
+      throw new Error("Scheduled rides aren't available yet -- check back soon!");
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['my-rides']);
-    }
+    onError: (error) => toast.error(error.message),
   });
 
   // Real-time driver location tracking - updates every 2 seconds
