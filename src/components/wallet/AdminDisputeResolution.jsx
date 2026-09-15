@@ -50,6 +50,10 @@ export default function AdminDisputeResolution({ currentUser, onClose }) {
 
   const resolveDisputeMutation = useMutation({
     mutationFn: async ({ disputeId, resolution, outcome }) => {
+      // NOTE: this only records the admin's decision -- it does not itself
+      // move any escrowed funds. Releasing/refunding the actual P2P trade
+      // amount needs a real settlement step (a verified wallet_move) that
+      // doesn't exist yet; flagging rather than building it here.
       await base44.entities.P2PEscrow.update(disputeId, {
         status: outcome === 'buyer_favor' ? 'refunded' : 'released',
         admin_notes: resolution
@@ -80,6 +84,9 @@ export default function AdminDisputeResolution({ currentUser, onClose }) {
       toast.success('Dispute resolved successfully');
       setSelectedDispute(null);
       setAiAnalysis(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to resolve dispute: ' + (error.message || 'Unknown error'));
     }
   });
 
