@@ -125,7 +125,7 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
                 <ArrowRightLeft className="w-8 h-8" />
                 P2P Trading
               </h2>
-              <p className="text-green-100">Trade crypto peer-to-peer with escrow protection</p>
+              <p className="text-green-100">Peer-to-peer crypto trading — coming soon</p>
             </div>
             <div className="flex items-center gap-3">
               {currentUser?.role === 'admin' && (
@@ -155,11 +155,12 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
                 How P2P Works
               </Button>
               <Button
-                onClick={() => setShowCreateOrder(true)}
-                className="bg-white text-green-600 hover:bg-gray-100"
+                disabled
+                title="P2P crypto trading is coming soon"
+                className="bg-white/50 text-green-700 cursor-not-allowed"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Create Order
+                Create Order (Coming Soon)
               </Button>
               <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition">
                 <X className="w-6 h-6 text-white" />
@@ -192,6 +193,13 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
         </div>
 
         <div className="p-6">
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-center gap-3 mb-6">
+            <Shield className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+            <p className="text-yellow-200 text-sm">
+              P2P crypto escrow trading isn't live yet — the real settlement step that releases funds hasn't been built. New orders and new trades are paused; nothing here charges you or moves any funds.
+            </p>
+          </div>
+
           {/* Filters */}
           <div className="flex items-center gap-3 mb-6">
             <Filter className="w-5 h-5 text-gray-400" />
@@ -311,8 +319,8 @@ export default function P2PTradingMarketplace({ currentUser, onClose }) {
 
                       <div className="text-right ml-6">
                         <div className="flex items-center gap-2 mb-2">
-                          <Shield className="w-4 h-4 text-green-400" />
-                          <span className="text-green-400 text-sm font-semibold">Escrow Protected</span>
+                          <Shield className="w-4 h-4 text-yellow-400" />
+                          <span className="text-yellow-400 text-sm font-semibold">Coming Soon</span>
                         </div>
                         <Button className="bg-green-600 hover:bg-green-700">
                           View Details

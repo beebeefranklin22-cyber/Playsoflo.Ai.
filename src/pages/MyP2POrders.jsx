@@ -39,18 +39,11 @@ export default function MyP2POrders() {
     refetchInterval: 10000
   });
 
-  const completeOrderMutation = useMutation({
-    mutationFn: async (orderId) => {
-      return await base44.entities.P2POrder.update(orderId, {
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['my-p2p-orders']);
-      toast.success('Order completed! Please rate your trading partner.');
-    }
-  });
+  // Marking an in_escrow order "completed" here used to just flip the
+  // status flag directly, with no real settlement behind it at all (see
+  // P2POrderDetails.jsx) -- paused along with the rest of P2P escrow
+  // trading rather than let it claim a trade completed when no funds
+  // actually moved.
 
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId) => {
@@ -202,12 +195,12 @@ export default function MyP2POrders() {
 
                         {order.status === 'in_escrow' && (
                           <Button
-                            onClick={() => completeOrderMutation.mutate(order.id)}
-                            disabled={completeOrderMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none"
+                            disabled
+                            title="Escrow release is coming soon — contact support about this order"
+                            className="bg-white/10 text-gray-500 cursor-not-allowed flex-1 sm:flex-none"
                             size="sm"
                           >
-                            Complete
+                            Complete (Coming Soon)
                           </Button>
                         )}
 
