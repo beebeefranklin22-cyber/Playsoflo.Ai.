@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { 
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import {
   Star, MapPin, Clock, ChevronLeft, Sparkles, X,
   Heart, SlidersHorizontal, Search, Calendar,
   DollarSign, Users, CheckCircle
@@ -9,10 +11,13 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { toast } from "sonner";
 import SwipeableCard from "../components/SwipeableCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import StripeCheckoutForm from "@/components/payment/StripeCheckoutForm";
+import { processUnifiedCheckout } from "@/functions/processUnifiedCheckout";
 
 export default function Explore() {
   const navigate = useNavigate();
@@ -77,35 +82,72 @@ export default function Explore() {
     }
   });
 
-  const createBookingMutation = useMutation({
-    mutationFn: async (bookingData) => {
-      // Generate confirmation code
-      const confirmationCode = `PSF${Date.now().toString(36).toUpperCase()}`;
-      
-      const booking = await base44.entities.Booking.create({
-        ...bookingData,
-        confirmation_code: confirmationCode,
-        booking_status: "confirmed",
-        payment_status: "paid"
-      });
+  // Real payment, not a fabricated "paid" record -- this used to create a
+  // Booking row marked payment_status: "paid" and a matching completed
+  // Payment record with zero actual payment collection (no Stripe call, no
+  // wallet debit). Routed through the same canonical checkout endpoint
+  // (processUnifiedCheckout, order_type: 'experience') UnifiedBookingModal
+  // already uses for other experience bookings, so the fee/provider-payout
+  // math is identical and server-verified.
+  const [clientSecret, setClientSecret] = useState(null);
+  const [stripePromise, setStripePromise] = useState(null);
+  const [isPaying, setIsPaying] = useState(false);
 
-      // Create payment record
-      await base44.entities.Payment.create({
-        amount_usd: bookingData.total_price_usd,
-        amount_rri: bookingData.total_price_soflo || 0,
-        method: bookingData.payment_method,
-        status: "completed",
-        reference_type: "order",
-        reference_id: booking.id,
-        memo: `Booking for ${bookingData.experience_title}`
+  const initiatePaymentMutation = useMutation({
+    mutationFn: async () => {
+      const res = await processUnifiedCheckout({
+        order_type: 'experience',
+        payment_method: 'stripe',
+        amount: selectedExperience.price * bookingForm.number_of_guests,
+        provider_email: selectedExperience.provider_email || selectedExperience.created_by,
+        item_id: selectedExperience.id,
+        item_title: selectedExperience.title,
+        booking_date: bookingForm.booking_date,
+        quantity: bookingForm.number_of_guests,
+        customer_notes: bookingForm.special_requests,
       });
-
-      return booking;
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.client_secret || !data?.publishable_key) throw new Error('Payment setup failed');
+      return data;
     },
-    onSuccess: (booking) => {
+    onSuccess: async (data) => {
+      const stripe = await loadStripe(data.publishable_key);
+      setStripePromise(stripe);
+      setClientSecret(data.client_secret);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to start payment');
+    }
+  });
+
+  const finalizeBookingMutation = useMutation({
+    mutationFn: async (paymentIntentId) => {
+      const res = await processUnifiedCheckout({
+        order_type: 'experience',
+        payment_method: 'stripe',
+        confirm_payment_intent_id: paymentIntentId,
+        amount: selectedExperience.price * bookingForm.number_of_guests,
+        provider_email: selectedExperience.provider_email || selectedExperience.created_by,
+        item_id: selectedExperience.id,
+        item_title: selectedExperience.title,
+        booking_date: bookingForm.booking_date,
+        quantity: bookingForm.number_of_guests,
+        customer_notes: bookingForm.special_requests,
+      });
+      const data = res?.data || res;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
       setShowBooking(false);
       setSelectedExperience(null);
-      alert(`Booking confirmed! Your confirmation code is: ${booking.confirmation_code}`);
+      setClientSecret(null);
+      setStripePromise(null);
+      alert(`Booking confirmed! Your confirmation code is: PSF${(data.order_id || '').slice(0, 8).toUpperCase()}`);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Payment succeeded but booking confirmation failed -- contact support.');
     }
   });
 
@@ -162,24 +204,22 @@ export default function Explore() {
     setCurrentIndex(nextIndex);
   };
 
+  const closeBookingModal = () => {
+    setShowBooking(false);
+    setClientSecret(null);
+    setStripePromise(null);
+  };
+
   const handleBooking = () => {
     if (!selectedExperience || !bookingForm.booking_date) {
       alert("Please select a date for your experience");
       return;
     }
-
-    const useSoflo = bookingForm.payment_method === "soflocoin";
-    createBookingMutation.mutate({
-      experience_id: selectedExperience.id,
-      experience_title: selectedExperience.title,
-      booking_date: bookingForm.booking_date,
-      number_of_guests: bookingForm.number_of_guests,
-      total_price_usd: selectedExperience.price * bookingForm.number_of_guests,
-      total_price_soflo: useSoflo ? selectedExperience.price_in_soflo * bookingForm.number_of_guests : 0,
-      payment_method: bookingForm.payment_method,
-      special_requests: bookingForm.special_requests,
-      provider_email: selectedExperience.created_by
-    });
+    if (bookingForm.payment_method !== "card") {
+      toast.error("Bank transfer isn't available yet -- please pay by card.");
+      return;
+    }
+    initiatePaymentMutation.mutate();
   };
 
   const getVisibleCards = () => {
@@ -473,7 +513,7 @@ export default function Explore() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl"
-            onClick={() => setShowBooking(false)}
+            onClick={closeBookingModal}
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -483,14 +523,14 @@ export default function Explore() {
               className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               <div className="relative h-64">
-                <img 
-                  src={selectedExperience.image_url} 
+                <img
+                  src={selectedExperience.image_url}
                   alt={selectedExperience.title}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent" />
                 <button
-                  onClick={() => setShowBooking(false)}
+                  onClick={closeBookingModal}
                   className="absolute top-4 right-4 p-3 bg-white/20 backdrop-blur-xl rounded-full hover:bg-white/30 transition"
                 >
                   <X className="w-6 h-6 text-white" />
@@ -543,7 +583,7 @@ export default function Explore() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="card">Credit/Debit Card</SelectItem>
-                        <SelectItem value="bank">Bank Transfer</SelectItem>
+                        <SelectItem value="bank" disabled>Bank Transfer (Coming Soon)</SelectItem>
                         <SelectItem value="soflocoin" disabled>SoFloCoin (Coming Soon)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -588,20 +628,32 @@ export default function Explore() {
                     </div>
                   </div>
 
-                  <Button
-                    onClick={handleBooking}
-                    disabled={!bookingForm.booking_date || createBookingMutation.isLoading}
-                    className="w-full py-6 bg-gradient-to-r from-purple-600 to-pink-600 text-xl font-bold rounded-2xl"
-                  >
-                    {createBookingMutation.isLoading ? (
-                      "Processing..."
-                    ) : (
-                      <>
-                        <CheckCircle className="w-6 h-6 mr-2" />
-                        Confirm Booking
-                      </>
-                    )}
-                  </Button>
+                  {clientSecret && stripePromise ? (
+                    <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#a855f7' } } }}>
+                      <StripeCheckoutForm
+                        amount={selectedExperience.price * bookingForm.number_of_guests}
+                        onSuccess={(intentId) => finalizeBookingMutation.mutate(intentId)}
+                        onCancel={() => { setClientSecret(null); setStripePromise(null); }}
+                        isProcessing={isPaying || finalizeBookingMutation.isPending}
+                        setIsProcessing={setIsPaying}
+                      />
+                    </Elements>
+                  ) : (
+                    <Button
+                      onClick={handleBooking}
+                      disabled={!bookingForm.booking_date || initiatePaymentMutation.isPending}
+                      className="w-full py-6 bg-gradient-to-r from-purple-600 to-pink-600 text-xl font-bold rounded-2xl"
+                    >
+                      {initiatePaymentMutation.isPending ? (
+                        "Setting up payment..."
+                      ) : (
+                        <>
+                          <CheckCircle className="w-6 h-6 mr-2" />
+                          Confirm Booking
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.div>
