@@ -74,10 +74,10 @@ export default function PropertyReviewsList({ propertyId, hostEmail }) {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
-                  {review.created_by?.[0]?.toUpperCase() || 'U'}
+                  {(review.reviewer_name || review.reviewer_email)?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div>
-                  <p className="text-white font-semibold">{review.created_by}</p>
+                  <p className="text-white font-semibold">{review.reviewer_name || review.reviewer_email}</p>
                   <p className="text-gray-500 text-xs">
                     {new Date(review.created_date).toLocaleDateString()}
                   </p>

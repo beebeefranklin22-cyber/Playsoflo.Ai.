@@ -17,7 +17,6 @@ import { Building, Plus, Upload, X, MapPin, Bed, Bath,
 import { toast } from "sonner";
 import PropertyCalendar from "../components/property/PropertyCalendar";
 import PropertyMessaging from "../components/property/PropertyMessaging";
-import PropertyReviewModal from "../components/property/PropertyReviewModal";
 import QuickEditPropertyModal from "../components/property/QuickEditPropertyModal";
 import BulkPropertyUpload from "../components/provider/BulkPropertyUpload";
 import PropertyDashboard from "../components/property/PropertyDashboard";
@@ -35,7 +34,6 @@ export default function PropertyProviderHub() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedBookingForChat, setSelectedBookingForChat] = useState(null);
-  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null);
   const [editingProperty, setEditingProperty] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -623,7 +621,7 @@ export default function PropertyProviderHub() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setSelectedBookingForReview(booking)}
+                          onClick={() => toast.info("Reviewing guests is coming soon")}
                           className="flex-1"
                         >
                           Leave Review
@@ -697,15 +695,6 @@ export default function PropertyProviderHub() {
               />
             </div>
           </div>
-        )}
-
-        {/* Review Modal */}
-        {selectedBookingForReview && (
-          <PropertyReviewModal
-            booking={selectedBookingForReview}
-            onClose={() => setSelectedBookingForReview(null)}
-            isHost={true}
-          />
         )}
 
         {/* Edit Property Modal */}

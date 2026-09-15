@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -88,9 +89,16 @@ export default function VideoCreationModal({ isOpen, onClose, currentUser, chall
       });
 
       if (selectedChallenge) {
-        await base44.asServiceRole.entities.Challenge.update(selectedChallenge.id, {
-          total_videos: (selectedChallenge.total_videos || 0) + 1
+        // challenges_update_own only lets the challenge's own CREATOR
+        // update it, so joining anyone else's challenge (the normal
+        // case) always threw here even after the video itself had
+        // already posted. A narrow SECURITY DEFINER RPC (0047) lets any
+        // authenticated user bump the counter without granting general
+        // write access to someone else's challenge row.
+        const { error: rpcError } = await supabase.rpc('increment_challenge_video_count', {
+          p_challenge_id: selectedChallenge.id
         });
+        if (rpcError) throw rpcError;
       }
 
       return videoPost;
