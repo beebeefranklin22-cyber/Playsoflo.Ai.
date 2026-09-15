@@ -262,7 +262,7 @@ export default function RestaurantOwnerHub() {
         if (statusMessages[newStatus] && myRestaurant) {
           try {
             await base44.entities.Notification.create({
-              user_email: customerEmail,
+              recipient_email: customerEmail,
               type: 'order_update',
               title: statusMessages[newStatus].split(' - ')[0],
               message: `${myRestaurant.name}: ${statusMessages[newStatus].split(' - ')[1]}`,

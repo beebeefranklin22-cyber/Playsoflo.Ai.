@@ -8,9 +8,13 @@ export default function NotificationBadge({ currentUser, className = "" }) {
     queryKey: ['unread-count', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return 0;
-      const notifications = await base44.entities.Notification.filter({ 
-        user_email: currentUser.email,
-        read: false 
+      // recipient_email is the column every other notification read/write
+      // site uses; this one used to filter by the near-dead user_email
+      // column instead, so the badge always undercounted almost every
+      // notification type in the app.
+      const notifications = await base44.entities.Notification.filter({
+        recipient_email: currentUser.email,
+        read: false
       });
       return notifications.length;
     },
