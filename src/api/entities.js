@@ -83,6 +83,19 @@ class Entity {
 
   async filter(filtersOrSort = {}, optionsOrLimit = {}) { return this.list(filtersOrSort, optionsOrLimit); }
 
+  // A handful of call sites only ever wanted a row count (viewer counts,
+  // chat message counts on a dashboard) but fetched every matching row
+  // with .filter(...).length -- wasteful and, worse, refetched on a
+  // multi-second poll for every stream card on screen. head:true makes
+  // Postgres return just the count, not the row data.
+  async count(filters = {}) {
+    let q = supabase.from(this.tableName).select('*', { count: 'exact', head: true });
+    q = applyFilters(q, filters);
+    const { count, error } = await q;
+    if (error) throw error;
+    return count ?? 0;
+  }
+
   async get(id) {
     const { data, error } = await supabase.from(this.tableName).select('*').eq('id', id).single();
     if (error) throw error;

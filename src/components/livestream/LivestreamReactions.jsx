@@ -20,7 +20,10 @@ export default function LivestreamReactions({ streamId, currentUser }) {
   const { data: reactionCounts = {} } = useQuery({
     queryKey: ['livestream-reactions', streamId],
     queryFn: async () => {
-      const reactions = await base44.entities.LivestreamReaction.filter({ stream_id: streamId });
+      // The badge display already saturates at "99+", so an upper bound on
+      // the fetch itself (rather than an exact lifetime count) is enough
+      // for what's actually shown.
+      const reactions = await base44.entities.LivestreamReaction.filter({ stream_id: streamId }, 1000);
       const counts = {};
       reactions.forEach(r => {
         counts[r.emoji] = (counts[r.emoji] || 0) + 1;

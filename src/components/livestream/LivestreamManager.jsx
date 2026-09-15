@@ -390,20 +390,14 @@ function ActiveStreamCard({ stream, currentUser, onEnd, onBroadcast, onViewAsVie
 
   const { data: chatCount = 0 } = useQuery({
     queryKey: ['stream-chat-count', stream.id],
-    queryFn: async () => {
-      const msgs = await base44.entities.LivestreamChat.filter({ stream_id: stream.id, is_deleted: false });
-      return msgs.length;
-    },
+    queryFn: () => base44.entities.LivestreamChat.count({ stream_id: stream.id, is_deleted: false }),
     refetchInterval: 5000,
     initialData: 0
   });
 
   const { data: viewerCount = 0 } = useQuery({
     queryKey: ['stream-viewer-count', stream.id],
-    queryFn: async () => {
-      const v = await base44.entities.ViewerAnalytics.filter({ content_id: stream.id, is_currently_watching: true });
-      return v.length;
-    },
+    queryFn: () => base44.entities.ViewerAnalytics.count({ content_id: stream.id, is_currently_watching: true }),
     refetchInterval: 5000,
     initialData: 0
   });
@@ -470,7 +464,7 @@ function ModerationModal({ streamId, onClose }) {
 
   const { data: messages = [] } = useQuery({
     queryKey: ['mod-messages', streamId],
-    queryFn: () => base44.entities.LivestreamChat.filter({ stream_id: streamId, is_deleted: false }),
+    queryFn: () => base44.entities.LivestreamChat.filter({ stream_id: streamId, is_deleted: false }, 200),
     refetchInterval: 3000,
     initialData: []
   });

@@ -24,18 +24,24 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
     queryFn: () => base44.entities.WatchParty.filter({
       content_id: content.id,
       is_active: true
-    }),
+    }, 20),
     enabled: !!content,
     refetchInterval: 2000
   });
 
   const { data: chatMessages = [] } = useQuery({
     queryKey: ['watch-party-messages', activeParty?.id],
-    queryFn: () => base44.entities.WatchPartyMessage.filter({
-      party_id: activeParty.id
-    }),
+    queryFn: async () => {
+      // Most recent 100, then put back in chronological order for display
+      // -- fetching without a limit re-pulled the party's entire message
+      // history on every 1s poll tick.
+      const recent = await base44.entities.WatchPartyMessage.filter({
+        party_id: activeParty.id
+      }, { orderBy: 'created_date', orderDesc: true, limit: 100 });
+      return recent.reverse();
+    },
     enabled: !!activeParty,
-    refetchInterval: 1000
+    refetchInterval: 2000
   });
 
   const { data: playlist } = useQuery({
@@ -51,7 +57,9 @@ export default function WatchPartyModal({ content, currentUser, onClose }) {
 
   const { data: allContent = [] } = useQuery({
     queryKey: ['streaming-content-all'],
-    queryFn: () => base44.entities.StreamingContent.list(),
+    // This picker was pulling the entire platform content library with no
+    // filter or limit at all -- cap it to a reasonably-sized recent list.
+    queryFn: () => base44.entities.StreamingContent.list({}, { orderBy: 'created_date', orderDesc: true, limit: 100 }),
     enabled: showPlaylistBuilder
   });
 

@@ -110,8 +110,7 @@ export default function LivestreamViewer() {
     if (!streamId) return;
     const updateCount = async () => {
       try {
-        const analytics = await base44.entities.ViewerAnalytics.filter({ content_id: streamId, is_currently_watching: true });
-        setViewerCount(analytics.length);
+        setViewerCount(await base44.entities.ViewerAnalytics.count({ content_id: streamId, is_currently_watching: true }));
       } catch {}
     };
     updateCount();
