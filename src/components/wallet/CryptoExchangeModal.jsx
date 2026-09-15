@@ -5,7 +5,6 @@ import { X, ArrowDownUp, TrendingUp, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import toast from "react-hot-toast";
-import Crypto2FAModal from "./Crypto2FAModal";
 
 export default function CryptoExchangeModal({ currentUser, onClose }) {
   const [fromCurrency, setFromCurrency] = useState("USD");
@@ -14,8 +13,6 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
   const [loading, setLoading] = useState(false);
   const [prices, setPrices] = useState({});
   const [loadingPrices, setLoadingPrices] = useState(true);
-  const [show2FA, setShow2FA] = useState(false);
-  const [pendingExchange, setPendingExchange] = useState(null);
 
   useEffect(() => {
     fetchPrices();
@@ -57,22 +54,7 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
       return;
     }
 
-    // Check if 2FA is enabled
-    if (currentUser?.crypto_2fa_enabled) {
-      setPendingExchange({ fromAmount, fromCurrency, toCurrency });
-      setShow2FA(true);
-      return;
-    }
-
     performExchange();
-  };
-
-  const handle2FAVerified = (verified) => {
-    setShow2FA(false);
-    if (verified && pendingExchange) {
-      performExchange();
-    }
-    setPendingExchange(null);
   };
 
   const performExchange = async () => {
@@ -206,10 +188,6 @@ export default function CryptoExchangeModal({ currentUser, onClose }) {
   };
 
   const cryptos = ["USD", "BTC", "ETH", "SoFloCoin", "USDT", "SOL"];
-
-  if (show2FA) {
-    return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="exchange" />;
-  }
 
   return (
     <motion.div
