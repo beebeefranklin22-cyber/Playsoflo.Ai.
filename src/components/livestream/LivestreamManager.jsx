@@ -397,7 +397,15 @@ function ActiveStreamCard({ stream, currentUser, onEnd, onBroadcast, onViewAsVie
 
   const { data: viewerCount = 0 } = useQuery({
     queryKey: ['stream-viewer-count', stream.id],
-    queryFn: () => base44.entities.ViewerAnalytics.count({ content_id: stream.id, is_currently_watching: true }),
+    // A viewer whose tab crashed/closed without the graceful-leave cleanup
+    // running keeps a heartbeat-backed row (see LivestreamViewer.jsx) --
+    // only count it if that heartbeat is still recent, so a stranded row
+    // ages out instead of inflating the count forever.
+    queryFn: () => base44.entities.ViewerAnalytics.count({
+      content_id: stream.id,
+      is_currently_watching: true,
+      updated_at: { $gte: new Date(Date.now() - 90000).toISOString() }
+    }),
     refetchInterval: 5000,
     initialData: 0
   });
