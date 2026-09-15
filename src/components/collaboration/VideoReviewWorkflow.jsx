@@ -109,6 +109,13 @@ export default function VideoReviewWorkflow({ currentUser }) {
 
   return (
     <div className="space-y-6">
+      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 flex items-center gap-3">
+        <Video className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+        <p className="text-yellow-200 text-sm">
+          Uploading a video draft to a shared library for review is coming soon — there's no way to submit one yet, so this list will stay empty for now.
+        </p>
+      </div>
+
       <Card className="bg-white/5 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
