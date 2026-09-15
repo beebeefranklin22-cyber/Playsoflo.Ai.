@@ -5,9 +5,10 @@ import { X, Star, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export default function PropertyReviewModal({ booking, property, onClose }) {
+export default function PropertyReviewModal({ booking, property, currentUser, onClose }) {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -15,8 +16,12 @@ export default function PropertyReviewModal({ booking, property, onClose }) {
 
   const submitReviewMutation = useMutation({
     mutationFn: async (data) => {
+      if (!currentUser?.email) throw new Error("You must be signed in to leave a review");
+
       // Create review
       const newReview = await base44.entities.UserReview.create({
+        reviewer_email: currentUser.email,
+        reviewer_name: currentUser.full_name,
         reviewed_user_email: property.created_by,
         rating: data.rating,
         review_text: data.review,
@@ -25,18 +30,15 @@ export default function PropertyReviewModal({ booking, property, onClose }) {
         property_title: property.title
       });
 
-      // Update property rating
-      const reviews = await base44.asServiceRole.entities.UserReview.filter({
-        property_id: property.id
+      // Recompute the property's aggregate rating via a narrow SECURITY
+      // DEFINER RPC (0047) -- properties_update_own only lets the HOST
+      // update their own listing, so a direct client update here always
+      // failed for the guest who just left the review, even though the
+      // review itself had already saved.
+      const { error: rpcError } = await supabase.rpc('recompute_property_rating', {
+        p_property_id: property.id
       });
-      
-      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-      const avgRating = totalRating / reviews.length;
-
-      await base44.asServiceRole.entities.Property.update(property.id, {
-        rating: parseFloat(avgRating.toFixed(1)),
-        reviews_count: reviews.length
-      });
+      if (rpcError) throw rpcError;
 
       // Notify host
       await base44.asServiceRole.entities.Notification.create({
@@ -63,6 +65,10 @@ export default function PropertyReviewModal({ booking, property, onClose }) {
   });
 
   const handleSubmit = () => {
+    if (!currentUser?.email) {
+      toast.error('You must be signed in to leave a review');
+      return;
+    }
     if (rating === 0) {
       toast.error('Please select a rating');
       return;

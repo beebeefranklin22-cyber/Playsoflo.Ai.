@@ -318,11 +318,12 @@ export default function MyPropertyBookings() {
         {selectedBookingForReview && (
           <PropertyReviewModal
             booking={selectedBookingForReview}
-            property={{ 
+            property={{
               id: selectedBookingForReview.experience_id,
               title: selectedBookingForReview.experience_title,
               created_by: selectedBookingForReview.provider_email
             }}
+            currentUser={currentUser}
             onClose={() => setSelectedBookingForReview(null)}
           />
         )}

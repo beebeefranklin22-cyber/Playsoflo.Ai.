@@ -58,9 +58,7 @@ export default function SubmitReviewModal({
         title: title || `${rating} star review`,
         content,
         category_ratings: Object.values(categoryRatings).some(v => v > 0) ? categoryRatings : undefined,
-        photos,
-        status: "pending",
-        verified_purchase: true
+        photos
       });
 
       toast.success("Review submitted! Thank you for your feedback.");
