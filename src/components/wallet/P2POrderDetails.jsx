@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { X, Shield, MessageCircle, AlertTriangle, Star, CheckCircle, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
-import { processP2PEscrow } from "@/functions/processP2PEscrow";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import P2PChat from "./P2PChat";
@@ -31,119 +30,16 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
     enabled: !!order.escrow_id
   });
 
-  const matchOrderMutation = useMutation({
-    mutationFn: async () => {
-      // Create escrow
-      const escrowData = await base44.entities.P2PEscrow.create({
-        order_id: order.id,
-        seller_email: order.seller_email,
-        buyer_email: currentUser.email,
-        crypto_currency: order.crypto_currency,
-        crypto_amount: order.crypto_amount,
-        fiat_amount: order.total_amount,
-        payment_method: order.payment_methods[0],
-        status: 'pending_payment'
-      });
-
-      // Update order
-      await base44.entities.P2POrder.update(order.id, {
-        buyer_email: currentUser.email,
-        status: 'matched',
-        escrow_id: escrowData.id,
-        matched_at: new Date().toISOString()
-      });
-
-      // Notify seller
-      await base44.entities.Notification.create({
-        recipient_email: order.seller_email,
-        type: 'p2p_order',
-        title: '🤝 Your P2P order was matched!',
-        message: `${currentUser.email} accepted your ${order.order_type} order for ${order.crypto_amount} ${order.crypto_currency}. Waiting for payment.`,
-        read: false,
-        action_url: '/MyP2POrders'
-      });
-
-      return escrowData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['p2p-orders']);
-      queryClient.invalidateQueries(['p2p-escrow']);
-      toast.success('✅ Order matched! Proceed to payment.');
-    }
-  });
-
-  const confirmPaymentMutation = useMutation({
-    mutationFn: async () => {
-      await base44.entities.P2PEscrow.update(escrow.id, {
-        status: 'payment_submitted',
-        payment_confirmed_at: new Date().toISOString()
-      });
-
-      // Notify seller
-      await base44.entities.Notification.create({
-        recipient_email: order.seller_email,
-        type: 'payment_received',
-        title: '💰 Payment received on P2P order',
-        message: `Buyer confirmed payment for ${order.crypto_amount} ${order.crypto_currency}. Please verify and release escrow.`,
-        read: false,
-        action_url: '/MyP2POrders'
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['p2p-escrow']);
-      toast.success('Payment submitted! Waiting for seller confirmation.');
-    }
-  });
-
-  const releaseEscrowMutation = useMutation({
-    mutationFn: async () => {
-      // Use secure backend function — handles crypto transfer, fiat payout, platform fee, and rewards
-      const { data } = await processP2PEscrow({
-        action: 'release_escrow',
-        escrow_id: escrow.id,
-        order_id: order.id
-      });
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Escrow release failed');
-      }
-
-      // Update order status
-      await base44.entities.P2POrder.update(order.id, {
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      });
-
-      // Notify buyer
-      await base44.entities.Notification.create({
-        recipient_email: escrow.buyer_email,
-        type: 'payment_received',
-        title: '✅ Escrow released - Trade complete!',
-        message: `Seller released ${escrow.crypto_amount} ${escrow.crypto_currency}. Your trade is complete!`,
-        read: false,
-        action_url: '/MyP2POrders'
-      });
-
-      // Notify seller
-      await base44.entities.Notification.create({
-        recipient_email: order.seller_email,
-        type: 'p2p_order',
-        title: '✅ Trade completed successfully',
-        message: `Your P2P trade for ${order.crypto_amount} ${order.crypto_currency} is complete. Payment received.`,
-        read: false,
-        action_url: '/MyP2POrders'
-      });
-
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['p2p-orders']);
-      queryClient.invalidateQueries(['p2p-escrow']);
-      queryClient.invalidateQueries(['crypto-wallets']);
-      queryClient.invalidateQueries(['currentUser']);
-      toast.success('✅ Escrow released! Trade completed.');
-    }
-  });
+  // Accepting/matching an order, confirming payment, and releasing escrow
+  // used to be wired here, but releasing escrow called a Supabase Edge
+  // Function (processP2PEscrow) that was never actually deployed (no
+  // supabase/functions/ directory exists in this repo -- same shape of bug
+  // fixed for self-serve ads), and no step anywhere ever actually locked
+  // the seller's crypto_wallets balance when a trade was "matched", so
+  // there was nothing real for a release to even move. Building real
+  // fund-reservation and settlement is a genuine feature gap, not a small
+  // fix; the whole flow is paused (see the banner above) instead of
+  // shipping the illusion of an escrow that doesn't hold anything.
 
   const submitRatingMutation = useMutation({
     mutationFn: async () => {
@@ -211,7 +107,7 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-white">Order Details</h2>
-              <p className="text-green-100">Secure P2P trade with escrow protection</p>
+              <p className="text-green-100">P2P crypto escrow trading — coming soon</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
               <X className="w-6 h-6 text-white" />
@@ -220,6 +116,15 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
         </div>
 
         <div className="p-6 space-y-6">
+          <Card className="bg-yellow-500/10 border-yellow-500/30">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Shield className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+              <p className="text-yellow-200 text-sm">
+                Escrow release isn't live yet — starting, funding, or releasing a trade is paused until real settlement is built. Nothing here moves any funds.
+              </p>
+            </CardContent>
+          </Card>
+
           {/* Order Info */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
@@ -310,31 +215,31 @@ export default function P2POrderDetails({ order, currentUser, onClose }) {
           <div className="flex gap-3">
             {!isMyOrder && order.status === 'active' && (
               <Button
-                onClick={() => matchOrderMutation.mutate()}
-                disabled={matchOrderMutation.isPending}
-                className="flex-1 bg-green-600 hover:bg-green-700 py-6 text-lg"
+                disabled
+                title="P2P crypto trading is coming soon"
+                className="flex-1 bg-white/10 text-gray-500 cursor-not-allowed py-6 text-lg"
               >
-                {matchOrderMutation.isPending ? 'Processing...' : 'Accept & Start Trade'}
+                Accept & Start Trade (Coming Soon)
               </Button>
             )}
 
             {order.buyer_email === currentUser.email && escrow?.status === 'pending_payment' && (
               <Button
-                onClick={() => confirmPaymentMutation.mutate()}
-                disabled={confirmPaymentMutation.isPending}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 py-6 text-lg"
+                disabled
+                title="P2P crypto trading is coming soon"
+                className="flex-1 bg-white/10 text-gray-500 cursor-not-allowed py-6 text-lg"
               >
-                Confirm Payment Sent
+                Confirm Payment Sent (Coming Soon)
               </Button>
             )}
 
             {isSeller && escrow?.status === 'payment_submitted' && (
               <Button
-                onClick={() => releaseEscrowMutation.mutate()}
-                disabled={releaseEscrowMutation.isPending}
-                className="flex-1 bg-green-600 hover:bg-green-700 py-6 text-lg"
+                disabled
+                title="Escrow release is coming soon — contact support about this order"
+                className="flex-1 bg-white/10 text-gray-500 cursor-not-allowed py-6 text-lg"
               >
-                Release Escrow
+                Release Escrow (Coming Soon)
               </Button>
             )}
 
