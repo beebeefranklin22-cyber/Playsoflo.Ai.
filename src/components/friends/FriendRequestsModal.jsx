@@ -44,7 +44,7 @@ export default function FriendRequestsModal({ currentUser, onClose }) {
       // Send notification
       if (currentUser?.email && currentUser?.full_name) {
         await base44.entities.Notification.create({
-          user_email: request.from_email,
+          recipient_email: request.from_email,
           type: "new_follower",
           title: "Friend Request Accepted",
           message: `${currentUser.full_name} accepted your friend request!`,
