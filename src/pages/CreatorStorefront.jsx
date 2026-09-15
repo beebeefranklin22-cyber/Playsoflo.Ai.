@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TipButton from "../components/TipButton";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import {
   ShoppingBag, Download, Star, Crown, 
   CheckCircle, Heart, Users, Package
@@ -80,12 +81,27 @@ export default function CreatorStorefront() {
         return;
       }
 
+      // Charge the wallet FIRST and check the result -- this used to grant
+      // a subscription with no wallet_move behind it at all, so subscribing
+      // moved zero real money regardless of the tier's price.
+      const { data: result } = await secureBalanceUpdate({
+        amount: tier.monthly_price_usd,
+        recipient_email: creatorEmail,
+        reference_type: 'creator_subscription',
+        reference_id: tier.id,
+        memo: `${tier.tier_name} subscription to ${creatorEmail}`,
+      });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Insufficient balance. Please add funds to your wallet.');
+      }
+
       const subscription = await base44.entities.UserSubscription.create({
         subscriber_email: currentUser.email,
         creator_email: creatorEmail,
         subscription_tier_id: tier.id,
         tier_name: tier.tier_name,
         monthly_amount_usd: tier.monthly_price_usd,
+        status: 'active',
         start_date: new Date().toISOString(),
         next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       });
