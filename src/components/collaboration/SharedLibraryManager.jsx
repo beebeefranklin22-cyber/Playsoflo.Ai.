@@ -50,6 +50,9 @@ export default function SharedLibraryManager({ currentUser }) {
         revenue_split: { [currentUser?.email]: 100 }
       });
       toast.success('Shared library created!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create library: ' + (error.message || 'Unknown error'));
     }
   });
 
@@ -63,6 +66,9 @@ export default function SharedLibraryManager({ currentUser }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-libraries'] });
       toast.success('Content added to library');
+    },
+    onError: (error) => {
+      toast.error('Failed to add content: ' + (error.message || 'Unknown error'));
     }
   });
 
@@ -124,6 +130,9 @@ export default function SharedLibraryManager({ currentUser }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shared-libraries'] });
       toast.success('Content removed from library');
+    },
+    onError: (error) => {
+      toast.error('Failed to remove content: ' + (error.message || 'Unknown error'));
     }
   });
 
@@ -140,6 +149,9 @@ export default function SharedLibraryManager({ currentUser }) {
       queryClient.invalidateQueries({ queryKey: ['shared-libraries'] });
       toast.success('Revenue split updated!');
       setEditingRevenue(null);
+    },
+    onError: (error) => {
+      toast.error('Failed to update revenue split: ' + (error.message || 'Unknown error'));
     }
   });
 
