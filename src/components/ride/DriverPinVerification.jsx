@@ -25,9 +25,14 @@ export function DriverPinPanel({ ride, onPinConfirmed }) {
     setGenerating(true);
     const newPin = String(Math.floor(1000 + Math.random() * 9000));
     try {
-      await base44.asServiceRole
-        ? base44.entities.RideRequest.update(ride.id, { safety_pin: newPin, safety_pin_confirmed: false })
-        : base44.entities.RideRequest.update(ride.id, { safety_pin: newPin, safety_pin_confirmed: false });
+      // `await base44.asServiceRole ? A : B` used to parse as
+      // `(await base44.asServiceRole) ? A : B` -- base44.asServiceRole is
+      // a truthy object, not a promise, so this resolved instantly and the
+      // actual .update() call (both ternary branches were identical
+      // anyway) was fired without ever being awaited or connected to this
+      // try/catch. The PIN save could silently fail (or just race the UI
+      // update below) with no error ever surfacing.
+      await base44.entities.RideRequest.update(ride.id, { safety_pin: newPin, safety_pin_confirmed: false });
       setPin(newPin);
       setConfirmed(false);
     } catch (err) {
