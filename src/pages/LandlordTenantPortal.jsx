@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MaintenanceRequestModal from "../components/realestate/MaintenanceRequestModal";
@@ -94,6 +95,21 @@ export default function LandlordTenantPortal() {
   const payRentMutation = useMutation({
     mutationFn: async ({ leaseId, amount }) => {
       const lease = leases.find(l => l.id === leaseId);
+
+      // Charge the tenant's wallet FIRST and check the result -- this used
+      // to insert a RentPayment row marked "completed" with no wallet_move
+      // behind it at all, so "rent payment submitted" moved zero real money.
+      const { data: result } = await secureBalanceUpdate({
+        amount: Number(amount),
+        recipient_email: lease.landlord_email,
+        reference_type: 'rent_payment',
+        reference_id: leaseId,
+        memo: `Rent payment for lease ${leaseId}`,
+      });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Insufficient balance. Please add funds to your wallet.');
+      }
+
       return await base44.entities.RentPayment.create({
         lease_id: leaseId,
         property_id: lease.property_id,

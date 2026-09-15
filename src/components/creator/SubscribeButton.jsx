@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Crown, Star, Zap, Check, X, Loader2, DollarSign } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function SubscribeButton({ creatorEmail, creatorName, currentUser, compact = false }) {
   const queryClient = useQueryClient();
@@ -33,6 +34,20 @@ export default function SubscribeButton({ creatorEmail, creatorName, currentUser
 
   const subscribeMutation = useMutation({
     mutationFn: async (tier) => {
+      // Charge the wallet FIRST and check the result -- this used to grant
+      // an "active" subscription with no wallet_move behind it at all, so
+      // subscribing moved zero real money regardless of the tier's price.
+      const { data: result } = await secureBalanceUpdate({
+        amount: tier.monthly_price,
+        recipient_email: creatorEmail,
+        reference_type: 'creator_subscription',
+        reference_id: tier.id,
+        memo: `${tier.tier_name} subscription to ${creatorEmail}`,
+      });
+      if (!result?.success) {
+        throw new Error(result?.error || 'Insufficient balance. Please add funds to your wallet.');
+      }
+
       const sub = await base44.entities.CreatorSubscription.create({
         creator_email: creatorEmail,
         subscriber_email: currentUser.email,
