@@ -64,17 +64,29 @@ export default function LivestreamViewer() {
     setIsBroadcaster(broadcaster);
 
     if (id) {
-      // created_by was never set here, but the cleanup below looks the row
-      // up by { content_id, created_by } -- that filter always matched
-      // nothing, so is_currently_watching was never flipped back to false
-      // on leave. Viewer counts (computed from is_currently_watching: true
-      // rows) only ever grew, even across the same viewer refreshing or
-      // re-visiting the page.
+      // The graceful-leave cleanup below (flipping is_currently_watching
+      // back to false) only runs on a normal React unmount -- a crashed
+      // tab, closed browser, or dropped connection never runs it, so that
+      // viewer's row stays "watching" forever and the count only grows.
+      // A heartbeat that keeps bumping updated_at while genuinely present,
+      // combined with a recency filter on the count query below, means a
+      // stale row ages out of the count on its own within ~90s even when
+      // cleanup never fires -- no explicit "goodbye" required.
+      let rowId = null;
+      let heartbeat = null;
       base44.auth.me().then(user => {
         if (!user?.email) return;
-        base44.entities.ViewerAnalytics.create({ content_id: id, created_by: user.email, is_currently_watching: true }).catch(() => {});
+        base44.entities.ViewerAnalytics.create({ content_id: id, created_by: user.email, is_currently_watching: true })
+          .then(row => {
+            rowId = row.id;
+            heartbeat = setInterval(() => {
+              base44.entities.ViewerAnalytics.update(rowId, { is_currently_watching: true }).catch(() => {});
+            }, 30000);
+          })
+          .catch(() => {});
       }).catch(() => {});
       return () => {
+        if (heartbeat) clearInterval(heartbeat);
         base44.auth.me().then(user => {
           base44.entities.ViewerAnalytics.filter({ content_id: id, created_by: user?.email })
             .then(analytics => {
@@ -110,14 +122,27 @@ export default function LivestreamViewer() {
     if (!streamId) return;
     const updateCount = async () => {
       try {
-        setViewerCount(await base44.entities.ViewerAnalytics.count({ content_id: streamId, is_currently_watching: true }));
+        // A crashed/closed viewer's row can only self-correct out of the
+        // count via this recency window (see the heartbeat comment above)
+        // -- a stranded is_currently_watching:true row with no recent
+        // heartbeat no longer counts.
+        const since = new Date(Date.now() - 90000).toISOString();
+        setViewerCount(await base44.entities.ViewerAnalytics.count({
+          content_id: streamId,
+          is_currently_watching: true,
+          updated_at: { $gte: since }
+        }));
       } catch {}
     };
     updateCount();
+    // Realtime only re-triggers this on a row change -- a stale viewer
+    // whose heartbeat silently stopped doesn't produce one, so also
+    // recheck periodically to age them out of the displayed count.
+    const poll = setInterval(updateCount, 30000);
     const unsub = base44.entities.ViewerAnalytics.subscribe((event) => {
       if (event.data?.content_id === streamId) updateCount();
     }, { filter: `content_id=eq.${streamId}` });
-    return () => unsub();
+    return () => { clearInterval(poll); unsub(); };
   }, [streamId]);
 
   // Follow status
