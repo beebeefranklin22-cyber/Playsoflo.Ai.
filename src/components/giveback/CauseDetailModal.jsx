@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -35,10 +36,15 @@ export default function CauseDetailModal({ cause, onClose, onEdit }) {
       if (!amount || amount <= 0) throw new Error("Invalid amount");
       if (!currentUser) throw new Error("Please sign in to donate");
 
-      // Update raised amount on the cause
-      await base44.entities.Donation.update(cause.id, {
-        raised_usd: (cause.raised_usd || 0) + amount
+      // Update raised amount on the cause via a narrow SECURITY DEFINER
+      // RPC -- a client-side read-then-write here would lose donations
+      // under concurrent contributions to the same popular cause, and
+      // donations_update_own only lets the cause's creator write anyway.
+      const { error: rpcError } = await supabase.rpc('increment_cause_raised', {
+        p_cause_id: cause.id,
+        p_amount: amount,
       });
+      if (rpcError) throw rpcError;
 
       // Atomic transfer: debits the donor and credits the cause creator's
       // wallet in one step.
