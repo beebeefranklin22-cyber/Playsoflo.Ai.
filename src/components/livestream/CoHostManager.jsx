@@ -17,10 +17,10 @@ export default function CoHostManager({ streamId, currentUser, isCreator }) {
   const { data: coHosts = [] } = useQuery({
     queryKey: ['co-hosts', streamId],
     queryFn: async () => {
-      return await base44.entities.CoStreamParticipant.filter({ 
+      return await base44.entities.CoStreamParticipant.filter({
         stream_id: streamId,
         status: { $in: ['invited', 'accepted'] }
-      });
+      }, 50);
     },
     enabled: !!streamId,
     refetchInterval: 3000,

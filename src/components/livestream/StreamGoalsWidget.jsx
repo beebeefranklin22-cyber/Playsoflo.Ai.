@@ -11,7 +11,7 @@ export default function StreamGoalsWidget({ streamId }) {
     queryFn: () => base44.entities.StreamGoal.filter({
       stream_id: streamId,
       is_active: true
-    }),
+    }, 20),
     enabled: !!streamId,
     refetchInterval: 3000
   });
