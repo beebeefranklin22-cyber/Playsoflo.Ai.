@@ -63,16 +63,20 @@ export default function TravelBookingModal({ listing, onClose }) {
   const handlePaymentSuccess = async (paymentIntentId) => {
     try {
       const b = await createBookingRecord();
-      await base44.entities.TravelBooking.update(b.id, { payment_status: "paid", status: "confirmed", stripe_session_id: paymentIntentId });
 
       // The card has already been charged at this point -- credit the
       // provider now (server re-verifies the PaymentIntent with Stripe
       // itself). 15% platform fee matches service_booking elsewhere.
+      // travel_bookings.payment_status/status can only be set to
+      // paid/confirmed by the service role now (migration 0045) -- passing
+      // booking_id lets the server do that write itself once the charge is
+      // verified, instead of this client marking its own booking paid.
       try {
         await creditWalletFromPayment({
           payment_intent_id: paymentIntentId,
           recipient_email: listing.provider_email,
           reference_type: 'travel_booking',
+          booking_id: b.id,
         });
       } catch (creditError) {
         console.error('Failed to credit provider for travel booking:', creditError);

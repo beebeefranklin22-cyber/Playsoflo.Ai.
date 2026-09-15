@@ -218,7 +218,7 @@ async function handlePayRequest(admin, user, body) {
 // to recipient_email. Re-verifies the PaymentIntent with Stripe itself
 // (never trusts the client's amount or success claim) and is idempotent
 // on payment_intent_id so a retry or double-click can't double-credit.
-async function handleCreditFromPayment(admin, { payment_intent_id, recipient_email, reference_type }) {
+async function handleCreditFromPayment(admin, { payment_intent_id, recipient_email, reference_type, booking_id }) {
   if (!payment_intent_id) throw new Error('payment_intent_id is required');
   if (!recipient_email) throw new Error('recipient_email is required');
 
@@ -255,7 +255,10 @@ async function handleCreditFromPayment(admin, { payment_intent_id, recipient_ema
     .from('stripe_credit_ledger')
     .insert({ payment_intent_id, recipient_email, credited_amount: creditAmount, reference_type: reference_type || 'stripe_credit' });
   if (ledgerError) {
-    if (ledgerError.code === '23505') return { success: true, already_processed: true };
+    if (ledgerError.code === '23505') {
+      if (reference_type === 'travel_booking' && booking_id) await markTravelBookingPaid(admin, booking_id, payment_intent_id);
+      return { success: true, already_processed: true };
+    }
     throw ledgerError;
   }
 
@@ -270,7 +273,23 @@ async function handleCreditFromPayment(admin, { payment_intent_id, recipient_ema
   });
   if (moveError) throw moveError;
 
+  // travel_bookings' payment_status/status can only be flipped to
+  // paid/confirmed by the service role (migration 0045) -- this is that
+  // one legitimate path, run only after the charge above is independently
+  // re-verified, never trusted from the client's own follow-up write.
+  if (reference_type === 'travel_booking' && booking_id) {
+    await markTravelBookingPaid(admin, booking_id, payment_intent_id);
+  }
+
   return { success: true, credited: creditAmount };
+}
+
+async function markTravelBookingPaid(admin, bookingId, paymentIntentId) {
+  const { error } = await admin
+    .from('travel_bookings')
+    .update({ payment_status: 'paid', status: 'confirmed', stripe_session_id: paymentIntentId })
+    .eq('id', bookingId);
+  if (error) console.error('Failed to mark travel booking paid for', bookingId, error);
 }
 
 // A flat platform-sold purchase with no specific recipient -- a game shop
