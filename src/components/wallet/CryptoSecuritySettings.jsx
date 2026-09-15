@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Shield, Lock, Mail, TrendingUp, CheckCircle } from "lucide-react";
+import { X, Shield, Mail, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import toast from "react-hot-toast";
@@ -9,8 +9,6 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export default function CryptoSecuritySettings({ currentUser, onClose }) {
   const queryClient = useQueryClient();
-  const [crypto2faEnabled, setCrypto2faEnabled] = useState(currentUser?.crypto_2fa_enabled || false);
-  const [withdrawalConfirmation, setWithdrawalConfirmation] = useState(currentUser?.withdrawal_confirmations_required !== false);
   const [dailyWithdrawalLimit, setDailyWithdrawalLimit] = useState(currentUser?.daily_crypto_withdrawal_limit || 10000);
   const [dailyStakingLimit, setDailyStakingLimit] = useState(currentUser?.daily_crypto_staking_limit || 50000);
   const [saving, setSaving] = useState(false);
@@ -19,8 +17,6 @@ export default function CryptoSecuritySettings({ currentUser, onClose }) {
     setSaving(true);
     try {
       await base44.auth.updateMe({
-        crypto_2fa_enabled: crypto2faEnabled,
-        withdrawal_confirmations_required: withdrawalConfirmation,
         daily_crypto_withdrawal_limit: parseFloat(dailyWithdrawalLimit),
         daily_crypto_staking_limit: parseFloat(dailyStakingLimit)
       });
@@ -68,73 +64,28 @@ export default function CryptoSecuritySettings({ currentUser, onClose }) {
           </div>
 
           <div className="p-6 space-y-6">
-            {/* 2FA Toggle */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Lock className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold mb-1">Two-Factor Authentication</h3>
-                    <p className="text-gray-400 text-sm">
-                      Require 2FA code for all crypto transactions (withdrawals, exchanges, staking)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setCrypto2faEnabled(!crypto2faEnabled)}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    crypto2faEnabled ? 'bg-green-600' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                    crypto2faEnabled ? 'translate-x-8' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-              {crypto2faEnabled && (
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mt-3">
-                  <p className="text-green-300 text-xs flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    2FA is enabled. You'll need to enter your authenticator code for crypto transactions.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Email Confirmation */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+            {/* Email Confirmation -- disabled: nothing in the withdrawal flow
+                sends this email today, so the toggle previously promised a
+                protection that could never fire. */}
+            <div className="bg-white/5 border border-white/10 rounded-xl p-5 opacity-60">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Mail className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold mb-1">Email Confirmation</h3>
+                    <h3 className="text-white font-semibold mb-1">
+                      Email Confirmation <span className="text-xs text-gray-400 font-normal">(Coming Soon)</span>
+                    </h3>
                     <p className="text-gray-400 text-sm">
                       Require email confirmation link for all crypto withdrawals
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setWithdrawalConfirmation(!withdrawalConfirmation)}
-                  className={`relative w-14 h-7 rounded-full transition-colors ${
-                    withdrawalConfirmation ? 'bg-green-600' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                    withdrawalConfirmation ? 'translate-x-8' : 'translate-x-1'
-                  }`} />
+                <button disabled className="relative w-14 h-7 rounded-full bg-gray-600 cursor-not-allowed">
+                  <div className="absolute top-1 w-5 h-5 bg-white rounded-full translate-x-1" />
                 </button>
               </div>
-              {withdrawalConfirmation && (
-                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mt-3">
-                  <p className="text-blue-300 text-xs">
-                    You'll receive an email with a confirmation link before any withdrawal is processed.
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Spending Limits */}
@@ -213,11 +164,9 @@ export default function CryptoSecuritySettings({ currentUser, onClose }) {
             <div className="bg-white/5 rounded-xl p-4">
               <h4 className="text-white font-semibold text-sm mb-2">🛡️ Security Best Practices</h4>
               <ul className="text-gray-400 text-xs space-y-1">
-                <li>• Always enable 2FA for maximum protection</li>
                 <li>• Keep your email secure and up-to-date</li>
                 <li>• Set conservative daily limits</li>
                 <li>• Monitor your account activity regularly</li>
-                <li>• Never share your 2FA codes with anyone</li>
               </ul>
             </div>
           </div>

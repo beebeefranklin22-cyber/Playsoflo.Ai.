@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Crypto2FAModal from "./Crypto2FAModal";
 import { processCryptoWithdrawal } from "@/functions/processCryptoWithdrawal";
 
 export default function CryptoWithdrawModal({ currentUser, onClose }) {
@@ -15,8 +14,6 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [show2FA, setShow2FA] = useState(false);
-  const [pendingWithdrawal, setPendingWithdrawal] = useState(null);
   const [withdrawalResult, setWithdrawalResult] = useState(null);
   const queryClient = useQueryClient();
 
@@ -74,13 +71,6 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
       return;
     }
 
-    // Check if 2FA is enabled
-    if (currentUser?.crypto_2fa_enabled) {
-      setPendingWithdrawal({ amount: totalAmount, address: recipientAddress, priceUSD });
-      setShow2FA(true);
-      return;
-    }
-
     setShowConfirmation(true);
   };
 
@@ -109,14 +99,6 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
     } finally {
       setConfirming(false);
     }
-  };
-
-  const handle2FAVerified = (verified) => {
-    setShow2FA(false);
-    if (verified && pendingWithdrawal) {
-      setShowConfirmation(true);
-    }
-    setPendingWithdrawal(null);
   };
 
   // Show success screen after withdrawal queued
@@ -176,10 +158,6 @@ export default function CryptoWithdrawModal({ currentUser, onClose }) {
   }
 
   if (showConfirmation) {
-    if (show2FA) {
-      return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="withdrawal" />;
-    }
-
     return (
       <AnimatePresence>
         <motion.div

@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import Crypto2FAModal from "./Crypto2FAModal";
 import HelpModal from "../onboarding/HelpModal";
 
 export default function StakingManager({ currentUser, onClose }) {
@@ -20,8 +19,6 @@ export default function StakingManager({ currentUser, onClose }) {
   const [selectedCrypto, setSelectedCrypto] = useState("ETH");
   const [stakeAmount, setStakeAmount] = useState("");
   const [lockPeriod, setLockPeriod] = useState(30);
-  const [show2FA, setShow2FA] = useState(false);
-  const [pendingStake, setPendingStake] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
 
   // Fetch crypto wallets
@@ -192,17 +189,6 @@ export default function StakingManager({ currentUser, onClose }) {
       return;
     }
 
-    if (currentUser?.crypto_2fa_enabled) {
-      setPendingStake({
-        currency: selectedCrypto,
-        amount: parseFloat(stakeAmount),
-        lockDays: lockPeriod,
-        valueUSD
-      });
-      setShow2FA(true);
-      return;
-    }
-
     stakeMutation.mutate({
       currency: selectedCrypto,
       amount: parseFloat(stakeAmount),
@@ -211,20 +197,8 @@ export default function StakingManager({ currentUser, onClose }) {
     });
   };
 
-  const handle2FAVerified = (verified) => {
-    setShow2FA(false);
-    if (verified && pendingStake) {
-      stakeMutation.mutate(pendingStake);
-    }
-    setPendingStake(null);
-  };
-
   if (showHelp) {
     return <HelpModal topic="staking" onClose={() => setShowHelp(false)} />;
-  }
-
-  if (show2FA) {
-    return <Crypto2FAModal onVerify={handle2FAVerified} onClose={() => setShow2FA(false)} action="staking" />;
   }
 
   return (
