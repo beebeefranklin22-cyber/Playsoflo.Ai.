@@ -12,6 +12,22 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { purchaseWithWallet } from "@/functions/purchaseWithWallet";
+
+const RECURRENCE_DAYS = {
+  weekly: 7,
+  'bi-weekly': 14,
+  monthly: 30,
+  quarterly: 91,
+  yearly: 365
+};
+
+function advanceDueDate(currentDueDate, interval) {
+  const days = RECURRENCE_DAYS[interval] || 30;
+  const base = currentDueDate ? new Date(currentDueDate) : new Date();
+  base.setDate(base.getDate() + days);
+  return base.toISOString();
+}
 
 export default function Utilities() {
   const qc = useQueryClient();
@@ -59,7 +75,7 @@ export default function Utilities() {
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
 
   const createAcc = useMutation({
-    mutationFn: (data) => base44.entities.UtilityAccount.create(data),
+    mutationFn: (data) => base44.entities.UtilityAccount.create({ ...data, user_email: currentUser.email }),
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: ["utility-accounts"] }); 
       setNewAcc({ 
@@ -79,7 +95,7 @@ export default function Utilities() {
   });
 
   const createAsset = useMutation({
-    mutationFn: (data) => base44.entities.Asset.create(data),
+    mutationFn: (data) => base44.entities.Asset.create({ ...data, user_email: currentUser.email }),
     onSuccess: () => { 
       qc.invalidateQueries({ queryKey: ["assets"] }); 
       setNewAsset({ asset_type: "property", name: "", value_usd: 0, image_url: "" }); 
@@ -87,21 +103,38 @@ export default function Utilities() {
     }
   });
 
-  const updateUtilityMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.UtilityAccount.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['utility-accounts'] });
-      toast.success('Settings updated');
-    },
-  });
-
   const paymentMutation = useMutation({
-    mutationFn: async ({ utility_account_id, payment_method }) => {
-      const response = await base44.functions.invoke('payUtilityBill', {
-        utility_account_id,
+    mutationFn: async ({ account, payment_method }) => {
+      // This used to call a payUtilityBill server function that was never
+      // implemented, so every "Pay" click failed outright. purchaseWithWallet
+      // is the same real, atomic, server-verified debit already used for
+      // game shop/subscription purchases elsewhere in the app.
+      const { data } = await purchaseWithWallet({
+        amount: account.amount_due,
+        reference_type: 'utility_bill',
+        reference_id: account.id,
+        memo: `${account.service_name || account.provider_name} bill payment`
+      });
+      if (!data.success) throw new Error(data.error || 'Payment failed');
+
+      const confirmation_number = `UB-${Date.now().toString(36).toUpperCase()}`;
+      await base44.entities.BillPayment.create({
+        utility_account_id: account.id,
+        user_email: currentUser.email,
+        amount: account.amount_due,
+        payment_date: new Date().toISOString(),
+        status: 'completed',
+        is_automatic: false,
+        confirmation_number,
         payment_method: payment_method || 'wallet_balance'
       });
-      return response.data;
+
+      await base44.entities.UtilityAccount.update(account.id, {
+        amount_due: 0,
+        next_due_date: account.is_recurring ? advanceDueDate(account.next_due_date, account.recurrence_interval) : account.next_due_date
+      });
+
+      return { confirmation_number };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['utility-accounts'] });
@@ -372,27 +405,17 @@ export default function Utilities() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg opacity-60">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-yellow-400" />
                     <span className="text-white text-sm">Auto-pay from Wallet</span>
+                    <span className="text-xs text-gray-400">(Coming Soon)</span>
                   </div>
-                  <Switch
-                    checked={acc.auto_pay_enabled}
-                    onCheckedChange={(checked) => {
-                      if (checked && amountDue > (currentUser?.usd_balance || 0)) {
-                        toast.error('Insufficient wallet balance for auto-pay');
-                        return;
-                      }
-                      updateUtilityMutation.mutate({
-                        id: acc.id,
-                        data: { 
-                          auto_pay_enabled: checked,
-                          auto_pay_method: 'wallet_balance'
-                        }
-                      });
-                    }}
-                  />
+                  {/* There's no scheduler that ever runs a due-date sweep, so
+                      this toggle previously stored a preference nothing would
+                      ever act on -- disabled rather than let it look like a
+                      real recurring-billing feature. */}
+                  <Switch checked={false} disabled />
                 </div>
 
                 {amountDue > 0 ? (
@@ -403,8 +426,8 @@ export default function Utilities() {
                         toast.error(`Insufficient balance. Need $${amountDue.toFixed(2)}, have $${(currentUser?.usd_balance || 0).toFixed(2)}`);
                         return;
                       }
-                      paymentMutation.mutate({ 
-                        utility_account_id: acc.id,
+                      paymentMutation.mutate({
+                        account: acc,
                         payment_method: 'wallet_balance'
                       });
                     }}
