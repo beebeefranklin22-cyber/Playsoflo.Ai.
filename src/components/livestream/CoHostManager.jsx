@@ -35,7 +35,7 @@ export default function CoHostManager({ streamId, currentUser, isCreator }) {
       if (event.data?.stream_id === streamId) {
         queryClient.invalidateQueries(['co-hosts', streamId]);
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsubscribe();
   }, [streamId, queryClient]);

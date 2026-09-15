@@ -122,7 +122,16 @@ class Entity {
   // `event.data.x` with no optional chaining). Translate the real payload
   // into the shape every caller already expects, rather than touching
   // dozens of call sites.
-  subscribe(callback) {
+  // `filter` is a raw Postgres Realtime filter string (e.g.
+  // 'stream_id=eq.abc123') that scopes the subscription server-side to
+  // just the rows a caller cares about. Without it, every subscriber gets
+  // every row change on the whole table and filters client-side -- fine
+  // for small tables, but for a per-stream table (livestream_chats,
+  // qa_questions, etc.) it means every viewer's socket receives every
+  // OTHER concurrent stream's activity too, fanning out
+  // O(total rows across all streams x total viewers) instead of
+  // O(rows for this stream x viewers of this stream).
+  subscribe(callback, { filter } = {}) {
     // The topic must be unique per subscription, not per table: pages like
     // LivestreamViewer subscribe to the same entity from two places at once
     // (the page itself and a child component such as LivestreamChat). Two
@@ -132,7 +141,7 @@ class Entity {
     // part of the postgres_changes filter, so a random suffix is safe.
     const topic = `${this.tableName}-changes-${Math.random().toString(36).slice(2)}`;
     const channel = supabase.channel(topic)
-      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: this.tableName, ...(filter ? { filter } : {}) }, (payload) => {
         const type = payload.eventType === 'INSERT' ? 'create' : payload.eventType === 'UPDATE' ? 'update' : payload.eventType === 'DELETE' ? 'delete' : payload.eventType;
         const data = payload.new && Object.keys(payload.new).length > 0 ? payload.new : payload.old;
         callback({ type, data, id: data?.id, new: payload.new, old: payload.old });

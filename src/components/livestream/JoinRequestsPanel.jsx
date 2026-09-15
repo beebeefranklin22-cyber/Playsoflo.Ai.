@@ -42,7 +42,7 @@ export default function JoinRequestsPanel({ streamId, currentUser, isCreator }) 
           });
         }
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsubscribe();
   }, [streamId, isCreator]);
