@@ -33,6 +33,9 @@ export default function DisputeManagement() {
       setSelectedDispute(null);
       setResolution("");
       toast.success('Dispute resolved');
+    },
+    onError: (error) => {
+      toast.error('Failed to resolve dispute: ' + (error.message || 'Unknown error'));
     }
   });
 

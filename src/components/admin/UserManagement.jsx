@@ -29,6 +29,9 @@ export default function UserManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users']);
       toast.success('Driver status updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update driver status: ' + (error.message || 'Unknown error'));
     }
   });
 
