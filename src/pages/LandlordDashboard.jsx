@@ -66,11 +66,14 @@ export default function LandlordDashboard() {
   const [showWaiveFee, setShowWaiveFee] = useState(null); // payment id
 
   const updateApplicationMutation = useMutation({
-    mutationFn: ({ id, status, notes }) => 
+    mutationFn: ({ id, status, notes }) =>
       base44.entities.LeaseApplication.update(id, { status, landlord_notes: notes }),
     onSuccess: () => {
       queryClient.invalidateQueries(['lease-applications']);
       toast.success('Application updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update application: ' + (error.message || 'Unknown error'));
     }
   });
 
