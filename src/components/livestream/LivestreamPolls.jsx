@@ -44,7 +44,7 @@ export default function LivestreamPolls({ streamId, isCreator, currentUser, isOv
           setPolls(prev => prev.filter(p => p.id !== event.id));
         }
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsubscribe();
   }, [streamId]);

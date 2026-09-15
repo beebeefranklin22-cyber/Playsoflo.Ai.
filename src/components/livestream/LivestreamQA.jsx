@@ -36,7 +36,7 @@ export default function LivestreamQA({ streamId, isCreator, currentUser, isOverl
           setQuestions(prev => prev.filter(q => q.id !== event.id));
         }
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsubscribe();
   }, [streamId]);

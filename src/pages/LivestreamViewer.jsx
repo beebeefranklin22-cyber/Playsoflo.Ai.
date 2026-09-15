@@ -117,7 +117,7 @@ export default function LivestreamViewer() {
     updateCount();
     const unsub = base44.entities.ViewerAnalytics.subscribe((event) => {
       if (event.data?.content_id === streamId) updateCount();
-    });
+    }, { filter: `content_id=eq.${streamId}` });
     return () => unsub();
   }, [streamId]);
 
@@ -602,7 +602,7 @@ function MobileOverlayChat({ streamId, isCreator, currentUser }) {
       } else if (event.type === 'delete') {
         setMessages(prev => prev.filter(m => m.id !== event.id));
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsub();
   }, [streamId]);

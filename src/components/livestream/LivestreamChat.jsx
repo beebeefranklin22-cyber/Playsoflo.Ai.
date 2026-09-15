@@ -48,7 +48,7 @@ export default function LivestreamChat({ streamId, isCreator, currentUser, isOve
           setMessages(prev => prev.filter(m => m.id !== event.id));
         }
       }
-    });
+    }, { filter: `stream_id=eq.${streamId}` });
 
     return () => unsubscribe();
   }, [streamId]);
