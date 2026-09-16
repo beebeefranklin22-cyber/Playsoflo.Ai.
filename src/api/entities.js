@@ -247,6 +247,7 @@ export const Event                       = new Entity('events');
 export const Experience                  = new Entity('experiences');
 export const FailedPayment               = new Entity('failed_payments');
 export const FanPool                     = new Entity('fan_pools');
+export const FlightBooking                = new Entity('flight_bookings');
 export const Follow                      = new Entity('follows');
 export const FollowRequest               = new Entity('follow_requests');
 export const FoodOrder                   = new Entity('food_orders');
