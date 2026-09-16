@@ -18,50 +18,26 @@ export default function ServiceWorkerManager() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // There has never been a /sw.js in this app -- Vercel's SPA catch-all
+    // rewrite serves index.html for that path instead, so registering it
+    // either failed outright or, worse, let a browser that had cached an
+    // old registration from some earlier deployment keep intercepting
+    // requests and serving stale JS bundles indefinitely (the actual cause
+    // of "cannot add postgres_changes callbacks ... after subscribe()"
+    // crashes on clients that were stuck on a build from before that fix
+    // shipped -- a code fix on its own never reaches an already-registered
+    // worker). Unregister anything already installed and clear its caches
+    // so affected clients self-heal on next load, instead of registering
+    // it again.
     if ('serviceWorker' in navigator) {
-      // Register service worker (will be created by build process)
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .then(async (registration) => {
-          console.log('✓ Service Worker registered for PWA support');
-          
-          // Request notification permission
-          if (Notification.permission === 'default') {
-            const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-              console.log('✓ Notification permission granted');
-            }
-          }
-          
-          // Listen for updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                toast.info('App update available! Refresh to update.', {
-                  action: {
-                    label: 'Refresh',
-                    onClick: () => window.location.reload()
-                  }
-                });
-              }
-            });
-          });
-        })
-        .catch(err => console.log('SW registration failed:', err));
-
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data.type === 'CACHE_UPDATED') {
-          console.log('Cache updated:', event.data.url);
-        }
-      });
-
-      // Handle background sync
-      navigator.serviceWorker.ready.then(swRegistration => {
-        if ('sync' in swRegistration) {
-          return swRegistration.sync.register('sync-queue').catch(() => {});
-        }
-      }).catch(() => {});
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => Promise.all(registrations.map(r => r.unregister())))
+        .catch(() => {});
+    }
+    if ('caches' in window) {
+      caches.keys()
+        .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+        .catch(() => {});
     }
 
     // Notification polling removed - handled by RealtimeNotificationManager via subscriptions
