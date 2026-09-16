@@ -41,7 +41,7 @@ const defaultTravelOptions = [
     bgColor: "bg-purple-500/20",
     iconColor: "text-purple-400",
     image: "https://images.unsplash.com/photo-1437877688267-27b3b3a620b7?w=800",
-    action: () => alert("Flight booking coming soon!")
+    action: (navigate) => navigate(createPageUrl("FlightBooking"))
   },
   {
     id: "private_jets",

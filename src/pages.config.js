@@ -74,6 +74,7 @@ import EarningsDashboard from './pages/EarningsDashboard';
 import EntertainmentExperiences from './pages/EntertainmentExperiences';
 import EntertainmentProviderHub from './pages/EntertainmentProviderHub';
 import Events from './pages/Events';
+import FlightBooking from './pages/FlightBooking';
 import FleetManager from './pages/FleetManager';
 import FoodCart from './pages/FoodCart';
 import FoodDelivery from './pages/FoodDelivery';
@@ -193,6 +194,7 @@ export const PAGES = {
     "EntertainmentExperiences": EntertainmentExperiences,
     "EntertainmentProviderHub": EntertainmentProviderHub,
     "Events": Events,
+    "FlightBooking": FlightBooking,
     "FleetManager": FleetManager,
     "FoodCart": FoodCart,
     "FoodDelivery": FoodDelivery,

@@ -4,11 +4,13 @@
 import bookings from './_handlers/bookings.js';
 import paymentMethods from './_handlers/payment-methods.js';
 import setupIntent from './_handlers/setup-intent.js';
+import flights from './_handlers/flights.js';
 
 const ROUTES = {
   bookings,
   'payment-methods': paymentMethods,
   'setup-intent': setupIntent,
+  flights,
 };
 
 export default async function handler(req, res) {
