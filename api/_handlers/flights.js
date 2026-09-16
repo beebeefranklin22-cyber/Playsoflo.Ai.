@@ -64,6 +64,7 @@ export default async function handler(req, res) {
   const { action } = req.body || {};
 
   try {
+    if (action === 'search_places') return res.status(200).json(await handleSearchPlaces(req.body));
     if (action === 'search') return res.status(200).json(await handleSearch(req.body));
     if (action === 'get_offer_details') return res.status(200).json(await handleGetOfferDetails(req.body));
     if (action === 'book') return res.status(200).json(await handleBook(user, req.body));
@@ -72,6 +73,27 @@ export default async function handler(req, res) {
     console.error('flights action error:', action, err);
     return res.status(err.statusCode || 400).json({ success: false, error: err.message });
   }
+}
+
+// Lets users search flights by city/airport name ("Miami") instead of
+// needing to already know the IATA code ("MIA") -- a real Duffel endpoint
+// (GET /places/suggestions), not a hand-rolled city list, so it covers the
+// same airports Duffel itself can actually route to.
+async function handleSearchPlaces(body) {
+  const { query } = body;
+  if (!query || query.trim().length < 2) return { success: true, places: [] };
+
+  const places = await duffelRequest(`/places/suggestions?name=${encodeURIComponent(query.trim())}`);
+  return {
+    success: true,
+    places: (places || []).slice(0, 8).map((p) => ({
+      iata_code: p.iata_code,
+      name: p.name,
+      type: p.type,
+      city_name: p.city_name,
+      country_name: p.country_name,
+    })),
+  };
 }
 
 async function handleSearch(body) {

@@ -12,6 +12,7 @@ import { searchFlights } from "@/functions/searchFlights";
 import { getFlightOfferDetails } from "@/functions/getFlightOfferDetails";
 import { bookFlight } from "@/functions/bookFlight";
 import FlightAncillaries from "@/components/travel/FlightAncillaries";
+import AirportSearchInput from "@/components/travel/AirportSearchInput";
 
 const PLATFORM_FEE_RATE = 0.012;
 const emptyPassenger = () => ({ title: "mr", given_name: "", family_name: "", gender: "m", born_on: "" });
@@ -218,18 +219,22 @@ export default function FlightBooking() {
               <CardContent>
                 <form onSubmit={handleSearch} className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
-                    <Input
-                      placeholder="Origin airport (e.g. MIA)"
-                      value={form.origin}
-                      onChange={(e) => setForm({ ...form, origin: e.target.value.toUpperCase() })}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                    <Input
-                      placeholder="Destination airport (e.g. JFK)"
-                      value={form.destination}
-                      onChange={(e) => setForm({ ...form, destination: e.target.value.toUpperCase() })}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">From</label>
+                      <AirportSearchInput
+                        placeholder="City or airport (e.g. Miami)"
+                        iconColor="text-green-400"
+                        onSelect={(place) => setForm({ ...form, origin: place?.iata_code || "" })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">To</label>
+                      <AirportSearchInput
+                        placeholder="City or airport (e.g. New York)"
+                        iconColor="text-red-400"
+                        onSelect={(place) => setForm({ ...form, destination: place?.iata_code || "" })}
+                      />
+                    </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>

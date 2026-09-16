@@ -41,6 +41,11 @@ export default function HailRideModal({ open, onClose }) {
   const [routeGeometry, setRouteGeometry] = useState(null);
   const [pickupSuggestions, setPickupSuggestions] = useState([]);
   const [dropoffSuggestions, setDropoffSuggestions] = useState([]);
+  // Route calculation only runs once both addresses have been explicitly
+  // confirmed (a suggestion clicked, or "use current location") -- see the
+  // autoCalculate effect below for why.
+  const [pickupConfirmed, setPickupConfirmed] = useState(false);
+  const [dropoffConfirmed, setDropoffConfirmed] = useState(false);
   const [loadingPickupSuggestions, setLoadingPickupSuggestions] = useState(false);
   const [loadingDropoffSuggestions, setLoadingDropoffSuggestions] = useState(false);
   const pickupTimerRef = React.useRef(null);
@@ -78,6 +83,7 @@ export default function HailRideModal({ open, onClose }) {
 
       if (data.formatted_address) {
         setPickup(data.formatted_address);
+        setPickupConfirmed(true);
       }
     } catch (error) {
       console.log("Location access denied or failed");
@@ -111,6 +117,7 @@ export default function HailRideModal({ open, onClose }) {
   const handlePickupChange = (e) => {
     const val = e.target.value;
     setPickup(val);
+    setPickupConfirmed(false);
     setPickupSuggestions([]);
     if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
     pickupTimerRef.current = setTimeout(() => {
@@ -121,6 +128,7 @@ export default function HailRideModal({ open, onClose }) {
   const handleDropoffChange = (e) => {
     const val = e.target.value;
     setDropoff(val);
+    setDropoffConfirmed(false);
     setDropoffSuggestions([]);
     if (dropoffTimerRef.current) clearTimeout(dropoffTimerRef.current);
     dropoffTimerRef.current = setTimeout(() => {
@@ -130,11 +138,18 @@ export default function HailRideModal({ open, onClose }) {
 
   useEffect(() => {
     const autoCalculate = async () => {
-      // Validate minimum address length
-      if (!pickup || !dropoff || pickup.trim().length < 5 || dropoff.trim().length < 5 || calculating) {
+      // Only once both addresses have been explicitly confirmed (a
+      // suggestion clicked, or "use current location") -- this used to run
+      // on a 1s pause after ANY keystroke once both fields looked "long
+      // enough", which raced the suggestion dropdown: it would silently
+      // rewrite whatever the user was still typing with its own best-guess
+      // formatted address mid-keystroke, which is what looked like
+      // "auto-picking" a wrong address instead of letting them choose from
+      // the dropdown.
+      if (!pickupConfirmed || !dropoffConfirmed || calculating) {
         return;
       }
-      
+
       setCalculating(true);
       try {
         const response = await base44.functions.invoke('calculateRideRoute', {
@@ -183,7 +198,7 @@ export default function HailRideModal({ open, onClose }) {
 
     const timer = setTimeout(autoCalculate, 1000);
     return () => clearTimeout(timer);
-  }, [pickup, dropoff]);
+  }, [pickup, dropoff, pickupConfirmed, dropoffConfirmed]);
 
 
 
@@ -255,8 +270,10 @@ export default function HailRideModal({ open, onClose }) {
                   onSelectAddress={(address) => {
                     if (!pickup) {
                       setPickup(address);
+                      setPickupConfirmed(true);
                     } else {
                       setDropoff(address);
+                      setDropoffConfirmed(true);
                     }
                   }}
                 />
@@ -292,7 +309,7 @@ export default function HailRideModal({ open, onClose }) {
                             <button
                               key={i}
                               type="button"
-                              onClick={() => { setPickup(s); setPickupSuggestions([]); }}
+                              onClick={() => { setPickup(s); setPickupConfirmed(true); setPickupSuggestions([]); }}
                               className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                             >
                               <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -333,7 +350,7 @@ export default function HailRideModal({ open, onClose }) {
                           <button
                             key={i}
                             type="button"
-                            onClick={() => { setDropoff(s); setDropoffSuggestions([]); }}
+                            onClick={() => { setDropoff(s); setDropoffConfirmed(true); setDropoffSuggestions([]); }}
                             className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                           >
                             <Navigation className="w-4 h-4 text-red-400 flex-shrink-0" />
