@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.55.0",
+    "@duffel/components": "^3.17.0",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",

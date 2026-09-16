@@ -4,6 +4,18 @@ import { requireUser } from '../_lib/auth.js';
 const DUFFEL_API_BASE = 'https://api.duffel.com';
 const DUFFEL_VERSION = 'v2';
 
+// Flat platform fee on the real Duffel total (flight + any ancillaries),
+// captured as a pure debit-only wallet charge -- never sent to Duffel,
+// same "purchase" shape as a game shop item (see handlePurchase in
+// wallet.js). Applied uniformly so there's one place pricing logic lives,
+// rather than splitting it between a client-displayed markup and a
+// server-side check.
+const PLATFORM_FEE_RATE = 0.012;
+
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 // Duffel is the actual flight supplier here -- search results and prices
 // are always fetched live from Duffel, never cached/guessed client-side,
 // and a booking always re-fetches the offer server-side before charging
@@ -53,6 +65,7 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'search') return res.status(200).json(await handleSearch(req.body));
+    if (action === 'get_offer_details') return res.status(200).json(await handleGetOfferDetails(req.body));
     if (action === 'book') return res.status(200).json(await handleBook(user, req.body));
     return res.status(400).json({ error: `Unknown action "${action}"` });
   } catch (err) {
@@ -114,14 +127,65 @@ function simplifyOffer(offer) {
   };
 }
 
+// Seat services live inside seat_maps[].cabins[].rows[].sections[].elements[]
+// (each seat element has its own available_services array), a completely
+// separate structure from offer.available_services (which only ever covers
+// baggage and cancel-for-any-reason) -- flattened here into the same
+// {id, total_amount, total_currency} shape so seat/bag/CFAR selections can
+// all be validated against one combined lookup.
+function flattenSeatServices(seatMaps) {
+  const flat = [];
+  for (const map of seatMaps || []) {
+    for (const cabin of map.cabins || []) {
+      for (const row of cabin.rows || []) {
+        for (const section of row.sections || []) {
+          for (const element of section.elements || []) {
+            for (const service of element.available_services || []) {
+              flat.push(service);
+            }
+          }
+        }
+      }
+    }
+  }
+  return flat;
+}
+
+// Fetches the offer with its available ancillary services and seat maps --
+// the two inputs the real @duffel/components <DuffelAncillaries> component
+// needs (offer + seat_maps props), per its current (non-deprecated) usage.
+// No client_key/token minting needed with this approach.
+async function handleGetOfferDetails(body) {
+  const { offer_id } = body;
+  if (!offer_id) throw new Error('offer_id is required');
+
+  const offer = await duffelRequest(`/air/offers/${encodeURIComponent(offer_id)}?return_available_services=true`);
+  if (!offer) throw new Error('Flight offer not found');
+  if (offer.expires_at && new Date(offer.expires_at) < new Date()) {
+    throw new Error('This flight offer has expired -- please search again');
+  }
+
+  let seatMaps = [];
+  try {
+    seatMaps = (await duffelRequest(`/air/seat_maps?offer_id=${encodeURIComponent(offer_id)}`)) || [];
+  } catch (err) {
+    // Not every airline/fare offers seat maps -- that's a normal, expected
+    // gap, not a failure of the search itself.
+    console.log('No seat maps available for offer', offer_id, err.message);
+  }
+
+  return { success: true, offer, seat_maps: seatMaps };
+}
+
 async function handleBook(user, body) {
-  const { offer_id, passengers, contact_email, contact_phone } = body;
+  const { offer_id, passengers, services, contact_email, contact_phone } = body;
   if (!offer_id) throw new Error('offer_id is required');
   if (!Array.isArray(passengers) || passengers.length === 0) throw new Error('At least one passenger is required');
 
-  // Re-fetch the offer -- a client-supplied price is never trusted, and
-  // Duffel offers expire (typically minutes after search).
-  const offer = await duffelRequest(`/air/offers/${encodeURIComponent(offer_id)}`);
+  // Re-fetch the offer AND its available services -- a client-supplied
+  // price or service selection is never trusted, and Duffel offers expire
+  // (typically minutes after search).
+  const offer = await duffelRequest(`/air/offers/${encodeURIComponent(offer_id)}?return_available_services=true`);
   if (!offer) throw new Error('Flight offer not found');
   if (offer.expires_at && new Date(offer.expires_at) < new Date()) {
     throw new Error('This flight offer has expired -- please search again');
@@ -133,20 +197,56 @@ async function handleBook(user, body) {
     throw new Error(`This offer requires exactly ${offer.passengers?.length} passenger(s)`);
   }
 
-  const amount = Number(offer.total_amount);
-  if (!amount || amount <= 0) throw new Error('Invalid offer amount');
+  const flightAmount = Number(offer.total_amount);
+  if (!flightAmount || flightAmount <= 0) throw new Error('Invalid offer amount');
+
+  // Every requested ancillary service (seat, bag, cancel-for-any-reason)
+  // must be one Duffel is actually offering on THIS offer, at THIS price --
+  // a service id or quantity is never trusted from the client. Baggage and
+  // CFAR live in offer.available_services; seats live nested inside the
+  // seat maps response instead (a different Duffel endpoint entirely) --
+  // both are combined into one lookup so any requested service must match
+  // something Duffel is really offering, or it's rejected outright rather
+  // than silently dropped or priced from client input.
+  let seatMaps = [];
+  if (Array.isArray(services) && services.length > 0) {
+    try {
+      seatMaps = (await duffelRequest(`/air/seat_maps?offer_id=${encodeURIComponent(offer_id)}`)) || [];
+    } catch (err) {
+      console.log('No seat maps available for offer', offer_id, err.message);
+    }
+  }
+  const availableServices = [...(offer.available_services || []), ...flattenSeatServices(seatMaps)];
+  const requestedServices = Array.isArray(services) ? services : [];
+  let servicesAmount = 0;
+  const validatedServices = requestedServices.map((requested) => {
+    const quantity = Number(requested?.quantity) || 1;
+    const match = availableServices.find((s) => s.id === requested?.id);
+    if (!match) throw new Error(`Requested service ${requested?.id} is not available on this offer`);
+    if (quantity < 1 || quantity > (match.maximum_quantity || 1)) {
+      throw new Error(`Invalid quantity for service ${match.id}`);
+    }
+    if (match.total_currency !== 'USD') throw new Error('Only USD-priced services can be booked right now');
+    servicesAmount += Number(match.total_amount) * quantity;
+    return { id: match.id, quantity };
+  });
+
+  const duffelAmount = round2(flightAmount + servicesAmount);
+  const platformFeeAmount = round2(duffelAmount * PLATFORM_FEE_RATE);
+  const platformTotal = round2(duffelAmount + platformFeeAmount);
 
   const admin = getSupabaseAdmin();
 
-  // Debit the user's wallet first, atomically -- wallet_move rejects on
-  // insufficient balance, so nothing downstream (the real Duffel purchase)
-  // runs on a charge that didn't actually happen.
+  // Debit the user's wallet first, atomically, for the FULL amount they
+  // actually owe (flight + ancillaries + platform fee) -- wallet_move
+  // rejects on insufficient balance, so nothing downstream (the real
+  // Duffel purchase) runs on a charge that didn't actually happen.
   const originCode = offer.slices?.[0]?.origin?.iata_code || '';
   const destinationCode = offer.slices?.[0]?.destination?.iata_code || '';
   const { error: debitError } = await admin.rpc('wallet_move', {
     p_from_email: user.email,
     p_to_email: null,
-    p_debit_amount: amount,
+    p_debit_amount: platformTotal,
     p_credit_amount: null,
     p_reference_type: 'flight_booking',
     p_reference_id: offer_id,
@@ -158,10 +258,12 @@ async function handleBook(user, body) {
   }
 
   // Duffel's own account balance is what actually pays for the ticket --
-  // the wallet debit above is our internal ledger, not money that reaches
-  // Duffel directly. This requires the platform's own Duffel account to
-  // be pre-funded; if it isn't, this call fails and the refund below
-  // fires immediately rather than leaving the user charged with no ticket.
+  // the wallet debit above is our internal ledger (it includes our own
+  // platform fee on top), not money that reaches Duffel directly. Duffel
+  // is paid exactly duffelAmount (flight + ancillaries, no markup). This
+  // requires the platform's own Duffel account to be pre-funded; if it
+  // isn't, this call fails and the refund below fires immediately rather
+  // than leaving the user charged with no ticket.
   let order;
   try {
     order = await duffelRequest('/air/orders', {
@@ -169,6 +271,7 @@ async function handleBook(user, body) {
       body: {
         type: 'instant',
         selected_offers: [offer_id],
+        services: validatedServices.length > 0 ? validatedServices : undefined,
         passengers: passengers.map((p, i) => ({
           id: offer.passengers[i].id,
           type: 'adult',
@@ -180,7 +283,7 @@ async function handleBook(user, body) {
           email: p.email || contact_email || user.email,
           phone_number: p.phone_number || contact_phone,
         })),
-        payments: [{ type: 'balance', currency: offer.total_currency, amount: offer.total_amount }],
+        payments: [{ type: 'balance', currency: offer.total_currency, amount: duffelAmount.toFixed(2) }],
       },
     });
   } catch (bookingError) {
@@ -188,14 +291,14 @@ async function handleBook(user, body) {
       p_from_email: null,
       p_to_email: user.email,
       p_debit_amount: null,
-      p_credit_amount: amount,
+      p_credit_amount: platformTotal,
       p_reference_type: 'flight_booking_refund',
       p_reference_id: offer_id,
       p_memo: 'Automatic refund: flight booking failed after payment',
     });
     if (refundError) {
       console.error('CRITICAL: flight booking failed and automatic refund also failed', {
-        user: user.email, offer_id, amount, bookingError: bookingError.message, refundError,
+        user: user.email, offer_id, platformTotal, bookingError: bookingError.message, refundError,
       });
       throw Object.assign(
         new Error('Booking failed and the automatic refund also failed -- contact support immediately'),
@@ -216,7 +319,10 @@ async function handleBook(user, body) {
     return_date: offer.slices?.[1]?.segments?.[0]?.departing_at || null,
     passengers: order.passengers || [],
     slices: offer.slices || [],
-    total_amount: amount,
+    services: order.services || [],
+    total_amount: platformTotal,
+    duffel_amount: duffelAmount,
+    platform_fee_amount: platformFeeAmount,
     currency: offer.total_currency,
   });
   if (insertError) {
@@ -225,5 +331,12 @@ async function handleBook(user, body) {
     console.error('Failed to record flight_booking row for order', order.id, insertError);
   }
 
-  return { success: true, order_id: order.id, booking_reference: order.booking_reference };
+  return {
+    success: true,
+    order_id: order.id,
+    booking_reference: order.booking_reference,
+    duffel_amount: duffelAmount,
+    platform_fee_amount: platformFeeAmount,
+    total_amount: platformTotal,
+  };
 }
