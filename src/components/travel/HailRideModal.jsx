@@ -118,6 +118,10 @@ export default function HailRideModal({ open, onClose }) {
     const val = e.target.value;
     setPickup(val);
     setPickupConfirmed(false);
+    // Clear any coords from a previous confirmed selection -- otherwise a
+    // stale lat/lon from whatever the user picked before would silently
+    // get paired with this new, different text once they confirm again.
+    setPickupCoords(null);
     setPickupSuggestions([]);
     if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
     pickupTimerRef.current = setTimeout(() => {
@@ -129,6 +133,7 @@ export default function HailRideModal({ open, onClose }) {
     const val = e.target.value;
     setDropoff(val);
     setDropoffConfirmed(false);
+    setDropoffCoords(null);
     setDropoffSuggestions([]);
     if (dropoffTimerRef.current) clearTimeout(dropoffTimerRef.current);
     dropoffTimerRef.current = setTimeout(() => {
@@ -154,7 +159,14 @@ export default function HailRideModal({ open, onClose }) {
       try {
         const response = await base44.functions.invoke('calculateRideRoute', {
           pickup: pickup.trim(),
-          dropoff: dropoff.trim()
+          dropoff: dropoff.trim(),
+          // Both are only ever confirmed via a suggestion click or "use
+          // current location," both of which already set precise coords --
+          // passing them through skips a lossy re-geocode of the address
+          // text server-side (see api/geo.js) that could otherwise drop
+          // the street number from an already-correct, user-picked address.
+          pickup_coords: pickupCoords,
+          dropoff_coords: dropoffCoords
         });
 
         if (response.data.error) {
@@ -198,7 +210,7 @@ export default function HailRideModal({ open, onClose }) {
 
     const timer = setTimeout(autoCalculate, 1000);
     return () => clearTimeout(timer);
-  }, [pickup, dropoff, pickupConfirmed, dropoffConfirmed]);
+  }, [pickup, dropoff, pickupConfirmed, dropoffConfirmed, pickupCoords, dropoffCoords]);
 
 
 
@@ -268,11 +280,18 @@ export default function HailRideModal({ open, onClose }) {
                 <SavedAddresses
                   currentUser={currentUser}
                   onSelectAddress={(address) => {
+                    // Saved addresses carry no coordinates of their own --
+                    // clear any leftover coords from a prior confirmed
+                    // selection so route() falls back to geocoding this
+                    // address's own text instead of silently reusing a
+                    // stale, unrelated lat/lon.
                     if (!pickup) {
                       setPickup(address);
+                      setPickupCoords(null);
                       setPickupConfirmed(true);
                     } else {
                       setDropoff(address);
+                      setDropoffCoords(null);
                       setDropoffConfirmed(true);
                     }
                   }}
@@ -309,11 +328,16 @@ export default function HailRideModal({ open, onClose }) {
                             <button
                               key={i}
                               type="button"
-                              onClick={() => { setPickup(s); setPickupConfirmed(true); setPickupSuggestions([]); }}
+                              onClick={() => {
+                                setPickup(s.display_name);
+                                setPickupCoords([s.lat, s.lon]);
+                                setPickupConfirmed(true);
+                                setPickupSuggestions([]);
+                              }}
                               className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                             >
                               <MapPin className="w-4 h-4 text-green-400 flex-shrink-0" />
-                              {s}
+                              {s.display_name}
                             </button>
                           ))}
                         </div>
@@ -350,11 +374,16 @@ export default function HailRideModal({ open, onClose }) {
                           <button
                             key={i}
                             type="button"
-                            onClick={() => { setDropoff(s); setDropoffConfirmed(true); setDropoffSuggestions([]); }}
+                            onClick={() => {
+                              setDropoff(s.display_name);
+                              setDropoffCoords([s.lat, s.lon]);
+                              setDropoffConfirmed(true);
+                              setDropoffSuggestions([]);
+                            }}
                             className="w-full text-left px-4 py-3 text-white text-sm hover:bg-white/10 transition flex items-center gap-2 border-b border-white/5 last:border-0"
                           >
                             <Navigation className="w-4 h-4 text-red-400 flex-shrink-0" />
-                            {s}
+                            {s.display_name}
                           </button>
                         ))}
                       </div>
