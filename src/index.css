@@ -168,6 +168,23 @@ button:focus-visible {
     min-height: 100%;
     height: auto;
   }
+
+  /* Safety net for the many hand-rolled full-screen modals across the app
+     (fixed inset-0 overlay + a centered card) that never set their own
+     height cap. Without one, a modal taller than the viewport -- common on
+     phones, worse with the on-screen keyboard open -- pushes its own
+     confirm/save/complete button (almost always the last element) below
+     the visible screen with no way to scroll to it. This sits in the base
+     layer, so any component that already sets its own max-height or
+     overflow-y Tailwind utility keeps that exact behavior -- utilities
+     always win over base-layer rules regardless of source order. dvh is
+     preferred where supported since it accounts for a mobile browser
+     collapsing its own address bar, which plain vh does not. */
+  .fixed.inset-0 > div {
+    max-height: 92vh;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
 }
 
 /* Themed <input type="range"> used by components/ui/slider.jsx. Each
