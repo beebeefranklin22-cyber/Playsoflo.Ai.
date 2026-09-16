@@ -52,7 +52,16 @@ async function autocomplete({ autocomplete: query }) {
   const trimmed = (query || '').trim();
   if (trimmed.length < 3) return { suggestions: [] };
   const results = await nominatimSearch(trimmed, 5).catch(() => []);
-  return { suggestions: results.map((r) => r.display_name) };
+  // Return each suggestion's own lat/lon alongside its display text, not
+  // just the text -- re-searching a display_name later (as route() used to
+  // do for every pickup/dropoff) is a lossy round trip through Nominatim's
+  // free-text search and can match a coarser result (e.g. the street
+  // instead of the exact house-number address point), silently dropping
+  // the street number the user actually picked. Capturing coordinates at
+  // selection time avoids re-geocoding the text at all.
+  return {
+    suggestions: results.map((r) => ({ display_name: r.display_name, lat: Number(r.lat), lon: Number(r.lon) })),
+  };
 }
 
 function haversineMiles(lat1, lon1, lat2, lon2) {
@@ -64,10 +73,19 @@ function haversineMiles(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function route({ pickup, dropoff }) {
+async function route({ pickup, dropoff, pickup_coords, dropoff_coords }) {
   if (!pickup || !dropoff) return { error: 'pickup and dropoff are required' };
 
-  const [from, to] = await Promise.all([geocode(pickup), geocode(dropoff)]);
+  // If the caller already has precise coordinates (the user picked an
+  // autocomplete suggestion or "use current location"), use those directly
+  // instead of re-geocoding the address text -- see the comment in
+  // autocomplete() for why re-searching that text is lossy. The address
+  // text itself is echoed back unchanged rather than replaced with a fresh
+  // (potentially coarser) geocoded version.
+  const [from, to] = await Promise.all([
+    Array.isArray(pickup_coords) ? { lat: pickup_coords[0], lon: pickup_coords[1], formatted: pickup } : geocode(pickup),
+    Array.isArray(dropoff_coords) ? { lat: dropoff_coords[0], lon: dropoff_coords[1], formatted: dropoff } : geocode(dropoff),
+  ]);
   if (!from) return { error: `Could not locate "${pickup}"` };
   if (!to) return { error: `Could not locate "${dropoff}"` };
 
