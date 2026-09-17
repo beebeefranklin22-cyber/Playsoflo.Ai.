@@ -37,6 +37,7 @@
     { "source": "/api/music-distribution", "destination": "/api/creator-economy?__fn=music-distribution" },
     { "source": "/api/collaborative-revenue", "destination": "/api/creator-economy?__fn=collaborative-revenue" },
     { "source": "/api/ad-campaign", "destination": "/api/creator-economy?__fn=ad-campaign" },
+    { "source": "/api/youtube-music", "destination": "/api/creator-economy?__fn=youtube-music" },
 
     { "source": "/api/ai-assist", "destination": "/api/ai-tools?__fn=ai-assist" },
     { "source": "/api/extract", "destination": "/api/ai-tools?__fn=extract" },

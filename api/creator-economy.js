@@ -5,12 +5,14 @@ import fanPool from './_handlers/fan-pool.js';
 import musicDistribution from './_handlers/music-distribution.js';
 import collaborativeRevenue from './_handlers/collaborative-revenue.js';
 import adCampaign from './_handlers/ad-campaign.js';
+import youtubeMusic from './_handlers/youtube-music.js';
 
 const ROUTES = {
   'fan-pool': fanPool,
   'music-distribution': musicDistribution,
   'collaborative-revenue': collaborativeRevenue,
   'ad-campaign': adCampaign,
+  'youtube-music': youtubeMusic,
 };
 
 export default async function handler(req, res) {
