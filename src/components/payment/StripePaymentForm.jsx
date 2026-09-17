@@ -70,12 +70,15 @@ const CheckoutForm = ({ amount, clientSecret, onSuccess, onError }) => {
       return;
     }
 
-    // Confirmation dialog before processing payment
-    const confirmMessage = `Confirm Payment\n\nAmount: $${amount?.toFixed(2) || '0.00'}\n\nThis charge will be processed immediately. Continue?`;
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
+    // This used to gate on a native window.confirm() "are you sure" dialog
+    // here. Many mobile browsers and in-app/PWA webview contexts silently
+    // suppress window.confirm -- it returns false (or undefined) without
+    // ever showing anything to the user -- and `if (!confirm(...)) return;`
+    // then silently aborted with no error message, which is exactly what
+    // "I entered my card and the button did nothing" looks like. The
+    // PaymentElement below already requires deliberate card entry and this
+    // button click is itself the confirmation; a second blocking dialog on
+    // top of that added friction without adding real protection.
     setIsProcessing(true);
     setErrorMessage(null);
 
