@@ -509,11 +509,11 @@ export default function StripeOnboarding() {
 
                 <div className="space-y-3">
                   <Button
-                    onClick={() => navigate(createPageUrl("Payouts"))}
+                    onClick={() => navigate(createPageUrl("Wallet"))}
                     className="w-full bg-purple-600 hover:bg-purple-700"
                   >
                     <DollarSign className="w-5 h-5 mr-2" />
-                    Go to Payouts
+                    Go to Wallet
                   </Button>
                   
                   <Button

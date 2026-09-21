@@ -44,6 +44,7 @@
     { "source": "/api/imagine", "destination": "/api/ai-tools?__fn=imagine" },
     { "source": "/api/ronron", "destination": "/api/ai-tools?__fn=ronron" },
     { "source": "/api/tmdb", "destination": "/api/ai-tools?__fn=tmdb" },
+    { "source": "/api/ticketmaster", "destination": "/api/ai-tools?__fn=ticketmaster" },
 
     { "source": "/api/email", "destination": "/api/comms?__fn=email" },
     { "source": "/api/sms", "destination": "/api/comms?__fn=sms" },
