@@ -52,7 +52,6 @@ import CarRentals from './pages/CarRentals';
 import Cart from './pages/Cart';
 import Challenges from './pages/Challenges';
 import CollaborationHub from './pages/CollaborationHub';
-import CollaboratorDashboard from './pages/CollaboratorDashboard';
 import CommunityAffiliate from './pages/CommunityAffiliate';
 import CommunityForums from './pages/CommunityForums';
 import CommunityHub from './pages/CommunityHub';
@@ -109,7 +108,6 @@ import PackageDelivery from './pages/PackageDelivery';
 import PassengerProfile from './pages/PassengerProfile';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PayoutDashboard from './pages/PayoutDashboard';
-import Payouts from './pages/Payouts';
 import PermissionsSettings from './pages/PermissionsSettings';
 import PersonalizedFeed from './pages/PersonalizedFeed';
 import Profile from './pages/Profile';
@@ -134,13 +132,8 @@ import SoFloVault from './pages/SoFloVault';
 import Social from './pages/Social';
 import StoreManager from './pages/StoreManager';
 import Streaming from './pages/Streaming';
-import StripeConnectOnboarding from './pages/StripeConnectOnboarding';
-import StripeConnectProducts from './pages/StripeConnectProducts';
-import StripeConnectStorefront from './pages/StripeConnectStorefront';
 import StripeOnboarding from './pages/StripeOnboarding';
-import StripeProductManager from './pages/StripeProductManager';
 import StripeSetup from './pages/StripeSetup';
-import StripeStorefront from './pages/StripeStorefront';
 import SupportDashboard from './pages/SupportDashboard';
 import SyncLicensingAdmin from './pages/SyncLicensingAdmin';
 import SystemDiagnostics from './pages/SystemDiagnostics';
@@ -172,7 +165,6 @@ export const PAGES = {
     "Cart": Cart,
     "Challenges": Challenges,
     "CollaborationHub": CollaborationHub,
-    "CollaboratorDashboard": CollaboratorDashboard,
     "CommunityAffiliate": CommunityAffiliate,
     "CommunityForums": CommunityForums,
     "CommunityHub": CommunityHub,
@@ -229,7 +221,6 @@ export const PAGES = {
     "PassengerProfile": PassengerProfile,
     "PaymentSuccess": PaymentSuccess,
     "PayoutDashboard": PayoutDashboard,
-    "Payouts": Payouts,
     "PermissionsSettings": PermissionsSettings,
     "PersonalizedFeed": PersonalizedFeed,
     "Profile": Profile,
@@ -254,13 +245,8 @@ export const PAGES = {
     "Social": Social,
     "StoreManager": StoreManager,
     "Streaming": Streaming,
-    "StripeConnectOnboarding": StripeConnectOnboarding,
-    "StripeConnectProducts": StripeConnectProducts,
-    "StripeConnectStorefront": StripeConnectStorefront,
     "StripeOnboarding": StripeOnboarding,
-    "StripeProductManager": StripeProductManager,
     "StripeSetup": StripeSetup,
-    "StripeStorefront": StripeStorefront,
     "SupportDashboard": SupportDashboard,
     "SyncLicensingAdmin": SyncLicensingAdmin,
     "SystemDiagnostics": SystemDiagnostics,
