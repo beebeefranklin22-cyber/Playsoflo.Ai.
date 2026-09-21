@@ -253,7 +253,7 @@ export default function LivestreamManager({ currentUser }) {
           >
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-gray-900 rounded-2xl p-6 border border-white/10 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-lg bg-gray-900 rounded-2xl p-6 border border-white/10 max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-xl font-bold text-white">Schedule Stream</h3>
@@ -492,7 +492,7 @@ function ModerationModal({ streamId, onClose }) {
     >
       <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xl bg-gray-900 rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[80vh]"
+        className="w-full max-w-xl bg-gray-900 rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[80dvh]"
       >
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-white font-bold flex items-center gap-2">

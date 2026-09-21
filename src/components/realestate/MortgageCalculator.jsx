@@ -50,7 +50,7 @@ export default function MortgageCalculator({ property, onClose }) {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-4xl bg-gradient-to-br from-gray-900 to-gray-950 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         {/* Header */}
         <div className="p-6 border-b border-white/10 flex items-center justify-between">

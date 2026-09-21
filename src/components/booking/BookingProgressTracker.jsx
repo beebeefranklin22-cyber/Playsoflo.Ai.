@@ -534,7 +534,7 @@ export default function BookingProgressTracker({ booking: initialBooking, onClos
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: "spring", damping: 24, stiffness: 300 }}
           onClick={e => e.stopPropagation()}
-          className="w-full max-w-lg bg-gray-900 border border-white/10 rounded-t-3xl sm:rounded-2xl max-h-[92vh] overflow-y-auto"
+          className="w-full max-w-lg bg-gray-900 border border-white/10 rounded-t-3xl sm:rounded-2xl max-h-[92dvh] overflow-y-auto"
         >
           {/* Header */}
           <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-white/10 px-6 py-4 rounded-t-3xl sm:rounded-t-2xl z-10">

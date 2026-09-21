@@ -555,7 +555,7 @@ Provide:
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl bg-gradient-to-br from-gray-900 to-purple-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-4xl bg-gradient-to-br from-gray-900 to-purple-900 rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-start gap-4 mb-6">
                 <div className={`w-16 h-16 bg-gradient-to-br ${selectedTool.color} rounded-2xl flex items-center justify-center`}>

@@ -214,7 +214,7 @@ export default function FollowersModal({ isOpen, onClose, userEmail, currentUser
         </div>
 
         {/* List */}
-        <div className="max-h-[60vh] overflow-y-auto p-4 space-y-2">
+        <div className="max-h-[60dvh] overflow-y-auto p-4 space-y-2">
           {isLoading ? (
             <div className="text-center py-12">
               <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto" />

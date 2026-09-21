@@ -79,7 +79,7 @@ export default function WithdrawModal({ currentUser, onClose }) {
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+            className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] flex flex-col"
           >
             <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6">
               <div className="flex items-center justify-between">

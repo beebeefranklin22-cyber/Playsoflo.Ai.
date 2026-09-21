@@ -100,7 +100,7 @@ export default function StripeSetupWizard({ currentUser, onClose, onConnected })
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

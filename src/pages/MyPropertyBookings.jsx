@@ -294,7 +294,7 @@ export default function MyPropertyBookings() {
             onClick={() => setSelectedBookingForChat(null)}
           >
             <div
-              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <Button

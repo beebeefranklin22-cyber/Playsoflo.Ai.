@@ -106,7 +106,7 @@ export default function ProductFormModal({ product, preFillSku, currentUser, onC
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

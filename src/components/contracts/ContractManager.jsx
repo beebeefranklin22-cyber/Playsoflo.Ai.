@@ -115,7 +115,7 @@ function CreateContractModal({ currentUser, onClose, onCreated }) {
     >
       <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] flex flex-col"
       >
         <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -274,7 +274,7 @@ function SignContractModal({ contract, currentUser, onClose, onSigned }) {
     >
       <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] flex flex-col"
       >
         <div className="bg-gradient-to-r from-green-700 to-teal-700 p-5 flex items-center justify-between">
           <div>
@@ -465,7 +465,7 @@ export default function ContractManager({ currentUser }) {
             >
               <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
                 onClick={e => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] flex flex-col"
               >
                 <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-5 flex items-center justify-between">
                   <h2 className="text-xl font-bold text-white">{viewingContract.title}</h2>

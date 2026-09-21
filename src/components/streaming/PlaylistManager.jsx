@@ -69,7 +69,7 @@ export default function PlaylistManager({ vodId, userEmail, onClose }) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-md max-h-[85vh] flex flex-col"
+        className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-md max-h-[85dvh] flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">

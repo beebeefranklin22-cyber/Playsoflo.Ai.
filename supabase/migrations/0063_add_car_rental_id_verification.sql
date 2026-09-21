@@ -1,0 +1,16 @@
+-- CarRentals.jsx's booking form collects two documents before checkout --
+-- a driver's license and a separate government ID -- but the insert in
+-- createCarRental.js wrote them as `driver_license_url` (singular
+-- "driver") and `id_verification_url`. Neither is a real column: the
+-- table has always had `drivers_license_url` (plural "drivers", the name
+-- CarRentalDocReview.jsx actually reads back for provider review), and
+-- there has never been a column for the second document at all, so every
+-- car rental checkout failed at the database with "Could not find the
+-- 'driver_license_url' column of 'car_rentals' in the schema cache".
+--
+-- This migration adds the missing column; the accompanying code change
+-- renames the client's write from `driver_license_url` to the existing
+-- `drivers_license_url`, and wires `id_verification_url` into the
+-- provider's document review screen so the second document collected at
+-- checkout is actually visible to whoever approves the rental.
+alter table public.car_rentals add column if not exists id_verification_url text;

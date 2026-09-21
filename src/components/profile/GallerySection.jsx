@@ -347,12 +347,12 @@ export default function GallerySection({ userEmail, isOwnProfile, currentUser })
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="max-w-4xl max-h-[90vh] w-full"
+              className="max-w-4xl max-h-[90dvh] w-full"
             >
               {selectedMedia.media_type === 'video' ? (
-                <video src={selectedMedia.media_url} className="max-h-[80vh] mx-auto rounded-lg" controls autoPlay />
+                <video src={selectedMedia.media_url} className="max-h-[80dvh] mx-auto rounded-lg" controls autoPlay />
               ) : (
-                <img src={selectedMedia.media_url} className="max-h-[80vh] mx-auto rounded-lg object-contain" />
+                <img src={selectedMedia.media_url} className="max-h-[80dvh] mx-auto rounded-lg object-contain" />
               )}
 
               <div className="mt-4 text-center">

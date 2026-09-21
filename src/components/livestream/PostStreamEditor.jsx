@@ -220,7 +220,7 @@ Important: Keep start_time and end_time within 0 and ${Math.floor(duration || 36
       <motion.div
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="w-full max-w-2xl bg-[#18181b] rounded-2xl overflow-hidden max-h-[95vh] flex flex-col"
+        className="w-full max-w-2xl bg-[#18181b] rounded-2xl overflow-hidden max-h-[95dvh] flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">

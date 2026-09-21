@@ -58,7 +58,7 @@ export default function ReelsUploadModal({ currentUser, onClose, onSuccess }) {
         initial={{ y: 60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-bold text-white">New Reel</h2>

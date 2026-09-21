@@ -98,7 +98,7 @@ export default function FollowStats({ userEmail, currentUser }) {
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-gray-900 rounded-2xl max-h-[70vh] overflow-hidden"
+        className="w-full max-w-md bg-gray-900 rounded-2xl max-h-[70dvh] overflow-hidden"
       >
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h3 className="text-xl font-bold text-white capitalize">{type}</h3>

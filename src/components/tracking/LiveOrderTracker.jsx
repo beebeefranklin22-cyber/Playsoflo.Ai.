@@ -153,7 +153,7 @@ export default function LiveOrderTracker({ orderId, orderType, onClose }) {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-4xl h-[90vh] max-h-[90vh] mx-auto bg-gray-900 rounded-2xl border border-white/10 overflow-hidden flex flex-col"
+        className="w-full max-w-4xl h-[90dvh] max-h-[90dvh] mx-auto bg-gray-900 rounded-2xl border border-white/10 overflow-hidden flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 bg-gradient-to-r from-purple-600/20 to-pink-600/20">

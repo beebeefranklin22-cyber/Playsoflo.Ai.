@@ -1041,7 +1041,7 @@ export default function Marketplace() {
           onClick={() => setShowQuickBooking(false)}
         >
           <div
-            className="w-full max-w-2xl bg-gray-900 rounded-2xl p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-2xl bg-gray-900 rounded-2xl p-6 max-h-[90dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <QuickBookingFlow
@@ -1063,7 +1063,7 @@ export default function Marketplace() {
       {/* Payment Modal for Food Orders */}
       {showPayment && pendingOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
-          <div className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto">
             <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-white">Complete Your Order</h2>

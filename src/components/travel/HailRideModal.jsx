@@ -270,7 +270,7 @@ export default function HailRideModal({ open, onClose }) {
         />
       ) : (
         <Dialog open={open} onOpenChange={onClose}>
-          <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl">Book Your Ride</DialogTitle>
             </DialogHeader>

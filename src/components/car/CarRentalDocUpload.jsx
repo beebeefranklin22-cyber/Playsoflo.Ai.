@@ -132,7 +132,7 @@ export default function CarRentalDocUpload({ rentalId, onComplete, onClose }) {
       <motion.div
         initial={{ scale: 0.95 }}
         animate={{ scale: 1 }}
-        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">

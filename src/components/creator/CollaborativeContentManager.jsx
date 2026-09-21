@@ -176,7 +176,7 @@ export default function CollaborativeContentManager({ currentUser }) {
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-3xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-white/20 max-h-[85vh] overflow-y-auto"
+              className="w-full max-w-3xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 border border-white/20 max-h-[85dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-white flex items-center gap-2">

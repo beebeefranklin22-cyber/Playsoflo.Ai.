@@ -61,7 +61,7 @@ export default function AdvancedPropertyFilters({ filters, onFiltersChange, onCl
         exit={{ scale: 0.9, x: "100%" }}
         transition={{ type: "spring", damping: 25 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md bg-gray-900 rounded-3xl h-[90vh] flex flex-col"
+        className="w-full max-w-md bg-gray-900 rounded-3xl h-[90dvh] flex flex-col"
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">

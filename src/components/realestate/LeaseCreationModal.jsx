@@ -110,7 +110,7 @@ This Lease Agreement ("Agreement") is entered into between the Landlord and Tena
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[70dvh] overflow-y-auto">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="text-white font-semibold mb-2 block">Tenant Email *</label>

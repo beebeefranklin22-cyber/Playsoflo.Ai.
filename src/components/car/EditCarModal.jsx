@@ -43,7 +43,7 @@ export default function EditCarModal({ open, onClose, car, onSuccess }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl">Edit Vehicle</DialogTitle>

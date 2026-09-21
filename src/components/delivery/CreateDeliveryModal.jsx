@@ -103,7 +103,7 @@ export default function CreateDeliveryModal({ currentUser, onClose }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl border border-white/10 max-h-[90dvh] overflow-y-auto"
       >
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-600 p-6 border-b border-white/10 z-10">
           <div className="flex items-center justify-between">

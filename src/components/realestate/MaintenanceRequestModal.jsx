@@ -83,7 +83,7 @@ export default function MaintenanceRequestModal({ lease, onClose, onSuccess }) {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div>

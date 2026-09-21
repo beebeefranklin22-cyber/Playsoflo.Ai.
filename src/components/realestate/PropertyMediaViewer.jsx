@@ -15,7 +15,7 @@ export default function PropertyMediaViewer({ property, onClose }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-3xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <h2 className="text-xl font-bold text-white">{property.title} — Media</h2>

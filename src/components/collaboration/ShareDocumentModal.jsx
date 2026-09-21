@@ -76,7 +76,7 @@ export default function ShareDocumentModal({ document, onClose }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="glass-effect rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="glass-effect rounded-2xl p-6 max-w-lg w-full max-h-[90dvh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-white">Share Document</h2>

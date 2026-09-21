@@ -1037,7 +1037,7 @@ export default function LandlordTenantPortal() {
                   <X className="w-6 h-6 text-white" />
                 </button>
               </div>
-              <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 max-h-[70dvh] overflow-y-auto">
                 <DocumentStorage 
                   propertyId={viewingDocuments.property_id} 
                   leaseId={viewingDocuments.id}

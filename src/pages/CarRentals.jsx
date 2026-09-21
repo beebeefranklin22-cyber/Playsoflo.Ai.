@@ -53,7 +53,7 @@ export default function CarRentals() {
     delivery_option: "pickup",
     delivery_address: "",
     unlock_method: "app_unlock",
-    driver_license_url: "",
+    drivers_license_url: "",
     id_verification_url: "",
     selected_add_ons: []
   });
@@ -278,7 +278,7 @@ export default function CarRentals() {
       return;
     }
 
-    if (!bookingForm.driver_license_url || !bookingForm.id_verification_url) {
+    if (!bookingForm.drivers_license_url || !bookingForm.id_verification_url) {
       toast.error("Please upload your driver's license and ID");
       return;
     }
@@ -306,7 +306,7 @@ export default function CarRentals() {
       unlock_method: bookingForm.unlock_method,
       security_deposit: selectedCar.rental_details?.security_deposit || costs.securityDeposit,
       verification_required: true,
-      driver_license_url: bookingForm.driver_license_url,
+      drivers_license_url: bookingForm.drivers_license_url,
       id_verification_url: bookingForm.id_verification_url,
       mileage_limit: selectedCar.rental_details?.mileage_limit_per_day || 200,
       excess_mileage_fee: selectedCar.rental_details?.excess_mileage_fee || 0.50,
@@ -588,7 +588,7 @@ export default function CarRentals() {
                               delivery_option: "pickup",
                               delivery_address: "",
                               unlock_method: "app_unlock",
-                              driver_license_url: "",
+                              drivers_license_url: "",
                               id_verification_url: "",
                               selected_add_ons: []
                             });
@@ -931,7 +931,7 @@ export default function CarRentals() {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
               >
                 <h2 className="text-3xl font-bold text-white mb-6">
                   Book {selectedCar.title}
@@ -1066,7 +1066,7 @@ export default function CarRentals() {
                     <div className="space-y-3">
                       <div>
                         <label className="text-gray-300 text-sm mb-2 block">Driver License</label>
-                        {bookingForm.driver_license_url ? (
+                        {bookingForm.drivers_license_url ? (
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-5 h-5 text-green-400" />
                             <span className="text-green-400 text-sm">Uploaded</span>
@@ -1077,7 +1077,7 @@ export default function CarRentals() {
                               id="license-upload"
                               type="file"
                               accept="image/*"
-                              onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'driver_license_url')}
+                              onChange={(e) => handleDocumentUpload(e.target.files?.[0], 'drivers_license_url')}
                               className="hidden"
                             />
                             <Button

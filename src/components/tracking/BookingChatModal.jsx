@@ -80,7 +80,7 @@ export default function BookingChatModal({ currentUser, providerEmail, providerN
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="w-full md:w-[480px] h-[70vh] md:h-[600px] bg-gray-900 border border-white/10 rounded-t-3xl md:rounded-3xl flex flex-col overflow-hidden"
+          className="w-full md:w-[480px] h-[70dvh] md:h-[600px] bg-gray-900 border border-white/10 rounded-t-3xl md:rounded-3xl flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10">

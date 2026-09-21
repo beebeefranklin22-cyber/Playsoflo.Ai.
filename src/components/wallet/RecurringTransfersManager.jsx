@@ -118,7 +118,7 @@ export default function RecurringTransfersManager({ currentUser, onClose }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto bg-gray-900 border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-white text-2xl flex items-center gap-2">
             <Calendar className="w-6 h-6 text-purple-400" />
