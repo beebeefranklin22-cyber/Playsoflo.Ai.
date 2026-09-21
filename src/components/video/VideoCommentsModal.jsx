@@ -47,7 +47,7 @@ export default function VideoCommentsModal({ video, currentUser, onClose }) {
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
-      className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-gray-950 to-gray-900 rounded-t-3xl border-t border-white/10 max-h-[80vh] flex flex-col"
+      className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-gray-950 to-gray-900 rounded-t-3xl border-t border-white/10 max-h-[80dvh] flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-white/10">

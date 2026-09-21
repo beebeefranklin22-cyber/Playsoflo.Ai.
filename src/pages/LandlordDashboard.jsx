@@ -440,7 +440,7 @@ export default function LandlordDashboard() {
             onClick={() => setShowCreateLease(false)}>
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto">
               <div className="sticky top-0 bg-gray-900 border-b border-white/10 px-6 py-4 flex items-center justify-between z-10">
                 <h2 className="text-white font-bold text-lg">Create Lease — {selectedApp.applicant_name}</h2>
                 <button onClick={() => setShowCreateLease(false)}><X className="w-5 h-5 text-gray-400" /></button>

@@ -416,7 +416,7 @@ export default function FanPoolManager({ fanPools, currentUser }) {
             <motion.div
               initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-5xl bg-gray-900 rounded-3xl max-h-[92vh] overflow-y-auto"
+              className="w-full max-w-5xl bg-gray-900 rounded-3xl max-h-[92dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="sticky top-0 bg-gray-900 z-10 px-8 pt-8 pb-4 border-b border-white/10 flex items-center justify-between">
@@ -687,7 +687,7 @@ export default function FanPoolManager({ fanPools, currentUser }) {
             <motion.div
               initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90dvh] overflow-y-auto"
             >
               <div className="sticky top-0 bg-gray-900 z-10 px-8 pt-8 pb-4 border-b border-white/10 flex items-center justify-between">
                 <div>

@@ -677,7 +677,7 @@ export default function PropertyProviderHub() {
             onClick={() => setSelectedBookingForChat(null)}
           >
             <div
-              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <Button
@@ -743,7 +743,7 @@ export default function PropertyProviderHub() {
             onClick={() => setShowAddModal(false)}
           >
             <div
-              className="w-full max-w-4xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-4xl bg-gray-900 rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-3xl font-bold text-white mb-6">Add New Property</h2>

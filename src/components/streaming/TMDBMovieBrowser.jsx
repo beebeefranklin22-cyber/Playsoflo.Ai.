@@ -221,7 +221,7 @@ export default function TMDBMovieBrowser({ onClose }) {
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[75vh] overflow-y-auto"
+              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[75dvh] overflow-y-auto"
             >
               {loadingDetails ? (
                 <div className="p-20 text-center">

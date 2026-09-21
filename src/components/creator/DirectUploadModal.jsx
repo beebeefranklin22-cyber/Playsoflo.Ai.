@@ -133,7 +133,7 @@ export default function DirectUploadModal({ isOpen, onClose, currentUser, onSucc
       <motion.div
         initial={{ scale: 0.93, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-2xl bg-[#18181b] rounded-3xl max-h-[92vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-[#18181b] rounded-3xl max-h-[92dvh] overflow-y-auto"
       >
         {/* Header */}
         <div className="sticky top-0 bg-[#18181b] px-6 pt-6 pb-4 border-b border-white/10 z-10 flex items-center justify-between">

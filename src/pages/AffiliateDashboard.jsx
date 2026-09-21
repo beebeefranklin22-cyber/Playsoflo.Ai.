@@ -405,7 +405,7 @@ export default function AffiliateDashboard() {
         setShowEditModal(open);
         if (!open) setEditingListing(null);
       }}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product/Service</DialogTitle>
           </DialogHeader>

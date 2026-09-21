@@ -333,7 +333,7 @@ export default function UnifiedBookingModal({
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="w-full sm:max-w-lg bg-gray-950 border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92vh] flex flex-col"
+          className="w-full sm:max-w-lg bg-gray-950 border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[92dvh] flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">

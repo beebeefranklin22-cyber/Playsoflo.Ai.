@@ -63,7 +63,7 @@ export default function LeaseApplicationModal({ property, currentUser, onClose }
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">

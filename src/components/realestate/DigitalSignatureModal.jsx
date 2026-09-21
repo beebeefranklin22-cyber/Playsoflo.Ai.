@@ -140,7 +140,7 @@ export default function DigitalSignatureModal({ lease, currentUser, onClose, onS
           </button>
         </div>
 
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-6 max-h-[70dvh] overflow-y-auto">
           {/* Lease Preview */}
           <div className="p-6 bg-white/5 rounded-xl border border-white/10 max-h-96 overflow-y-auto">
             <h3 className="text-lg font-bold text-white mb-4">Lease Terms</h3>

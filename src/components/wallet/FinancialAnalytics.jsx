@@ -92,7 +92,7 @@ export default function FinancialAnalytics({ currentUser, onClose }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-6xl bg-gradient-to-br from-gray-900 to-purple-900/50 rounded-3xl border border-white/10 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-6xl bg-gradient-to-br from-gray-900 to-purple-900/50 rounded-3xl border border-white/10 max-h-[90dvh] overflow-y-auto"
       >
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 p-6 border-b border-white/10 z-10">

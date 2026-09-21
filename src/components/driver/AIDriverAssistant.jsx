@@ -112,7 +112,7 @@ Provide a helpful response in 2-4 sentences max.`,
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-4xl max-h-[85dvh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl flex items-center gap-2">

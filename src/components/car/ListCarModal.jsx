@@ -183,7 +183,7 @@ export default function ListCarModal({ isOpen, onClose, currentUser, onSuccess }
             </button>
           </div>
 
-          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+          <div className="space-y-6 max-h-[70dvh] overflow-y-auto pr-2">
             {/* Basic Info */}
             <div className="grid md:grid-cols-3 gap-4">
               <div>

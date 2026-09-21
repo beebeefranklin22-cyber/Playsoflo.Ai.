@@ -187,7 +187,7 @@ export default function HelpModal({ topic, onClose }) {
         initial={{ scale: 0.9 }}
         animate={{ scale: 1 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6">
           <div className="flex items-center justify-between">

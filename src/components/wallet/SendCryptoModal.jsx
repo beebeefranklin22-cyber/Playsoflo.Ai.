@@ -201,7 +201,7 @@ export default function SendCryptoModal({ currentUser, onClose }) {
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-lg bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
         >
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">

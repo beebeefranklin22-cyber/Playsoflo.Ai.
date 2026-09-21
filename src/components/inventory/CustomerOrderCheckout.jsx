@@ -90,7 +90,7 @@ export default function CustomerOrderCheckout({ product, storeSettings, currentU
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-xl"
       onClick={e => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-        className="w-full md:max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl max-h-[90vh] overflow-y-auto"
+        className="w-full md:max-w-lg bg-gray-900 rounded-t-3xl md:rounded-3xl max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}

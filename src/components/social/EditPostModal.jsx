@@ -56,7 +56,7 @@ export default function EditPostModal({ isOpen, onClose, post }) {
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 max-h-[90vh] overflow-y-auto border border-white/20"
+          className="w-full max-w-2xl bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 max-h-[90dvh] overflow-y-auto border border-white/20"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Edit Post</h2>

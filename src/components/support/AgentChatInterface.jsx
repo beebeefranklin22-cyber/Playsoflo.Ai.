@@ -78,7 +78,7 @@ export default function AgentChatInterface({ ticket, currentUser, onClose }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-6xl h-[90vh] bg-gray-900 rounded-3xl border border-white/10 flex"
+        className="w-full max-w-6xl h-[90dvh] bg-gray-900 rounded-3xl border border-white/10 flex"
       >
         {/* User Context Sidebar */}
         <div className="w-80 bg-white/5 border-r border-white/10 p-6 overflow-y-auto">

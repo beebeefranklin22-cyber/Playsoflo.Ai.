@@ -328,7 +328,7 @@ export default function DigitalProductsStore({ currentUser }) {
       {/* Create/Edit Modal */}
       {showModal && (
         <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-700">
+          <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto bg-gray-900 border-gray-700">
             <DialogHeader>
               <DialogTitle className="text-white text-2xl">
                 {editingProduct ? "Edit Product" : "Add Digital Product"}

@@ -64,7 +64,7 @@ export default function StoryViewer({ stories, initialIndex = 0, onClose }) {
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
-          className="relative w-full max-w-md h-full max-h-[90vh] bg-gray-900 rounded-2xl overflow-hidden"
+          className="relative w-full max-w-md h-full max-h-[90dvh] bg-gray-900 rounded-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Progress bars */}

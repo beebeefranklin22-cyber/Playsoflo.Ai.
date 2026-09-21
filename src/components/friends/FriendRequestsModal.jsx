@@ -83,7 +83,7 @@ export default function FriendRequestsModal({ currentUser, onClose }) {
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl max-h-[90vh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col"
+        className="w-full max-w-2xl max-h-[90dvh] bg-gray-900 rounded-3xl overflow-hidden flex flex-col"
       >
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">

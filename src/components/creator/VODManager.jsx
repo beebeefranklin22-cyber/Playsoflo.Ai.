@@ -226,7 +226,7 @@ export default function VODManager({ currentUser, onEditVideo }) {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold text-white">Edit Content</h3>

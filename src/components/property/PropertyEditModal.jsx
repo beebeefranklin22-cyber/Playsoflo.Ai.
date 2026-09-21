@@ -79,7 +79,7 @@ export default function PropertyEditModal({ property, onClose }) {
           </button>
         </div>
 
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <div className="space-y-4 max-h-[70dvh] overflow-y-auto pr-2">
           <Input
             placeholder="Property Title"
             value={form.title}

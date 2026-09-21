@@ -79,7 +79,7 @@ export default function ProfileCustomization({ isOpen, onClose, currentUser, onU
         animate={{ scale: 1 }}
         exit={{ scale: 0.9 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-gray-900 rounded-2xl max-h-[90vh] overflow-hidden"
+        className="w-full max-w-lg bg-gray-900 rounded-2xl max-h-[90dvh] overflow-hidden"
       >
         <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <h3 className="text-xl font-bold text-white flex items-center gap-2">

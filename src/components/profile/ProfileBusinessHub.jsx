@@ -82,7 +82,7 @@ function MenuItemForm({ item, currentUser, onClose, onSaved }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-lg bg-gray-900 rounded-3xl max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg bg-gray-900 rounded-3xl max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-gray-900 border-b border-white/10 px-6 py-4 flex items-center justify-between rounded-t-3xl z-10">
@@ -286,7 +286,7 @@ function StorefrontProductForm({ item, currentUser, onClose, onSaved }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-2xl bg-gray-900 rounded-3xl max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-gray-900 border-b border-white/10 px-6 py-4 flex items-center justify-between rounded-t-3xl z-10">

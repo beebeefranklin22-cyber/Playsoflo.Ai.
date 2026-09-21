@@ -198,7 +198,7 @@ export default function EcommerceOrderModal({ item, currentUser, onClose, onSucc
         initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 80 }}
-        className="w-full sm:max-w-lg bg-gray-950 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[95vh] flex flex-col"
+        className="w-full sm:max-w-lg bg-gray-950 rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[95dvh] flex flex-col"
       >
         {/* Header */}
         <div className="relative bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-900 p-5 flex-shrink-0">

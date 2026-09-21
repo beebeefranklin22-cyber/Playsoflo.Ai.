@@ -69,7 +69,7 @@ export default function MenuWidgetEmbed({ restaurant, onClose }) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-orange-900/90 to-red-900/90 backdrop-blur-xl rounded-3xl border-2 border-orange-500/50 shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-gradient-to-br from-orange-900/90 to-red-900/90 backdrop-blur-xl rounded-3xl border-2 border-orange-500/50 shadow-2xl max-w-3xl w-full max-h-[90dvh] overflow-y-auto"
       >
         <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-orange-900/90 backdrop-blur-xl">
           <div className="flex items-center gap-3">

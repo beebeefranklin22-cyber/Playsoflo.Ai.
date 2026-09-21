@@ -100,7 +100,7 @@ export default function SubmitReviewModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+        <div className="p-6 space-y-6 max-h-[70dvh] overflow-y-auto">
           {/* Overall Rating */}
           <div className="space-y-2">
             <label className="text-white font-semibold">Overall Rating *</label>

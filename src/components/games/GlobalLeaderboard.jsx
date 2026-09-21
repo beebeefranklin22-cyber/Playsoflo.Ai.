@@ -59,7 +59,7 @@ export default function GlobalLeaderboard({ currentUser, onClose }) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 backdrop-blur-xl rounded-3xl border-2 border-purple-500/50 shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        className="bg-gradient-to-br from-purple-900/90 to-indigo-900/90 backdrop-blur-xl rounded-3xl border-2 border-purple-500/50 shadow-2xl max-w-4xl w-full max-h-[90dvh] overflow-hidden"
       >
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <div className="flex items-center gap-3">

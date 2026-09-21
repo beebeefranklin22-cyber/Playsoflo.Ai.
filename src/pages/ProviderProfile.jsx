@@ -519,7 +519,7 @@ export default function ProviderProfile() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-3xl bg-gray-900 rounded-2xl p-6 my-8 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-3xl bg-gray-900 rounded-2xl p-6 my-8 max-h-[90dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-white">Edit Profile</h3>

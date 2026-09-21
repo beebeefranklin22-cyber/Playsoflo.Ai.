@@ -1065,7 +1065,7 @@ export default function Streaming() {
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg bg-[#18181b] rounded-t-3xl sm:rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">

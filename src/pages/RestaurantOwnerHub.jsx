@@ -859,7 +859,7 @@ export default function RestaurantOwnerHub() {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-white">
@@ -1031,7 +1031,7 @@ export default function RestaurantOwnerHub() {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.9 }}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl bg-gray-900 rounded-3xl p-8 max-h-[90dvh] overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-white">

@@ -158,7 +158,7 @@ export default function CreateStoryModal({ isOpen, onClose, currentUser }) {
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", damping: 20 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-5xl h-[90vh] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex"
+          className="w-full max-w-5xl h-[90dvh] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl flex"
         >
           {/* Left Panel - Preview */}
           <div className="w-[45%] bg-gradient-to-br from-gray-900 to-black border-r border-white/10 flex flex-col">

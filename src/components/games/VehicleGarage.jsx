@@ -78,7 +78,7 @@ export default function VehicleGarage({ currentUser, onClose }) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 max-w-6xl w-full max-h-[90vh] overflow-auto border-2 border-cyan-500/30"
+        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 max-w-6xl w-full max-h-[90dvh] overflow-auto border-2 border-cyan-500/30"
       >
         <div className="flex items-center justify-between mb-6">
           <div>

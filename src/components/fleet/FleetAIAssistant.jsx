@@ -71,7 +71,7 @@ As a fleet management AI assistant, provide helpful, actionable advice. Be speci
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-3xl h-[80vh] flex flex-col">
+      <DialogContent className="bg-gray-900 border border-white/10 text-white max-w-3xl h-[80dvh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl flex items-center gap-2">

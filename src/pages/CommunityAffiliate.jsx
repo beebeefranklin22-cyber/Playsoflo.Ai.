@@ -441,7 +441,7 @@ export default function CommunityAffiliate() {
         setShowCreateModal(open);
         if (!open) setEditingListing(null);
       }}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingListing ? 'Edit' : 'Add'} Affiliate Program</DialogTitle>
           </DialogHeader>
@@ -514,7 +514,7 @@ export default function CommunityAffiliate() {
 
       {/* Comments Modal */}
       <Dialog open={!!selectedListing && !showReviewsModal} onOpenChange={() => setSelectedListing(null)}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>Comments</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {comments.map((c) => (

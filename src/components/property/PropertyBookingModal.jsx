@@ -178,7 +178,7 @@ export default function PropertyBookingModal({ property, onClose }) {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] overflow-y-auto"
       >
         <div className="relative h-48">
           <img

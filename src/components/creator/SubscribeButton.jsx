@@ -140,7 +140,7 @@ export default function SubscribeButton({ creatorEmail, creatorName, currentUser
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-gray-900 rounded-3xl p-6 border border-white/10 max-h-[85vh] overflow-y-auto"
+              className="w-full max-w-lg bg-gray-900 rounded-3xl p-6 border border-white/10 max-h-[85dvh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <div>

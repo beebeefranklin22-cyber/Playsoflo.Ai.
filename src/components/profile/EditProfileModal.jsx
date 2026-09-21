@@ -103,7 +103,7 @@ export default function EditProfileModal({ currentUser, onClose, onSaved }) {
           exit={{ y: 60, opacity: 0 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full sm:max-w-lg bg-gray-950 sm:rounded-3xl rounded-t-3xl overflow-hidden max-h-[92vh] flex flex-col"
+          className="w-full sm:max-w-lg bg-gray-950 sm:rounded-3xl rounded-t-3xl overflow-hidden max-h-[92dvh] flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 flex-shrink-0">

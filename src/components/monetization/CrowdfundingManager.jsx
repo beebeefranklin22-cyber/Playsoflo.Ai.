@@ -165,7 +165,7 @@ export default function CrowdfundingManager({ currentUser, viewMode = "manage" }
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90vh] overflow-y-auto"
+              className="w-full max-w-2xl bg-gray-900 rounded-3xl p-6 max-h-[90dvh] overflow-y-auto"
             >
               <h3 className="text-2xl font-bold text-white mb-6">Create Campaign</h3>
 

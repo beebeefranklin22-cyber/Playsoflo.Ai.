@@ -342,7 +342,7 @@ Thank you for riding with SoFlo!
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[95vh] overflow-y-auto"
+              className="w-full max-w-4xl bg-gray-900 rounded-3xl overflow-hidden max-h-[95dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="p-6 border-b border-white/10 bg-gradient-to-r from-purple-900/30 to-blue-900/30">

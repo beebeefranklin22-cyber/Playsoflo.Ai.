@@ -489,7 +489,7 @@ export default function CommunityJobs() {
         setShowCreateModal(open);
         if (!open) setEditingJob(null);
       }}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingJob ? 'Edit' : 'Post'} Job/Gig</DialogTitle>
           </DialogHeader>
@@ -567,7 +567,7 @@ export default function CommunityJobs() {
 
       {/* Comments Modal - Same as News */}
       <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-white/10 text-white max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>Comments</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {comments.map((c) => (

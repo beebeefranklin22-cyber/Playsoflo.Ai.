@@ -48,7 +48,7 @@ export default function FriendsLeaderboard({ currentUser, gameName, onClose }) {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-gradient-to-br from-indigo-900/90 to-purple-900/90 backdrop-blur-xl rounded-3xl border-2 border-indigo-500/50 shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden"
+        className="bg-gradient-to-br from-indigo-900/90 to-purple-900/90 backdrop-blur-xl rounded-3xl border-2 border-indigo-500/50 shadow-2xl max-w-md w-full max-h-[80dvh] overflow-hidden"
       >
         <div className="p-6 border-b border-white/10 flex justify-between items-center">
           <div className="flex items-center gap-3">
