@@ -84,7 +84,7 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+      <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="w-full max-w-2xl bg-gray-900 rounded-3xl overflow-hidden max-h-[90dvh] flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-700 to-purple-700 p-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -133,9 +133,10 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
               )}
 
               {/* Document Images */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <DocImage url={selectedRental.drivers_license_url} label="License (Front)" />
                 <DocImage url={selectedRental.drivers_license_back_url} label="License (Back)" />
+                <DocImage url={selectedRental.id_verification_url} label="Government ID" />
                 <DocImage url={selectedRental.insurance_card_url} label="Insurance Card" />
               </div>
 

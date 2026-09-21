@@ -49,7 +49,7 @@ export async function createCarRental(data = {}) {
       unlock_method: data.unlock_method,
       security_deposit: data.security_deposit || 0,
       verification_required: data.verification_required !== false,
-      driver_license_url: data.driver_license_url,
+      drivers_license_url: data.drivers_license_url,
       id_verification_url: data.id_verification_url,
       mileage_limit: data.mileage_limit,
       excess_mileage_fee: data.excess_mileage_fee,
