@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import PageWrapper from "@/components/PageWrapper";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Home, Building, Hotel, Key, MapPin,
   Bed, Bath, Maximize, Star, Check, Sparkles,
@@ -47,7 +47,6 @@ const listingTypes = [
 
 export default function RealEstate() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { userCity, refreshLocation } = useUserLocation();
   const [locationCity, setLocationCity] = useState("");
   const [locationRadius, setLocationRadius] = useState(null);
@@ -111,28 +110,6 @@ export default function RealEstate() {
     enabled: !!currentUser,
   });
 
-  const fetchPropertiesMutation = useMutation({
-    mutationFn: async (location) => {
-      console.log('Fetching properties for:', location);
-      const response = await base44.functions.invoke('fetchRealEstateData', {
-        location,
-        listing_type: selectedListingType !== 'all' ? selectedListingType : null,
-        property_type: selectedCategory !== 'all' ? selectedCategory : null
-      });
-      console.log('Response:', response);
-      return response.data;
-    },
-    onSuccess: (data) => {
-      console.log('Success:', data);
-      queryClient.invalidateQueries({ queryKey: ['properties'] });
-      toast.success(`Found ${data.properties?.length || 0} properties in ${data.location || searchLocation}`);
-    },
-    onError: (error) => {
-      console.error('Error:', error);
-      toast.error(error.message || 'Failed to fetch properties');
-    }
-  });
-
   const handleSearch = async (e) => {
     e.preventDefault();
     if (searchLocation.trim()) {
@@ -153,7 +130,12 @@ export default function RealEstate() {
       } catch (error) {
         console.error("Geocoding error:", error);
       }
-      fetchPropertiesMutation.mutate(searchLocation);
+      // This used to also call base44.functions.invoke('fetchRealEstateData', ...)
+      // here to pull in listings from an external real-estate data provider --
+      // a backend function that was never implemented, so every search failed.
+      // Searching still works for the platform's own listed properties (via
+      // locationCity above) and still centers the map; pulling in outside
+      // listings needs a real data provider this app isn't connected to yet.
     }
   };
 
