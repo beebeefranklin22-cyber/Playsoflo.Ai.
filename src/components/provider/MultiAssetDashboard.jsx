@@ -176,7 +176,7 @@ export default function MultiAssetDashboard({ currentUser }) {
                 size="sm"
                 variant="outline"
                 className="flex-1 bg-white/5 border-white/20"
-                onClick={() => navigate(createPageUrl("ProviderHub") + "?tab=services&edit=" + asset.id)}
+                onClick={() => navigate(createPageUrl("ProviderListings") + "?edit=" + asset.id)}
               >
                 <Edit className="w-3 h-3 mr-1" />
                 Edit
@@ -185,7 +185,7 @@ export default function MultiAssetDashboard({ currentUser }) {
                 size="sm"
                 variant="outline"
                 className="flex-1 bg-white/5 border-white/20"
-                onClick={() => navigate(createPageUrl("ProviderHub") + "?tab=earnings&asset=" + asset.id)}
+                onClick={() => navigate(createPageUrl("ProviderHub") + "?tab=earnings")}
               >
                 <BarChart3 className="w-3 h-3 mr-1" />
                 Stats
@@ -319,7 +319,7 @@ export default function MultiAssetDashboard({ currentUser }) {
             </div>
 
             <Button
-              onClick={() => navigate(createPageUrl("ProviderHub") + "?tab=services")}
+              onClick={() => navigate(createPageUrl("ProviderListings"))}
               className="bg-gradient-to-r from-purple-600 to-pink-600"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -347,7 +347,7 @@ export default function MultiAssetDashboard({ currentUser }) {
                 : 'Start adding your first asset to get started'}
             </p>
             <Button
-              onClick={() => navigate(createPageUrl("ProviderHub") + "?tab=services")}
+              onClick={() => navigate(createPageUrl("ProviderListings"))}
               className="bg-purple-600 hover:bg-purple-700"
             >
               <Plus className="w-4 h-4 mr-2" />
