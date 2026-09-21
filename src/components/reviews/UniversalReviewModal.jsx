@@ -37,13 +37,22 @@ export default function UniversalReviewModal({
   const submitReviewMutation = useMutation({
     mutationFn: async (reviewData) => {
       const review = await base44.entities.UserReview.create(reviewData);
-      
-      // Send notification
-      await base44.functions.invoke('sendPushNotification', {
-        user_email: reviewedUserEmail,
+
+      // This used to call base44.functions.invoke('sendPushNotification', ...),
+      // a backend function that was never implemented, so it always threw
+      // here -- AFTER the review had already been created. With no
+      // onError handler, that meant the mutation silently failed every
+      // time: no success toast, the modal never closed, and the caller's
+      // onSuccess (e.g. refreshing the booking to show it as reviewed)
+      // never ran, even though the review was already saved. A real
+      // in-app notification (the same one used everywhere else) fixes
+      // both the false failure and actually tells the reviewed user.
+      await base44.entities.Notification.create({
+        recipient_email: reviewedUserEmail,
+        type: 'social',
         title: 'New Review Received',
-        body: `You received a ${rating}-star review!`,
-        notification_type: 'social'
+        message: `You received a ${rating}-star review!`,
+        read: false,
       });
 
       return review;
@@ -54,6 +63,9 @@ export default function UniversalReviewModal({
       toast.success('Review submitted successfully!');
       if (onSuccess) onSuccess();
       onClose();
+    },
+    onError: (error) => {
+      toast.error('Failed to submit review: ' + error.message);
     }
   });
 
