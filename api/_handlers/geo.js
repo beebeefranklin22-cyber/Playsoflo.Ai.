@@ -1,14 +1,19 @@
-// api/geo.js — free, keyless geocoding via OpenStreetMap Nominatim. Backs
-// calculateRideRoute (src/functions/calculateRideRoute.js), which HailRideModal.jsx
-// calls for address autocomplete and fare/distance estimation. No Google
-// Maps or Mapbox key is configured for this project (getGoogleMapsKey() was
-// a hardcoded "YOUR_API_KEY" placeholder), so this runs server-side against
-// Nominatim's public search API instead of leaving the feature broken.
-// Nominatim's usage policy caps this at ~1 request/second and requires an
-// identifying User-Agent header, which browsers refuse to let fetch() set —
-// hence a server endpoint rather than a direct client call.
+// api/geo.js — free, keyless geocoding via OpenStreetMap Nominatim, plus
+// (for the `directions` action) real turn-by-turn routing via the Google
+// Maps Directions API. Backs calculateRideRoute (src/functions/calculateRideRoute.js),
+// which HailRideModal.jsx calls for address autocomplete and fare/distance
+// estimation. No Google Maps or Mapbox key is configured for THAT feature
+// (getGoogleMapsKey() was a hardcoded "YOUR_API_KEY" placeholder), so it
+// runs server-side against Nominatim's public search API instead of
+// leaving the feature broken. Nominatim's usage policy caps this at ~1
+// request/second and requires an identifying User-Agent header, which
+// browsers refuse to let fetch() set — hence a server endpoint rather than
+// a direct client call.
+import { requireUser } from '../_lib/auth.js';
+
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 const USER_AGENT = 'PlaySoFlo/1.0 (ride-hailing route estimation; contact: support@playsoflo.com)';
+const GOOGLE_DIRECTIONS_BASE = 'https://maps.googleapis.com/maps/api/directions/json';
 
 // Straight-line distance gets a road-distance fudge factor (real driving
 // routes are rarely a straight line), plus an average-city-speed duration
@@ -27,6 +32,17 @@ export default async function handler(req, res) {
     if (action === 'autocomplete') return res.status(200).json(await autocomplete(req.body));
     if (action === 'route') return res.status(200).json(await route(req.body));
     if (action === 'reverse') return res.status(200).json(await reverse(req.body));
+    if (action === 'directions') {
+      // Real driving directions cost real money per request (unlike the
+      // free Nominatim actions above), so this one requires a signed-in
+      // caller to keep an anonymous script from running up the bill.
+      try {
+        await requireUser(req);
+      } catch (err) {
+        return res.status(err.statusCode || 401).json({ error: err.message });
+      }
+      return res.status(200).json(await directions(req.body));
+    }
     return res.status(400).json({ error: `Unknown action "${action}"` });
   } catch (err) {
     console.error('geo error:', action, err);
@@ -113,4 +129,69 @@ async function reverse({ lat, lon }) {
   if (!response.ok) return { error: 'Reverse geocoding failed' };
   const data = await response.json();
   return { formatted_address: data.display_name || null };
+}
+
+// Strips the <b>/<div> markup Google puts in html_instructions to make a
+// plain string suitable for on-screen display and for the app's
+// text-to-speech turn announcements.
+function stripHtml(html) {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function toLatLngParam(coords) {
+  if (Array.isArray(coords) && coords.length === 2) return `${coords[0]},${coords[1]}`;
+  if (coords && typeof coords === 'object' && 'lat' in coords) return `${coords.lat},${coords.lng ?? coords.lon}`;
+  return null;
+}
+
+// Real turn-by-turn driving directions via the Google Maps Directions API
+// -- used by NavigationModal.jsx, LiveGPSTracking.jsx, RideTrackingMap.jsx,
+// and RonronAI.jsx for driver navigation. This used to be referenced as
+// base44.functions.invoke('getDirections', ...) with no backend behind it
+// at all, so navigation never worked. The response shape here deliberately
+// mirrors Google's own Directions API response (bounds, step
+// start_location/end_location, distance/duration as {text, value} objects)
+// because the client's polyline decoder and map-bounds logic were already
+// written against that exact shape -- only `instruction` (plain text, for
+// display and voice) and `.minutes` (on each duration object, since the
+// client reads duration.minutes) are added on top.
+async function directions({ origin, destination, mode }) {
+  const originParam = toLatLngParam(origin);
+  const destinationParam = toLatLngParam(destination);
+  if (!originParam || !destinationParam) return { error: 'origin and destination ([lat, lng]) are required' };
+
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) {
+    const err = new Error('Turn-by-turn directions are not configured yet');
+    err.statusCode = 503;
+    throw err;
+  }
+
+  const url = `${GOOGLE_DIRECTIONS_BASE}?origin=${encodeURIComponent(originParam)}&destination=${encodeURIComponent(destinationParam)}` +
+    `&mode=${encodeURIComponent(mode || 'driving')}&departure_time=now&key=${key}`;
+  const response = await fetch(url);
+  if (!response.ok) return { error: `Directions service unavailable (${response.status})` };
+  const data = await response.json();
+
+  if (data.status !== 'OK') {
+    return { error: data.error_message || `Could not find a route (${data.status})` };
+  }
+
+  const route = data.routes[0];
+  const leg = route.legs[0];
+  const withMinutes = (d) => (d ? { ...d, minutes: Math.round(d.value / 60) } : null);
+
+  return {
+    polyline: route.overview_polyline?.points,
+    bounds: route.bounds,
+    distance: leg.distance,
+    duration: withMinutes(leg.duration),
+    duration_in_traffic: withMinutes(leg.duration_in_traffic),
+    steps: (leg.steps || []).map((step) => ({
+      ...step,
+      instruction: stripHtml(step.html_instructions),
+      distance: step.distance,
+      duration: withMinutes(step.duration),
+    })),
+  };
 }

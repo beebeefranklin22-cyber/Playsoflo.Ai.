@@ -43,6 +43,7 @@
     { "source": "/api/extract", "destination": "/api/ai-tools?__fn=extract" },
     { "source": "/api/imagine", "destination": "/api/ai-tools?__fn=imagine" },
     { "source": "/api/ronron", "destination": "/api/ai-tools?__fn=ronron" },
+    { "source": "/api/tmdb", "destination": "/api/ai-tools?__fn=tmdb" },
 
     { "source": "/api/email", "destination": "/api/comms?__fn=email" },
     { "source": "/api/sms", "destination": "/api/comms?__fn=sms" },
