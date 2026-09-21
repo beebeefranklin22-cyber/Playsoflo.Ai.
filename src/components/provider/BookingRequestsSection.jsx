@@ -58,19 +58,24 @@ export default function BookingRequestsSection({ currentUser }) {
         provider_notes: notes
       });
 
-      // Send comprehensive notifications
-      const notificationType = status === 'confirmed' ? 'booking_confirmed' : 'booking_cancelled';
-      await base44.functions.invoke('sendBookingNotifications', {
-        booking_id: booking.id,
-        notification_type: notificationType,
-        provider_email: booking.provider_email,
-        customer_email: booking.customer_email,
-        service_title: booking.service_title,
-        booking_date: booking.booking_date,
-        booking_time: booking.booking_time,
-        total_price: booking.total_price,
-        confirmation_code: booking.confirmation_code,
-        cancellation_reason: status === 'cancelled' ? 'Declined by provider' : null
+      // This used to call base44.functions.invoke('sendBookingNotifications', ...),
+      // a backend function that was never implemented -- every accept/decline
+      // threw here, AFTER the status update above had already succeeded, so
+      // the booking's real status changed in the database while the mutation
+      // itself failed silently (no onError handler): no success toast, and
+      // invalidateQueries below never ran, so the booking kept showing as
+      // "pending" in this list even though it no longer was. Notifying the
+      // customer directly, the same way every other notification in this app
+      // is sent, fixes both the false failure and the stale list.
+      const confirmed = status === 'confirmed';
+      await base44.entities.Notification.create({
+        recipient_email: booking.customer_email,
+        type: 'booking_update',
+        title: confirmed ? '✅ Booking Confirmed!' : '❌ Booking Declined',
+        message: confirmed
+          ? `Your booking for ${booking.service_title} on ${booking.booking_date} has been confirmed.`
+          : `Your booking for ${booking.service_title} on ${booking.booking_date} was declined by the provider.`,
+        read: false,
       });
 
       return booking;
@@ -81,6 +86,9 @@ export default function BookingRequestsSection({ currentUser }) {
       setSelectedBooking(null);
       setProviderNotes("");
       toast.success(variables.status === 'confirmed' ? 'Booking confirmed! Customer notified.' : 'Booking declined. Customer notified.');
+    },
+    onError: (error) => {
+      toast.error('Failed to update booking: ' + error.message);
     }
   });
 
