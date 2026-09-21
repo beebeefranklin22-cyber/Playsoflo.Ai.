@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Wallet, DollarSign } from "lucide-react";
+import { CreditCard, DollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import StripePaymentForm from "./StripePaymentForm";
 import { base44 } from "@/api/base44Client";
@@ -27,13 +27,6 @@ export default function PaymentMethodSelector({
       color: 'from-blue-600 to-indigo-600'
     },
     {
-      id: 'paypal',
-      name: 'PayPal',
-      description: 'Fast & secure',
-      icon: Wallet,
-      color: 'from-blue-500 to-blue-700'
-    },
-    {
       id: 'wallet',
       name: 'SoFlo Wallet',
       description: 'Instant payment',
@@ -41,25 +34,6 @@ export default function PaymentMethodSelector({
       color: 'from-purple-600 to-pink-600'
     }
   ];
-
-  const handlePayPal = async () => {
-    setProcessing(true);
-    try {
-      const { data } = await base44.functions.invoke('processPayPalPayment', {
-        amount,
-        reference_type: referenceType,
-        reference_id: referenceId,
-        description
-      });
-
-      if (data.approval_url) {
-        window.location.href = data.approval_url;
-      }
-    } catch (error) {
-      toast.error('PayPal payment failed: ' + error.message);
-      setProcessing(false);
-    }
-  };
 
   const handleWallet = async () => {
     setProcessing(true);
@@ -132,8 +106,6 @@ export default function PaymentMethodSelector({
             onClick={() => {
               if (method.id === 'stripe') {
                 setSelectedMethod('stripe');
-              } else if (method.id === 'paypal') {
-                handlePayPal();
               } else if (method.id === 'wallet') {
                 handleWallet();
               }
