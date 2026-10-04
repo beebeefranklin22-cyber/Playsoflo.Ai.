@@ -58,6 +58,13 @@ export async function createCarRental(data = {}) {
       selected_add_ons: data.selected_add_ons || [],
       add_ons_total: data.add_ons_total || 0,
       status: 'pending_payment',
+      // CarRentals.jsx already requires drivers_license_url + id_verification_url
+      // before a booking can even be created, so there's always something for
+      // the provider to review from the moment this row exists. This was never
+      // set before, so doc_verification_status stayed null forever and
+      // CarRentalDocReview's "pending_review" queue (which filters on this
+      // exact value) never showed a single booking.
+      doc_verification_status: 'pending_review',
     })
     .select()
     .single();

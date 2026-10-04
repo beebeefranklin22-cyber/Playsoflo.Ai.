@@ -6,6 +6,7 @@ import { CheckCircle, XCircle, Eye, Shield, Clock, AlertCircle, X } from "lucide
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { cancelCarRentalSecure } from "@/functions/cancelCarRentalSecure";
 
 const STATUS_BADGE = {
   not_submitted: { label: "Not Submitted", class: "bg-gray-500/20 text-gray-400" },
@@ -36,31 +37,53 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
     setProcessing(true);
     try {
       const now = new Date().toISOString();
+
+      if (verdict === "rejected") {
+        // This used to just stamp status: 'rejected' directly on the row --
+        // a value api/_handlers/car-rental.js's state machine never
+        // recognizes, and if the renter had already paid, their money would
+        // stay moved into the provider's balance with no refund. Route
+        // through the real cancellation endpoint instead, which refunds
+        // (if paid) and notifies the renter the booking itself was cancelled.
+        const { data } = await cancelCarRentalSecure({ rental_id: rental.id, reason: `Document review: ${rejectionReason}` });
+        if (data?.error) throw new Error(data.error);
+      }
+
+      // doc_verification_status/doc_verified_at/doc_verified_by/
+      // doc_rejection_reason are the provider-only fields the RLS trigger in
+      // migration 0044 actually protects -- status itself is never touched
+      // here, only by the real backend state machine above.
       await base44.entities.CarRental.update(rental.id, {
         doc_verification_status: verdict,
         doc_verified_at: now,
         doc_verified_by: providerEmail,
         doc_rejection_reason: verdict === "rejected" ? rejectionReason : null,
-        status: verdict === "verified" ? "approved" : "rejected",
       });
 
-      // Notify customer
-      await base44.entities.Notification.create({
-        recipient_email: rental.customer_email,
-        type: "booking_update",
-        title: verdict === "verified" ? "✅ Documents Verified!" : "❌ Documents Rejected",
-        message: verdict === "verified"
-          ? `Your documents for renting ${rental.car_make} ${rental.car_model} have been verified. Your booking is confirmed!`
-          : `Your documents for renting ${rental.car_make} ${rental.car_model} were rejected. Reason: ${rejectionReason}`,
-        read: false,
-      });
+      if (verdict === "verified") {
+        await base44.entities.Notification.create({
+          recipient_email: rental.renter_email,
+          type: "booking_update",
+          title: "✅ Documents Verified!",
+          message: `Your documents for renting ${rental.car_make} ${rental.car_model} have been verified. You're all set for pickup.`,
+          read: false,
+        });
+      } else {
+        await base44.entities.Notification.create({
+          recipient_email: rental.renter_email,
+          type: "booking_update",
+          title: "❌ Documents Rejected",
+          message: `Your documents for renting ${rental.car_make} ${rental.car_model} were rejected and the booking has been cancelled. Reason: ${rejectionReason}`,
+          read: false,
+        });
+      }
 
-      toast.success(verdict === "verified" ? "Documents verified & booking approved!" : "Booking rejected — customer notified.");
+      toast.success(verdict === "verified" ? "Documents verified!" : "Booking rejected & cancelled — renter notified.");
       setSelectedRental(null);
       setRejectionReason("");
       queryClient.invalidateQueries(["provider-car-rentals", providerEmail]);
-    } catch {
-      toast.error("Action failed. Please try again.");
+    } catch (err) {
+      toast.error(err.message || "Action failed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -111,7 +134,7 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
           {selectedRental && (
             <div className="bg-gray-800 rounded-2xl p-5 space-y-5 border border-white/10">
               <div className="flex items-center justify-between">
-                <h3 className="text-white font-bold text-lg">{selectedRental.customer_name || selectedRental.customer_email}</h3>
+                <h3 className="text-white font-bold text-lg">{selectedRental.renter_email}</h3>
                 <button onClick={() => { setSelectedRental(null); setRejectionReason(""); }} className="text-gray-400 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
@@ -140,8 +163,10 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
                 <DocImage url={selectedRental.insurance_card_url} label="Insurance Card" />
               </div>
 
-              {/* Actions */}
-              {selectedRental.doc_verification_status === "pending_review" && (
+              {/* Actions -- only while the booking can still be cancelled
+                  (rejecting after pickup would try to cancel an in-progress
+                  rental, which the real cancellation endpoint refuses) */}
+              {selectedRental.doc_verification_status === "pending_review" && ["pending_payment", "confirmed"].includes(selectedRental.status) && (
                 <div className="space-y-3 pt-2 border-t border-white/10">
                   <textarea
                     value={rejectionReason}
@@ -155,14 +180,14 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
                       disabled={processing}
                       className="flex-1 bg-red-600 hover:bg-red-700"
                     >
-                      <XCircle className="w-4 h-4 mr-2" /> Reject
+                      <XCircle className="w-4 h-4 mr-2" /> Reject & Cancel Booking
                     </Button>
                     <Button
                       onClick={() => handleVerdict(selectedRental, "verified")}
                       disabled={processing}
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
-                      <CheckCircle className="w-4 h-4 mr-2" /> Verify & Approve
+                      <CheckCircle className="w-4 h-4 mr-2" /> Verify Documents
                     </Button>
                   </div>
                 </div>
@@ -178,7 +203,7 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
                 {pendingReview.map((r) => (
                   <button key={r.id} onClick={() => setSelectedRental(r)} className="w-full flex items-center justify-between p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl hover:bg-yellow-500/10 transition text-left">
                     <div>
-                      <p className="text-white font-medium">{r.customer_name || r.customer_email}</p>
+                      <p className="text-white font-medium">{r.renter_email}</p>
                       <p className="text-gray-400 text-sm">{r.car_make} {r.car_model} · {r.pickup_date}</p>
                     </div>
                     <Badge className="bg-yellow-500/20 text-yellow-400 flex-shrink-0">Review</Badge>
@@ -198,7 +223,7 @@ export default function CarRentalDocReview({ providerEmail, onClose }) {
                   return (
                     <button key={r.id} onClick={() => setSelectedRental(r)} className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition text-left">
                       <div>
-                        <p className="text-white font-medium">{r.customer_name || r.customer_email}</p>
+                        <p className="text-white font-medium">{r.renter_email}</p>
                         <p className="text-gray-400 text-sm">{r.car_make} {r.car_model} · {r.pickup_date}</p>
                       </div>
                       <Badge className={`${badge.class} flex-shrink-0`}>{badge.label}</Badge>

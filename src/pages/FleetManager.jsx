@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Car, Plus, DollarSign, TrendingUp,
-  Calendar, Edit, Trash2, Upload, Brain
+  Calendar, Edit, Trash2, Upload, Brain, ShieldCheck, Camera, PackageCheck
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -28,6 +28,8 @@ import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 import FeatureTooltip from "../components/onboarding/FeatureTooltip";
 import HelpModal from "../components/onboarding/HelpModal";
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
+import CarRentalDocReview from "../components/car/CarRentalDocReview";
+import VehiclePhotoDocumentation from "../components/fleet/VehiclePhotoDocumentation";
 
 export default function FleetManager() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -40,6 +42,9 @@ export default function FleetManager() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showHelp, setShowHelp] = useState(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [showDocReview, setShowDocReview] = useState(false);
+  const [pickupRental, setPickupRental] = useState(null);
+  const [dropoffRental, setDropoffRental] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -108,6 +113,9 @@ export default function FleetManager() {
 
   const activeRentals = myRentals.filter(r => ['confirmed', 'active'].includes(r.status));
   const [newRental, clearNewRental] = useNewArrivalAlert(myRentals, (r) => r.id);
+  const pendingDocReview = myRentals.filter(r => r.doc_verification_status === 'pending_review').length;
+  const readyForPickup = myRentals.filter(r => r.status === 'confirmed');
+  const readyForDropoff = myRentals.filter(r => r.status === 'in_progress');
   const totalEarnings = myRentals
     .filter(r => r.status === 'completed')
     .reduce((sum, r) => sum + (r.total_amount || 0), 0);
@@ -239,8 +247,14 @@ export default function FleetManager() {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white/10 backdrop-blur-xl border border-white/20">
+          <TabsList className="grid w-full grid-cols-6 bg-white/10 backdrop-blur-xl border border-white/20">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="bookings">
+              Bookings
+              {pendingDocReview > 0 && (
+                <Badge className="ml-2 bg-yellow-500 text-black">{pendingDocReview}</Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="fleet">My Fleet</TabsTrigger>
             <TabsTrigger value="insights">AI Insights</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -249,6 +263,90 @@ export default function FleetManager() {
 
           <TabsContent value="dashboard">
             <FleetDashboard cars={myCars} rentals={myRentals} />
+          </TabsContent>
+
+          <TabsContent value="bookings" className="space-y-6">
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6 flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-8 h-8 text-blue-400" />
+                  <div>
+                    <p className="text-white font-bold text-lg">Document Verification</p>
+                    <p className="text-gray-400 text-sm">
+                      {pendingDocReview > 0
+                        ? `${pendingDocReview} booking${pendingDocReview > 1 ? 's' : ''} waiting on your review`
+                        : 'All caught up — nothing waiting on review'}
+                    </p>
+                  </div>
+                </div>
+                <Button onClick={() => setShowDocReview(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                  Review Documents
+                </Button>
+              </CardContent>
+            </Card>
+
+            {readyForPickup.length > 0 && (
+              <div>
+                <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-green-400" /> Ready for Pickup
+                </h3>
+                <div className="space-y-3">
+                  {readyForPickup.map((rental) => {
+                    const verified = rental.verification_required === false || rental.doc_verification_status === 'verified';
+                    return (
+                      <Card key={rental.id} className="bg-white/5 border-white/10">
+                        <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
+                          <div>
+                            <p className="text-white font-semibold">{rental.car_make} {rental.car_model}</p>
+                            <p className="text-gray-400 text-sm">{rental.renter_email} · {new Date(rental.start_date).toLocaleDateString()}</p>
+                          </div>
+                          {verified ? (
+                            <Button onClick={() => setPickupRental(rental)} className="bg-green-600 hover:bg-green-700">
+                              <Camera className="w-4 h-4 mr-2" /> Confirm Pickup
+                            </Button>
+                          ) : (
+                            <Badge className="bg-yellow-500/20 text-yellow-400">Awaiting document verification</Badge>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {readyForDropoff.length > 0 && (
+              <div>
+                <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+                  <PackageCheck className="w-5 h-5 text-purple-400" /> Ready for Drop-off
+                </h3>
+                <div className="space-y-3">
+                  {readyForDropoff.map((rental) => (
+                    <Card key={rental.id} className="bg-white/5 border-white/10">
+                      <CardContent className="p-4 flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                          <p className="text-white font-semibold">{rental.car_make} {rental.car_model}</p>
+                          <p className="text-gray-400 text-sm">{rental.renter_email} · Due back {new Date(rental.end_date).toLocaleDateString()}</p>
+                        </div>
+                        <Button onClick={() => setDropoffRental(rental)} className="bg-purple-600 hover:bg-purple-700">
+                          <PackageCheck className="w-4 h-4 mr-2" /> Confirm Drop-off
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {readyForPickup.length === 0 && readyForDropoff.length === 0 && (
+              <Card className="bg-white/5 border-white/10">
+                <CardContent className="p-12 text-center">
+                  <Car className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <p className="text-gray-400">No bookings need pickup or drop-off right now.</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="fleet" className="space-y-4">
@@ -466,6 +564,41 @@ export default function FleetManager() {
         onClose={() => setShowPayoutModal(false)}
         currentUser={currentUser}
       />
+
+      {showDocReview && currentUser && (
+        <CarRentalDocReview
+          providerEmail={currentUser.email}
+          onClose={() => setShowDocReview(false)}
+        />
+      )}
+
+      {pickupRental && (
+        <VehiclePhotoDocumentation
+          open={!!pickupRental}
+          onClose={() => setPickupRental(null)}
+          rental={pickupRental}
+          stage="pre"
+          onComplete={() => {
+            setPickupRental(null);
+            queryClient.invalidateQueries(['owner-rentals']);
+            toast.success('Pickup confirmed!');
+          }}
+        />
+      )}
+
+      {dropoffRental && (
+        <VehiclePhotoDocumentation
+          open={!!dropoffRental}
+          onClose={() => setDropoffRental(null)}
+          rental={dropoffRental}
+          stage="post"
+          onComplete={() => {
+            setDropoffRental(null);
+            queryClient.invalidateQueries(['owner-rentals']);
+            toast.success('Drop-off confirmed!');
+          }}
+        />
+      )}
     </div>
   );
 }

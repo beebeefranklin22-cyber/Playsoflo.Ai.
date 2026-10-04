@@ -139,6 +139,9 @@ async function confirmPickup(admin, user, { rental_id, photos, videos, inspectio
   if (error || !rental) throw new Error('Rental not found');
   if (rental.renter_email !== user.email && rental.provider_email !== user.email) throw new Error('You are not part of this rental');
   if (rental.status !== 'confirmed') throw new Error(`Rental is not ready for pickup (status: ${rental.status})`);
+  if (rental.verification_required !== false && rental.doc_verification_status !== 'verified') {
+    throw new Error('The provider still needs to verify your documents before pickup can be confirmed.');
+  }
 
   const { data: row, error: updateError } = await admin.from('car_rentals').update({
     status: 'in_progress',
