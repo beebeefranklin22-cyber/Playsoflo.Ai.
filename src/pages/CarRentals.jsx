@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Car, Shield, Camera, MapPin, Star,
   AlertTriangle, CheckCircle, Upload, Key, Smartphone,
-  ChevronLeft, FileText, Sparkles, Wallet, CreditCard, Loader2, Plus
+  ChevronLeft, FileText, Sparkles, Wallet, CreditCard, Loader2, Plus,
+  Clock, ShieldCheck, ShieldAlert
 } from "lucide-react";
 import LocationFilter from "../components/location/LocationFilter";
 import CitySelector from "../components/location/CitySelector";
@@ -639,6 +640,26 @@ export default function CarRentals() {
                           </Badge>
                         </div>
 
+                        {rental.status === 'cancelled' && rental.cancellation_reason && (
+                          <p className="text-gray-400 text-xs mb-3">Reason: {rental.cancellation_reason}</p>
+                        )}
+
+                        {rental.status === 'confirmed' && rental.verification_required !== false && (
+                          rental.doc_verification_status === 'verified' ? (
+                            <div className="flex items-center gap-2 text-green-400 text-sm mb-3">
+                              <ShieldCheck className="w-4 h-4" /> Documents verified — ready for pickup
+                            </div>
+                          ) : rental.doc_verification_status === 'rejected' ? (
+                            <div className="flex items-center gap-2 text-red-400 text-sm mb-3">
+                              <ShieldAlert className="w-4 h-4" /> Documents rejected{rental.doc_rejection_reason ? `: ${rental.doc_rejection_reason}` : ''}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-yellow-400 text-sm mb-3">
+                              <Clock className="w-4 h-4" /> Waiting for host to verify your documents before pickup
+                            </div>
+                          )
+                        )}
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                           <div className="text-sm">
                             <span className="text-gray-400">Total:</span>
@@ -698,7 +719,7 @@ export default function CarRentals() {
                               Complete Payment
                             </Button>
                           )}
-                          {rental.status === 'confirmed' && (
+                          {rental.status === 'confirmed' && (rental.verification_required === false || rental.doc_verification_status === 'verified') && (
                             <Button
                               size="sm"
                               variant="outline"
