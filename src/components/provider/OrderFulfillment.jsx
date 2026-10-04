@@ -12,6 +12,8 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentConfirmation from "../payment/PaymentConfirmation";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../notifications/IncomingWorkAlert";
 
 export default function OrderFulfillment({ currentUser }) {
   const queryClient = useQueryClient();
@@ -23,14 +25,20 @@ export default function OrderFulfillment({ currentUser }) {
   const { data: orders = [] } = useQuery({
     queryKey: ['provider-orders', currentUser?.email],
     queryFn: () => base44.entities.Order.filter({ provider_email: currentUser.email }),
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true
   });
 
   const { data: bookings = [] } = useQuery({
     queryKey: ['provider-bookings', currentUser?.email],
     queryFn: () => base44.entities.Booking.filter({ provider_email: currentUser.email }),
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true
   });
+
+  const [newOrder, clearNewOrder] = useNewArrivalAlert(orders, (o) => o.id);
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status, tracking }) => {
@@ -175,6 +183,17 @@ export default function OrderFulfillment({ currentUser }) {
 
   return (
     <>
+      <IncomingWorkAlert
+        open={!!newOrder}
+        onClose={clearNewOrder}
+        icon={Package}
+        title="New Order!"
+        subtitle={newOrder?.product_name}
+        details={[
+          { label: "Customer", value: newOrder?.user_email || newOrder?.created_by },
+          { label: "Amount", value: newOrder ? `$${newOrder.total_amount}` : "" },
+        ]}
+      />
       {showConfirmation && (
         <PaymentConfirmation
           amount={confirmedAmount}

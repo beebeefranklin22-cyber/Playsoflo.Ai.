@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +26,8 @@ import HelpModal from "../components/onboarding/HelpModal";
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
 import { mapPropertyBookingToGeneric } from "@/lib/propertyBookingAdapter";
 import { propertyBooking } from "@/functions/propertyBooking";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 
 export default function PropertyProviderHub() {
   const navigate = useNavigate();
@@ -101,7 +103,15 @@ export default function PropertyProviderHub() {
       return propertyBookings.map(mapPropertyBookingToGeneric);
     },
     enabled: !!currentUser,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
+
+  const pendingBookingRequests = useMemo(
+    () => bookings.filter((b) => b.booking_status === "pending"),
+    [bookings]
+  );
+  const [newBooking, clearNewBooking] = useNewArrivalAlert(pendingBookingRequests, (b) => b.id);
 
   const createPropertyMutation = useMutation({
     mutationFn: async (data) => {
@@ -184,6 +194,17 @@ export default function PropertyProviderHub() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-emerald-950 to-gray-950 p-6 pb-20">
+      <IncomingWorkAlert
+        open={!!newBooking}
+        onClose={clearNewBooking}
+        icon={Building}
+        title="New Property Booking Request!"
+        subtitle={newBooking?.experience_title}
+        details={[
+          { label: "Guest", value: newBooking?.created_by },
+          { label: "Total", value: newBooking ? `$${newBooking.total_price_usd}` : "" },
+        ]}
+      />
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center gap-4 mb-6">
           <button

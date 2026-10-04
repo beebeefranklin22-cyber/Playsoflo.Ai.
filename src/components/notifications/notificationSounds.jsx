@@ -83,6 +83,24 @@ export function playAlertSound() {
   } catch {}
 }
 
+/**
+ * Incoming work alert — urgent repeating double-trill, square-wave and
+ * louder than every other preset here. Reserved for the one "you have new
+ * paid work" full-screen alert (IncomingWorkAlert.jsx) so it's always
+ * recognizable as different from an ordinary toast notification.
+ */
+export function playIncomingWorkAlert() {
+  try {
+    const trill = (delay) => {
+      playTone(988, 0.11, 'square', 0.32, delay);
+      playTone(1318.51, 0.11, 'square', 0.32, delay + 0.13);
+    };
+    trill(0);
+    trill(0.32);
+    trill(0.64);
+  } catch {}
+}
+
 /** Pick the right sound for a notification type */
 export function playSoundForType(type) {
   const paymentTypes = ['payment_received', 'payment_completed', 'tip_received', 'escrow_released'];

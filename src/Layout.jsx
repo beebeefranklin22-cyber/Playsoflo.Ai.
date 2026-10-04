@@ -18,6 +18,7 @@ import SmartTooltip from "./components/onboarding/SmartTooltip";
 import OnboardingFlow from "./components/onboarding/OnboardingFlow";
 import RealtimeNotificationManager from "./components/notifications/RealtimeNotificationManager";
 import RideNotificationHandler from "./components/notifications/RideNotificationHandler";
+import DeliveryNotificationHandler from "./components/notifications/DeliveryNotificationHandler";
 import PaymentRequestHandler from "./components/notifications/PaymentRequestHandler";
 import TVNavigationHandler from "./components/platform/TVNavigationHandler";
 import SafeErrorHandler from "./components/SafeErrorHandler";
@@ -760,6 +761,10 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Ride Status Notification Handler */}
       <RideNotificationHandler currentUser={currentUser} />
+
+      {/* Delivery Status Notification Handler -- was built but never mounted,
+          so senders/recipients never got the sound+toast it already implements */}
+      <DeliveryNotificationHandler currentUser={currentUser} />
 
       {/* Payment Request Handler (request money / refund popups) */}
       <PaymentRequestHandler currentUser={currentUser} />

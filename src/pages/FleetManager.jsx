@@ -23,6 +23,8 @@ import FleetDisputeResolution from "../components/fleet/FleetDisputeResolution";
 import FleetInsightsModule from "../components/fleet/FleetInsightsModule";
 import FleetDashboard from "../components/fleet/FleetDashboard";
 import ProviderOnboardingFlow from "../components/onboarding/ProviderOnboardingFlow";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 import FeatureTooltip from "../components/onboarding/FeatureTooltip";
 import HelpModal from "../components/onboarding/HelpModal";
 import ProviderPayoutManager from "../components/provider/ProviderPayoutManager";
@@ -105,6 +107,7 @@ export default function FleetManager() {
   });
 
   const activeRentals = myRentals.filter(r => ['confirmed', 'active'].includes(r.status));
+  const [newRental, clearNewRental] = useNewArrivalAlert(myRentals, (r) => r.id);
   const totalEarnings = myRentals
     .filter(r => r.status === 'completed')
     .reduce((sum, r) => sum + (r.total_amount || 0), 0);
@@ -114,6 +117,17 @@ export default function FleetManager() {
 
   return (
     <div className="min-h-screen p-6 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950 pb-20">
+      <IncomingWorkAlert
+        open={!!newRental}
+        onClose={clearNewRental}
+        icon={Car}
+        title="New Rental Booked!"
+        subtitle={newRental?.car_model}
+        details={[
+          { label: "Renter", value: newRental?.renter_email },
+          { label: "Total", value: newRental ? `$${newRental.total_amount}` : "" },
+        ]}
+      />
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>

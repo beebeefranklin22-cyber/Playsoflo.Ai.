@@ -49,8 +49,13 @@ export default function BusinessHubDriverSection({ currentUser, onUserUpdate }) 
     if (!currentUser) return;
     setTogglingOnline(true);
     try {
-      await base44.auth.updateMe({ is_driver_online: !currentUser.is_driver_online });
-      toast.success(currentUser.is_driver_online ? "You're now offline" : "You're now online — accepting rides!");
+      // driver_is_online (not is_driver_online) is the field DriverHub's
+      // incoming-request polling, RealTimeDriverMap, and the admin driver
+      // tools all actually read -- this toggle used to write a different,
+      // unread field, so going "online" here never made DriverHub show any
+      // ride requests.
+      await base44.auth.updateMe({ driver_is_online: !currentUser.driver_is_online });
+      toast.success(currentUser.driver_is_online ? "You're now offline" : "You're now online — accepting rides!");
       if (onUserUpdate) onUserUpdate();
     } catch {
       toast.error("Failed to update status");
@@ -78,18 +83,18 @@ export default function BusinessHubDriverSection({ currentUser, onUserUpdate }) 
       <Card className="bg-white/5 border-white/10">
         <CardContent className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${currentUser.is_driver_online ? "bg-green-400 animate-pulse" : "bg-gray-500"}`} />
+            <div className={`w-3 h-3 rounded-full ${currentUser.driver_is_online ? "bg-green-400 animate-pulse" : "bg-gray-500"}`} />
             <div>
               <p className="text-white font-semibold">Driver Status</p>
-              <p className="text-gray-400 text-sm">{currentUser.is_driver_online ? "Online — accepting rides" : "Offline"}</p>
+              <p className="text-gray-400 text-sm">{currentUser.driver_is_online ? "Online — accepting rides" : "Offline"}</p>
             </div>
           </div>
           <Button
             onClick={toggleOnline}
             disabled={togglingOnline}
-            className={currentUser.is_driver_online ? "bg-gray-600 hover:bg-gray-700" : "bg-green-600 hover:bg-green-700"}
+            className={currentUser.driver_is_online ? "bg-gray-600 hover:bg-gray-700" : "bg-green-600 hover:bg-green-700"}
           >
-            {currentUser.is_driver_online
+            {currentUser.driver_is_online
               ? <><ToggleRight className="w-4 h-4 mr-2" /> Go Offline</>
               : <><ToggleLeft className="w-4 h-4 mr-2" /> Go Online</>
             }
@@ -101,7 +106,7 @@ export default function BusinessHubDriverSection({ currentUser, onUserUpdate }) 
       <DriverStatsOverview
         stats={todayStats}
         rating={currentUser?.driver_rating || "5.0"}
-        isOnline={currentUser?.is_driver_online}
+        isOnline={currentUser?.driver_is_online}
       />
 
       {/* Driver Profile Setup */}

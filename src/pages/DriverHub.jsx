@@ -28,6 +28,8 @@ import DriverStatsOverview from "../components/driver/DriverStatsOverview";
 import DriverProfileSetup from "../components/driver/DriverProfileSetup";
 import { DriverPinPanel } from "../components/ride/DriverPinVerification";
 import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 
 export default function DriverHub() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -167,6 +169,8 @@ export default function DriverHub() {
     initialData: []
   });
 
+  const [newRideRequest, clearNewRideRequest] = useNewArrivalAlert(pendingRequests, (r) => r.id);
+
   const { data: activeRides = [] } = useQuery({
     queryKey: ['driver-active-rides', currentUser?.email],
     queryFn: async () => {
@@ -275,6 +279,18 @@ export default function DriverHub() {
 
   return (
     <PageWrapper showBack={false}>
+      <IncomingWorkAlert
+        open={!!newRideRequest}
+        onClose={clearNewRideRequest}
+        icon={Car}
+        title={driverMode === "rides" ? "New Ride Request!" : "New Delivery Request!"}
+        subtitle={newRideRequest?.pickup_address}
+        details={[
+          { label: "Drop-off", value: newRideRequest?.dropoff_address },
+          { label: "Est. Earnings", value: newRideRequest ? `$${(newRideRequest.fare_breakdown?.driver_earnings || ((newRideRequest.fare_breakdown?.total_fare || 15) * 0.9).toFixed(2))}` : "" },
+        ]}
+        actionLabel="View Request"
+      />
       <DriverLocationTracker isOnline={isOnline} rideId={activeRide?.id} />
       <div className="min-h-screen px-3 sm:px-6 pb-6 pt-2 bg-gradient-to-br from-green-950 via-emerald-950 to-green-950">
       <div className="max-w-7xl mx-auto">

@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle, XCircle, Clock, MapPin, Calendar, User, MessageSquare, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "@/components/notifications/IncomingWorkAlert";
 
 export default function BookingRequestsSection({ currentUser }) {
   const queryClient = useQueryClient();
@@ -48,8 +50,12 @@ export default function BookingRequestsSection({ currentUser }) {
         status: 'pending'
       }, '-created_date');
     },
-    enabled: !!currentUser
+    enabled: !!currentUser,
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true
   });
+
+  const [newBooking, clearNewBooking] = useNewArrivalAlert(bookingRequests, (b) => b.id);
 
   const updateBookingMutation = useMutation({
     mutationFn: async ({ booking, status, notes }) => {
@@ -143,6 +149,17 @@ Generate only the message text, no subject line or greetings.`,
 
   return (
     <div className="space-y-4">
+      <IncomingWorkAlert
+        open={!!newBooking}
+        onClose={clearNewBooking}
+        icon={Calendar}
+        title="New Booking Request!"
+        subtitle={newBooking?.service_title}
+        details={[
+          { label: "Customer", value: newBooking?.customer_email },
+          { label: "Price", value: newBooking ? `$${newBooking.total_price}` : "" },
+        ]}
+      />
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-bold text-white">Pending Booking Requests</h3>
         <Badge className="bg-purple-500/20 text-purple-300">

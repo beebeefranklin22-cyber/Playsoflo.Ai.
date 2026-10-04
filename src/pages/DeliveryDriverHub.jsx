@@ -15,6 +15,8 @@ import VehicleManagementModal from "../components/delivery/VehicleManagementModa
 import ProofOfDeliveryModal from "../components/delivery/ProofOfDeliveryModal";
 import DriverEarningsSummary from "../components/delivery/DriverEarningsSummary";
 import { filterNearbyRequests, DEFAULT_DRIVER_RADIUS_MILES } from "@/lib/geoUtils";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 
 export default function DeliveryDriverHub() {
   const navigate = useNavigate();
@@ -51,6 +53,8 @@ export default function DeliveryDriverHub() {
     refetchInterval: 5000,
     refetchOnWindowFocus: true
   });
+
+  const [newDeliveryRequest, clearNewDeliveryRequest] = useNewArrivalAlert(availableOrders, (o) => o.id);
 
   const { data: myActiveDeliveries = [] } = useQuery({
     queryKey: ['my-active-deliveries', currentUser?.email],
@@ -173,6 +177,17 @@ export default function DeliveryDriverHub() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-cyan-900 to-gray-900 pb-24">
+      <IncomingWorkAlert
+        open={!!newDeliveryRequest}
+        onClose={clearNewDeliveryRequest}
+        icon={Package}
+        title="New Delivery Request!"
+        subtitle={newDeliveryRequest?.pickup_address}
+        details={[
+          { label: "Drop-off", value: newDeliveryRequest?.delivery_address },
+          { label: "Earnings", value: newDeliveryRequest ? `$${(newDeliveryRequest.driver_earnings || 0).toFixed(2)}` : "" },
+        ]}
+      />
       <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-6 border-b border-white/10">
         <div className="max-w-7xl mx-auto">
           <button

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,8 @@ import MenuBulkUpload from "../components/restaurant/MenuBulkUpload";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { updateFoodOrderStatus } from "@/functions/updateFoodOrderStatus";
+import { useNewArrivalAlert } from "@/hooks/useNewArrivalAlert";
+import IncomingWorkAlert from "../components/notifications/IncomingWorkAlert";
 
 // Must match PLATFORM_FEE_RATES.food_order (api/_lib/orderHelpers.js) -- the
 // rate actually withheld server-side on every order. This used to be a
@@ -118,6 +120,9 @@ export default function RestaurantOwnerHub() {
     enabled: !!myRestaurant,
     refetchInterval: 5000
   });
+
+  const newFoodOrders = useMemo(() => orders.filter((o) => o.status === 'pending'), [orders]);
+  const [newFoodOrder, clearNewFoodOrder] = useNewArrivalAlert(newFoodOrders, (o) => o.id);
 
   useEffect(() => {
     if (myRestaurant) {
@@ -377,6 +382,17 @@ export default function RestaurantOwnerHub() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-950 via-red-950 to-pink-950 p-4 md:p-6">
+      <IncomingWorkAlert
+        open={!!newFoodOrder}
+        onClose={clearNewFoodOrder}
+        icon={Package}
+        title="New Food Order!"
+        subtitle={newFoodOrder ? `Order #${newFoodOrder.id.slice(0, 8)}` : ""}
+        details={[
+          { label: "Items", value: (newFoodOrder?.items || []).map((i) => `${i.quantity}× ${i.name}`).join(', ') },
+          { label: "Total", value: newFoodOrder ? `$${(newFoodOrder.total || 0).toFixed(2)}` : "" },
+        ]}
+      />
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
