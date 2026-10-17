@@ -7,6 +7,7 @@ import { createPageUrl } from "@/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { playSoundForType } from "./notificationSounds";
 import { acceptRideSecure } from "@/functions/acceptRideSecure";
+import { matchOptimalDriver } from "@/functions/matchOptimalDriver";
 
 const notificationIcons = {
   booking_confirmed: CheckCircle,
@@ -105,7 +106,11 @@ export default function RealtimeNotificationManager({ currentUser }) {
         const { data } = await acceptRideSecure({ ride_id: rideId });
         if (data?.error) throw new Error(data.error);
       } else {
-        await base44.entities.RideRequest.update(rideId, { driver_status: 'declined', status: 'declined_by_customer' });
+        // See NotificationCenter.jsx's handleRideAction for why this resets
+        // the ride to 'requested' instead of a status value matchDriver
+        // never recognizes.
+        await base44.entities.RideRequest.update(rideId, { driver_email: null, driver_status: 'pending', status: 'requested' });
+        await matchOptimalDriver({ ride_id: rideId });
       }
       await base44.entities.Notification.update(notificationId, { read: true });
       queryClient.invalidateQueries(['notifications']);

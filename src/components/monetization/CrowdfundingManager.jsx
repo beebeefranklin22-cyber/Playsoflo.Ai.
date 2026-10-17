@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Plus, Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function CrowdfundingManager({ currentUser, viewMode = "manage" }) {
   const queryClient = useQueryClient();
@@ -40,11 +41,34 @@ export default function CrowdfundingManager({ currentUser, viewMode = "manage" }
       queryClient.invalidateQueries(['campaigns']);
       toast.success('Campaign created!');
       setShowModal(false);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create campaign');
     }
   });
 
   const backMutation = useMutation({
     mutationFn: async ({ campaignId, amount, tierid, message }) => {
+      if (!amount || amount <= 0) throw new Error('Enter an amount to back this project with');
+      if ((currentUser.balance_usd || 0) < amount) throw new Error('Insufficient wallet balance');
+
+      const campaign = campaigns.find(c => c.id === campaignId);
+      if (!campaign) throw new Error('Campaign not found');
+
+      // This used to record the pledge as payment_status: "completed" and
+      // bump the campaign total without ever charging the backer's wallet
+      // -- campaigns filled up with money nobody actually paid. Crowdfunding
+      // backing has no platform cut today (same treatment as a plain
+      // peer-to-peer tip), so the full amount goes to the creator.
+      const { data: transferResult } = await secureBalanceUpdate({
+        amount,
+        recipient_email: campaign.creator_email,
+        reference_type: 'crowdfunding_backer',
+        reference_id: campaignId,
+        memo: `Backed: ${campaign.campaign_name}`,
+      });
+      if (!transferResult?.success) throw new Error(transferResult?.error || 'Payment failed');
+
       await base44.entities.CampaignBacker.create({
         campaign_id: campaignId,
         backer_email: currentUser.email,
@@ -54,7 +78,6 @@ export default function CrowdfundingManager({ currentUser, viewMode = "manage" }
         payment_status: "completed"
       });
 
-      const campaign = campaigns.find(c => c.id === campaignId);
       await base44.entities.CrowdfundingCampaign.update(campaignId, {
         current_amount: (campaign.current_amount || 0) + amount,
         backers_count: (campaign.backers_count || 0) + 1
@@ -64,6 +87,9 @@ export default function CrowdfundingManager({ currentUser, viewMode = "manage" }
       queryClient.invalidateQueries(['campaigns']);
       toast.success('Thank you for backing!');
       setSelectedCampaign(null);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to back this project');
     }
   });
 

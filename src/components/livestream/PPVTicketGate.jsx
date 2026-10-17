@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock, Crown, Star, Zap, Check, Coins } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { secureBalanceUpdate } from "@/functions/secureBalanceUpdate";
 
 export default function PPVTicketGate({ stream, currentUser, children }) {
   const queryClient = useQueryClient();
@@ -39,6 +40,27 @@ export default function PPVTicketGate({ stream, currentUser, children }) {
 
   const purchaseMutation = useMutation({
     mutationFn: async (tier) => {
+      if ((currentUser.balance_usd || 0) < tier.price_usd) {
+        throw new Error('Insufficient wallet balance');
+      }
+
+      // This used to create the ticket with payment_status: "completed"
+      // without ever moving any money -- every viewer got full paid PPV
+      // access for free while the sale was logged as real. Charge the
+      // viewer's wallet and credit the creator (minus the same 20% PPV
+      // platform fee api/_lib/orderHelpers.js's CREDIT_FEE_RATES.ppv
+      // charges on the Stripe-funded path) before recording the ticket.
+      const creatorEarnings = tier.price_usd * 0.8;
+      const { data: transferResult } = await secureBalanceUpdate({
+        amount: tier.price_usd,
+        credit_amount: creatorEarnings,
+        recipient_email: stream.created_by,
+        reference_type: 'ppv_ticket',
+        reference_id: tier.id,
+        memo: `PPV ticket: ${stream.title} (${tier.tier_name})`,
+      });
+      if (!transferResult?.success) throw new Error(transferResult?.error || 'Payment failed');
+
       // Create ticket
       const ticket = await base44.entities.LivestreamTicket.create({
         stream_id: stream.id,

@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import UniversalReviewModal from "../reviews/UniversalReviewModal";
 import { acceptRideSecure } from "@/functions/acceptRideSecure";
+import { matchOptimalDriver } from "@/functions/matchOptimalDriver";
 
 const notificationIcons = {
   'ride_request': Car,
@@ -119,7 +120,15 @@ export default function NotificationCenter({ currentUser, compact = false }) {
         const { data } = await acceptRideSecure({ ride_id: rideId });
         if (data?.error) throw new Error(data.error);
       } else {
-        await base44.entities.RideRequest.update(rideId, { driver_status: 'declined', status: 'declined_by_customer' });
+        // This used to set status: 'declined_by_customer' -- a value
+        // api/_handlers/rides.js's matchDriver only ever re-matches rides
+        // with status 'requested', so a declined ride got permanently
+        // stuck with no driver and the passenger silently never rematched.
+        // Reset it back to open (both DriverHub's own "browse nearby
+        // requests" poll and an immediate re-match below can now pick it
+        // up) instead.
+        await base44.entities.RideRequest.update(rideId, { driver_email: null, driver_status: 'pending', status: 'requested' });
+        await matchOptimalDriver({ ride_id: rideId });
       }
       await base44.entities.Notification.update(notificationId, { read: true });
     },

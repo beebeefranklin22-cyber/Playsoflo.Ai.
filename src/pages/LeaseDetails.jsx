@@ -278,7 +278,7 @@ export default function LeaseDetails() {
 
         {lease.status === 'active' && (
           <Button
-            onClick={() => navigate(createPageUrl("RentPayments") + `?lease=${leaseId}`)}
+            onClick={() => navigate(createPageUrl("LeasePortal"))}
             className="w-full bg-green-600 hover:bg-green-700 py-6 text-lg"
           >
             <DollarSign className="w-5 h-5 mr-2" />

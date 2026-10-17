@@ -4,7 +4,6 @@ import { createPageUrl } from "@/utils";
 import { CheckCircle, Package, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { base44 } from "@/api/base44Client";
 
 export default function OrderSuccess() {
   const [searchParams] = useSearchParams();
@@ -14,22 +13,16 @@ export default function OrderSuccess() {
   const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
 
+  // This used to call base44.functions.invoke('processShopifyOrder', ...),
+  // a backend function that was never implemented (the Shopify checkout
+  // integration it belonged to -- ShopifyCheckoutModal.jsx -- was removed
+  // as dead/orphaned earlier). Nothing in the app currently links here, so
+  // this page is unreachable except by someone typing the URL directly, but
+  // it was also showing a false "5% affiliate commission added to your
+  // wallet instantly" banner regardless -- no commission was ever credited.
   useEffect(() => {
-    const processOrder = async () => {
-      if (sessionId && orderId) {
-        try {
-          await base44.functions.invoke('processShopifyOrder', {
-            session_id: sessionId,
-            order_id: orderId
-          });
-        } catch (error) {
-          console.error('Order processing error:', error);
-        }
-      }
-      setTimeout(() => setLoading(false), 1000);
-    };
-    processOrder();
-  }, [sessionId, orderId]);
+    setTimeout(() => setLoading(false), 500);
+  }, []);
 
   if (loading) {
     return (
@@ -56,16 +49,6 @@ export default function OrderSuccess() {
             Your order has been successfully placed. We'll start processing it right away.
           </p>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-2xl p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">💰</span>
-              <div className="text-left">
-                <p className="text-green-400 font-bold text-lg">Commission Earned!</p>
-                <p className="text-green-300 text-sm">5% affiliate commission added to your wallet instantly</p>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-white/5 rounded-2xl p-6 mb-6 border border-white/10">
             <div className="flex items-center gap-3 mb-4">
               <Package className="w-6 h-6 text-purple-400" />
@@ -80,12 +63,6 @@ export default function OrderSuccess() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button
-              onClick={() => navigate(createPageUrl("Wallet"))}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              View Wallet & Commission
-            </Button>
             <Button
               onClick={() => navigate(createPageUrl("Marketplace"))}
               className="w-full bg-purple-600 hover:bg-purple-700"
