@@ -94,7 +94,12 @@ export const AuthProvider = ({ children }) => {
     if (session?.user) await fetchUserProfile(session.user);
   };
 
-  const navigateToLogin = () => { window.location.href = '/login'; };
+  // There's no dedicated /login route in this app (every sign-in entry
+  // point uses LoginModal/AuthGateScreen instead) -- '/login' was a dead
+  // link to PageNotFound. Nothing currently sets authError to
+  // 'auth_required' to trigger this, but land on Home instead of a 404 if
+  // anything ever does.
+  const navigateToLogin = () => { window.location.href = '/'; };
 
   const updateProfile = async (updates) => {
     if (!user?.id) throw new Error('Not authenticated');
