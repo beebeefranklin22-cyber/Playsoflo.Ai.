@@ -46,8 +46,14 @@ export default function DashboardMetrics({ currentUser }) {
     queryKey: ['provider-reviews', currentUser?.email],
     queryFn: async () => {
       if (!currentUser) return [];
+      // Was filtering on provider_email, a field no review write path ever
+      // sets (UniversalReviewModal/ProviderReviewsDisplay both use
+      // reviewed_user_email) -- this metric was always 0. Also now matches
+      // the same queryKey's queryFn in ProviderReviewsDisplay.jsx /
+      // ProviderProfile.jsx, which used to disagree on what this cache
+      // entry actually held.
       return await base44.entities.UserReview.filter({
-        provider_email: currentUser.email
+        reviewed_user_email: currentUser.email
       });
     },
     enabled: !!currentUser

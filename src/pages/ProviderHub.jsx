@@ -25,6 +25,7 @@ import ProviderPayoutManager from "../components/provider/ProviderPayoutManager"
 import AdvancedVideoEditor from "../components/video/AdvancedVideoEditor";
 import VideoEditorPro from "../components/creator/VideoEditorPro";
 import DashboardMetrics from "../components/provider/DashboardMetrics";
+import ProviderReviewsDisplay from "../components/provider/ProviderReviewsDisplay";
 import RentalNotifications from "../components/provider/RentalNotifications";
 import StripeExpressDashboard from "../components/provider/StripeExpressDashboard";
 import ActiveRentalsManager from "../components/provider/ActiveRentalsManager";
@@ -497,6 +498,7 @@ export default function ProviderHub() {
                 report generator, data export) live under Earnings & Reports
                 so this tab stays scannable instead of stacking 7 dashboards. */}
             <DashboardMetrics currentUser={currentUser} />
+            <ProviderReviewsDisplay providerEmail={currentUser?.email} showDetailed={true} />
             <RentalNotifications currentUser={currentUser} />
             <StripeExpressDashboard currentUser={currentUser} />
             <PerformanceDashboard currentUser={currentUser} />

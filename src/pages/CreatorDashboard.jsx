@@ -13,8 +13,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 import WithdrawModal from "@/components/wallet/WithdrawModal";
+import CreatorAnalyticsDashboard from "@/components/creator/CreatorAnalyticsDashboard";
 
-const TABS = ["overview", "videos", "earnings", "tips"];
+const TABS = ["overview", "videos", "earnings", "tips", "analytics"];
 
 export default function CreatorDashboard() {
   const navigate = useNavigate();
@@ -367,6 +368,10 @@ export default function CreatorDashboard() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === "analytics" && (
+          <CreatorAnalyticsDashboard currentUser={currentUser} />
         )}
       </div>
 

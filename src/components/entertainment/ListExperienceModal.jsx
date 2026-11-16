@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { base44 } from "@/api/base44Client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import SeatingChartManager from "./SeatingChartManager";
 
 export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
   const queryClient = useQueryClient();
@@ -46,6 +47,8 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
     special_requirements: "",
     pricing_tiers: [],
     pass_types: [],
+    seating_enabled: false,
+    seating_zones: [],
     batch_prefix: `${Date.now().toString(36).toUpperCase().slice(-6)}`,
     current_batch_number: 0
   });
@@ -685,13 +688,28 @@ export default function ListExperienceModal({ isOpen, onClose, currentUser }) {
             {step === 4 && (
               <>
                 <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4">
-                  <h3 className="text-white font-bold mb-3">Step 4: Scheduling (Optional)</h3>
-                  <p className="text-gray-300 text-sm mb-4">Advanced scheduling and seating features available after listing</p>
-                  <Button 
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white font-bold">Step 4: Assigned Seating (Optional)</h3>
+                    <Switch
+                      checked={experience.seating_enabled}
+                      onCheckedChange={(checked) => setExperience(prev => ({ ...prev, seating_enabled: checked }))}
+                    />
+                  </div>
+                  {experience.seating_enabled ? (
+                    <SeatingChartManager
+                      zones={experience.seating_zones}
+                      onChange={(zones) => setExperience(prev => ({ ...prev, seating_zones: zones }))}
+                    />
+                  ) : (
+                    <p className="text-gray-300 text-sm">
+                      Turn this on to define seating zones (general, VIP, premium, etc.) with their own capacity and pricing. Leave off for general-admission events.
+                    </p>
+                  )}
+                  <Button
                     onClick={() => setStep(5)}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-blue-600 hover:bg-blue-700 mt-4"
                   >
-                    Skip to Next Step
+                    Next Step
                   </Button>
                 </div>
               </>

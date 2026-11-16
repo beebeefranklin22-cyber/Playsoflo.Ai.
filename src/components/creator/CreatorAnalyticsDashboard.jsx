@@ -89,7 +89,21 @@ export default function CreatorAnalyticsDashboard({ currentUser }) {
       return await base44.entities.ViewerAnalytics.list();
     },
     enabled: !!currentUser,
-    initialData: []
+    initialData: [],
+    refetchInterval: 10000,
+  });
+
+  // ViewerAnalytics rows have no creator field of their own (created_by is
+  // the VIEWER's email, set by LivestreamViewer.jsx on mount/unmount) --
+  // need this creator's own content ids to know which rows are theirs.
+  const { data: myContent = [] } = useQuery({
+    queryKey: ['analytics-my-content', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.StreamingContent.filter({ created_by: currentUser.email });
+    },
+    enabled: !!currentUser,
+    initialData: [],
   });
 
   const { data: revenueShares = [] } = useQuery({
@@ -103,7 +117,15 @@ export default function CreatorAnalyticsDashboard({ currentUser }) {
   });
 
   // Metrics
-  const liveViewers = activeStreams.reduce(() => Math.floor(Math.random() * 500) + 50, 0);
+  // Was Math.random() -- a fabricated number that changed on every render,
+  // regardless of whether anyone was actually watching. ViewerAnalytics
+  // rows with is_currently_watching=true for one of this creator's own
+  // content ids is the real, already-maintained live-viewer signal
+  // (LivestreamViewer.jsx sets it true on mount, false on unmount/pause).
+  const myContentIds = new Set(myContent.map((c) => c.id));
+  const liveViewers = viewerAnalytics.filter(
+    (v) => v.is_currently_watching && myContentIds.has(v.content_id)
+  ).length;
   const totalTips = tips.reduce((sum, t) => sum + (t.amount_usd || 0), 0);
   const totalPPVRevenue = ppvPurchases.reduce((sum, p) => sum + (p.amount_paid_usd || 0), 0);
   const monthlyMembershipRevenue = memberships.reduce((sum, m) => sum + (m.monthly_amount_usd || 0), 0);

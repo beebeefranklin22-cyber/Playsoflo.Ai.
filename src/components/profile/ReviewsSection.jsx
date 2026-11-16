@@ -2,20 +2,14 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Star, ThumbsUp, Loader2, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Star, ThumbsUp, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
+import UniversalReviewModal from "../reviews/UniversalReviewModal";
 
-export default function ReviewsSection({ userEmail, isOwnProfile, currentUser }) {
+export default function ReviewsSection({ userEmail, userName, isOwnProfile, currentUser }) {
   const queryClient = useQueryClient();
   const [showWriteReview, setShowWriteReview] = useState(false);
-  const [newReview, setNewReview] = useState({
-    rating: 5,
-    review_text: "",
-    categories: { quality: 5, communication: 5, professionalism: 5, value: 5 }
-  });
 
   const { data: reviews = [], isLoading } = useQuery({
     queryKey: ['user-reviews', userEmail],
@@ -25,25 +19,9 @@ export default function ReviewsSection({ userEmail, isOwnProfile, currentUser })
 
   const hasReviewed = reviews.some(r => r.reviewer_email === currentUser?.email);
 
-  const createReviewMutation = useMutation({
-    mutationFn: () => base44.entities.UserReview.create({
-      ...newReview,
-      reviewed_user_email: userEmail,
-      reviewer_email: currentUser.email,
-      reviewer_name: currentUser.full_name,
-      reviewer_photo: currentUser.profile_photo
-    }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-reviews', userEmail] });
-      setShowWriteReview(false);
-      setNewReview({ rating: 5, review_text: "", categories: { quality: 5, communication: 5, professionalism: 5, value: 5 } });
-      toast.success('Review submitted!');
-    }
-  });
-
   const helpfulMutation = useMutation({
-    mutationFn: (review) => base44.entities.UserReview.update(review.id, { 
-      helpful_count: (review.helpful_count || 0) + 1 
+    mutationFn: (review) => base44.entities.UserReview.update(review.id, {
+      helpful_count: (review.helpful_count || 0) + 1
     }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user-reviews', userEmail] })
   });
@@ -194,101 +172,21 @@ export default function ReviewsSection({ userEmail, isOwnProfile, currentUser })
         </div>
       )}
 
-      {/* Write Review Modal */}
-      <AnimatePresence>
-        {showWriteReview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
-            onClick={() => setShowWriteReview(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-gray-900 rounded-2xl p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white">Write a Review</h3>
-                <button onClick={() => setShowWriteReview(false)}>
-                  <X className="w-6 h-6 text-gray-400" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Overall Rating */}
-                <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Overall Rating</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button
-                        key={star}
-                        onClick={() => setNewReview(prev => ({ ...prev, rating: star }))}
-                        className="p-1"
-                      >
-                        <Star 
-                          className={`w-8 h-8 transition ${
-                            star <= newReview.rating 
-                              ? 'text-yellow-400 fill-yellow-400' 
-                              : 'text-gray-600 hover:text-yellow-400'
-                          }`} 
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Category Ratings */}
-                <div className="space-y-3">
-                  {['quality', 'communication', 'professionalism', 'value'].map(category => (
-                    <div key={category}>
-                      <label className="text-gray-400 text-sm mb-1 block capitalize">{category}</label>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <button
-                            key={star}
-                            onClick={() => setNewReview(prev => ({
-                              ...prev,
-                              categories: { ...prev.categories, [category]: star }
-                            }))}
-                          >
-                            <Star 
-                              className={`w-5 h-5 transition ${
-                                star <= newReview.categories[category] 
-                                  ? 'text-yellow-400 fill-yellow-400' 
-                                  : 'text-gray-600 hover:text-yellow-400'
-                              }`} 
-                            />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Textarea
-                  value={newReview.review_text}
-                  onChange={(e) => setNewReview(prev => ({ ...prev, review_text: e.target.value }))}
-                  placeholder="Share your experience..."
-                  className="bg-white/10 border-white/20 text-white"
-                  rows={4}
-                />
-
-                <Button
-                  onClick={() => createReviewMutation.mutate()}
-                  disabled={createReviewMutation.isPending}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                >
-                  {createReviewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Review'}
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Write Review Modal -- this used to be a self-contained modal here
+          that created a UserReview with no verified_transaction flag, no
+          booking linkage, and no notification to the reviewed user (a
+          weaker, parallel write path to the one every other review flow in
+          the app uses). Reuse UniversalReviewModal instead so this profile
+          produces the same shape of review as everywhere else. */}
+      {showWriteReview && (
+        <UniversalReviewModal
+          reviewedUserEmail={userEmail}
+          reviewedUserName={userName}
+          reviewType="service"
+          onClose={() => setShowWriteReview(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['user-reviews', userEmail] })}
+        />
+      )}
     </div>
   );
 }

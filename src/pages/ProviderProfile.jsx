@@ -11,7 +11,7 @@ import {
   Globe, Calendar, TrendingUp, ChevronLeft, ExternalLink,
   Linkedin, Github, Twitter, Instagram, Edit, Camera, X
 } from "lucide-react";
-import ReviewsList from "../components/reviews/ReviewsList";
+import ProviderReviewsDisplay from "../components/provider/ProviderReviewsDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -57,7 +57,7 @@ export default function ProviderProfile() {
     queryKey: ["provider-verifications"],
     queryFn: async () => {
       if (!currentUser) return [];
-      return await base44.entities.ProviderVerification.filter({ 
+      return await base44.entities.ProviderVerification.filter({
         provider_email: currentUser.email,
         status: "verified"
       });
@@ -65,6 +65,23 @@ export default function ProviderProfile() {
     enabled: !!currentUser,
     initialData: []
   });
+
+  // Shares a cache entry with ProviderReviewsDisplay below (same query key),
+  // so this doesn't cost a second request -- just reuses it for the trust
+  // indicator tile, which used to average services[].rating (a field
+  // nothing ever actually sets) instead of real customer reviews.
+  const { data: reviews = [] } = useQuery({
+    queryKey: ['provider-reviews', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser) return [];
+      return await base44.entities.UserReview.filter({ reviewed_user_email: currentUser.email }, '-created_date', 100);
+    },
+    enabled: !!currentUser,
+    initialData: []
+  });
+  const avgReviewRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : 0;
 
   const { data: services = [] } = useQuery({
     queryKey: ["provider-services"],
@@ -428,10 +445,13 @@ export default function ProviderProfile() {
           <ProviderCalendarManager currentUser={currentUser} />
         </div>
 
-        {/* Customer Reviews */}
+        {/* Customer Reviews -- this used to render ReviewsList, which only
+            accepts serviceType/serviceId props (not providerEmail) and
+            queries a different, stale entity (Review, not UserReview) --
+            so it never showed a real review here. */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-white mb-4">Customer Reviews</h2>
-          <ReviewsList providerEmail={currentUser?.email} />
+          <ProviderReviewsDisplay providerEmail={currentUser?.email} showDetailed={true} />
         </div>
 
         {/* Services */}
@@ -489,7 +509,7 @@ export default function ProviderProfile() {
           <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
             <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
             <div className="text-2xl font-bold text-white mb-1">
-              {services.reduce((sum, s) => sum + (s.rating || 0), 0) / services.length || 0}
+              {avgReviewRating}
             </div>
             <div className="text-gray-400 text-sm">Avg Rating</div>
           </div>

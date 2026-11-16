@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import ReviewsList from "../components/reviews/ReviewsList";
+import ReviewsSection from "../components/profile/ReviewsSection";
 import ProfileCustomization from "../components/profile/ProfileCustomization";
 import FollowStats from "../components/social/FollowStats";
 import DeleteAccountModal from "../components/profile/DeleteAccountModal";
@@ -666,7 +666,12 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="reviews" className="space-y-4">
-            <ReviewsList userEmail={currentUser?.email} />
+            <ReviewsSection
+              userEmail={currentUser?.email}
+              userName={currentUser?.full_name}
+              isOwnProfile={true}
+              currentUser={currentUser}
+            />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">

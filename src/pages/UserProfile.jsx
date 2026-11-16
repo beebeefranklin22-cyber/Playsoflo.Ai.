@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   Grid, Video, MessageCircle, MoreHorizontal, ChevronLeft, Play,
   Heart, Globe, Twitter, Instagram, Facebook, Youtube, Linkedin, AtSign,
-  MoreVertical, ShoppingBag, Megaphone, ExternalLink, Plus, Music, Trash2
+  MoreVertical, ShoppingBag, Megaphone, ExternalLink, Plus, Music, Trash2, Star
 } from "lucide-react";
+import ReviewsSection from "../components/profile/ReviewsSection";
 import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -226,6 +227,7 @@ export default function UserProfile() {
     { id: "videos", label: "Videos", icon: Video },
     { id: "reels", label: "Reels", icon: Play },
     { id: "showcase", label: "Showcase", icon: ShoppingBag },
+    { id: "reviews", label: "Reviews", icon: Star },
     { id: "more", label: "More", icon: MoreVertical },
   ];
 
@@ -636,6 +638,18 @@ export default function UserProfile() {
           {showcasePosts.length === 0 && !isOwnProfile && (
             <div className="text-center py-20 text-gray-400">No showcase posts yet</div>
           )}
+        </div>
+      )}
+
+      {/* ── REVIEWS TAB ── */}
+      {canViewContent && activeTab === "reviews" && (
+        <div className="p-3">
+          <ReviewsSection
+            userEmail={profileUser?.email}
+            userName={profileUser?.full_name}
+            isOwnProfile={isOwnProfile}
+            currentUser={currentUser}
+          />
         </div>
       )}
 
